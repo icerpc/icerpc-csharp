@@ -8,6 +8,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Security;
+using ZeroC.Tests.Common;
 
 namespace IceRpc.Conformance.Tests;
 

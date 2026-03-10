@@ -15,7 +15,7 @@ an upstream git repository and the files to vendor from it.
 
     [source.<name>]
     repo    = "<git-clone-url>"      # required — upstream repository URL
-    ref     = "<tag|branch>"         # required — git ref to check out
+    rev     = "<tag|branch|commit>"  # required — git rev to check out
     source  = "<subdir>"             # optional — subdirectory within the repo
                                      #   to treat as the file root (default: repo root)
     dest    = "<subdir>"             # required — local directory to copy files into,
@@ -72,18 +72,27 @@ def collect_files(base_dir: Path, patterns: list[str]) -> list[str]:
 def fetch_source(name: str, config: dict, tmp_base: Path) -> tuple[Path, list[str]]:
     """Clone a source and return (source_dir, matched_relpaths)."""
     repo = config["repo"]
-    ref = config["ref"]
+    rev = config["rev"]
     source = config.get("source", "")
     patterns = config["include"]
 
     clone_dir = tmp_base / name
-    print(f"[{name}] Cloning {repo} @ {ref} ...")
+    print(f"[{name}] Fetching {repo} @ {rev} ...")
+    subprocess.run(["git", "init", str(clone_dir)], capture_output=True, text=True, check=True)
+    subprocess.run(
+        ["git", "-C", str(clone_dir), "remote", "add", "origin", repo],
+        capture_output=True, text=True, check=True,
+    )
     result = subprocess.run(
-        ["git", "clone", "--depth", "1", "--branch", ref, "--", repo, str(clone_dir)],
+        ["git", "-C", str(clone_dir), "fetch", "--depth", "1", "origin", rev],
         capture_output=True, text=True,
     )
     if result.returncode != 0:
-        sys.exit(f"Error: failed to clone {repo} @ {ref}\n{result.stderr.strip()}")
+        sys.exit(f"Error: failed to fetch {repo} @ {rev}\n{result.stderr.strip()}")
+    subprocess.run(
+        ["git", "-C", str(clone_dir), "checkout", "FETCH_HEAD"],
+        capture_output=True, text=True, check=True,
+    )
 
     source_dir = clone_dir / source if source else clone_dir
     if not source_dir.is_dir():
@@ -208,7 +217,7 @@ def main() -> None:
     if not sources:
         sys.exit("Error: no [source.*] sections found in slice.toml.")
 
-    required_keys = ("repo", "ref", "dest", "include")
+    required_keys = ("repo", "rev", "dest", "include")
     for name, source in sources.items():
         missing = [k for k in required_keys if k not in source]
         if missing:

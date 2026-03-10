@@ -1,0 +1,32 @@
+// Copyright (c) ZeroC, Inc.
+
+using NUnit.Framework;
+
+namespace ZeroC.Slice.CodeGen.Tests.Identifiers;
+
+/// <summary>These tests verify that the cs::identifier attribute will cause slicec-cs to generate C# with the
+/// specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure that the
+/// code generation worked correctly. </summary>
+[Parallelizable(scope: ParallelScope.All)]
+public class IdentifierAttributeTests
+{
+    [Test]
+    public void Renamed_struct_identifier()
+    {
+        // Act
+        var myStruct = new REnamedStruct(1, REnamedEnum.REnamedEnumerator);
+
+        // Assert
+        Assert.That(myStruct.renamedX, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Renamed_enum_and_enumerators()
+    {
+        // Act / Assert
+        REnamedEnum myEnum = REnamedEnum.REnamedEnumerator;
+
+        // Assert
+        Assert.That(myEnum, Is.EqualTo(REnamedEnum.REnamedEnumerator));
+    }
+}

@@ -21,28 +21,9 @@
     },
     // Slice Tests
     {
-      "paths": ["tests/ZeroC.Slice.Tests"]
-    },
-    {
       "paths": [
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/A",
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/B",
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/C",
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/D"
-      ]
-    },
-    {
-      "paths": [
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/A",
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/B",
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/C",
-        "tests/ZeroC.Slice.Tests.ReferencedAssemblies/DPrime"
-      ]
-    },
-    {
-      "paths": [
-        "tests/IntegrationTests",
-        "tests/IceRpc.Slice.Tests",
+        "tests/ZeroC.Slice.CodeGen.Tests",
+        "tests/IceRpc.Slice.CodeGen.Tests",
         "tests/IceRpc.Compressor.Tests"
       ]
     },

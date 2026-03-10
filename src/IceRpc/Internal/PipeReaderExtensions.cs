@@ -9,110 +9,166 @@ namespace IceRpc.Internal;
 /// <summary>Provides extension methods for <see cref="PipeReader" /> to decode payloads.</summary>
 internal static class PipeReaderExtensions
 {
-    /// <summary>Reads a Slice segment from a pipe reader.</summary>
+    /// <summary>Reads an Ice segment from a pipe reader.</summary>
     /// <param name="reader">The pipe reader.</param>
-    /// <param name="encoding">The encoding.</param>
     /// <param name="maxSize">The maximum size of this segment.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled" /> is
     /// <see langword="true" />.</returns>
-    /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
-    /// exceeds <paramref name="maxSize" />.</exception>
-    /// <remarks>The caller must call AdvanceTo on the reader, as usual. With Slice1, this method reads all
-    /// the remaining bytes in the reader; otherwise, this method reads the segment size in the segment and returns
-    /// exactly segment size bytes. This method often examines the buffer it returns as part of ReadResult,
-    /// therefore the caller should never examine less than Buffer.End.</remarks>
-    internal static async ValueTask<ReadResult> ReadSegmentAsync(
+    /// <exception cref="InvalidDataException">Thrown when the segment size exceeds <paramref name="maxSize" />.
+    /// </exception>
+    /// <remarks>The caller must call AdvanceTo on the reader, as usual. This method reads all the remaining bytes in
+    /// the reader.</remarks>
+    internal static async ValueTask<ReadResult> ReadIceSegmentAsync(
         this PipeReader reader,
-        SliceEncoding encoding,
         int maxSize,
         CancellationToken cancellationToken)
     {
         Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
         // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
-        // call TryReadSegment.
+        // call TryReadIceSegment.
 
-        if (encoding == SliceEncoding.Slice1)
+        // We read everything up to the maxSize + 1.
+        // It's maxSize + 1 and not maxSize because if the segment's size is maxSize, we could get
+        // readResult.IsCompleted == false even though the full segment was read.
+        ReadResult readResult = await reader.ReadAtLeastAsync(maxSize + 1, cancellationToken).ConfigureAwait(false);
+
+        if (readResult.IsCompleted && readResult.Buffer.Length <= maxSize)
         {
-            // We read everything up to the maxSize + 1.
-            // It's maxSize + 1 and not maxSize because if the segment's size is maxSize, we could get
-            // readResult.IsCompleted == false even though the full segment was read.
+            return readResult;
+        }
+        else
+        {
+            reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+            throw new InvalidDataException("The segment size exceeds the maximum value.");
+        }
+    }
 
-            ReadResult readResult = await reader.ReadAtLeastAsync(maxSize + 1, cancellationToken).ConfigureAwait(false);
+    /// <summary>Reads a Slice segment from a pipe reader.</summary>
+    /// <param name="reader">The pipe reader.</param>
+    /// <param name="maxSize">The maximum size of this segment.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled" /> is
+    /// <see langword="true" />.</returns>
+    /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
+    /// exceeds <paramref name="maxSize" />.</exception>
+    /// <remarks>The caller must call AdvanceTo on the reader, as usual. This method reads the segment size in the
+    /// segment and returns exactly segment size bytes. This method often examines the buffer it returns as part of
+    /// ReadResult, therefore the caller should never examine less than Buffer.End.</remarks>
+    internal static async ValueTask<ReadResult> ReadSliceSegmentAsync(
+        this PipeReader reader,
+        int maxSize,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
-            if (readResult.IsCompleted && readResult.Buffer.Length <= maxSize)
+        // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
+        // call TryReadSliceSegment.
+
+        ReadResult readResult;
+        int segmentSize;
+
+        while (true)
+        {
+            readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+            try
             {
-                return readResult;
+                if (IsCompleteSegment(ref readResult, maxSize, out segmentSize, out long consumed))
+                {
+                    return readResult;
+                }
+                else if (segmentSize > 0)
+                {
+                    Debug.Assert(consumed > 0);
+
+                    // We decoded the segmentSize and examined the whole buffer but it was not sufficient.
+                    reader.AdvanceTo(readResult.Buffer.GetPosition(consumed), readResult.Buffer.End);
+                    break; // while
+                }
+                else
+                {
+                    Debug.Assert(!readResult.IsCompleted); // see IsCompleteSegment
+                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    // and continue loop with at least one additional byte
+                }
             }
-            else
+            catch
+            {
+                // A ReadAsync or TryRead method that throws an exception should not leave the reader in a
+                // "reading" state.
+                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                throw;
+            }
+        }
+
+        readResult = await reader.ReadAtLeastAsync(segmentSize, cancellationToken).ConfigureAwait(false);
+
+        if (readResult.IsCanceled)
+        {
+            return readResult;
+        }
+
+        if (readResult.Buffer.Length < segmentSize)
+        {
+            Debug.Assert(readResult.IsCompleted);
+            reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+            throw new InvalidDataException(
+                $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} bytes were expected.");
+        }
+
+        return readResult.Buffer.Length == segmentSize ? readResult :
+            new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
+    }
+
+    /// <summary>Attempts to read an Ice segment from a pipe reader.</summary>
+    /// <param name="reader">The pipe reader.</param>
+    /// <param name="maxSize">The maximum size of this segment.</param>
+    /// <param name="readResult">The read result.</param>
+    /// <returns><see langword="true" /> when <paramref name="readResult" /> contains the segment read synchronously, or
+    /// the call was cancelled; otherwise, <see langword="false" />.</returns>
+    /// <exception cref="InvalidDataException">Thrown when the segment size exceeds the max segment size.</exception>
+    /// <remarks>When this method returns <see langword="true" />, the caller must call AdvanceTo on the reader, as
+    /// usual. When this method returns <see langword="false" />, the caller must call
+    /// <see cref="ReadIceSegmentAsync" />.</remarks>
+    internal static bool TryReadIceSegment(
+        this PipeReader reader,
+        int maxSize,
+        out ReadResult readResult)
+    {
+        Debug.Assert(maxSize is > 0 and < int.MaxValue);
+
+        if (reader.TryRead(out readResult))
+        {
+            if (readResult.IsCanceled)
+            {
+                return true; // and the buffer does not matter
+            }
+
+            if (readResult.Buffer.Length > maxSize)
             {
                 reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 throw new InvalidDataException("The segment size exceeds the maximum value.");
             }
-        }
-        else
-        {
-            ReadResult readResult;
-            int segmentSize;
 
-            while (true)
+            if (readResult.IsCompleted)
             {
-                readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-
-                try
-                {
-                    if (IsCompleteSegment(ref readResult, maxSize, out segmentSize, out long consumed))
-                    {
-                        return readResult;
-                    }
-                    else if (segmentSize > 0)
-                    {
-                        Debug.Assert(consumed > 0);
-
-                        // We decoded the segmentSize and examined the whole buffer but it was not sufficient.
-                        reader.AdvanceTo(readResult.Buffer.GetPosition(consumed), readResult.Buffer.End);
-                        break; // while
-                    }
-                    else
-                    {
-                        Debug.Assert(!readResult.IsCompleted); // see IsCompleteSegment
-                        reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                        // and continue loop with at least one additional byte
-                    }
-                }
-                catch
-                {
-                    // A ReadAsync or TryRead method that throws an exception should not leave the reader in a
-                    // "reading" state.
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    throw;
-                }
+                return true;
             }
-
-            readResult = await reader.ReadAtLeastAsync(segmentSize, cancellationToken).ConfigureAwait(false);
-
-            if (readResult.IsCanceled)
+            else
             {
-                return readResult;
-            }
-
-            if (readResult.Buffer.Length < segmentSize)
-            {
-                Debug.Assert(readResult.IsCompleted);
+                // don't consume anything but mark the whole buffer as examined - we need more.
                 reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                throw new InvalidDataException(
-                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} bytes were expected.");
             }
-
-            return readResult.Buffer.Length == segmentSize ? readResult :
-                new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
         }
+
+        readResult = default;
+        return false;
     }
 
     /// <summary>Attempts to read a Slice segment from a pipe reader.</summary>
     /// <param name="reader">The pipe reader.</param>
-    /// <param name="encoding">The encoding.</param>
     /// <param name="maxSize">The maximum size of this segment.</param>
     /// <param name="readResult">The read result.</param>
     /// <returns><see langword="true" /> when <paramref name="readResult" /> contains the segment read synchronously, or
@@ -122,72 +178,39 @@ internal static class PipeReaderExtensions
     /// <remarks>When this method returns <see langword="true" />, the caller must call AdvanceTo on the reader, as
     /// usual. This method often examines the buffer it returns as part of ReadResult, therefore the caller should never
     /// examine less than Buffer.End when the return value is <see langword="true" />. When this method returns
-    /// <see langword="false" />, the caller must call <see cref="ReadSegmentAsync" />.</remarks>
-    internal static bool TryReadSegment(
+    /// <see langword="false" />, the caller must call <see cref="ReadSliceSegmentAsync" />.</remarks>
+    internal static bool TryReadSliceSegment(
         this PipeReader reader,
-        SliceEncoding encoding,
         int maxSize,
         out ReadResult readResult)
     {
         Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
-        if (encoding == SliceEncoding.Slice1)
+        if (reader.TryRead(out readResult))
         {
-            if (reader.TryRead(out readResult))
+            try
             {
-                if (readResult.IsCanceled)
-                {
-                    return true; // and the buffer does not matter
-                }
-
-                if (readResult.Buffer.Length > maxSize)
-                {
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    throw new InvalidDataException("The segment size exceeds the maximum value.");
-                }
-
-                if (readResult.IsCompleted)
+                if (IsCompleteSegment(ref readResult, maxSize, out int segmentSize, out long _))
                 {
                     return true;
                 }
                 else
                 {
-                    // don't consume anything but mark the whole buffer as examined - we need more.
+                    // we don't consume anything but examined the whole buffer since it's not sufficient.
                     reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = default;
+                    return false;
                 }
             }
-
-            readResult = default;
-            return false;
+            catch
+            {
+                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                throw;
+            }
         }
         else
         {
-            if (reader.TryRead(out readResult))
-            {
-                try
-                {
-                    if (IsCompleteSegment(ref readResult, maxSize, out int segmentSize, out long _))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        // we don't consume anything but examined the whole buffer since it's not sufficient.
-                        reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                        readResult = default;
-                        return false;
-                    }
-                }
-                catch
-                {
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    throw;
-                }
-            }
-            else
-            {
-                return false;
-            }
+            return false;
         }
     }
 
