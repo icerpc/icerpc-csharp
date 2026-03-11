@@ -10,7 +10,7 @@ using System.Text;
 namespace IceRpc.ServiceGenerator;
 
 /// <summary>Provides a generator to implement <c>IceRpc.IDispatcher</c> for classes annotated with
-/// the <c>IceRpc.Slice.SliceServiceAttribute</c> attribute.</summary>
+/// the <c>IceRpc.ServiceAttribute</c> attribute.</summary>
 [Generator]
 public class ServiceGenerator : IIncrementalGenerator
 {
@@ -20,7 +20,7 @@ public class ServiceGenerator : IIncrementalGenerator
         IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations =
             context.SyntaxProvider
                 .ForAttributeWithMetadataName(
-                    "IceRpc.Slice.SliceServiceAttribute",
+                    Parser.ServiceAttribute,
                     (node, _) => node is ClassDeclarationSyntax,
                     (context, _) => (ClassDeclarationSyntax)context.TargetNode);
 

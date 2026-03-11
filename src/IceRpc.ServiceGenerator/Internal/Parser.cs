@@ -10,16 +10,19 @@ namespace IceRpc.ServiceGenerator.Internal;
 
 internal sealed class Parser
 {
-    internal const string OperationAttribute = "IceRpc.Slice.SliceOperationAttribute";
-    internal const string ServiceAttribute = "IceRpc.Slice.SliceServiceAttribute";
+    internal const string ServiceAttribute = "IceRpc.ServiceAttribute";
+
+    private const string IceOperationAttribute = "IceRpc.Ice.IceOperationAttribute";
+    private const string SliceOperationAttribute = "IceRpc.Slice.SliceOperationAttribute";
 
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
-    private readonly INamedTypeSymbol? _operationAttribute;
+    private readonly INamedTypeSymbol? _iceOperationAttribute;
     private readonly INamedTypeSymbol? _pipeReaderSymbol;
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
+    private readonly INamedTypeSymbol? _sliceOperationAttribute;
 
     internal Parser(
         Compilation compilation,
@@ -31,17 +34,18 @@ internal sealed class Parser
         _cancellationToken = cancellationToken;
 
         _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
-        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
+        _iceOperationAttribute = _compilation.GetTypeByMetadataName(IceOperationAttribute);
         _pipeReaderSymbol = _compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
+        _sliceOperationAttribute = _compilation.GetTypeByMetadataName(SliceOperationAttribute);
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null || _serviceAttribute is null)
+        if ((_iceOperationAttribute is null && _sliceOperationAttribute is null) || _serviceAttribute is null)
         {
             // nothing to do if these types aren't available
-            return Array.Empty<ServiceClass>();
+            return [];
         }
 
         var serviceDefinitions = new List<ServiceClass>();
@@ -159,7 +163,6 @@ internal sealed class Parser
 
     private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
     {
-        Debug.Assert(_operationAttribute is not null);
         var allServiceMethods = new List<ServiceMethod>();
         foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
         {
@@ -173,8 +176,23 @@ internal sealed class Parser
         var serviceMethods = new List<ServiceMethod>();
         foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (GetAttribute(method, _operationAttribute!) is not AttributeData attribute)
+            Idl idl = default;
+            AttributeData? attribute = null;
+
+            if (_sliceOperationAttribute is not null)
             {
+                attribute = GetAttribute(method, _sliceOperationAttribute);
+                idl = Idl.Slice;
+            }
+            if (attribute is null && _iceOperationAttribute is not null)
+            {
+                attribute = GetAttribute(method, _iceOperationAttribute);
+                idl = Idl.Ice;
+            }
+
+            if (attribute is null)
+            {
+                // This interface method is neither Ice nor Slice, so we ignore it.
                 continue;
             }
 
@@ -186,6 +204,10 @@ internal sealed class Parser
                     return serviceMethods;
                 }
             }
+
+            // The code below works because the IceOperationAttribute and SliceOperationAttribute have the same
+            // constructor signature and compatible named arguments. We may want to change that, for example rename
+            // EncodedReturn to MarshaledResult for IceOperationAttribute.
 
             ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
             Debug.Assert(
@@ -315,6 +337,7 @@ internal sealed class Parser
 
             serviceMethods.Add(
                 new ServiceMethod(
+                    idl,
                     dispatchMethodName: dispatchMethodName,
                     operationName: operationName,
                     fullInterfaceName: GetFullName(interfaceSymbol),

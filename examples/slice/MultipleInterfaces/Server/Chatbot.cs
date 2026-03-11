@@ -9,7 +9,7 @@ namespace MultipleInterfacesServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements the 'Greeter' and 'RequestCounter' Slice interfaces.
 /// </summary>
-[SliceService]
+[Service]
 internal partial class Chatbot : IGreeterService, IRequestCounterService
 {
     private int _requestCount;

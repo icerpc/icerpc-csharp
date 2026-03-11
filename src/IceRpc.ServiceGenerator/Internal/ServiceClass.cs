@@ -2,7 +2,7 @@
 
 namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Represents a C# class that has the <c>IceRpc.Slice.SliceServiceAttribute</c> attribute and for which this
+/// <summary>Represents a C# class that has the <c>IceRpc.ServiceAttribute</c> attribute and for which this
 /// generator implements the <c>IceRpc.IDispatcher</c> interface.</summary>
 internal class ServiceClass : ContainerDefinition
 {

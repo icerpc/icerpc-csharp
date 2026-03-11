@@ -62,7 +62,7 @@ public partial class OperationGeneratedCodeTests
         Assert.That(compressResponseFeature, Is.True);
     }
 
-    [SliceService]
+    [Service]
     public partial class MyOperationsAService : IMyOperationsAService
     {
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(

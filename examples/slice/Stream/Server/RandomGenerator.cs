@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 
 namespace StreamServer;
 
-[SliceService]
+[Service]
 internal partial class RandomGenerator : IGeneratorService
 {
     public ValueTask<IAsyncEnumerable<int>> GenerateNumbersAsync(

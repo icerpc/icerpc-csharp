@@ -7,7 +7,7 @@ using TwoD;
 namespace DiscriminatedUnionServer;
 
 /// <summary>A MathWizard is an IceRPC service that implements Slice interface 'AreaCalculator'.</summary>
-[SliceService]
+[Service]
 internal partial class MathWizard : IAreaCalculatorService
 {
     public ValueTask<double> ComputeAreaAsync(

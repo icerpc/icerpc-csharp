@@ -21,7 +21,7 @@ public partial class ServiceTests
     }
 }
 
-[SliceService]
+[Service]
 internal partial class MyBaseService : IBaseService
 {
     public ValueTask Op1Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
@@ -34,7 +34,7 @@ internal partial class MyDerivedService : MyBaseService, IDerivedService
     public ValueTask Op2Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
 }
 
-[SliceService]
+[Service]
 internal partial class MyMoreDerivedService : MyDerivedService, IMoreDerivedService
 {
     public ValueTask Op3Async(IFeatureCollection features, CancellationToken cancellationToken) => default;

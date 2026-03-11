@@ -24,7 +24,7 @@ public partial class NamespaceAttributeTests
         Assert.That(r.I, Is.EqualTo(10));
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class NamespaceOperationsService : INamespaceOperationsService
     {
         public ValueTask<NamespaceAttribute.MappedNamespace.S1> Op1Async(

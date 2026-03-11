@@ -12,6 +12,11 @@ internal class Emitter
         cancellationToken.ThrowIfCancellationRequested();
 
         CodeBlock codeBlock = Preamble();
+        foreach (Idl idl in serviceClass.ServiceMethods.Select(serviceMethod => serviceMethod.Idl).Distinct())
+        {
+            codeBlock.WriteLine($"using IceRpc.{idl};");
+        }
+        codeBlock.WriteLine("using ZeroC.Slice.Codec;");
 
         if (serviceClass.ContainingNamespace is not null)
         {
@@ -24,7 +29,7 @@ internal class Emitter
             .AddBase("IceRpc.IDispatcher")
             .AddComment(
                 "summary",
-                @"Implements <see cref=""IceRpc.IDispatcher"" /> for the Slice interface(s) implemented by this class.")
+                @"Implements <see cref=""IceRpc.IDispatcher"" /> for the generated interface(s) implemented by this class.")
             .AddBlock(GenerateDispatch(serviceClass))
             .Build();
 
@@ -238,7 +243,5 @@ internal class Emitter
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CS0619 // Type or member is obsolete
 
-using IceRpc.Slice;
-using ZeroC.Slice.Codec;
 ";
 }

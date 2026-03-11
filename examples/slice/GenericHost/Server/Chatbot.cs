@@ -7,7 +7,7 @@ using VisitorCenter;
 namespace GenericHostServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
-[SliceService]
+[Service]
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",

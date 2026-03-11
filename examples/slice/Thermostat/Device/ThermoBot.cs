@@ -10,7 +10,7 @@ namespace ThermostatDevice;
 
 /// <summary>Implements all the logic of our thermostat device, without any actual electronics or a real AC unit.
 /// </summary>
-[SliceService]
+[Service]
 internal partial class ThermoBot : IThermoControlService
 {
     internal Task ReadCompleted => _readTcs.Task;

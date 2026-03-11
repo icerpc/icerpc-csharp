@@ -6,6 +6,9 @@ namespace IceRpc.ServiceGenerator.Internal;
 /// <c>IceRpc.Slice.SliceOperationAttribute</c> attribute.</summary>
 internal readonly record struct ServiceMethod
 {
+    /// <summary>Gets the IDL used to define the corresponding operation.</summary>
+    internal Idl Idl { get; }
+
     /// <summary>Gets the name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
     internal string DispatchMethodName { get; }
 
@@ -49,6 +52,7 @@ internal readonly record struct ServiceMethod
     internal bool Idempotent { get; }
 
     internal ServiceMethod(
+        Idl idl,
         string dispatchMethodName,
         string operationName,
         string fullInterfaceName,
@@ -62,6 +66,7 @@ internal readonly record struct ServiceMethod
         string[] exceptionSpecification,
         bool idempotent)
     {
+        Idl = idl;
         DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
         FullInterfaceName = fullInterfaceName;

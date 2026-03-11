@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 
 namespace UploadServer;
 
-[SliceService]
+[Service]
 internal partial class EarthImageStore : IUploaderService
 {
     public async ValueTask UploadImageAsync(
