@@ -64,20 +64,20 @@ internal sealed class Parser
                     continue;
                 }
 
-                IReadOnlyList<ServiceMethod> baseServiceMethods = Array.Empty<ServiceMethod>();
+                IReadOnlyList<IServiceMethod> baseServiceMethods = [];
                 INamedTypeSymbol? baseServiceClass = GetBaseServiceClass(classSymbol);
                 if (baseServiceClass is not null)
                 {
                     baseServiceMethods = GetServiceMethods(baseServiceClass.AllInterfaces);
                 }
 
-                IReadOnlyList<ServiceMethod> serviceMethods = GetServiceMethods(classSymbol.AllInterfaces)
+                IReadOnlyList<IServiceMethod> serviceMethods = GetServiceMethods(classSymbol.AllInterfaces)
                     .Except(baseServiceMethods)
                     .Distinct()
                     .ToList();
 
                 var operationNames = new HashSet<string>();
-                foreach (ServiceMethod method in serviceMethods)
+                foreach (IServiceMethod method in serviceMethods)
                 {
                     if (!operationNames.Add(method.OperationName))
                     {
@@ -161,9 +161,9 @@ internal sealed class Parser
         }
     }
 
-    private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
+    private IReadOnlyList<IServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
     {
-        var allServiceMethods = new List<ServiceMethod>();
+        var allServiceMethods = new List<IServiceMethod>();
         foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
         {
             allServiceMethods.AddRange(GetServiceMethods(interfaceSymbol));
@@ -171,9 +171,9 @@ internal sealed class Parser
         return allServiceMethods;
     }
 
-    private IReadOnlyList<ServiceMethod> GetServiceMethods(INamedTypeSymbol interfaceSymbol)
+    private IReadOnlyList<IServiceMethod> GetServiceMethods(INamedTypeSymbol interfaceSymbol)
     {
-        var serviceMethods = new List<ServiceMethod>();
+        var serviceMethods = new List<IServiceMethod>();
         foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
             Idl idl = default;
@@ -338,8 +338,8 @@ internal sealed class Parser
             serviceMethods.Add(
                 new ServiceMethod(
                     idl,
-                    dispatchMethodName: dispatchMethodName,
                     operationName: operationName,
+                    dispatchMethodName: dispatchMethodName,
                     fullInterfaceName: GetFullName(interfaceSymbol),
                     parameterCount: parameterCount,
                     parameterFieldNames: parameterFieldNames,

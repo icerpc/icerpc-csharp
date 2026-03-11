@@ -1,60 +1,184 @@
 // Copyright (c) ZeroC, Inc.
 
+using ZeroC.CodeBuilder;
+
 namespace IceRpc.ServiceGenerator.Internal;
 
 /// <summary>Represents an abstract method in a generated XxxService interface marked with an IDL-specific attribute,
 /// such as <c>IceRpc.Slice.SliceOperationAttribute</c> for Slice.</summary>
-internal readonly record struct ServiceMethod
+internal class ServiceMethod : IServiceMethod
 {
-    /// <summary>Gets the IDL used to define the corresponding operation.</summary>
-    internal Idl Idl { get; }
+    /// <inheritdoc />
+    public Idl Idl { get; }
 
-    /// <summary>Gets the name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
-    internal string DispatchMethodName { get; }
+    /// <inheritdoc />
+    public string OperationName { get; }
 
-    /// <summary>Gets the name of the operation defined in the Slice interface, for example: "findObjectById".
-    /// </summary>
-    internal string OperationName { get; }
+    private readonly bool _compressReturn;
+    private readonly string _dispatchMethodName;
+    private readonly bool _encodedReturn;
+    private readonly string[] _exceptionSpecification;
+    private readonly string _fullInterfaceName;
+    private readonly bool _idempotent;
+    private readonly int _parameterCount;
+    private readonly string[] _parameterFieldNames;
+    private readonly int _returnCount;
+    private readonly string[] _returnFieldNames;
+    private readonly bool _returnStream;
 
-    /// <summary>Gets the name of the C# service interface, including its namespace. For example:
-    /// "VisitorCenter.IGreeterService".
-    /// </summary>
-    internal string FullInterfaceName { get; }
+    /// <inheritdoc />
+    public CodeBlock GenerateDispatchCaseBody()
+    {
+        var codeBlock = new CodeBlock();
+        if (!_idempotent)
+        {
+            codeBlock.WriteLine("request.CheckNonIdempotent();");
+        }
+        if (_compressReturn)
+        {
+            FunctionCallBuilder withCallBuilder =
+                new FunctionCallBuilder("IceRpc.Features.FeatureCollectionExtensions.With")
+                .ArgumentsOnNewLine(true)
+                .AddArgument("request.Features")
+                .AddArgument("IceRpc.Features.CompressFeature.Compress");
 
-    /// <summary>Gets the arity of the operation.</summary>
-    internal int ParameterCount { get; }
+            codeBlock.WriteLine($"request.Features = {withCallBuilder.Build()}");
+        }
 
-    /// <summary>Gets the capitalized names of the operation parameters.</summary>
-    /// <remarks>This field is empty when <see cref="ParameterCount"/> is 0 or 1.</remarks>
-    internal string[] ParameterFieldNames { get; }
+        string thisInterface = $"((global::{_fullInterfaceName})this)";
 
-    /// <summary>Gets the number of elements in the return value.</summary>
-    internal int ReturnCount { get; }
+        string method;
+        if (_parameterCount <= 1)
+        {
+            method = $"{thisInterface}.{_dispatchMethodName}Async";
+        }
+        else
+        {
+            var methodCallBuilder = new FunctionCallBuilder($"{thisInterface}.{_dispatchMethodName}Async")
+                .UseSemicolon(false);
 
-    /// <summary>Gets the capitalized names of the operation return value fields.</summary>
-    /// <remarks>This field is empty when <see cref="ReturnCount"/> is 0 or 1.</remarks>
-    internal string[] ReturnFieldNames { get; }
+            methodCallBuilder.AddArguments(_parameterFieldNames.Select(name => $"args.{name}"))
+                .AddArgument("features")
+                .AddArgument("cancellationToken");
 
-    /// <summary>Gets a value indicating whether the operation return value has a stream element.</summary>
-    internal bool ReturnStream { get; }
+            method = @$"(args, features, cancellationToken) =>
+        {methodCallBuilder.Build()}";
+        }
 
-    /// <summary>Gets a value indicating whether the return value should be compressed.</summary>
-    internal bool CompressReturn { get; }
+        FunctionCallBuilder dispatchCallBuilder = new FunctionCallBuilder("request.DispatchOperationAsync")
+            .ArgumentsOnNewLine(true)
+            .AddArgument(
+                $"decodeArgs: global::{_fullInterfaceName}.Request.Decode{_dispatchMethodName}Async")
+            .AddArgument($"method: {method}");
 
-    /// <summary>Gets a value indicating whether the non-stream portion of the return value is pre-encoded by the
-    /// application.</summary>
-    internal bool EncodedReturn { get; }
+        // We don't use the generated Response.EncodeXxx method when _returnCount is 0. So we could not generate it.
+        if (_returnCount > 0)
+        {
+            if (_returnCount == 1)
+            {
+                if (_returnStream)
+                {
+                    dispatchCallBuilder.AddArgument(
+                        @$"encodeReturnValue: static (_, encodeOptions) =>
+        global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}(encodeOptions)");
 
-    /// <summary>Gets the exception specification of the operation.</summary>
-    internal string[] ExceptionSpecification { get; }
+                    dispatchCallBuilder.AddArgument(
+                        $"encodeReturnValueStream: global::{_fullInterfaceName}.Response.EncodeStreamOf{_dispatchMethodName}");
+                }
+                else if (_encodedReturn)
+                {
+                    dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
+                }
+                else
+                {
+                    dispatchCallBuilder.AddArgument(
+                        $"encodeReturnValue: global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}");
+                }
+            }
+            else
+            {
+                // Splatting required.
+                var nonStreamReturnNames = new List<string>(_returnFieldNames);
+                if (_returnStream)
+                {
+                    nonStreamReturnNames.RemoveAt(_returnFieldNames.Length - 1);
+                }
 
-    /// <summary>Gets a value indicating whether the operation is idempotent.</summary>
-    internal bool Idempotent { get; }
+                if (_encodedReturn)
+                {
+                    dispatchCallBuilder.AddArgument(
+                        $"encodeReturnValue: (returnValue, _) => returnValue.{nonStreamReturnNames[0]}");
+                }
+                else
+                {
+                    var encodeBuilder = new FunctionCallBuilder(
+                        $"global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}")
+                            .UseSemicolon(false)
+                            .AddArguments(nonStreamReturnNames.Select(name => $"returnValue.{name}"))
+                            .AddArgument("encodeOptions");
 
+                    dispatchCallBuilder.AddArgument(
+                        @$"encodeReturnValue: static (returnValue, encodeOptions) =>
+        {encodeBuilder.Build()}");
+                }
+
+                if (_returnStream)
+                {
+                    string streamFieldName =
+                        _returnFieldNames[_returnFieldNames.Length - 1];
+
+                    var encodeBuilder = new FunctionCallBuilder(
+                        $"global::{_fullInterfaceName}.Response.EncodeStreamOf{_dispatchMethodName}")
+                            .UseSemicolon(false)
+                            .AddArgument($"returnValue.{streamFieldName}")
+                            .AddArgument("encodeOptions");
+
+                    dispatchCallBuilder.AddArgument(
+                        $"encodeReturnValueStream: static (returnValue, encodeOptions) => {encodeBuilder.Build()}");
+                }
+            }
+        }
+
+        if (_exceptionSpecification.Length > 0)
+        {
+            string exceptionList =
+                string.Join(" or ", _exceptionSpecification.Select(ex => $"global::{ex}"));
+
+            dispatchCallBuilder.AddArgument(
+                $"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
+        }
+
+        dispatchCallBuilder.AddArgument("cancellationToken: cancellationToken");
+
+        codeBlock.WriteLine($"return {dispatchCallBuilder.Build()}");
+        return codeBlock;
+    }
+
+    /// <summary>Initializes a new instance of the <see cref="ServiceMethod"/> class.</summary>
+    /// <param name="idl">The IDL used to define the corresponding operation.</param>
+    /// <param name="operationName">The name of the operation defined in the Slice interface, for example:
+    /// "findObjectById".</param>
+    /// <param name="dispatchMethodName">The name of the C# method minus the Async suffix. For example:
+    /// "FindObjectById".</param>
+    /// <param name="fullInterfaceName">The name of the C# service interface, including its namespace. For example:
+    /// "VisitorCenter.IGreeterService".</param>
+    /// <param name="parameterCount">The arity of the operation.</param>
+    /// <param name="parameterFieldNames">The capitalized names of the operation parameters. This is empty when
+    /// <paramref name="parameterCount"/> is 0 or 1.</param>
+    /// <param name="returnCount">The number of elements in the return value.</param>
+    /// <param name="returnFieldNames">The capitalized names of the operation return value fields. This is empty when
+    /// <paramref name="returnCount"/> is 0 or 1.</param>
+    /// <param name="returnStream">A value indicating whether the operation return value has a stream
+    /// element.</param>
+    /// <param name="compressReturn">A value indicating whether the return value should be compressed.</param>
+    /// <param name="encodedReturn">A value indicating whether the non-stream portion of the return value is
+    /// pre-encoded by the application.</param>
+    /// <param name="exceptionSpecification">The exception specification of the operation.</param>
+    /// <param name="idempotent">A value indicating whether the operation is idempotent.</param>
     internal ServiceMethod(
         Idl idl,
-        string dispatchMethodName,
         string operationName,
+        string dispatchMethodName,
         string fullInterfaceName,
         int parameterCount,
         string[] parameterFieldNames,
@@ -67,17 +191,17 @@ internal readonly record struct ServiceMethod
         bool idempotent)
     {
         Idl = idl;
-        DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
-        FullInterfaceName = fullInterfaceName;
-        ParameterCount = parameterCount;
-        ParameterFieldNames = parameterFieldNames;
-        ReturnCount = returnCount;
-        ReturnFieldNames = returnFieldNames;
-        ReturnStream = returnStream;
-        CompressReturn = compressReturn;
-        EncodedReturn = encodedReturn;
-        ExceptionSpecification = exceptionSpecification;
-        Idempotent = idempotent;
+        _compressReturn = compressReturn;
+        _dispatchMethodName = dispatchMethodName;
+        _encodedReturn = encodedReturn;
+        _exceptionSpecification = exceptionSpecification;
+        _fullInterfaceName = fullInterfaceName;
+        _idempotent = idempotent;
+        _parameterCount = parameterCount;
+        _parameterFieldNames = parameterFieldNames;
+        _returnCount = returnCount;
+        _returnFieldNames = returnFieldNames;
+        _returnStream = returnStream;
     }
 }
