@@ -30,9 +30,8 @@ public interface IIceFeature
     /// <value>The maximum depth.</value>
     int MaxDepth { get; }
 
-    /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
-    /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
-    /// variable-size elements.</summary>
-    /// <value>The maximum size of a Slice payload segment, in bytes.</value>
+    /// <summary>Gets the maximum size of a payload segment, in bytes. A payload segment corresponds to the encoded
+    /// arguments of an operation, or the encoded return values of an operation.</summary>
+    /// <value>The maximum size of a payload segment, in bytes.</value>
     int MaxSegmentSize { get; }
 }
