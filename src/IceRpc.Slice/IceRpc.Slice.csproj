@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>IceRpc.Slice for C#.</Description>
+    <Description>IceRPC + Slice integration for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" ExactVersion="true" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
 
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">

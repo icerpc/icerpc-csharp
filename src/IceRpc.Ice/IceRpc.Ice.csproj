@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>IceRpc.Ice for C#.</Description>
+    <Description>IceRPC + Ice integration for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>icerpc;ice;binary;serialization;format</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" ExactVersion="true" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
 
