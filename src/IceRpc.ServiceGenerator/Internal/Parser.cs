@@ -24,6 +24,19 @@ internal sealed class Parser
     private readonly INamedTypeSymbol? _serviceAttribute;
     private readonly INamedTypeSymbol? _sliceOperationAttribute;
 
+    internal static string GetFullName(ISymbol symbol)
+    {
+        if (symbol is INamespaceSymbol namespaceSymbol && namespaceSymbol.IsGlobalNamespace)
+        {
+            return "";
+        }
+        else
+        {
+            string containingSymbolName = GetFullName(symbol.ContainingSymbol);
+            return containingSymbolName.Length == 0 ? symbol.Name : $"{containingSymbolName}.{symbol.Name}";
+        }
+    }
+
     internal Parser(
         Compilation compilation,
         Action<Diagnostic> reportDiagnostic,
@@ -146,19 +159,6 @@ internal sealed class Parser
             return GetBaseServiceClass(baseType);
         }
         return null;
-    }
-
-    private string GetFullName(ISymbol symbol)
-    {
-        if (symbol is INamespaceSymbol namespaceSymbol && namespaceSymbol.IsGlobalNamespace)
-        {
-            return "";
-        }
-        else
-        {
-            string containingSymbolName = GetFullName(symbol.ContainingSymbol);
-            return containingSymbolName.Length == 0 ? symbol.Name : $"{containingSymbolName}.{symbol.Name}";
-        }
     }
 
     private IReadOnlyList<IServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
