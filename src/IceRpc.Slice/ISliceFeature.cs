@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using ZeroC.Slice.Codec;
-
 namespace IceRpc.Slice;
 
 /// <summary>Represents a feature used to customize the encoding and decoding of request and response payloads.
@@ -13,8 +11,8 @@ public interface ISliceFeature
     ISliceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
-    /// <value>The Slice encode options. <see langword="null" /> is equivalent to <see cref="SliceEncodeOptions.Default"
-    /// />.</value>
+    /// <value>The Slice encode options. <see langword="null" /> is equivalent to
+    /// <see cref="SliceEncodeOptions.Default" />.</value>
     SliceEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>

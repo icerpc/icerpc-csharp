@@ -26,7 +26,7 @@ public sealed class IceFeature : IIceFeature
     /// <value>The maximum depth. Defaults to <c>100</c>.</value>
     public int MaxDepth { get; }
 
-    /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
+    /// <summary>Gets the maximum size of an Ice payload segment, in bytes. An Ice payload segment corresponds to the
     /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
     /// <value>The maximum segment size. Defaults to <c>1</c> MB.</value>
     public int MaxSegmentSize { get; }

@@ -12,7 +12,7 @@ internal static class IncomingFrameExtensions
 {
     /// <summary>Decodes arguments or a response value from a pipe reader.</summary>
     /// <param name="frame">The incoming frame.</param>
-    /// <param name="feature">The Slice feature.</param>
+    /// <param name="feature">The Ice feature.</param>
     /// <param name="baseProxy">The base proxy.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="activator">The activator.</param>
@@ -64,7 +64,7 @@ internal static class IncomingFrameExtensions
 
     /// <summary>Reads/decodes empty args or a void return value.</summary>
     /// <param name="frame">The incoming frame.</param>
-    /// <param name="feature">The Slice feature.</param>
+    /// <param name="feature">The Ice feature.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal static ValueTask DecodeVoidAsync(
         this IncomingFrame frame,

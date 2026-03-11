@@ -7,7 +7,7 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice;
 
-/// <summary>Represents a delegate that decodes the return value from a Slice-encoded response.</summary>
+/// <summary>Represents a delegate that decodes the return value from a Ice-encoded response.</summary>
 /// <typeparam name="T">The type of the return value to read.</typeparam>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
@@ -21,7 +21,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IIceProxy sender,
     CancellationToken cancellationToken);
 
-/// <summary>Represents a delegate that decodes the "void" return value from a Slice-encoded response.</summary>
+/// <summary>Represents a delegate that decodes the "void" return value from a Ice-encoded response.</summary>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
@@ -117,7 +117,7 @@ public static class IceProxyExtensions
     /// <summary>Sends a request to a service and decodes the "void" response.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <param name="proxy">A proxy for the remote service.</param>
-    /// <param name="operation">The name of the operation, as specified in Slice.</param>
+    /// <param name="operation">The name of the operation, as specified in Ice Slice.</param>
     /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an

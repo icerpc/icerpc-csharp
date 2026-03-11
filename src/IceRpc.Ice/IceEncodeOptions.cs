@@ -11,7 +11,7 @@ public sealed class IceEncodeOptions
     /// <summary>Gets the default instance of <see cref="IceEncodeOptions" />.</summary>
     public static IceEncodeOptions Default { get; } = new();
 
-    /// <summary>Gets the pipe options that the IceRPC + Slice integration uses when creating pipes. The IceRPC + Slice
+    /// <summary>Gets the pipe options that the IceRPC + Ice integration uses when creating pipes. The IceRPC + Ice
     /// integration creates a pipe when encoding a request or response payload, and when encoding an async enumerable
     /// into a <see cref="PipeReader" />.</summary>
     public PipeOptions PipeOptions { get; }
