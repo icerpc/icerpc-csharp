@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
@@ -66,48 +67,36 @@ internal class IceServiceMethod : IServiceMethod
         // We don't use the generated Response.EncodeXxx method when _returnCount is 0. So we could not generate it.
         if (_returnCount > 0)
         {
-            if (_returnCount == 1)
+            if (_encodedReturn)
             {
-                if (_encodedReturn)
-                {
-                    dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
-                }
-                else
-                {
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}");
-                }
+                dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
+            }
+            else if (_returnCount == 1)
+            {
+                dispatchCallBuilder.AddArgument(
+                    $"encodeReturnValue: global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}");
             }
             else
             {
                 // Splatting required.
-                if (_encodedReturn)
-                {
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: (returnValue, _) => returnValue.{_returnFieldNames[0]}");
-                }
-                else
-                {
-                    var encodeBuilder = new FunctionCallBuilder(
-                        $"global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}")
-                            .UseSemicolon(false)
-                            .AddArguments(_returnFieldNames.Select(name => $"returnValue.{name}"))
-                            .AddArgument("encodeOptions");
+                var encodeBuilder = new FunctionCallBuilder(
+                    $"global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}")
+                        .UseSemicolon(false)
+                        .AddArguments(_returnFieldNames.Select(name => $"returnValue.{name}"))
+                        .AddArgument("encodeOptions");
 
-                    dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: static (returnValue, encodeOptions) =>
+                dispatchCallBuilder.AddArgument(
+                    @$"encodeReturnValue: static (returnValue, encodeOptions) =>
         {encodeBuilder.Build()}");
-                }
             }
         }
 
         if (_exceptionSpecification.Length > 0)
         {
-            string exceptionList =
-                string.Join(" or ", _exceptionSpecification.Select(ex => $"global::{ex}"));
+            string exceptionList = string.Join(" or ", _exceptionSpecification.Select(ex => $"global::{ex}"));
 
             dispatchCallBuilder.AddArgument(
-                $"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
+                $"inExceptionSpecification: iceException => iceException is {exceptionList}");
         }
 
         dispatchCallBuilder.AddArgument("cancellationToken: cancellationToken");
@@ -132,9 +121,9 @@ internal class IceServiceMethod : IServiceMethod
             switch (namedArgument.Key)
             {
                 case "EncodedReturn":
-                    if (namedArgument.Value.Value is bool encodedReturnBool)
+                    if (namedArgument.Value.Value is bool encodedReturn)
                     {
-                        _encodedReturn = encodedReturnBool;
+                        _encodedReturn = encodedReturn;
                     }
                     break;
                 case "ExceptionSpecification":
@@ -148,9 +137,9 @@ internal class IceServiceMethod : IServiceMethod
                     }
                     break;
                 case "Idempotent":
-                    if (namedArgument.Value.Value is bool b)
+                    if (namedArgument.Value.Value is bool idempotent)
                     {
-                        _idempotent = b;
+                        _idempotent = idempotent;
                     }
                     break;
             }
