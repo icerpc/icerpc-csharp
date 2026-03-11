@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using Repository;
 using System.IO.Pipelines;
 
 namespace UploadServer;
 
-[SliceService]
+[Service]
 internal partial class EarthImageStore : IUploaderService
 {
     public async ValueTask UploadImageAsync(

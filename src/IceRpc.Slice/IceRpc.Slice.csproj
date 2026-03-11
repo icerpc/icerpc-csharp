@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>IceRpc.Slice for C#.</Description>
+    <Description>IceRPC + Slice integration for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj"
+                      ExactVersion="true"
+                      PrivateAssets="compile;runtime"
+                      OutputItemType="Analyzer" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
-    <!-- Includes the analyzer in the package without consuming it. -->
-    <ProjectReference
-      Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
-      ReferenceOutputAssembly="false"
-    />
 
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
@@ -25,10 +24,5 @@
     <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
     <Content Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    <Content
-      Include="../IceRpc.Slice.Generators/bin/$(Configuration)/netstandard2.0/IceRpc.Slice.Generators.dll"
-      Pack="true"
-      PackagePath="analyzers/dotnet/cs"
-    />
   </ItemGroup>
 </Project>

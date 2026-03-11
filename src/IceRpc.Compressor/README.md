@@ -51,7 +51,6 @@ string greeting = await greeter.GreetAsync(Environment.UserName);
 // Server application
 
 using IceRpc;
-using IceRpc.Slice;
 using VisitorCenter;
 
 // Add the compressor middleware to the dispatch pipeline.

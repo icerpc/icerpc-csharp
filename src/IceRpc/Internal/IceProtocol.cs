@@ -42,7 +42,7 @@ internal sealed class IceProtocol : Protocol
             }
             else
             {
-                throw new FormatException($"Invalid ice service address parameter name '{name}'.");
+                throw new FormatException($"Invalid service address parameter name '{name}'.");
             }
         }
     }

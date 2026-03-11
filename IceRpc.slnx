@@ -20,9 +20,8 @@
     <Project Path="src/IceRpc.RequestContext/IceRpc.RequestContext.csproj" />
     <Project Path="src/IceRpc.Retry/IceRpc.Retry.csproj" />
     <Project Path="src/IceRpc.Ice/IceRpc.Ice.csproj" />
-    <Project Path="src/IceRpc.Ice.Generators/IceRpc.Ice.Generators.csproj" />
     <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
-    <Project Path="src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" />
+    <Project Path="src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" />
     <Project Path="src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" />
     <Project Path="src/IceRpc.SliceBuildTelemetry.Reporter/IceRpc.SliceBuildTelemetry.Reporter.csproj" />
     <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />

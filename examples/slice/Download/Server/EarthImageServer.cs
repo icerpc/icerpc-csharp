@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using Repository;
 using System.IO.Pipelines;
 
 namespace DownloadServer;
 
-[SliceService]
+[Service]
 internal partial class EarthImageServer : IDownloaderService
 {
     public ValueTask<PipeReader> DownloadImageAsync(IFeatureCollection features, CancellationToken cancellationToken)

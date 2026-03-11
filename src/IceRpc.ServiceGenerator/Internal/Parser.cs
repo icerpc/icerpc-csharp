@@ -6,17 +6,23 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace IceRpc.Ice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 internal sealed class Parser
 {
-    internal const string OperationAttribute = "IceRpc.Ice.IceOperationAttribute";
-    internal const string ServiceAttribute = "IceRpc.Ice.IceServiceAttribute";
+    internal const string ServiceAttribute = "IceRpc.ServiceAttribute";
+
+    private const string IceOperationAttribute = "IceRpc.Ice.IceOperationAttribute";
+    private const string SliceOperationAttribute = "IceRpc.Slice.SliceOperationAttribute";
+
+    private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
-    private readonly INamedTypeSymbol? _operationAttribute;
+    private readonly INamedTypeSymbol? _iceOperationAttribute;
+    private readonly INamedTypeSymbol? _pipeReaderSymbol;
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
+    private readonly INamedTypeSymbol? _sliceOperationAttribute;
 
     internal Parser(
         Compilation compilation,
@@ -27,16 +33,19 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
-        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
+        _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        _iceOperationAttribute = _compilation.GetTypeByMetadataName(IceOperationAttribute);
+        _pipeReaderSymbol = _compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
+        _sliceOperationAttribute = _compilation.GetTypeByMetadataName(SliceOperationAttribute);
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null || _serviceAttribute is null)
+        if ((_iceOperationAttribute is null && _sliceOperationAttribute is null) || _serviceAttribute is null)
         {
             // nothing to do if these types aren't available
-            return Array.Empty<ServiceClass>();
+            return [];
         }
 
         var serviceDefinitions = new List<ServiceClass>();
@@ -123,9 +132,9 @@ internal sealed class Parser
         return null;
     }
 
-    /// <summary>Returns the nearest base class with the IceService attribute.</summary>
+    /// <summary>Returns the nearest base class with the Service attribute.</summary>
     /// <param name="classSymbol">The class symbol.</param>
-    /// <returns>The nearest base class with the IceService attribute. null when there is no such base class.</returns>
+    /// <returns>The nearest base class with the Service attribute. null when there is no such base class.</returns>
     private INamedTypeSymbol? GetBaseServiceClass(INamedTypeSymbol classSymbol)
     {
         if (classSymbol.BaseType is INamedTypeSymbol baseType)
@@ -154,7 +163,6 @@ internal sealed class Parser
 
     private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
     {
-        Debug.Assert(_operationAttribute is not null);
         var allServiceMethods = new List<ServiceMethod>();
         foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
         {
@@ -168,8 +176,23 @@ internal sealed class Parser
         var serviceMethods = new List<ServiceMethod>();
         foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (GetAttribute(method, _operationAttribute!) is not AttributeData attribute)
+            Idl idl = default;
+            AttributeData? attribute = null;
+
+            if (_sliceOperationAttribute is not null)
             {
+                attribute = GetAttribute(method, _sliceOperationAttribute);
+                idl = Idl.Slice;
+            }
+            if (attribute is null && _iceOperationAttribute is not null)
+            {
+                attribute = GetAttribute(method, _iceOperationAttribute);
+                idl = Idl.Ice;
+            }
+
+            if (attribute is null)
+            {
+                // This interface method is neither Ice nor Slice, so we ignore it.
                 continue;
             }
 
@@ -182,12 +205,17 @@ internal sealed class Parser
                 }
             }
 
+            // The code below works because the IceOperationAttribute and SliceOperationAttribute have the same
+            // constructor signature and compatible named arguments. We may want to change that, for example rename
+            // EncodedReturn to MarshaledResult for IceOperationAttribute.
+
             ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
             Debug.Assert(
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
 
+            bool compressReturn = false;
             bool encodedReturn = false;
             string[] exceptionSpecification = [];
             bool idempotent = false;
@@ -196,6 +224,12 @@ internal sealed class Parser
             {
                 switch (namedArgument.Key)
                 {
+                    case "CompressReturn":
+                        if (namedArgument.Value.Value is bool c)
+                        {
+                            compressReturn = c;
+                        }
+                        break;
                     case "EncodedReturn":
                         if (namedArgument.Value.Value is bool encodedReturnBool)
                         {
@@ -265,29 +299,45 @@ internal sealed class Parser
 
             int returnCount = 0;
             string[] returnFieldNames = [];
+            bool streamReturn = false;
 
             if (method.ReturnType is INamedTypeSymbol methodReturnType &&
                 methodReturnType.IsGenericType &&
                 methodReturnType.TypeArguments.Length == 1)
             {
                 ITypeSymbol methodReturnTypeArg = methodReturnType.TypeArguments[0];
+                ITypeSymbol lastFieldType;
 
                 if (methodReturnTypeArg.IsTupleType && methodReturnTypeArg is INamedTypeSymbol methodTupleType)
                 {
                     ImmutableArray<IFieldSymbol> returnElements = methodTupleType.TupleElements;
                     returnCount = returnElements.Length;
                     returnFieldNames = returnElements.Select(e => e.Name).ToArray();
+
+                    lastFieldType = returnElements[returnElements.Length - 1].Type;
                 }
                 else
                 {
                     // It's a simple return type
                     returnCount = 1;
+                    lastFieldType = methodReturnTypeArg;
+                }
+
+                if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, _asyncEnumerableSymbol))
+                {
+                    streamReturn = true;
+                }
+                else if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, _pipeReaderSymbol))
+                {
+                    streamReturn = !encodedReturn || returnCount > 1;
+                    // else, the single parameter is the encoded return, and there is no stream
                 }
             }
-            // else: It's ValueTask (non-generic), returnCount remains 0
+            // else: It's ValueTask (non-generic), returnCount remains 0 and streamReturn remains false.
 
             serviceMethods.Add(
                 new ServiceMethod(
+                    idl,
                     dispatchMethodName: dispatchMethodName,
                     operationName: operationName,
                     fullInterfaceName: GetFullName(interfaceSymbol),
@@ -295,6 +345,8 @@ internal sealed class Parser
                     parameterFieldNames: parameterFieldNames,
                     returnCount: returnCount,
                     returnFieldNames: returnFieldNames,
+                    returnStream: streamReturn,
+                    compressReturn: compressReturn,
                     encodedReturn: encodedReturn,
                     exceptionSpecification: exceptionSpecification,
                     idempotent: idempotent));

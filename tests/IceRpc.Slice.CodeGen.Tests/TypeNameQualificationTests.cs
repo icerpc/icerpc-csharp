@@ -25,7 +25,7 @@ public partial class TypeNameQualificationTests
         Assert.That(r.V, Is.EqualTo("10"));
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class TypeNameQualificationOperationsService : ITypeNameQualificationOperationsService
     {
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(

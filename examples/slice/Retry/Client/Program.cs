@@ -2,7 +2,6 @@
 
 using IceRpc;
 using IceRpc.Retry;
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;

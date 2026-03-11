@@ -1,14 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using StreamExample;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace StreamServer;
 
-[SliceService]
+[Service]
 internal partial class RandomGenerator : IGeneratorService
 {
     public ValueTask<IAsyncEnumerable<int>> GenerateNumbersAsync(

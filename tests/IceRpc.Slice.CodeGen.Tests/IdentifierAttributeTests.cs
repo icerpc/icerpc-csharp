@@ -23,7 +23,7 @@ public partial class IdentifierAttributeTests
         _ = await proxy.REnamedOpAsync(renamedParam: 1);
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class IdentifierOperationsService : IREnamedInterfaceService
     {
         public ValueTask<(int, int)> REnamedOpAsync(

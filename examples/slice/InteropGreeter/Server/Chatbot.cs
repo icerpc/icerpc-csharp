@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Ice;
 using VisitorCenter;
 
 namespace InteropGreeterServer;
 
-/// <summary>A Chatbot is an Ice service that implements interface 'Greeter' (defined in Greeter.ice).</summary>
-[IceService]
+/// <summary>A Chatbot is a service that implements interface 'Greeter' (defined in Greeter.ice).</summary>
+[Service]
 internal partial class Chatbot : IGreeterService
 {
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)

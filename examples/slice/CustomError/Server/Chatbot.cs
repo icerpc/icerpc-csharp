@@ -1,14 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using VisitorCenter;
 using ZeroC.Slice.Codec; // for the Result<TSuccess, TFailure> generic type
 
 namespace CustomErrorServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
-[SliceService]
+[Service]
 internal partial class Chatbot : IGreeterService
 {
     private const int MaxLength = 7;

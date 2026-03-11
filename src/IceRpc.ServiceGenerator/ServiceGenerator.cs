@@ -1,16 +1,16 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice.Generators.Internal;
+using IceRpc.ServiceGenerator.Internal;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Text;
 
-namespace IceRpc.Ice.Generators;
+namespace IceRpc.ServiceGenerator;
 
 /// <summary>Provides a generator to implement <c>IceRpc.IDispatcher</c> for classes annotated with
-/// the <c>IceRpc.Ice.IceServiceAttribute</c> attribute.</summary>
+/// the <c>IceRpc.ServiceAttribute</c> attribute.</summary>
 [Generator]
 public class ServiceGenerator : IIncrementalGenerator
 {
@@ -20,7 +20,7 @@ public class ServiceGenerator : IIncrementalGenerator
         IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations =
             context.SyntaxProvider
                 .ForAttributeWithMetadataName(
-                    "IceRpc.Ice.IceServiceAttribute",
+                    Parser.ServiceAttribute,
                     (node, _) => node is ClassDeclarationSyntax,
                     (context, _) => (ClassDeclarationSyntax)context.TargetNode);
 

@@ -141,7 +141,7 @@ public sealed partial class ExceptionTests
         Assert.That(exception.Message, Is.EqualTo("MyException: i=5, j=6"));
     }
 
-    [IceService]
+    [Service]
     private sealed partial class SliceExceptionOperationsService : ISliceExceptionOperationsService
     {
         private readonly Exception _exception;

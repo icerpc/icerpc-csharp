@@ -1,11 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Ice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Represents an abstract method in a generated XxxService interface marked with the
-/// <c>IceRpc.Ice.IceOperationAttribute</c> attribute.</summary>
+/// <summary>Represents an abstract method in a generated XxxService interface marked with an IDL-specific attribute,
+/// such as <c>IceRpc.Slice.SliceOperationAttribute</c> for Slice.</summary>
 internal readonly record struct ServiceMethod
 {
+    /// <summary>Gets the IDL used to define the corresponding operation.</summary>
+    internal Idl Idl { get; }
+
     /// <summary>Gets the name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
     internal string DispatchMethodName { get; }
 
@@ -32,6 +35,12 @@ internal readonly record struct ServiceMethod
     /// <remarks>This field is empty when <see cref="ReturnCount"/> is 0 or 1.</remarks>
     internal string[] ReturnFieldNames { get; }
 
+    /// <summary>Gets a value indicating whether the operation return value has a stream element.</summary>
+    internal bool ReturnStream { get; }
+
+    /// <summary>Gets a value indicating whether the return value should be compressed.</summary>
+    internal bool CompressReturn { get; }
+
     /// <summary>Gets a value indicating whether the non-stream portion of the return value is pre-encoded by the
     /// application.</summary>
     internal bool EncodedReturn { get; }
@@ -43,6 +52,7 @@ internal readonly record struct ServiceMethod
     internal bool Idempotent { get; }
 
     internal ServiceMethod(
+        Idl idl,
         string dispatchMethodName,
         string operationName,
         string fullInterfaceName,
@@ -50,10 +60,13 @@ internal readonly record struct ServiceMethod
         string[] parameterFieldNames,
         int returnCount,
         string[] returnFieldNames,
+        bool returnStream,
+        bool compressReturn,
         bool encodedReturn,
         string[] exceptionSpecification,
         bool idempotent)
     {
+        Idl = idl;
         DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
         FullInterfaceName = fullInterfaceName;
@@ -61,6 +74,8 @@ internal readonly record struct ServiceMethod
         ParameterFieldNames = parameterFieldNames;
         ReturnCount = returnCount;
         ReturnFieldNames = returnFieldNames;
+        ReturnStream = returnStream;
+        CompressReturn = compressReturn;
         EncodedReturn = encodedReturn;
         ExceptionSpecification = exceptionSpecification;
         Idempotent = idempotent;

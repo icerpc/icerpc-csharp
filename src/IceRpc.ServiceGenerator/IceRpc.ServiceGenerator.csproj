@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>Source generator for IceRPC services.</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>icerpc;source-generator;code-generation;roslyn</PackageTags>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <IsPackable>false</IsPackable>
-    <developmentDependency>true</developmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../ZeroC.CodeBuilder/*.cs" LinkBase="CodeBuilder" />
@@ -14,5 +17,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

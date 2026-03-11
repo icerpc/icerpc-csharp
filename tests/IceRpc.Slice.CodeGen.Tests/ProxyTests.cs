@@ -109,7 +109,7 @@ public partial class ProxyTests
         Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class ReceiveProxyTestService : IReceiveProxyTestService
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(
@@ -118,7 +118,7 @@ public partial class ProxyTests
             new(new ReceiveProxyTestProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class SendProxyTestService : ISendProxyTestService
     {
         public SendProxyTestProxy? ReceivedProxy { get; private set; }

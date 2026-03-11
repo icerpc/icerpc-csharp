@@ -658,7 +658,7 @@ public partial class OperationTests
         }
     }
 
-    [SliceService]
+    [Service]
     private partial class MyOperationsAService : IMyOperationsAService
     {
         public PingableProxy? ReceivedProxy;
@@ -798,7 +798,7 @@ public partial class OperationTests
         public ValueTask OpWithTrailingOptionalValuesAndStreamAsync(int p1, int? p2, int p3, int? p4, int? p5, IAsyncEnumerable<byte?> p6, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class MyDerivedOperationsAService : MyOperationsAService, IMyDerivedOperationsAService
     {
         public ValueTask OpDerivedWithoutParametersAndVoidReturnAsync(
@@ -811,13 +811,13 @@ public partial class OperationTests
             CancellationToken cancellationToken) => new(p);
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class MyTaggedOperationsV0Service : IMyTaggedOperationsV0Service
     {
         public ValueTask OpAsync(int y, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
-    [SliceService]
+    [Service]
     private sealed partial class MyDerivedOperationsService : IMyDerivedOperationsService
     {
         public ValueTask OpAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;

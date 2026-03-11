@@ -2,14 +2,13 @@
 
 using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using System.Security.Cryptography;
 using VisitorCenter;
 
 namespace RetryServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
-[SliceService]
+[Service]
 internal partial class Chatbot : IGreeterService
 {
     private readonly int _serverNumber;
