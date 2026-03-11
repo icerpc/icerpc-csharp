@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace IceRpc.Ice;
 
 /// <summary>Represents a local ambassador for a remote service.</summary>
-public interface IProxy
+public interface IIceProxy
 {
     /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
     /// proxy.</summary>
-    SliceEncodeOptions? EncodeOptions { get; init; }
+    IceEncodeOptions? EncodeOptions { get; init; }
 
     /// <summary>Gets or initializes the invocation pipeline of this proxy.</summary>
     IInvoker Invoker { get; init; }

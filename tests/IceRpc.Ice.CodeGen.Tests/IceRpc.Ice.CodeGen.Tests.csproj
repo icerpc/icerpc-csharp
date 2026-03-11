@@ -20,8 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
-    <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
-    <ProjectReference Include="../../src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../src/IceRpc.Ice/IceRpc.Ice.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Ice.Generators/IceRpc.Ice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
 
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />

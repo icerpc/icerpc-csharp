@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice;
 using NUnit.Framework;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Ice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class Slice1NullableTests

@@ -11,7 +11,7 @@
   <ItemGroup>
     <SliceCompile Include="../slice/Greeter.ice" Rpc="icerpc" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Ice" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -604,7 +604,7 @@ public partial class OperationTests
         PingableProxy receivedProxy = await proxy.OpWithProxyReturnValueAsync();
 
         // Assert
-        Assert.That(receivedProxy.Invoker, Is.EqualTo(((IProxy)proxy).Invoker));
+        Assert.That(receivedProxy.Invoker, Is.EqualTo(((ISliceProxy)proxy).Invoker));
     }
 
     [Test]

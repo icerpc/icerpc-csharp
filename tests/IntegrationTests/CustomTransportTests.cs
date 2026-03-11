@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
+using IceRpc.Ice;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
@@ -133,7 +133,7 @@ public partial class CustomTransportTests
         }
     }
 
-    [SliceService]
+    [IceService]
     public partial class PingableService : IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
