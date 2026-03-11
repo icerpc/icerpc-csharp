@@ -133,7 +133,7 @@ public partial class CustomTransportTests
         }
     }
 
-    [IceService]
+    [Service]
     public partial class PingableService : IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;

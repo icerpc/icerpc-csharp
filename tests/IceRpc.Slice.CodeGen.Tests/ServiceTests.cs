@@ -27,8 +27,7 @@ internal partial class MyBaseService : IBaseService
     public ValueTask Op1Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
 }
 
-// This class doesn't use the SliceService attribute, and no dispatch method would be generated for it. It would
-// be possible to call `IDerivedService` using the code generated for the derived class `MyMoreDerivedService`.
+// This class doesn't use the Service attribute, and no dispatch method is generated for it.
 internal partial class MyDerivedService : MyBaseService, IDerivedService
 {
     public ValueTask Op2Async(IFeatureCollection features, CancellationToken cancellationToken) => default;

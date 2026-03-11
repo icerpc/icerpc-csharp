@@ -110,7 +110,7 @@ public sealed partial class ProtocolBridgingTests
         }
     }
 
-    [IceService]
+    [Service]
     internal sealed partial class ProtocolBridgingTestService : IProtocolBridgingTestService
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;

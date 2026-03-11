@@ -37,7 +37,7 @@ public partial class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    [IceService]
+    [Service]
     private partial class PingableService : IPingableService, IIceObjectService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;

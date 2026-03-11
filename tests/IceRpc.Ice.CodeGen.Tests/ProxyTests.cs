@@ -123,12 +123,12 @@ public partial class ProxyTests
         Assert.That(derived, Is.Null);
     }
 
-    [IceService]
+    [Service]
     private partial class MyBaseInterfaceService : IMyBaseInterfaceService, IIceObjectService
     {
     }
 
-    [IceService]
+    [Service]
     private sealed partial class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
     {
     }

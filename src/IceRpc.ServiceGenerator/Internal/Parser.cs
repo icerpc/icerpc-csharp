@@ -132,9 +132,9 @@ internal sealed class Parser
         return null;
     }
 
-    /// <summary>Returns the nearest base class with the SliceService attribute.</summary>
+    /// <summary>Returns the nearest base class with the Service attribute.</summary>
     /// <param name="classSymbol">The class symbol.</param>
-    /// <returns>The nearest base class with the SliceService attribute. null when there is no such base class.</returns>
+    /// <returns>The nearest base class with the Service attribute. null when there is no such base class.</returns>
     private INamedTypeSymbol? GetBaseServiceClass(INamedTypeSymbol classSymbol)
     {
         if (classSymbol.BaseType is INamedTypeSymbol baseType)
