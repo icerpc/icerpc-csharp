@@ -4,10 +4,9 @@
     <Description>Source generator for IceRPC services.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>icerpc;source-generator;code-generation;roslyn</PackageTags>
-    <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <DevelopmentDependency>true</DevelopmentDependency>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
   <ItemGroup>

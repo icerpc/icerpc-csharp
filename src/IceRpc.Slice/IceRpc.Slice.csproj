@@ -10,8 +10,8 @@
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
     <ProjectReference Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj"
                       ExactVersion="true"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+                      PrivateAssets="compile;runtime"
+                      OutputItemType="Analyzer" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
 
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">

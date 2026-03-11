@@ -1,6 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Analyzer Include="$(MSBuildThisFileDirectory)../analyzers/dotnet/cs/IceRpc.ServiceGenerator.dll"
-              Condition="Exists('$(MSBuildThisFileDirectory)../analyzers/dotnet/cs/IceRpc.ServiceGenerator.dll')" />
+    <Analyzer Include="$(MSBuildThisFileDirectory)../analyzers/dotnet/cs/netstandard2.0/IceRpc.ServiceGenerator.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../analyzers/dotnet/cs/netstandard2.0/IceRpc.ServiceGenerator.dll')" />
   </ItemGroup>
 </Project>
