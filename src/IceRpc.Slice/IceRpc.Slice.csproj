@@ -7,17 +7,6 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <SliceCompile
-      Include="../../slice/Ice/Identity.ice;../../slice/IceRpc/Ice/Object.ice"
-      OutputDir="$(MSBuildProjectDirectory)/generated"
-    />
-
-    <SliceCompile
-      Include="../../slice/IceRpc/Slice/Internal/*.ice"
-      OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
-    />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
     <!-- Includes the analyzer in the package without consuming it. -->
@@ -25,8 +14,6 @@
       Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
       ReferenceOutputAssembly="false"
     />
-
-    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
 
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>

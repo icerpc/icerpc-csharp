@@ -740,9 +740,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
             }
 
-            EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
-                buffer.Slice(1, 6),
-                (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+            EncapsulationHeader encapsulationHeader =
+                buffer.Slice(1, 6).DecodeIceBuffer((ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
 
             // Sanity check
             int payloadSize = encapsulationHeader.EncapsulationSize - 6;
@@ -1169,9 +1168,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
 
-                IcePrologue prologue = SliceEncoding.Slice1.DecodeBuffer(
-                    prologueBuffer,
-                    (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
+                IcePrologue prologue =
+                    prologueBuffer.DecodeIceBuffer((ref SliceDecoder decoder) => new IcePrologue(ref decoder));
 
                 _duplexConnectionReader.AdvanceTo(prologueBuffer.End);
 
@@ -1360,9 +1358,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
-            int requestId = SliceEncoding.Slice1.DecodeBuffer(
-                requestIdBuffer,
-                (ref SliceDecoder decoder) => decoder.DecodeInt32());
+            int requestId = requestIdBuffer.DecodeIceBuffer((ref SliceDecoder decoder) => decoder.DecodeInt32());
             replyFrameReader.AdvanceTo(requestIdBuffer.End);
 
             lock (_mutex)

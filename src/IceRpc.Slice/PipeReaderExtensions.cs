@@ -9,13 +9,23 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for <see cref="PipeReader" /> to decode streamed elements.</summary>
+/// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 public static class PipeReaderExtensions
 {
+    // 4 = varuint62 encoding of the size (1)
+    // 252 = varint32 encoding of the tag end marker (-1)
+    private static readonly ReadOnlySequence<byte> _emptyStructPayload = new([4, 252]);
+
+    extension(PipeReader)
+    {
+        /// <summary>Creates a request or response payload holding an empty Slice struct.</summary>
+        /// <returns>The payload.</returns>
+        public static PipeReader CreateEmptySliceStructPayload() => PipeReader.Create(_emptyStructPayload);
+    }
+
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed elements.</summary>
     /// <typeparam name="T">The type of the element being decoded.</typeparam>
     /// <param name="reader">The pipe reader.</param>
-    /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of one element.</param>
     /// <param name="sliceFeature">The Slice feature to customize the decoding.</param>
@@ -26,7 +36,6 @@ public static class PipeReaderExtensions
     /// the reader after this call.</remarks>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader reader,
-        SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
         int elementSize,
         ISliceFeature? sliceFeature = null)
@@ -45,9 +54,8 @@ public static class PipeReaderExtensions
             // Since the elements are fixed-size, they can't contain service addresses hence baseProxy can remain null.
             var decoder = new SliceDecoder(
                 buffer,
-                encoding,
-                maxCollectionAllocation: sliceFeature.MaxCollectionAllocation,
-                maxDepth: sliceFeature.MaxDepth);
+                SliceEncoding.Slice2,
+                maxCollectionAllocation: sliceFeature.MaxCollectionAllocation);
 
             var items = new T[buffer.Length / elementSize];
             for (int i = 0; i < items.Length; ++i)
@@ -85,7 +93,6 @@ public static class PipeReaderExtensions
     /// <summary>Creates an async enumerable over a pipe reader to decode variable size streamed elements.</summary>
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="reader">The pipe reader.</param>
-    /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="sender">The proxy that sent the request, if applicable.</param>
     /// <param name="sliceFeature">The slice feature to customize the decoding.</param>
@@ -94,19 +101,18 @@ public static class PipeReaderExtensions
     /// the reader after this call.</remarks>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader reader,
-        SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
-        IProxy? sender = null,
+        ISliceProxy? sender = null,
         ISliceFeature? sliceFeature = null)
     {
         sliceFeature ??= SliceFeature.Default;
-        IProxy? baseProxy = sliceFeature.BaseProxy ?? sender;
+        ISliceProxy? baseProxy = sliceFeature.BaseProxy ?? sender;
         return reader.ToAsyncEnumerable(ReadAsync, DecodeBuffer);
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // No activator or max depth since streams are Slice2+.
-            var decoder = new SliceDecoder(buffer, encoding, baseProxy, sliceFeature.MaxCollectionAllocation);
+            // No activator or max depth since streams are Slice2.
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2, baseProxy, sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();
             do
@@ -119,7 +125,7 @@ public static class PipeReaderExtensions
         }
 
         ValueTask<ReadResult> ReadAsync(PipeReader reader, CancellationToken cancellationToken) =>
-            reader.ReadSegmentAsync(encoding, sliceFeature.MaxSegmentSize, cancellationToken);
+            reader.ReadSliceSegmentAsync(sliceFeature.MaxSegmentSize, cancellationToken);
     }
 
     /// <summary>Decodes an async enumerable from a pipe reader.</summary>

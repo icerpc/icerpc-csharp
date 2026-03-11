@@ -279,8 +279,7 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new InvalidDataException($"Received unexpected {frameType} frame.");
             }
 
-            return SliceEncoding.Slice2.DecodeBuffer<(ulong, InitializeBody?)>(
-                buffer,
+            return buffer.DecodeSliceBuffer<(ulong, InitializeBody?)>(
                 (ref SliceDecoder decoder) =>
                 {
                     ulong version = decoder.DecodeVarUInt62();
@@ -302,15 +301,11 @@ internal class SlicConnection : IMultiplexedConnection
             frameType switch
             {
                 FrameType.InitializeAck => (
-                    SliceEncoding.Slice2.DecodeBuffer(
-                        buffer,
-                        (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder)),
+                    buffer.DecodeSliceBuffer((ref SliceDecoder decoder) => new InitializeAckBody(ref decoder)),
                     null),
                 FrameType.Version => (
                     null,
-                    SliceEncoding.Slice2.DecodeBuffer(
-                        buffer,
-                        (ref SliceDecoder decoder) => new VersionBody(ref decoder))),
+                    buffer.DecodeSliceBuffer((ref SliceDecoder decoder) => new VersionBody(ref decoder))),
                 _ => throw new InvalidDataException($"Received unexpected Slic frame: '{frameType}'."),
             };
 
@@ -985,8 +980,7 @@ internal class SlicConnection : IMultiplexedConnection
         static int DecodeParamValue(IList<byte> buffer)
         {
             // The IList<byte> decoded by the IceRPC + Slice integration is backed by an array
-            ulong value = SliceEncoding.Slice2.DecodeBuffer(
-                new ReadOnlySequence<byte>((byte[])buffer),
+            ulong value = new ReadOnlySequence<byte>((byte[])buffer).DecodeSliceBuffer(
                 (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
             try
             {
@@ -1243,7 +1237,7 @@ internal class SlicConnection : IMultiplexedConnection
                 buffer = buffer.Slice(0, size);
             }
 
-            T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
+            T decodedFrame = buffer.DecodeSliceBuffer(decodeFunc);
             _duplexConnectionReader.AdvanceTo(buffer.End);
             return decodedFrame;
         }

@@ -287,8 +287,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
         if non_streamed_parameters.is_empty() {
             writeln!(
                 code,
-                "await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
-                encoding = encoding.to_cs_encoding(),
+                "await request.DecodeEmptyArgsAsync(cancellationToken).ConfigureAwait(false);",
             );
 
             let stream_type = stream_member.data_type();
@@ -311,12 +310,9 @@ return {}",
                 code,
                 "\
 var {args} = await request.DecodeArgsAsync(
-    {encoding},
     {decode_func},
-    defaultActivator: null,
     cancellationToken).ConfigureAwait(false);",
                 args = non_streamed_parameters.to_argument_tuple(),
-                encoding = encoding.to_cs_encoding(),
                 decode_func = decode_non_streamed_parameters_func(&non_streamed_parameters, encoding).indent(),
             );
             let stream_type = stream_member.data_type();
@@ -342,24 +338,16 @@ var {stream_parameter_name} = {decode_operation_stream}
         }
     } else {
         if non_streamed_parameters.is_empty() {
-            writeln!(
-                code,
-                "request.DecodeEmptyArgsAsync({encoding}, cancellationToken)",
-                encoding = encoding.to_cs_encoding(),
-            );
+            writeln!(code, "request.DecodeEmptyArgsAsync(cancellationToken)",);
         } else {
             writeln!(
                 code,
                 "\
 request.DecodeArgsAsync(
-    {encoding},
     {decode_func},
-    defaultActivator: {default_activator},
     cancellationToken)
 ",
-                encoding = encoding.to_cs_encoding(),
                 decode_func = decode_non_streamed_parameters_func(&non_streamed_parameters, encoding).indent(),
-                default_activator = default_activator(encoding),
             );
         }
     }

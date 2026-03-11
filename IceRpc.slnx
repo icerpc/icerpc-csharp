@@ -19,6 +19,8 @@
     <Project Path="src/IceRpc.ProtocGen.BuildTelemetry/IceRpc.ProtocGen.BuildTelemetry.csproj" />
     <Project Path="src/IceRpc.RequestContext/IceRpc.RequestContext.csproj" />
     <Project Path="src/IceRpc.Retry/IceRpc.Retry.csproj" />
+    <Project Path="src/IceRpc.Ice/IceRpc.Ice.csproj" />
+    <Project Path="src/IceRpc.Ice.Generators/IceRpc.Ice.Generators.csproj" />
     <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
     <Project Path="src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" />
     <Project Path="src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" />
@@ -32,6 +34,7 @@
     <Project Path="tests/IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
     <Project Path="tests/IceRpc.Deadline.Tests/IceRpc.Deadline.Tests.csproj" />
     <Project Path="tests/IceRpc.Extensions.DependencyInjection.Tests/IceRpc.Extensions.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.Tests/IceRpc.Ice.Tests.csproj" />
     <Project Path="tests/IceRpc.Locator.Tests/IceRpc.Locator.Tests.csproj" />
     <Project Path="tests/IceRpc.Logger.Tests/IceRpc.Logger.Tests.csproj" />
     <Project Path="tests/IceRpc.Metrics.Tests/IceRpc.Metrics.Tests.csproj" />
@@ -39,18 +42,23 @@
     <Project Path="tests/IceRpc.Quic.Tests/IceRpc.Quic.Tests.csproj" />
     <Project Path="tests/IceRpc.RequestContext.Tests/IceRpc.RequestContext.Tests.csproj" />
     <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.CodeGen.Tests/IceRpc.Ice.CodeGen.Tests.csproj" />
+    <Project Path="tests/IceRpc.Slice.CodeGen.Tests/IceRpc.Slice.CodeGen.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
     <Project Path="tests/IceRpc.Telemetry.Tests/IceRpc.Telemetry.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
-    <Project Path="tests/ZeroC.Slice.Tests/ZeroC.Slice.Tests.csproj" />
+    <Project Path="tests/ZeroC.Slice.Codec.Tests/ZeroC.Slice.Codec.Tests.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests/ZeroC.Ice.CodeGen.Tests.csproj" />
+    <Project Path="tests/ZeroC.Slice.CodeGen.Tests/ZeroC.Slice.CodeGen.Tests.csproj" />
+    <Project Path="tests/ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
   </Folder>
   <Folder Name="/tests/assemblies/">
-    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/A/A.csproj" />
-    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/B/B.csproj" />
-    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/C/C.csproj" />
-    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/D/D.csproj" />
-    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/A/A.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/B/B.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/C/C.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/D/D.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
   </Folder>
 </Solution>

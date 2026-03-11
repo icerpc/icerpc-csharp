@@ -4,13 +4,11 @@
 module Compiler
 
 struct DocComment {
-    overview: Message
-    see: Sequence<EntityId>
+    overview: Sequence<MessageComponent>
+    seeTags: Sequence<EntityId>
 }
 
 enum MessageComponent {
     Text(v: string)
     Link(v: EntityId)
 }
-
-typealias Message = Sequence<MessageComponent>

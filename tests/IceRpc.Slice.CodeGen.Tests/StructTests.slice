@@ -1,0 +1,26 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::CodeGen::Tests
+
+compact struct MyCompactStruct {
+    i: int32
+    j: int32
+}
+
+struct MyStruct {
+    i: int32
+    j: int32
+}
+
+compact struct MyCompactStructWithNullableProxy {
+    a: int32
+    i: PingableProxy?
+}
+
+compact struct MyCompactStructWithSequenceOfNullableProxies {
+    i: Sequence<PingableProxy?>
+}
+
+compact struct MyCompactStructWithDictionaryOfNullableProxies {
+    i: Dictionary<int32, PingableProxy?>
+}

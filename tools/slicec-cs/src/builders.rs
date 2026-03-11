@@ -135,20 +135,6 @@ impl ContainerBuilder {
         self.fields.push(format!("{field_type} {field_name}"));
         self
     }
-
-    pub fn add_fields(&mut self, fields: &[&Field]) -> &mut Self {
-        for field in fields {
-            let type_string = field.data_type().field_type_string(&field.namespace());
-
-            self.add_field(
-                &field.field_name(),
-                &type_string,
-                field.formatted_param_doc_comment().as_deref(),
-            );
-        }
-
-        self
-    }
 }
 
 impl Builder for ContainerBuilder {

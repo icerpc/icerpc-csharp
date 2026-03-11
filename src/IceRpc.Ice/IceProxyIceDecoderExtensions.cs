@@ -1,0 +1,47 @@
+// Copyright (c) ZeroC, Inc.
+
+using System.Diagnostics;
+using ZeroC.Slice.Codec;
+
+namespace IceRpc.Ice;
+
+/// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode proxies.</summary>
+public static class IceProxyIceDecoderExtensions
+{
+    /// <summary>Decodes a nullable proxy struct.</summary>
+    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
+    /// <param name="decoder">The Slice decoder.</param>
+    /// <returns>The decoded proxy, or <see langword="null" />.</returns>
+    public static TProxy? DecodeNullableProxy<TProxy>(this ref SliceDecoder decoder) where TProxy : struct, IIceProxy =>
+        decoder.DecodeNullableServiceAddress() is ServiceAddress serviceAddress ?
+            CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
+
+    /// <summary>Decodes a proxy struct.</summary>
+    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
+    /// <param name="decoder">The Slice decoder.</param>
+    /// <returns>The decoded proxy struct.</returns>
+    public static TProxy DecodeProxy<TProxy>(this ref SliceDecoder decoder) where TProxy : struct, IIceProxy =>
+            decoder.DecodeNullableProxy<TProxy>() ??
+                throw new InvalidDataException("Decoded null for a non-nullable proxy.");
+
+    private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
+        where TProxy : struct, IIceProxy
+    {
+        Debug.Assert(serviceAddress.Protocol is not null, "The Ice encoding does not support relative proxies.");
+
+        if (decodingContext is null)
+        {
+            return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };
+        }
+        else
+        {
+            var baseProxy = (IIceProxy)decodingContext;
+            return new TProxy
+            {
+                EncodeOptions = baseProxy.EncodeOptions,
+                Invoker = baseProxy.Invoker,
+                ServiceAddress = serviceAddress
+            };
+        }
+    }
+}

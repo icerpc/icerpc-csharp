@@ -15,7 +15,7 @@ public static class SliceServiceProviderExtensions
     /// invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from <paramref name="provider" /> as
     /// its encode options.</remarks>
     public static TProxy CreateSliceProxy<TProxy>(this IServiceProvider provider, ServiceAddress? serviceAddress = null)
-        where TProxy : struct, IProxy
+        where TProxy : struct, ISliceProxy
     {
         var invoker = (IInvoker?)provider.GetService(typeof(IInvoker));
         if (invoker is null)
@@ -47,6 +47,6 @@ public static class SliceServiceProviderExtensions
     /// invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from <paramref name="provider" /> as
     /// its encode options.</remarks>
     public static TProxy CreateSliceProxy<TProxy>(this IServiceProvider provider, Uri serviceAddressUri)
-        where TProxy : struct, IProxy =>
+        where TProxy : struct, ISliceProxy =>
         provider.CreateSliceProxy<TProxy>(new ServiceAddress(serviceAddressUri));
 }
