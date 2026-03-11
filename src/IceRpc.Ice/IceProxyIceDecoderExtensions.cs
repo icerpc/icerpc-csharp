@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Diagnostics;
 using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice;
@@ -26,6 +27,8 @@ public static class IceProxyIceDecoderExtensions
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
         where TProxy : struct, IIceProxy
     {
+        Debug.Assert(serviceAddress.Protocol is not null, "The Ice encoding does not support relative proxies.");
+
         if (decodingContext is null)
         {
             return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };
@@ -33,12 +36,6 @@ public static class IceProxyIceDecoderExtensions
         else
         {
             var baseProxy = (IIceProxy)decodingContext;
-            if (serviceAddress.Protocol is null && baseProxy.ServiceAddress is not null)
-            {
-                // Convert the relative service address to an absolute service address:
-                serviceAddress = baseProxy.ServiceAddress with { Path = serviceAddress.Path };
-            }
-
             return new TProxy
             {
                 EncodeOptions = baseProxy.EncodeOptions,
