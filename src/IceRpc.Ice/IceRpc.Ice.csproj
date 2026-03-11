@@ -22,12 +22,6 @@
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
 
-    <!-- Includes the analyzer in the package without consuming it. -->
-    <ProjectReference
-      Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj"
-      ReferenceOutputAssembly="false"
-    />
-
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -38,10 +32,5 @@
     <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
     <Content Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    <Content
-      Include="../IceRpc.ServiceGenerator/bin/$(Configuration)/netstandard2.0/IceRpc.ServiceGenerator.dll"
-      Pack="true"
-      PackagePath="analyzers/dotnet/cs"
-    />
   </ItemGroup>
 </Project>
