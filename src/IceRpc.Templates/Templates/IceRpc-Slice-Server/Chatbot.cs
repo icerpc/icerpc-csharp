@@ -1,5 +1,5 @@
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 
 namespace IceRpc_Slice_Server;
 
