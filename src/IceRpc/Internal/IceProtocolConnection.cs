@@ -727,7 +727,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         ReadOnlySequence<byte> buffer,
         int requestId)
     {
-        ReplyStatus replyStatus = ((int)buffer.FirstSpan[0]).AsReplyStatus();
+        var replyStatus = (ReplyStatus)buffer.FirstSpan[0];
 
         if (replyStatus <= ReplyStatus.UserException)
         {
