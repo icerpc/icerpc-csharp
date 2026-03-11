@@ -85,7 +85,7 @@ public partial class ProxyTests
         },
         Throws.TypeOf<FormatException>());
 
-    // we have to use icerpc since these path are not valid for ice
+    // we have to use icerpc since these paths are not valid for ice
     [TestCase("icerpc://host:10000")]
     [TestCase("icerpc://host:10000/foo/")]
     public void Encode_service_address_with_null_identity_fails(ServiceAddress serviceAddress) =>
