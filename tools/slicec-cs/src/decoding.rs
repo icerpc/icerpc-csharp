@@ -62,14 +62,6 @@ fn decode_fields_core(fields: &[&Field], encoding: Encoding, mut action: impl Fn
     }
 }
 
-pub fn default_activator(encoding: Encoding) -> &'static str {
-    if encoding == Encoding::Slice1 {
-        "_defaultActivator"
-    } else {
-        "null"
-    }
-}
-
 fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let data_type = member.data_type();
@@ -445,7 +437,6 @@ pub fn decode_operation_stream(
     encoding: Encoding,
     dispatch: bool,
 ) -> CodeBlock {
-    let cs_encoding = encoding.to_cs_encoding();
     let param_type = stream_member.data_type();
     let param_type_str = param_type.incoming_parameter_type_string(namespace);
     let fixed_wire_size = param_type.fixed_wire_size();
@@ -456,7 +447,6 @@ pub fn decode_operation_stream(
         }
         _ => FunctionCallBuilder::new(format!("payloadContinuation.ToAsyncEnumerable<{param_type_str}>"))
             .arguments_on_newline(true)
-            .add_argument(cs_encoding)
             .add_argument(decode_stream_parameter(param_type, namespace, encoding).indent())
             .add_argument_if_present(fixed_wire_size)
             .add_argument_if(!dispatch && fixed_wire_size.is_none(), "sender")

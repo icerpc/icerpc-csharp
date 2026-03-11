@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice.CodeGen.Tests;
 
-internal class InvalidProxy : IProxy
+internal class InvalidProxy : ISliceProxy
 {
     internal static InvalidProxy Instance { get; } = new InvalidProxy();
 

@@ -2,7 +2,7 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using IceRpc.Slice;
+using IceRpc.Ice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -110,7 +110,7 @@ public sealed partial class ProtocolBridgingTests
         }
     }
 
-    [SliceService]
+    [IceService]
     internal sealed partial class ProtocolBridgingTestService : IProtocolBridgingTestService
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
@@ -154,7 +154,7 @@ public sealed partial class ProtocolBridgingTests
 
     public sealed class Forwarder : IDispatcher
     {
-        private readonly IProxy _target;
+        private readonly IIceProxy _target;
 
         public async ValueTask<OutgoingResponse> DispatchAsync(
             IncomingRequest request,
@@ -203,6 +203,6 @@ public sealed partial class ProtocolBridgingTests
             }
         }
 
-        internal Forwarder(IProxy target) => _target = target;
+        internal Forwarder(IIceProxy target) => _target = target;
     }
 }

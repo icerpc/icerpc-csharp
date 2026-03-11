@@ -14,12 +14,11 @@ namespace IceRpc.Slice;
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-/// <returns>A value task that contains the return value or a <see cref="SliceException" /> when the status code of the
-/// response is <see cref="StatusCode.ApplicationError" />.</returns>
+/// <returns>A value task that contains the decoded return value.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
-    IProxy sender,
+    ISliceProxy sender,
     CancellationToken cancellationToken);
 
 /// <summary>Represents a delegate that decodes the "void" return value from a Slice-encoded response.</summary>
@@ -27,17 +26,16 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-/// <returns>A value task that contains a <see cref="SliceException" /> when the status code of the response is
-/// <see cref="StatusCode.ApplicationError" />.</returns>
+/// <returns>A value task.</returns>
 public delegate ValueTask ResponseDecodeFunc(
     IncomingResponse response,
     OutgoingRequest request,
-    IProxy sender,
+    ISliceProxy sender,
     CancellationToken cancellationToken);
 
-/// <summary>Provides extension methods for <see cref="IProxy" /> and generated proxy structs that implement this
+/// <summary>Provides extension methods for <see cref="ISliceProxy" /> and generated proxy structs that implement this
 /// interface.</summary>
-public static class ProxyExtensions
+public static class SliceProxyExtensions
 {
     private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
         new Dictionary<RequestFieldKey, OutgoingFieldValue>
@@ -52,13 +50,11 @@ public static class ProxyExtensions
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
-    /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
-    /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
+    /// <param name="responseDecodeFunc">The decode function for the response payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
     public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -67,7 +63,7 @@ public static class ProxyExtensions
         ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
+        CancellationToken cancellationToken = default) where TProxy : struct, ISliceProxy
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
@@ -121,15 +117,13 @@ public static class ProxyExtensions
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
-    /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
-    /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
+    /// <param name="responseDecodeFunc">The decode function for the response payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="oneway">When <see langword="true" />, the request is sent one-way and an empty response is returned
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
     public static Task InvokeOperationAsync<TProxy>(
         this TProxy proxy,
         string operation,
@@ -139,7 +133,7 @@ public static class ProxyExtensions
         IFeatureCollection? features = null,
         bool idempotent = false,
         bool oneway = false,
-        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
+        CancellationToken cancellationToken = default) where TProxy : struct, ISliceProxy
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
@@ -193,6 +187,6 @@ public static class ProxyExtensions
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source proxy.</param>
     /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    public static TProxy ToProxy<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
+    public static TProxy ToProxy<TProxy>(this ISliceProxy proxy) where TProxy : struct, ISliceProxy =>
         new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }

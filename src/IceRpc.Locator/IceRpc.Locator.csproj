@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <Description>Locator interceptor for IceRPC</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
@@ -9,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-    <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.Ice/IceRpc.Ice.csproj" ExactVersion="true" />
 
     <SliceCompile
       Include="../../slice/Ice/Locator.ice;../../slice/Ice/LocatorRegistry.ice;../../slice/Ice/Process.ice"
@@ -30,5 +29,4 @@
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
     <Content Include="IceRpc.Locator.props" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
-  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

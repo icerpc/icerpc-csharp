@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Slice::Internal
+module IceRpc::Ice::Internal
 {
-    /// A proxy encoded with Slice1 includes an InvocationMode which specifies the behavior when sending requests using
-    /// this proxy.
+    /// An encoded Ice proxy includes an InvocationMode which specifies the behavior when sending requests using this
+    /// proxy.
     ["cs:internal"]
     enum InvocationMode
     {

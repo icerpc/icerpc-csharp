@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Ice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +18,7 @@ public partial class IceObjectTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(Protocol.Parse(protocol), new PingableService())
             .AddSingleton<IIceObject>(
-                provider => provider.CreateSliceProxy<IceObjectProxy>(new Uri($"{protocol}:/service")))
+                provider => provider.CreateIceProxy<IceObjectProxy>(new Uri($"{protocol}:/service")))
             .BuildServiceProvider(validateScopes: true);
         IIceObject proxy = provider.GetRequiredService<IIceObject>();
         Server server = provider.GetRequiredService<Server>();
@@ -38,7 +37,7 @@ public partial class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    [SliceService]
+    [IceService]
     private partial class PingableService : IPingableService, IIceObjectService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;

@@ -32,11 +32,7 @@ public class InvokeOperationAsyncTests
             payload: requestPayload,
             payloadContinuation: null,
             responseDecodeFunc: (response, request, sender, cancellationToken) =>
-                response.DecodeVoidReturnValueAsync(
-                    request,
-                    SliceEncoding.Slice2,
-                    InvalidProxy.Instance,
-                    cancellationToken: cancellationToken),
+                response.DecodeVoidReturnValueAsync(request, cancellationToken: cancellationToken),
             features: null);
 
         // Assert
@@ -67,11 +63,7 @@ public class InvokeOperationAsyncTests
                 payload: requestPayload,
                 payloadContinuation: requestPayloadContinuation,
                 responseDecodeFunc: (response, request, sender, cancellationToken) =>
-                    response.DecodeVoidReturnValueAsync(
-                        request,
-                        SliceEncoding.Slice2,
-                        InvalidProxy.Instance,
-                        cancellationToken: cancellationToken),
+                    response.DecodeVoidReturnValueAsync(request, cancellationToken: cancellationToken),
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
 

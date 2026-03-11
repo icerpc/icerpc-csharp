@@ -2,10 +2,6 @@
 
 module IceRpc::Slice::CodeGen::Tests
 
-interface MyBaseInterface {}
-
-interface MyDerivedInterface : MyBaseInterface {}
-
 interface ReceiveProxyTest {
     receiveProxy() -> ReceiveProxyTestProxy
 }

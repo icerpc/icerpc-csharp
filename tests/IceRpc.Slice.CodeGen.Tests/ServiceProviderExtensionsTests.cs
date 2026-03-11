@@ -18,7 +18,7 @@ public partial class ServiceProviderExtensionsTests
 
         var provider = serviceCollection.BuildServiceProvider(validateScopes: true);
 
-        var proxy = (IProxy?)provider.GetService<IMyOperationsA>();
+        var proxy = (ISliceProxy?)provider.GetService<IMyOperationsA>();
         Assert.That(proxy, Is.Not.Null);
         Assert.That(proxy.Invoker, Is.EqualTo(InvalidInvoker.Instance));
         Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(MyOperationsAProxy.DefaultServicePath));
