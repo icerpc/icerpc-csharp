@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace IceRpc.Slice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 internal sealed class Parser
 {

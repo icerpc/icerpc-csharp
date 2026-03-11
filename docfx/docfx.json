@@ -6,7 +6,7 @@
           "files": ["src/*/*.csproj"],
           "exclude": [
             "src/IceRpc.Templates/**",
-            "src/IceRpc.Slice.Generators/**",
+            "src/IceRpc.ServiceGenerator/**",
             "src/IceRpc.Protobuf.Generators/**"
           ],
           "src": "../"

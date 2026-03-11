@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 /// <summary>Represents a C# class that has the <c>IceRpc.Slice.SliceServiceAttribute</c> attribute and for which this
 /// generator implements the <c>IceRpc.IDispatcher</c> interface.</summary>

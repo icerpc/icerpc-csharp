@@ -2,7 +2,7 @@
 
 using Microsoft.CodeAnalysis;
 
-namespace IceRpc.Slice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 internal static class DiagnosticDescriptors
 {

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 /// <summary>Represents an abstract method in a generated XxxService interface marked with the
 /// <c>IceRpc.Slice.SliceOperationAttribute</c> attribute.</summary>

@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Generators.Internal;
+using IceRpc.ServiceGenerator.Internal;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Text;
 
-namespace IceRpc.Slice.Generators;
+namespace IceRpc.ServiceGenerator;
 
 /// <summary>Provides a generator to implement <c>IceRpc.IDispatcher</c> for classes annotated with
 /// the <c>IceRpc.Slice.SliceServiceAttribute</c> attribute.</summary>

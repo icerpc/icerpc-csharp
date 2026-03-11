@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 /// <summary>Represents a C# definition in which a C# service definition is nested.</summary>
 internal class ContainerDefinition

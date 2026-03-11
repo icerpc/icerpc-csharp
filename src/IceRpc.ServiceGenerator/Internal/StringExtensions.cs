@@ -2,7 +2,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Slice.Generators.Internal;
+namespace IceRpc.ServiceGenerator.Internal;
 
 internal static class StringExtensions
 {
