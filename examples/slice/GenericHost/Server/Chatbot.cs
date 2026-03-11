@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using VisitorCenter;
 
 namespace GenericHostServer;

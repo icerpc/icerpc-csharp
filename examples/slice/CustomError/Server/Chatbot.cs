@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using VisitorCenter;
 using ZeroC.Slice.Codec; // for the Result<TSuccess, TFailure> generic type
 
