@@ -6,7 +6,7 @@ using VisitorCenter;
 
 namespace InteropGreeterServer;
 
-/// <summary>A Chatbot is an Ice service that implements interface 'Greeter' (defined in Greeter.ice).</summary>
+/// <summary>A Chatbot is a service that implements interface 'Greeter' (defined in Greeter.ice).</summary>
 [Service]
 internal partial class Chatbot : IGreeterService
 {

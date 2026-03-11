@@ -1,11 +1,13 @@
 # Locator interceptor for IceRPC
 
-IceRpc.Locator provides an [IceRPC][icerpc-csharp] interceptor that allows you to resolve ice service addresses using an
+IceRpc.Locator provides an [IceRPC][icerpc-csharp] interceptor that allows you to resolve service addresses using an
 [Ice locator][locator].
 
 Use this interceptor in IceRPC client applications that call services hosted by IceGrid-managed servers.
 
 _Ice interop only_
+
+The Locator interceptor resolves only service addresses for the `ice` protocol.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Ice interop][interop]
 
@@ -13,7 +15,6 @@ _Ice interop only_
 
 ```csharp
 using IceRpc;
-using IceRpc.Ice;
 
 // Create an invocation pipeline.
 var pipeline = new Pipeline();

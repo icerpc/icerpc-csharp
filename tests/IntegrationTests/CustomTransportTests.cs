@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Ice;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
