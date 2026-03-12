@@ -15,6 +15,11 @@ internal class Emitter
         foreach (Idl idl in serviceClass.ServiceMethods.Select(serviceMethod => serviceMethod.Idl).Distinct())
         {
             codeBlock.WriteLine($"using IceRpc.{idl};");
+            // TODO: temporary
+            if (idl == Idl.Slice)
+            {
+                codeBlock.WriteLine("using IceRpc.Slice.Extensions;");
+            }
         }
         codeBlock.WriteLine("using ZeroC.Slice.Codec;");
 

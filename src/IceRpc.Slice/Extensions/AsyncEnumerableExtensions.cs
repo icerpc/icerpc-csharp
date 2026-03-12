@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Slice.Extensions;
 
 /// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a <see
 /// cref="PipeReader"/>.</summary>

@@ -2,7 +2,7 @@
 
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Slice.Extensions;
 
 /// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode service addresses.</summary>
 public static class ServiceAddressSliceDecoderExtensions

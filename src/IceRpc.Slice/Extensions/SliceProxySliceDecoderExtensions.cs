@@ -2,7 +2,7 @@
 
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Slice.Extensions;
 
 /// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode proxies.</summary>
 public static class SliceProxySliceDecoderExtensions

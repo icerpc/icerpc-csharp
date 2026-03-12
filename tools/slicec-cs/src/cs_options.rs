@@ -54,7 +54,7 @@ pub enum RpcProvider {
     None,
 
     /// IceRPC is being used.
-    /// With this set, a `using IceRpc.Slice` statement is added to the preamble of any generated code.
+    /// With this set, a `using IceRpc.Slice.Extensions` statement is added to the preamble of any generated code.
     #[clap(name = "icerpc")]
     IceRpc,
 }
