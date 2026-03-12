@@ -18,6 +18,14 @@ internal class IceServiceMethod : IServiceMethod
     /// <inheritdoc />
     public string OperationName { get; }
 
+    public IEnumerable<string> UsingDirectives => _usingDirectives;
+
+    private static readonly string[] _usingDirectives =
+    [
+        "using IceRpc.Ice;",
+        "using ZeroC.Slice.Codec;",
+    ];
+
     private readonly string _dispatchMethodName;
     private readonly bool _encodedReturn;
     private readonly string[] _exceptionSpecification = [];
@@ -104,12 +112,14 @@ internal class IceServiceMethod : IServiceMethod
         return codeBlock;
     }
 
-    internal IceServiceMethod(IMethodSymbol method, INamedTypeSymbol interfaceSymbol, AttributeData attribute)
+    internal IceServiceMethod(IMethodSymbol method, AttributeData attribute)
     {
         ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
         Debug.Assert(
             items.Length == 1,
             "Unexpected number of arguments in attribute constructor.");
+
+        INamedTypeSymbol interfaceSymbol = method.ContainingType!;
 
         OperationName = (string)items[0].Value!;
         _dispatchMethodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
@@ -201,4 +211,17 @@ internal class IceServiceMethod : IServiceMethod
             }
         }
     }
+}
+
+internal class IceServiceMethodParser : ServiceMethodParser
+{
+    internal IceServiceMethodParser(Compilation compilation)
+        : base(compilation.GetTypeByMetadataName("IceRpc.Ice.IceOperationAttribute"))
+    {
+    }
+
+    private protected override IServiceMethod CreateServiceMethod(
+        IMethodSymbol methodSymbol,
+        AttributeData attribute) =>
+        new IceServiceMethod(methodSymbol, attribute);
 }

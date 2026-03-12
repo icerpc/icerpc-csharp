@@ -14,6 +14,14 @@ internal class ServiceMethod : IServiceMethod
     /// <inheritdoc />
     public string OperationName { get; }
 
+    public IEnumerable<string> UsingDirectives => _usingDirectives;
+
+    private static readonly string[] _usingDirectives =
+    [
+        "using IceRpc.Slice;",
+        "using ZeroC.Slice.Codec;",
+    ];
+
     private readonly bool _compressReturn;
     private readonly string _dispatchMethodName;
     private readonly bool _encodedReturn;

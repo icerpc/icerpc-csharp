@@ -24,6 +24,19 @@ internal sealed class Parser
     private readonly INamedTypeSymbol? _serviceAttribute;
     private readonly INamedTypeSymbol? _sliceOperationAttribute;
 
+    internal static AttributeData? GetAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
+    {
+        ImmutableArray<AttributeData> attributes = symbol.GetAttributes();
+        foreach (AttributeData attribute in attributes)
+        {
+            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeSymbol))
+            {
+                return attribute;
+            }
+        }
+        return null;
+    }
+
     internal static string GetFullName(ISymbol symbol)
     {
         if (symbol is INamespaceSymbol namespaceSymbol && namespaceSymbol.IsGlobalNamespace)
@@ -130,19 +143,6 @@ internal sealed class Parser
             }
         }
         return serviceDefinitions;
-    }
-
-    private AttributeData? GetAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
-    {
-        ImmutableArray<AttributeData> attributes = symbol.GetAttributes();
-        foreach (AttributeData attribute in attributes)
-        {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeSymbol))
-            {
-                return attribute;
-            }
-        }
-        return null;
     }
 
     /// <summary>Returns the nearest base class with the Service attribute.</summary>
