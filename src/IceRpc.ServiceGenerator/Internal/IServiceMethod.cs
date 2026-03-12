@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
@@ -11,9 +9,6 @@ namespace IceRpc.ServiceGenerator.Internal;
 /// </summary>
 internal interface IServiceMethod
 {
-    /// <summary>Gets the IDL of the source file.</summary>
-    Idl Idl { get; }
-
     /// <summary>Gets the name of the RPC operation, for example: "findObjectById".</summary>
     string OperationName { get; }
 
@@ -25,6 +20,7 @@ internal interface IServiceMethod
     CodeBlock GenerateDispatchCaseBody();
 }
 
+/// <summary>Represents a factory for <see cref="IServiceMethod"/> instances.</summary>
 internal interface IServiceMethodFactory
 {
     /// <summary>Tries to create a service method from the specified method symbol.</summary>
@@ -36,6 +32,7 @@ internal interface IServiceMethodFactory
     bool TryCreate(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod);
 }
 
+/// <summary>The common base implementation of <see cref="IServiceMethodFactory"/>.</summary>
 internal abstract class ServiceMethodFactory : IServiceMethodFactory
 {
     private readonly INamedTypeSymbol? _operationAttribute;
@@ -48,7 +45,7 @@ internal abstract class ServiceMethodFactory : IServiceMethodFactory
             return false;
         }
 
-        AttributeData? attribute = Parser.GetAttribute(methodSymbol, _operationAttribute);
+        AttributeData? attribute = methodSymbol.GetAttribute(_operationAttribute);
         if (attribute is null)
         {
             return false;

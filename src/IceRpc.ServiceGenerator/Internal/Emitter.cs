@@ -12,11 +12,16 @@ internal class Emitter
         cancellationToken.ThrowIfCancellationRequested();
 
         CodeBlock codeBlock = Preamble();
-        foreach (Idl idl in serviceClass.ServiceMethods.Select(serviceMethod => serviceMethod.Idl).Distinct())
+
+        // The service methods for the same IDL all return the same IEnumerable<string>, so we typically have a single
+        // element after Distinct().
+        IEnumerable<IEnumerable<string>> usingGroups =
+            serviceClass.ServiceMethods.Select(serviceMethod => serviceMethod.UsingDirectives).Distinct();
+
+        foreach (string usingDirective in usingGroups.SelectMany(group => group).Distinct().OrderBy(s => s))
         {
-            codeBlock.WriteLine($"using IceRpc.{idl};");
+            codeBlock.WriteLine(usingDirective);
         }
-        codeBlock.WriteLine("using ZeroC.Slice.Codec;");
 
         if (serviceClass.ContainingNamespace is not null)
         {

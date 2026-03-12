@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using ZeroC.CodeBuilder;
@@ -12,9 +10,6 @@ namespace IceRpc.ServiceGenerator.Internal;
 /// <summary>Implements <see cref="IServiceMethod" /> for the Slice IDL.</summary>>
 internal class SliceServiceMethod : IServiceMethod
 {
-    /// <inheritdoc />
-    public Idl Idl => Idl.Slice;
-
     /// <inheritdoc />
     public string OperationName { get; }
 
@@ -194,7 +189,7 @@ internal class SliceServiceMethod : IServiceMethod
 
         OperationName = (string)items[0].Value!;
         _dispatchMethodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
-        _fullInterfaceName = Parser.GetFullName(interfaceSymbol);
+        _fullInterfaceName = interfaceSymbol.GetFullName();
 
         foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
         {

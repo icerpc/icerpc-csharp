@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using ZeroC.CodeBuilder;
@@ -12,9 +10,6 @@ namespace IceRpc.ServiceGenerator.Internal;
 /// <summary>Implements <see cref="IServiceMethod" /> for the Ice IDL.</summary>
 internal class IceServiceMethod : IServiceMethod
 {
-    /// <inheritdoc />
-    public Idl Idl => Idl.Ice;
-
     /// <inheritdoc />
     public string OperationName { get; }
 
@@ -144,14 +139,14 @@ internal class IceServiceMethod : IServiceMethod
 
         OperationName = (string)items[0].Value!;
         _dispatchMethodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
-        _fullInterfaceName = Parser.GetFullName(interfaceSymbol);
+        _fullInterfaceName = interfaceSymbol.GetFullName();
 
         foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
         {
             switch (namedArgument.Key)
             {
-                // TODO: we don't need this option; we can figure it out with a PipeReader return value;
-                // see SliceServiceMode
+                // TODO: we don't need this argument; we can figure it out with a PipeReader return value;
+                // see SliceServiceMethod.
                 case "EncodedReturn":
                     if (namedArgument.Value.Value is bool encodedReturn)
                     {
@@ -164,7 +159,7 @@ internal class IceServiceMethod : IServiceMethod
                         _exceptionSpecification = exceptionTypes
                             .Select(et => et.Value)
                             .OfType<INamedTypeSymbol>()
-                            .Select(Parser.GetFullName)
+                            .Select(et => et.GetFullName())
                             .ToArray();
                     }
                     break;

@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace IceRpc.ServiceGenerator.Internal;
 
@@ -16,32 +15,6 @@ internal sealed class Parser
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
     private readonly IReadOnlyList<IServiceMethodFactory> _serviceMethodFactoryList;
-
-    internal static AttributeData? GetAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
-    {
-        ImmutableArray<AttributeData> attributes = symbol.GetAttributes();
-        foreach (AttributeData attribute in attributes)
-        {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeSymbol))
-            {
-                return attribute;
-            }
-        }
-        return null;
-    }
-
-    internal static string GetFullName(ISymbol symbol)
-    {
-        if (symbol is INamespaceSymbol namespaceSymbol && namespaceSymbol.IsGlobalNamespace)
-        {
-            return "";
-        }
-        else
-        {
-            string containingSymbolName = GetFullName(symbol.ContainingSymbol);
-            return containingSymbolName.Length == 0 ? symbol.Name : $"{containingSymbolName}.{symbol.Name}";
-        }
-    }
 
     internal Parser(
         Compilation compilation,
@@ -112,7 +85,7 @@ internal sealed class Parser
 
                 var serviceClass = new ServiceClass(
                     classSymbol.Name,
-                    GetFullName(classSymbol.ContainingNamespace),
+                    classSymbol.ContainingNamespace.GetFullName(),
                     classDeclaration.Keyword.ValueText,
                     serviceMethods,
                     hasBaseServiceClass: baseServiceClass is not null,
@@ -146,7 +119,7 @@ internal sealed class Parser
     {
         if (classSymbol.BaseType is INamedTypeSymbol baseType)
         {
-            if (GetAttribute(baseType, _serviceAttribute!) is not null)
+            if (baseType.GetAttribute(_serviceAttribute!) is not null)
             {
                 return baseType;
             }
