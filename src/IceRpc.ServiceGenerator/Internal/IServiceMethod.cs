@@ -25,16 +25,22 @@ internal interface IServiceMethod
     CodeBlock GenerateDispatchCaseBody();
 }
 
-internal interface IServiceMethodParser
+internal interface IServiceMethodFactory
 {
-    bool TryParse(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod);
+    /// <summary>Tries to create a service method from the specified method symbol.</summary>
+    /// <param name="methodSymbol">The method symbol.</param>
+    /// <param name="serviceMethod">When this method returns <see langword="true" />, contains the created
+    /// service method.</param>
+    /// <returns><see langword="true" /> if a service method was created; otherwise, <see langword="false" />.
+    /// </returns>
+    bool TryCreate(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod);
 }
 
-internal abstract class ServiceMethodParser : IServiceMethodParser
+internal abstract class ServiceMethodFactory : IServiceMethodFactory
 {
     private readonly INamedTypeSymbol? _operationAttribute;
 
-    public bool TryParse(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod)
+    public bool TryCreate(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod)
     {
         serviceMethod = null;
         if (_operationAttribute is null)
@@ -61,7 +67,7 @@ internal abstract class ServiceMethodParser : IServiceMethodParser
         return true;
     }
 
-    private protected ServiceMethodParser(INamedTypeSymbol? operationAttribute) =>
+    private protected ServiceMethodFactory(INamedTypeSymbol? operationAttribute) =>
         _operationAttribute = operationAttribute;
 
     private protected abstract IServiceMethod CreateServiceMethod(

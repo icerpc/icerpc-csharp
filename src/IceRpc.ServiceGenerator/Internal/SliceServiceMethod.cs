@@ -22,16 +22,41 @@ internal class ServiceMethod : IServiceMethod
         "using ZeroC.Slice.Codec;",
     ];
 
+    /// <summary>A value indicating whether the return value should be compressed.</summary>
     private readonly bool _compressReturn;
+
+    /// <summary>The name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
     private readonly string _dispatchMethodName;
+
+    /// <summary>A value indicating whether the non-stream portion of the return value is pre-encoded by the
+    /// application.</summary>
     private readonly bool _encodedReturn;
+
+    /// <summary>The exception specification of the operation.</summary>
     private readonly string[] _exceptionSpecification;
+
+    /// <summary>The name of the C# service interface, including its namespace. For example:
+    /// "VisitorCenter.IGreeterService".</summary>
     private readonly string _fullInterfaceName;
+
+    /// <summary>A value indicating whether the operation is idempotent.</summary>
     private readonly bool _idempotent;
+
+    /// <summary>The arity of the operation.</summary>
     private readonly int _parameterCount;
+
+    /// <summary>The capitalized names of the operation parameters. This is empty when <see cref="_parameterCount"/>
+    /// is 0 or 1.</summary>
     private readonly string[] _parameterFieldNames;
+
+    /// <summary>The number of elements in the return value.</summary>
     private readonly int _returnCount;
+
+    /// <summary>The capitalized names of the operation return value fields. This is empty when
+    /// <see cref="_returnCount"/> is 0 or 1.</summary>
     private readonly string[] _returnFieldNames;
+
+    /// <summary>A value indicating whether the operation return value has a stream element.</summary>
     private readonly bool _returnStream;
 
     /// <inheritdoc />
