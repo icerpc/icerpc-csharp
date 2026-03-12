@@ -1,15 +1,19 @@
 // Copyright (c) ZeroC, Inc.
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Represents an abstract method in a generated XxxService interface marked with an IDL-specific attribute,
-/// such as <c>IceRpc.Slice.SliceOperationAttribute</c> for Slice.</summary>
-internal class ServiceMethod : IServiceMethod
+/// <summary>Implements <see cref="IServiceMethod" /> for the Slice IDL.</summary>>
+internal class SliceServiceMethod : IServiceMethod
 {
     /// <inheritdoc />
-    public Idl Idl { get; }
+    public Idl Idl => Idl.Slice;
 
     /// <inheritdoc />
     public string OperationName { get; }
@@ -32,9 +36,6 @@ internal class ServiceMethod : IServiceMethod
     /// application.</summary>
     private readonly bool _encodedReturn;
 
-    /// <summary>The exception specification of the operation.</summary>
-    private readonly string[] _exceptionSpecification;
-
     /// <summary>The name of the C# service interface, including its namespace. For example:
     /// "VisitorCenter.IGreeterService".</summary>
     private readonly string _fullInterfaceName;
@@ -47,14 +48,14 @@ internal class ServiceMethod : IServiceMethod
 
     /// <summary>The capitalized names of the operation parameters. This is empty when <see cref="_parameterCount"/>
     /// is 0 or 1.</summary>
-    private readonly string[] _parameterFieldNames;
+    private readonly string[] _parameterFieldNames = [];
 
     /// <summary>The number of elements in the return value.</summary>
     private readonly int _returnCount;
 
     /// <summary>The capitalized names of the operation return value fields. This is empty when
     /// <see cref="_returnCount"/> is 0 or 1.</summary>
-    private readonly string[] _returnFieldNames;
+    private readonly string[] _returnFieldNames = [];
 
     /// <summary>A value indicating whether the operation return value has a stream element.</summary>
     private readonly bool _returnStream;
@@ -172,69 +173,142 @@ internal class ServiceMethod : IServiceMethod
             }
         }
 
-        if (_exceptionSpecification.Length > 0)
-        {
-            string exceptionList =
-                string.Join(" or ", _exceptionSpecification.Select(ex => $"global::{ex}"));
-
-            dispatchCallBuilder.AddArgument(
-                $"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
-        }
-
         dispatchCallBuilder.AddArgument("cancellationToken: cancellationToken");
 
         codeBlock.WriteLine($"return {dispatchCallBuilder.Build()}");
         return codeBlock;
     }
 
-    /// <summary>Initializes a new instance of the <see cref="ServiceMethod"/> class.</summary>
-    /// <param name="idl">The IDL used to define the corresponding operation.</param>
-    /// <param name="operationName">The name of the operation defined in the Slice interface, for example:
-    /// "findObjectById".</param>
-    /// <param name="dispatchMethodName">The name of the C# method minus the Async suffix. For example:
-    /// "FindObjectById".</param>
-    /// <param name="fullInterfaceName">The name of the C# service interface, including its namespace. For example:
-    /// "VisitorCenter.IGreeterService".</param>
-    /// <param name="parameterCount">The arity of the operation.</param>
-    /// <param name="parameterFieldNames">The capitalized names of the operation parameters. This is empty when
-    /// <paramref name="parameterCount"/> is 0 or 1.</param>
-    /// <param name="returnCount">The number of elements in the return value.</param>
-    /// <param name="returnFieldNames">The capitalized names of the operation return value fields. This is empty when
-    /// <paramref name="returnCount"/> is 0 or 1.</param>
-    /// <param name="returnStream">A value indicating whether the operation return value has a stream
-    /// element.</param>
-    /// <param name="compressReturn">A value indicating whether the return value should be compressed.</param>
-    /// <param name="encodedReturn">A value indicating whether the non-stream portion of the return value is
-    /// pre-encoded by the application.</param>
-    /// <param name="exceptionSpecification">The exception specification of the operation.</param>
-    /// <param name="idempotent">A value indicating whether the operation is idempotent.</param>
-    internal ServiceMethod(
-        Idl idl,
-        string operationName,
-        string dispatchMethodName,
-        string fullInterfaceName,
-        int parameterCount,
-        string[] parameterFieldNames,
-        int returnCount,
-        string[] returnFieldNames,
-        bool returnStream,
-        bool compressReturn,
-        bool encodedReturn,
-        string[] exceptionSpecification,
-        bool idempotent)
+    internal SliceServiceMethod(
+        IMethodSymbol method,
+        AttributeData attribute,
+        INamedTypeSymbol? asyncEnumerableSymbol,
+        INamedTypeSymbol? pipeReaderSymbol)
     {
-        Idl = idl;
-        OperationName = operationName;
-        _compressReturn = compressReturn;
-        _dispatchMethodName = dispatchMethodName;
-        _encodedReturn = encodedReturn;
-        _exceptionSpecification = exceptionSpecification;
-        _fullInterfaceName = fullInterfaceName;
-        _idempotent = idempotent;
-        _parameterCount = parameterCount;
-        _parameterFieldNames = parameterFieldNames;
-        _returnCount = returnCount;
-        _returnFieldNames = returnFieldNames;
-        _returnStream = returnStream;
+        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
+        Debug.Assert(
+            items.Length == 1,
+            "Unexpected number of arguments in attribute constructor.");
+
+        INamedTypeSymbol interfaceSymbol = method.ContainingType!;
+
+        OperationName = (string)items[0].Value!;
+        _dispatchMethodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
+        _fullInterfaceName = Parser.GetFullName(interfaceSymbol);
+
+        foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
+        {
+            switch (namedArgument.Key)
+            {
+                case "CompressReturn":
+                    if (namedArgument.Value.Value is bool compressReturn)
+                    {
+                        _compressReturn = compressReturn;
+                    }
+                    break;
+                case "EncodedReturn":
+                    if (namedArgument.Value.Value is bool encodedReturn)
+                    {
+                        _encodedReturn = encodedReturn;
+                    }
+                    break;
+                case "Idempotent":
+                    if (namedArgument.Value.Value is bool idempotent)
+                    {
+                        _idempotent = idempotent;
+                    }
+                    break;
+            }
+        }
+
+        // Find the nested Request class within the interface
+        INamedTypeSymbol? requestClass = interfaceSymbol
+            .GetTypeMembers("Request")
+            .FirstOrDefault();
+
+        IMethodSymbol? decodeArgsMethod = requestClass?
+            .GetMembers()
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.Name == $"Decode{_dispatchMethodName}Async");
+
+        Debug.Assert(
+            decodeArgsMethod is not null,
+            $"Cannot find decode method for operation {OperationName} in interface {interfaceSymbol.Name}.");
+
+        // Analyze the return type of the decode method (ValueTask or ValueTask<T>)
+
+        if (decodeArgsMethod!.ReturnType is INamedTypeSymbol returnType &&
+            returnType.IsGenericType &&
+            returnType.TypeArguments.Length == 1)
+        {
+            // It's ValueTask<T>, check what T is
+            ITypeSymbol typeArgument = returnType.TypeArguments[0];
+
+            if (typeArgument.IsTupleType && typeArgument is INamedTypeSymbol tupleType)
+            {
+                // It's a tuple - get the count and field names
+                ImmutableArray<IFieldSymbol> tupleElements = tupleType.TupleElements;
+                _parameterCount = tupleElements.Length;
+                _parameterFieldNames = tupleElements.Select(e => e.Name).ToArray();
+            }
+            else
+            {
+                // It's a simple type (int, string, etc.)
+                _parameterCount = 1;
+            }
+        }
+        // else: It's ValueTask (non-generic), _parameterCount stays 0
+
+        if (method.ReturnType is INamedTypeSymbol methodReturnType &&
+            methodReturnType.IsGenericType &&
+            methodReturnType.TypeArguments.Length == 1)
+        {
+            ITypeSymbol methodReturnTypeArg = methodReturnType.TypeArguments[0];
+            ITypeSymbol lastFieldType;
+
+            if (methodReturnTypeArg.IsTupleType && methodReturnTypeArg is INamedTypeSymbol methodTupleType)
+            {
+                ImmutableArray<IFieldSymbol> returnElements = methodTupleType.TupleElements;
+                _returnCount = returnElements.Length;
+                _returnFieldNames = returnElements.Select(e => e.Name).ToArray();
+
+                lastFieldType = returnElements[returnElements.Length - 1].Type;
+            }
+            else
+            {
+                // It's a simple return type
+                _returnCount = 1;
+                lastFieldType = methodReturnTypeArg;
+            }
+
+            if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, asyncEnumerableSymbol))
+            {
+                _returnStream = true;
+            }
+            else if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, pipeReaderSymbol))
+            {
+                _returnStream = !_encodedReturn || _returnCount > 1;
+                // else, the single parameter is the encoded return, and there is no stream
+            }
+        }
+        // else: It's ValueTask (non-generic), _returnCount remains 0 and _returnStream remains false.
     }
+}
+
+internal class SliceServiceMethodFactory : ServiceMethodFactory
+{
+    private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
+    private readonly INamedTypeSymbol? _pipeReaderSymbol;
+
+    internal SliceServiceMethodFactory(Compilation compilation)
+        : base(compilation.GetTypeByMetadataName("IceRpc.Slice.SliceOperationAttribute"))
+    {
+        _asyncEnumerableSymbol = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        _pipeReaderSymbol = compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
+    }
+
+    private protected override IServiceMethod CreateServiceMethod(
+        IMethodSymbol methodSymbol,
+        AttributeData attribute) =>
+        new SliceServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol, _pipeReaderSymbol);
 }
