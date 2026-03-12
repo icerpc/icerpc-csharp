@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Slice;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Features;
 
 /// <summary>Default implementation of <see cref="ISliceFeature" />.</summary>
 public sealed class SliceFeature : ISliceFeature

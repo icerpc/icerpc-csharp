@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice.Extensions.Internal;
 using System.Buffers;

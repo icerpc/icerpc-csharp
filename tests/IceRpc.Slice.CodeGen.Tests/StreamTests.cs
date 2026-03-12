@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Internal; // For InvalidPipeReader
 using IceRpc.Slice.Extensions;
 using IceRpc.Tests.Common;

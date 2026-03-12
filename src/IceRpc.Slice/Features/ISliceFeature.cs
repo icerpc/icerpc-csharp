@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+using IceRpc.Slice;
+
+namespace IceRpc.Features;
 
 /// <summary>Represents a feature used to customize the encoding and decoding of request and response payloads.
 /// </summary>
