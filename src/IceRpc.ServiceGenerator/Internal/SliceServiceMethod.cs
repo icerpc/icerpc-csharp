@@ -7,7 +7,7 @@ using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Implements <see cref="IServiceMethod" /> for the Slice IDL.</summary>>
+/// <summary>Implements <see cref="IServiceMethod" /> for the Slice IDL.</summary>
 internal class SliceServiceMethod : IServiceMethod
 {
     /// <inheritdoc />
