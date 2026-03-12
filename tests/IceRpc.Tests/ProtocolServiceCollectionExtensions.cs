@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
-using IceRpc.Tests.Transports.Slic;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 
