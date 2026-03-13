@@ -303,8 +303,6 @@ internal class SliceServiceMethodFactory : ServiceMethodFactory
         _pipeReaderSymbol = compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
     }
 
-    private protected override ServiceMethod CreateServiceMethod(
-        IMethodSymbol methodSymbol,
-        AttributeData attribute) =>
+    private protected override ServiceMethod CreateServiceMethod(IMethodSymbol methodSymbol, AttributeData attribute) =>
         new SliceServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol, _pipeReaderSymbol);
 }
