@@ -7,13 +7,14 @@ using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Implements <see cref="IServiceMethod" /> for the Ice IDL.</summary>
-internal class IceServiceMethod : IServiceMethod
+/// <summary>Implements <see cref="ServiceMethod" /> for the Ice IDL.</summary>
+internal class IceServiceMethod : ServiceMethod
 {
     /// <inheritdoc />
-    public string OperationName { get; }
+    internal override string OperationName { get; }
 
-    public IEnumerable<string> UsingDirectives => _usingDirectives;
+    /// <inheritdoc />
+    internal override IEnumerable<string> UsingDirectives => _usingDirectives;
 
     private static readonly string[] _usingDirectives =
     [
@@ -24,8 +25,7 @@ internal class IceServiceMethod : IServiceMethod
     /// <summary>The name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
     private readonly string _dispatchMethodName;
 
-    /// <summary>A value indicating whether the non-stream portion of the return value is pre-encoded by the
-    /// application.</summary>
+    /// <summary>A value indicating whether the return value is pre-encoded by the application.</summary>
     private readonly bool _encodedReturn;
 
     /// <summary>The exception specification of the operation.</summary>
@@ -53,7 +53,7 @@ internal class IceServiceMethod : IServiceMethod
     private readonly string[] _returnFieldNames = [];
 
     /// <inheritdoc />
-    public CodeBlock GenerateDispatchCaseBody()
+    internal override CodeBlock GenerateDispatchCaseBody()
     {
         var codeBlock = new CodeBlock();
         if (!_idempotent)
@@ -238,7 +238,7 @@ internal class IceServiceMethodFactory : ServiceMethodFactory
     {
     }
 
-    private protected override IServiceMethod CreateServiceMethod(
+    private protected override ServiceMethod CreateServiceMethod(
         IMethodSymbol methodSymbol,
         AttributeData attribute) =>
         new IceServiceMethod(methodSymbol, attribute);

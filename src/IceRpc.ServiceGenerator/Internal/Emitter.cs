@@ -78,7 +78,7 @@ internal class Emitter
         if (serviceClass.ServiceMethods.Count > 0)
         {
             var cases = new CodeBlock();
-            foreach (IServiceMethod serviceMethod in serviceClass.ServiceMethods)
+            foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
             {
                 // The Indent is intentional: we want to indent the code in the case body.
                 cases.AddBlock(GenerateDispatchCase(serviceMethod).Indent());
@@ -107,7 +107,7 @@ internal class Emitter
         }
     }
 
-    private static CodeBlock GenerateDispatchCase(IServiceMethod serviceMethod) =>
+    private static CodeBlock GenerateDispatchCase(ServiceMethod serviceMethod) =>
         @$"case ""{serviceMethod.OperationName}"":
 {serviceMethod.GenerateDispatchCaseBody()}";
 
