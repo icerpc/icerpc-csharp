@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Text.Json.Serialization;
-using System;
 
 namespace IceRpc.Slice.Tools;
 

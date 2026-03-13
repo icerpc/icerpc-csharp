@@ -4,7 +4,6 @@ using IceRpc.Ice.Internal;
 using IceRpc.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using ZeroC.Slice.Codec;

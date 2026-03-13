@@ -9,6 +9,7 @@
     <LangVersion>14.0</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>All</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ImplicitUsings>true</ImplicitUsings>
     <!-- The 1.2 beta version is required for supporting the latest language features.
              See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
