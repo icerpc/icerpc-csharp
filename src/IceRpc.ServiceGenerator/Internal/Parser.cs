@@ -26,11 +26,11 @@ internal sealed class Parser
         _cancellationToken = cancellationToken;
         _serviceAttribute = compilation.GetTypeByMetadataName(ServiceAttribute);
 
-        _serviceMethodFactoryList = new IServiceMethodFactory[]
-        {
+        _serviceMethodFactoryList =
+        [
             new SliceServiceMethodFactory(compilation),
             new IceServiceMethodFactory(compilation),
-        };
+        ];
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
