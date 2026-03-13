@@ -452,7 +452,7 @@ pub fn decode_operation_stream(
             .add_argument_if(!dispatch && fixed_wire_size.is_none(), "sender")
             .add_argument_if(
                 fixed_wire_size.is_none(),
-                "sliceFeature: request.Features.Get<ISliceFeature>()",
+                "sliceFeature: request.Features.Get<IceRpc.Features.ISliceFeature>()",
             )
             .build(),
     }

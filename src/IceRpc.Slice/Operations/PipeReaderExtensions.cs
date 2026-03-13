@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
@@ -7,7 +8,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Slice.Operations;
 
 /// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 public static class PipeReaderExtensions

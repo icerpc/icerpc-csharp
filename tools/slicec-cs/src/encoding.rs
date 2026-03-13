@@ -534,7 +534,7 @@ pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
         format!(
             "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(
-    encodeOptions?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
+    encodeOptions?.PipeOptions ?? IceRpc.Slice.SliceEncodeOptions.Default.PipeOptions);
 var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 
 {size_placeholder_and_start_position}
