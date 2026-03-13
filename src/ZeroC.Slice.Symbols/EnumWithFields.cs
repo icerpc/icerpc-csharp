@@ -41,6 +41,11 @@ public record class EnumWithFields : Symbol
         public required EntityInfo EntityInfo { get; init; }
 
         /// <summary>
+        /// Gets the discriminant value used for encoding/decoding this enumerator.
+        /// </summary>
+        public required int Discriminant { get; init; }
+
+        /// <summary>
         /// Gets the list of fields for this enumerator.
         /// </summary>
         public required ImmutableList<Field> Fields { get; init; }

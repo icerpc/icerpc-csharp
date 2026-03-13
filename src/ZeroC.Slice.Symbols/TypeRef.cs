@@ -31,7 +31,7 @@ public record class TypeRef
     {
         Builtin b => b.Kind != BuiltinKind.String,
         Struct => true,
-        EnumWithUnderlying e => !e.IsUnchecked,
+        EnumWithUnderlying => true,
         _ => false,
     };
 }

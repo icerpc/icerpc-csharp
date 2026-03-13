@@ -117,7 +117,12 @@ public sealed class SymbolConverter
             return cached;
         }
 
-        (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[typeId];
+        if (!_named.TryGetValue(typeId, out var entry))
+        {
+            throw new InvalidOperationException($"Failed to resolve named type with ID '{typeId}'.");
+        }
+
+        (Compiler.SliceFile file, Compiler.Symbol symbol) = entry;
         Module module = ConvertModule(file.ModuleDeclaration);
         Symbol converted = ConvertSymbol(symbol, file, module);
         _cache[typeId] = converted;
@@ -190,6 +195,7 @@ public sealed class SymbolConverter
                 Enumerators = raw.Enumerators.Select(e => new EnumWithFields.Enumerator
                 {
                     EntityInfo = ConvertEntityInfo(e.EntityInfo, module),
+                    Discriminant = (int)e.Value.AbsoluteValue,
                     Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
                 }).ToImmutableList(),
             };
