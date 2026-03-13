@@ -25,8 +25,7 @@ internal class IceServiceMethod : ServiceMethod
     /// <summary>The name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
     private readonly string _dispatchMethodName;
 
-    /// <summary>A value indicating whether the non-stream portion of the return value is pre-encoded by the
-    /// application.</summary>
+    /// <summary>A value indicating whether the return value is pre-encoded by the application.</summary>
     private readonly bool _encodedReturn;
 
     /// <summary>The exception specification of the operation.</summary>
