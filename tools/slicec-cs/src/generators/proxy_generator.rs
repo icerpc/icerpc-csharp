@@ -150,7 +150,7 @@ Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cr
 /// <param name="encoder">The Slice encoder.</param>
 /// <param name="proxy">The proxy to encode as a service address.</param>
 {access} static void Encode{proxy_impl}(this ref SliceEncoder encoder, {proxy_impl} proxy) =>
-    encoder.EncodeServiceAddress(proxy.ServiceAddress);"#
+    IceRpc.Slice.ServiceAddressSliceEncoderExtensions.EncodeServiceAddress(ref encoder, proxy.ServiceAddress);"#
         )
         .into(),
     );
