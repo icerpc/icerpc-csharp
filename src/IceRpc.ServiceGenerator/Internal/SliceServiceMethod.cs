@@ -7,13 +7,14 @@ using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Implements <see cref="IServiceMethod" /> for the Slice IDL.</summary>
-internal class SliceServiceMethod : IServiceMethod
+/// <summary>Implements <see cref="ServiceMethod" /> for the Slice IDL.</summary>
+internal class SliceServiceMethod : ServiceMethod
 {
     /// <inheritdoc />
-    public string OperationName { get; }
+    internal override string OperationName { get; }
 
-    public IEnumerable<string> UsingDirectives => _usingDirectives;
+    /// <inheritdoc />
+    internal override IEnumerable<string> UsingDirectives => _usingDirectives;
 
     private static readonly string[] _usingDirectives =
     [
@@ -56,7 +57,7 @@ internal class SliceServiceMethod : IServiceMethod
     private readonly bool _returnStream;
 
     /// <inheritdoc />
-    public CodeBlock GenerateDispatchCaseBody()
+    internal override CodeBlock GenerateDispatchCaseBody()
     {
         var codeBlock = new CodeBlock();
         if (!_idempotent)
@@ -302,7 +303,7 @@ internal class SliceServiceMethodFactory : ServiceMethodFactory
         _pipeReaderSymbol = compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
     }
 
-    private protected override IServiceMethod CreateServiceMethod(
+    private protected override ServiceMethod CreateServiceMethod(
         IMethodSymbol methodSymbol,
         AttributeData attribute) =>
         new SliceServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol, _pipeReaderSymbol);

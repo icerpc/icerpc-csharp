@@ -18,13 +18,13 @@ internal class ServiceClass : ContainerDefinition
 
     /// <summary>Gets the service methods implemented by the service.</summary>
     /// <remarks>It doesn't include the service methods implemented by the base service definition if any.</remarks>
-    internal IReadOnlyList<IServiceMethod> ServiceMethods { get; }
+    internal IReadOnlyList<ServiceMethod> ServiceMethods { get; }
 
     internal ServiceClass(
         string name,
         string? containingNamespace,
         string keyword,
-        IReadOnlyList<IServiceMethod> serviceMethods,
+        IReadOnlyList<ServiceMethod> serviceMethods,
         bool hasBaseServiceClass,
         bool isSealed)
         : base(name, keyword)

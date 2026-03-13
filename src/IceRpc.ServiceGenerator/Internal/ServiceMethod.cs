@@ -7,20 +7,37 @@ namespace IceRpc.ServiceGenerator.Internal;
 
 /// <summary>Represents an abstract method in a generated XxxService interface decorated with an IDL-specific attribute.
 /// </summary>
-internal interface IServiceMethod
+internal abstract class ServiceMethod : IEquatable<ServiceMethod>
 {
     /// <summary>Gets the name of the RPC operation, for example: "findObjectById".</summary>
-    string OperationName { get; }
+    internal abstract string OperationName { get; }
 
     /// <summary>Gets the using directives required by the generated code.</summary>
-    IEnumerable<string> UsingDirectives { get; }
+    internal abstract IEnumerable<string> UsingDirectives { get; }
+
+    public bool Equals(ServiceMethod? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        return OperationName == other.OperationName;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ServiceMethod);
+
+    public override int GetHashCode() => OperationName.GetHashCode();
 
     /// <summary>Generates the dispatch case body for this method.</summary>
     /// <returns>The dispatch case body.</returns>
-    CodeBlock GenerateDispatchCaseBody();
+    internal abstract CodeBlock GenerateDispatchCaseBody();
 }
 
-/// <summary>Represents a factory for <see cref="IServiceMethod"/> instances.</summary>
+/// <summary>Represents a factory for <see cref="ServiceMethod"/> instances.</summary>
 internal interface IServiceMethodFactory
 {
     /// <summary>Tries to create a service method from the specified method symbol.</summary>
@@ -29,7 +46,7 @@ internal interface IServiceMethodFactory
     /// service method.</param>
     /// <returns><see langword="true" /> if a service method was created; otherwise, <see langword="false" />.
     /// </returns>
-    bool TryCreate(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod);
+    bool TryCreate(IMethodSymbol methodSymbol, out ServiceMethod? serviceMethod);
 }
 
 /// <summary>The common base implementation of <see cref="IServiceMethodFactory"/>.</summary>
@@ -37,7 +54,7 @@ internal abstract class ServiceMethodFactory : IServiceMethodFactory
 {
     private readonly INamedTypeSymbol? _operationAttribute;
 
-    public bool TryCreate(IMethodSymbol methodSymbol, out IServiceMethod? serviceMethod)
+    public bool TryCreate(IMethodSymbol methodSymbol, out ServiceMethod? serviceMethod)
     {
         serviceMethod = null;
         if (_operationAttribute is null)
@@ -67,7 +84,7 @@ internal abstract class ServiceMethodFactory : IServiceMethodFactory
     private protected ServiceMethodFactory(INamedTypeSymbol? operationAttribute) =>
         _operationAttribute = operationAttribute;
 
-    private protected abstract IServiceMethod CreateServiceMethod(
+    private protected abstract ServiceMethod CreateServiceMethod(
         IMethodSymbol methodSymbol,
         AttributeData attribute);
 }

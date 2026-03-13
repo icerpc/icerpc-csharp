@@ -57,20 +57,19 @@ internal sealed class Parser
                     continue;
                 }
 
-                IReadOnlyList<IServiceMethod> baseServiceMethods = [];
+                IReadOnlyList<ServiceMethod> baseServiceMethods = [];
                 INamedTypeSymbol? baseServiceClass = GetBaseServiceClass(classSymbol);
                 if (baseServiceClass is not null)
                 {
                     baseServiceMethods = GetServiceMethods(baseServiceClass.AllInterfaces);
                 }
 
-                IReadOnlyList<IServiceMethod> serviceMethods = GetServiceMethods(classSymbol.AllInterfaces)
-                    .Except(baseServiceMethods)
-                    .Distinct()
-                    .ToList();
+                IEnumerable<ServiceMethod> serviceMethods =
+                    GetServiceMethods(classSymbol.AllInterfaces).Except(baseServiceMethods);
 
+                // We check for duplicates only once per class.
                 var operationNames = new HashSet<string>();
-                foreach (IServiceMethod method in serviceMethods)
+                foreach (ServiceMethod method in serviceMethods)
                 {
                     if (!operationNames.Add(method.OperationName))
                     {
@@ -83,11 +82,14 @@ internal sealed class Parser
                     }
                 }
 
+                // Suppress duplicates, if any.
+                serviceMethods = serviceMethods.Distinct();
+
                 var serviceClass = new ServiceClass(
                     classSymbol.Name,
                     classSymbol.ContainingNamespace.GetFullName(),
                     classDeclaration.Keyword.ValueText,
-                    serviceMethods,
+                    serviceMethods.ToList(),
                     hasBaseServiceClass: baseServiceClass is not null,
                     isSealed: classSymbol.IsSealed);
                 serviceDefinitions.Add(serviceClass);
@@ -128,9 +130,9 @@ internal sealed class Parser
         return null;
     }
 
-    private IReadOnlyList<IServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
+    private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
     {
-        var allServiceMethods = new List<IServiceMethod>();
+        var allServiceMethods = new List<ServiceMethod>();
         foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
         {
             allServiceMethods.AddRange(GetServiceMethods(interfaceSymbol));
@@ -138,16 +140,16 @@ internal sealed class Parser
         return allServiceMethods;
     }
 
-    private IReadOnlyList<IServiceMethod> GetServiceMethods(INamedTypeSymbol interfaceSymbol)
+    private IReadOnlyList<ServiceMethod> GetServiceMethods(INamedTypeSymbol interfaceSymbol)
     {
-        var serviceMethods = new List<IServiceMethod>();
+        var serviceMethods = new List<ServiceMethod>();
         foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
             foreach (IServiceMethodFactory factory in _serviceMethodFactoryList)
             {
                 // When a factory succeeds, we don't try the following factories. It is an error for a method to
                 // have several operation attributes, but we don't enforce it.
-                if (factory.TryCreate(method, out IServiceMethod? serviceMethod))
+                if (factory.TryCreate(method, out ServiceMethod? serviceMethod))
                 {
                     serviceMethods.Add(serviceMethod!);
                     break;
