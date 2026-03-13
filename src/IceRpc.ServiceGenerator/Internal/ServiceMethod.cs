@@ -1,83 +1,90 @@
 // Copyright (c) ZeroC, Inc.
 
+using Microsoft.CodeAnalysis;
+using ZeroC.CodeBuilder;
+
 namespace IceRpc.ServiceGenerator.Internal;
 
-/// <summary>Represents an abstract method in a generated XxxService interface marked with an IDL-specific attribute,
-/// such as <c>IceRpc.Slice.Operations.SliceOperationAttribute</c> for Slice.</summary>
-internal readonly record struct ServiceMethod
+/// <summary>Represents an abstract method in a generated XxxService interface decorated with an IDL-specific attribute.
+/// </summary>
+internal abstract class ServiceMethod : IEquatable<ServiceMethod>
 {
-    /// <summary>Gets the IDL used to define the corresponding operation.</summary>
-    internal Idl Idl { get; }
+    /// <summary>Gets the name of the RPC operation, for example: "findObjectById".</summary>
+    internal abstract string OperationName { get; }
 
-    /// <summary>Gets the name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
-    internal string DispatchMethodName { get; }
+    /// <summary>Gets the using directives required by the generated code.</summary>
+    internal abstract IEnumerable<string> UsingDirectives { get; }
 
-    /// <summary>Gets the name of the operation defined in the Slice interface, for example: "findObjectById".
-    /// </summary>
-    internal string OperationName { get; }
-
-    /// <summary>Gets the name of the C# service interface, including its namespace. For example:
-    /// "VisitorCenter.IGreeterService".
-    /// </summary>
-    internal string FullInterfaceName { get; }
-
-    /// <summary>Gets the arity of the operation.</summary>
-    internal int ParameterCount { get; }
-
-    /// <summary>Gets the capitalized names of the operation parameters.</summary>
-    /// <remarks>This field is empty when <see cref="ParameterCount"/> is 0 or 1.</remarks>
-    internal string[] ParameterFieldNames { get; }
-
-    /// <summary>Gets the number of elements in the return value.</summary>
-    internal int ReturnCount { get; }
-
-    /// <summary>Gets the capitalized names of the operation return value fields.</summary>
-    /// <remarks>This field is empty when <see cref="ReturnCount"/> is 0 or 1.</remarks>
-    internal string[] ReturnFieldNames { get; }
-
-    /// <summary>Gets a value indicating whether the operation return value has a stream element.</summary>
-    internal bool ReturnStream { get; }
-
-    /// <summary>Gets a value indicating whether the return value should be compressed.</summary>
-    internal bool CompressReturn { get; }
-
-    /// <summary>Gets a value indicating whether the non-stream portion of the return value is pre-encoded by the
-    /// application.</summary>
-    internal bool EncodedReturn { get; }
-
-    /// <summary>Gets the exception specification of the operation.</summary>
-    internal string[] ExceptionSpecification { get; }
-
-    /// <summary>Gets a value indicating whether the operation is idempotent.</summary>
-    internal bool Idempotent { get; }
-
-    internal ServiceMethod(
-        Idl idl,
-        string dispatchMethodName,
-        string operationName,
-        string fullInterfaceName,
-        int parameterCount,
-        string[] parameterFieldNames,
-        int returnCount,
-        string[] returnFieldNames,
-        bool returnStream,
-        bool compressReturn,
-        bool encodedReturn,
-        string[] exceptionSpecification,
-        bool idempotent)
+    public bool Equals(ServiceMethod? other)
     {
-        Idl = idl;
-        DispatchMethodName = dispatchMethodName;
-        OperationName = operationName;
-        FullInterfaceName = fullInterfaceName;
-        ParameterCount = parameterCount;
-        ParameterFieldNames = parameterFieldNames;
-        ReturnCount = returnCount;
-        ReturnFieldNames = returnFieldNames;
-        ReturnStream = returnStream;
-        CompressReturn = compressReturn;
-        EncodedReturn = encodedReturn;
-        ExceptionSpecification = exceptionSpecification;
-        Idempotent = idempotent;
+        if (other is null)
+        {
+            return false;
+        }
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+        return OperationName == other.OperationName;
     }
+
+    public override bool Equals(object? obj) => Equals(obj as ServiceMethod);
+
+    public override int GetHashCode() => OperationName.GetHashCode();
+
+    /// <summary>Generates the dispatch case body for this method.</summary>
+    /// <returns>The dispatch case body.</returns>
+    internal abstract CodeBlock GenerateDispatchCaseBody();
+}
+
+/// <summary>Represents a factory for <see cref="ServiceMethod"/> instances.</summary>
+internal interface IServiceMethodFactory
+{
+    /// <summary>Tries to create a service method from the specified method symbol.</summary>
+    /// <param name="methodSymbol">The method symbol.</param>
+    /// <param name="serviceMethod">When this method returns <see langword="true" />, contains the created
+    /// service method.</param>
+    /// <returns><see langword="true" /> if a service method was created; otherwise, <see langword="false" />.
+    /// </returns>
+    bool TryCreate(IMethodSymbol methodSymbol, out ServiceMethod? serviceMethod);
+}
+
+/// <summary>The common base implementation of <see cref="IServiceMethodFactory"/>.</summary>
+internal abstract class ServiceMethodFactory : IServiceMethodFactory
+{
+    private readonly INamedTypeSymbol? _operationAttribute;
+
+    public bool TryCreate(IMethodSymbol methodSymbol, out ServiceMethod? serviceMethod)
+    {
+        serviceMethod = null;
+        if (_operationAttribute is null)
+        {
+            return false;
+        }
+
+        AttributeData? attribute = methodSymbol.FindAttribute(_operationAttribute);
+        if (attribute is null)
+        {
+            return false;
+        }
+
+        foreach (TypedConstant typedConstant in attribute.ConstructorArguments)
+        {
+            if (typedConstant.Kind == TypedConstantKind.Error)
+            {
+                // If a compilation error was found, no need to keep evaluating other args.
+                return false;
+            }
+        }
+
+        serviceMethod = CreateServiceMethod(methodSymbol, attribute);
+        return true;
+    }
+
+    private protected ServiceMethodFactory(INamedTypeSymbol? operationAttribute) =>
+        _operationAttribute = operationAttribute;
+
+    private protected abstract ServiceMethod CreateServiceMethod(
+        IMethodSymbol methodSymbol,
+        AttributeData attribute);
 }

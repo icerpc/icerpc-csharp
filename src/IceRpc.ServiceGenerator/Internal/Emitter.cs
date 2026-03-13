@@ -12,16 +12,16 @@ internal class Emitter
         cancellationToken.ThrowIfCancellationRequested();
 
         CodeBlock codeBlock = Preamble();
-        foreach (Idl idl in serviceClass.ServiceMethods.Select(serviceMethod => serviceMethod.Idl).Distinct())
+
+        // The service methods for the same IDL all return the same IEnumerable<string>, so we typically have a single
+        // element after Distinct().
+        IEnumerable<IEnumerable<string>> usingGroups =
+            serviceClass.ServiceMethods.Select(serviceMethod => serviceMethod.UsingDirectives).Distinct();
+
+        foreach (string usingDirective in usingGroups.SelectMany(group => group).Distinct().OrderBy(s => s))
         {
-            codeBlock.WriteLine($"using IceRpc.{idl};");
-            // TODO: temporary
-            if (idl == Idl.Slice)
-            {
-                codeBlock.WriteLine("using IceRpc.Slice.Operations;");
-            }
+            codeBlock.WriteLine(usingDirective);
         }
-        codeBlock.WriteLine("using ZeroC.Slice.Codec;");
 
         if (serviceClass.ContainingNamespace is not null)
         {
@@ -109,134 +109,7 @@ internal class Emitter
 
     private static CodeBlock GenerateDispatchCase(ServiceMethod serviceMethod) =>
         @$"case ""{serviceMethod.OperationName}"":
-{GenerateDispatchCaseBody(serviceMethod)}";
-
-    private static CodeBlock GenerateDispatchCaseBody(ServiceMethod serviceMethod)
-    {
-        var codeBlock = new CodeBlock();
-        if (!serviceMethod.Idempotent)
-        {
-            codeBlock.WriteLine("request.CheckNonIdempotent();");
-        }
-        if (serviceMethod.CompressReturn)
-        {
-            FunctionCallBuilder withCallBuilder =
-                new FunctionCallBuilder("IceRpc.Features.FeatureCollectionExtensions.With")
-                .ArgumentsOnNewLine(true)
-                .AddArgument("request.Features")
-                .AddArgument("IceRpc.Features.CompressFeature.Compress");
-
-            codeBlock.WriteLine($"request.Features = {withCallBuilder.Build()}");
-        }
-
-        string thisInterface = $"((global::{serviceMethod.FullInterfaceName})this)";
-
-        string method;
-        if (serviceMethod.ParameterCount <= 1)
-        {
-            method = $"{thisInterface}.{serviceMethod.DispatchMethodName}Async";
-        }
-        else
-        {
-            var methodCallBuilder = new FunctionCallBuilder($"{thisInterface}.{serviceMethod.DispatchMethodName}Async")
-                .UseSemicolon(false);
-
-            methodCallBuilder.AddArguments(serviceMethod.ParameterFieldNames.Select(name => $"args.{name}"))
-                .AddArgument("features")
-                .AddArgument("cancellationToken");
-
-            method = @$"(args, features, cancellationToken) =>
-        {methodCallBuilder.Build()}";
-        }
-
-        FunctionCallBuilder dispatchCallBuilder = new FunctionCallBuilder("request.DispatchOperationAsync")
-            .ArgumentsOnNewLine(true)
-            .AddArgument(
-                $"decodeArgs: global::{serviceMethod.FullInterfaceName}.Request.Decode{serviceMethod.DispatchMethodName}Async")
-            .AddArgument($"method: {method}");
-
-        // We don't use the generated Response.EncodeXxx method when ReturnCount is 0. So we could not generate it.
-        if (serviceMethod.ReturnCount > 0)
-        {
-            if (serviceMethod.ReturnCount == 1)
-            {
-                if (serviceMethod.ReturnStream)
-                {
-                    dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: static (_, encodeOptions) =>
-        global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
-
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}");
-                }
-                else if (serviceMethod.EncodedReturn)
-                {
-                    dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
-                }
-                else
-                {
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}");
-                }
-            }
-            else
-            {
-                // Splatting required.
-                var nonStreamReturnNames = new List<string>(serviceMethod.ReturnFieldNames);
-                if (serviceMethod.ReturnStream)
-                {
-                    nonStreamReturnNames.RemoveAt(serviceMethod.ReturnFieldNames.Length - 1);
-                }
-
-                if (serviceMethod.EncodedReturn)
-                {
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: (returnValue, _) => returnValue.{nonStreamReturnNames[0]}");
-                }
-                else
-                {
-                    var encodeBuilder = new FunctionCallBuilder(
-                        $"global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}")
-                            .UseSemicolon(false)
-                            .AddArguments(nonStreamReturnNames.Select(name => $"returnValue.{name}"))
-                            .AddArgument("encodeOptions");
-
-                    dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: static (returnValue, encodeOptions) =>
-        {encodeBuilder.Build()}");
-                }
-
-                if (serviceMethod.ReturnStream)
-                {
-                    string streamFieldName =
-                        serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1];
-
-                    var encodeBuilder = new FunctionCallBuilder(
-                        $"global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}")
-                            .UseSemicolon(false)
-                            .AddArgument($"returnValue.{streamFieldName}")
-                            .AddArgument("encodeOptions");
-
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: static (returnValue, encodeOptions) => {encodeBuilder.Build()}");
-                }
-            }
-        }
-
-        if (serviceMethod.ExceptionSpecification.Length > 0)
-        {
-            string exceptionList =
-                string.Join(" or ", serviceMethod.ExceptionSpecification.Select(ex => $"global::{ex}"));
-
-            dispatchCallBuilder.AddArgument(
-                $"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
-        }
-
-        dispatchCallBuilder.AddArgument("cancellationToken: cancellationToken");
-
-        codeBlock.WriteLine($"return {dispatchCallBuilder.Build()}");
-        return codeBlock;
-    }
+{serviceMethod.GenerateDispatchCaseBody()}";
 
     private static CodeBlock Preamble() => @$"
 // <auto-generated/>
