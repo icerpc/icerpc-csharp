@@ -3,7 +3,7 @@
 using System.ComponentModel;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Ice;
+namespace IceRpc.Ice.Operations;
 
 /// <summary>Represents an attribute that the Ice compiler uses to mark helper methods it generates on Service
 /// interfaces.</summary>

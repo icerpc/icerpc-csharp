@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Ice;
+using IceRpc.Ice;
+
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for <see cref="IServiceProvider" /> to create Ice proxies.</summary>
 public static class IceServiceProviderExtensions

@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Ice.Internal;
+using IceRpc.Ice.Operations.Internal;
 using System.IO.Pipelines;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Ice;
+namespace IceRpc.Ice.Operations;
 
 /// <summary>Provides extension methods for <see cref="IncomingRequest" /> to decode its Ice-encoded payload.
 /// </summary>

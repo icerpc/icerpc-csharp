@@ -19,6 +19,7 @@ internal class IceServiceMethod : ServiceMethod
     private static readonly string[] _usingDirectives =
     [
         "using IceRpc.Ice;",
+        "using IceRpc.Ice.Operations;",
         "using ZeroC.Slice.Codec;",
     ];
 
@@ -234,7 +235,7 @@ internal class IceServiceMethod : ServiceMethod
 internal class IceServiceMethodFactory : ServiceMethodFactory
 {
     internal IceServiceMethodFactory(Compilation compilation)
-        : base(compilation.GetTypeByMetadataName("IceRpc.Ice.IceOperationAttribute"))
+        : base(compilation.GetTypeByMetadataName("IceRpc.Ice.Operations.IceOperationAttribute"))
     {
     }
 
