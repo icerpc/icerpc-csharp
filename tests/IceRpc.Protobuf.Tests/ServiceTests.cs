@@ -82,7 +82,7 @@ public partial class ServiceTests
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.NotImplemented));
     }
 
-    [ProtobufService]
+    [Service]
     internal partial class MultipleServices : IMyFirstWidgetService, IMySecondWidgetService
     {
         public ValueTask<Empty> OpFirstAsync(
@@ -109,12 +109,12 @@ public partial class ServiceTests
             CancellationToken cancellationToken) => new(message);
     }
 
-    [ProtobufService]
+    [Service]
     internal partial class MultipleServices2 : BaseImplementsMultipleServices { }
 
-    [ProtobufService]
+    [Service]
     internal partial class ProtoLessService { }
 
-    [ProtobufService]
+    [Service]
     internal partial class DerivedMultipleServices : MultipleServices { }
 }

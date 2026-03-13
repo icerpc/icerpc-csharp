@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using Google.Protobuf.WellKnownTypes;
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Protobuf;
 using Metrics;
 using VisitorCenter;
 
@@ -10,7 +10,7 @@ namespace MultipleServicesServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements the 'Greeter' and 'RequestCounter' Protobuf services.
 /// </summary>
-[ProtobufService]
+[Service]
 internal partial class Chatbot : IGreeterService, IRequestCounterService
 {
     private int _requestCount;

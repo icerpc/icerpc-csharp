@@ -29,6 +29,7 @@ internal sealed class Parser
         _serviceMethodFactoryList =
         [
             new SliceServiceMethodFactory(compilation),
+            new ProtobufServiceMethodFactory(compilation),
             new IceServiceMethodFactory(compilation),
         ];
     }
