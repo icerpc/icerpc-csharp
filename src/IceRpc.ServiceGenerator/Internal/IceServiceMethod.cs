@@ -18,7 +18,6 @@ internal class IceServiceMethod : ServiceMethod
 
     private static readonly string[] _usingDirectives =
     [
-        "using IceRpc.Ice;",
         "using IceRpc.Ice.Operations;",
         "using ZeroC.Slice.Codec;",
     ];
