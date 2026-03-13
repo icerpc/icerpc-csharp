@@ -27,7 +27,7 @@ while (!readResult.IsCompleted);
 var decoder = new SliceDecoder(
     readResult.Buffer,
     SliceEncoding.Slice2,
-    maxCollectionAllocation: 16 * 1024);
+    maxCollectionAllocation: (int)readResult.Buffer.Length * 16);
 string op = decoder.DecodeString();
 
 // Decode source files and reference files.

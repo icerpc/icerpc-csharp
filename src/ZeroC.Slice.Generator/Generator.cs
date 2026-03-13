@@ -146,6 +146,10 @@ internal class Generator
                 $"{GetEncoderExtensionsClass(e.EntityInfo)}.Encode{e.EntityInfo.Name}(ref encoder, {param});",
             EnumWithFields e =>
                 $"{GetEncoderExtensionsClass(e.EntityInfo)}.Encode{e.EntityInfo.Name}(ref encoder, {param});",
+            CustomType c =>
+                $"{GetEncoderExtensionsClass(c.EntityInfo)}.Encode{c.EntityInfo.Name}(ref encoder, {param});",
+            ResultType r =>
+                $"encoder.EncodeResult({param}, {GetResultEncodeLambda(r.SuccessType, currentNamespace)}, {GetResultEncodeLambda(r.FailureType, currentNamespace)});",
             _ => $"{param}.Encode(ref encoder);",
         };
 
@@ -200,6 +204,12 @@ internal class Generator
         EntityInfo entityInfo = GetEntityInfo(symbol)
             ?? throw new InvalidOperationException($"Symbol '{symbol.GetType().Name}' does not have an EntityInfo.");
 
+        // Custom types use the cs::type attribute value directly as the C# type name.
+        if (symbol is CustomType && entityInfo.Attributes.FindAttribute(Attribute.CsType) is { } csTypeAttr)
+        {
+            return csTypeAttr.Args[0];
+        }
+
         string typeName = entityInfo.Name;
         string typeNamespace = entityInfo.Namespace;
 
@@ -221,19 +231,89 @@ internal class Generator
                 $"{GetDecoderExtensionsClass(e.EntityInfo)}.Decode{e.EntityInfo.Name}(ref decoder)",
             EnumWithFields e =>
                 $"{GetDecoderExtensionsClass(e.EntityInfo)}.Decode{e.EntityInfo.Name}(ref decoder)",
+            CustomType c =>
+                $"{GetDecoderExtensionsClass(c.EntityInfo)}.Decode{c.EntityInfo.Name}(ref decoder)",
+            ResultType r =>
+                $"decoder.DecodeResult({GetResultDecodeLambda(r.SuccessType, currentNamespace)}, {GetResultDecodeLambda(r.FailureType, currentNamespace)})",
             _ => $"new {ResolveUserTypeName(typeRef.Symbol, currentNamespace)}(ref decoder)",
         };
 
     private string EncodeSequence(SequenceType seq, string currentNamespace, string param)
     {
-        string elementEncodeLambda = GetEncodeLambda(seq.ElementType, currentNamespace);
+        TypeRef elemType = seq.ElementType;
+        if (elemType.IsOptional && (elemType.IsValueType || elemType.Symbol is CustomType))
+        {
+            TypeRef nonOptElemType = elemType with { IsOptional = false };
+            string csOptType = FieldTypeString(elemType, currentNamespace);
+            string lambda = GetEncodeOptionalValueLambda(nonOptElemType, currentNamespace, csOptType);
+            return $"encoder.EncodeSequenceOfOptionals({param}, {lambda});";
+        }
+        string elementEncodeLambda = GetEncodeLambda(elemType, currentNamespace);
         return $"encoder.EncodeSequence({param}, {elementEncodeLambda});";
     }
 
     private string DecodeSequence(SequenceType seq, string currentNamespace)
     {
-        string elementDecodeLambda = GetDecodeLambda(seq.ElementType, currentNamespace);
+        TypeRef elemType = seq.ElementType;
+        if (elemType.IsOptional && (elemType.IsValueType || elemType.Symbol is CustomType))
+        {
+            TypeRef nonOptElemType = elemType with { IsOptional = false };
+            string baseType = ResolveBaseType(nonOptElemType.Symbol, currentNamespace);
+            string decodeExpr = DecodeExpression(nonOptElemType, currentNamespace);
+            return $"decoder.DecodeSequenceOfOptionals((ref SliceDecoder decoder) => ({baseType}?){decodeExpr})";
+        }
+        string elementDecodeLambda = GetDecodeLambda(elemType, currentNamespace);
         return $"decoder.DecodeSequence({elementDecodeLambda})";
+    }
+
+    private static string GetEncodeOptionalValueLambda(TypeRef nonOptElemType, string currentNamespace, string csOptType)
+    {
+        if (nonOptElemType.Symbol is EnumWithUnderlying or EnumWithFields or CustomType)
+        {
+            EntityInfo entityInfo = GetEntityInfo(nonOptElemType.Symbol)!;
+            string extClass = GetEncoderExtensionsClass(entityInfo);
+            string name = entityInfo.Name;
+            return $"(ref SliceEncoder encoder, {csOptType} value) => {extClass}.Encode{name}(ref encoder, (value ?? default!))";
+        }
+        return $"(ref SliceEncoder encoder, {csOptType} value) => (value ?? default!).Encode(ref encoder)";
+    }
+
+    // Returns a decode lambda for a result success/failure type, handling optional inner types with an inline bool
+    // marker (decoder.DecodeBool()) rather than the bit-sequence pattern used for struct fields.
+    private string GetResultDecodeLambda(TypeRef typeRef, string currentNamespace)
+    {
+        if (!typeRef.IsOptional)
+        {
+            return GetDecodeLambda(typeRef, currentNamespace);
+        }
+        TypeRef nonOptTypeRef = typeRef with { IsOptional = false };
+        string csType = FieldTypeString(typeRef, currentNamespace);
+        string decodeExpr = DecodeExpression(nonOptTypeRef, currentNamespace);
+        return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}){decodeExpr} : null";
+    }
+
+    // Returns an encode lambda for a result success/failure type, handling optional inner types with an inline bool
+    // marker (encoder.EncodeBool()) rather than the bit-sequence pattern used for struct fields.
+    private string GetResultEncodeLambda(TypeRef typeRef, string currentNamespace)
+    {
+        if (!typeRef.IsOptional)
+        {
+            return GetEncodeLambda(typeRef, currentNamespace);
+        }
+        TypeRef nonOptTypeRef = typeRef with { IsOptional = false };
+        string csType = FieldTypeString(typeRef, currentNamespace);
+        string valueParam = typeRef.IsValueType ? "value!.Value" : "value!";
+        string encodeBody = EncodeExpression(nonOptTypeRef, currentNamespace, valueParam);
+        return $$"""
+            (ref SliceEncoder encoder, {{csType}} value) =>
+            {
+                encoder.EncodeBool(value is not null);
+                if (value is not null)
+                {
+                    {{encodeBody}}
+                }
+            }
+            """;
     }
 
     private string EncodeDictionary(DictionaryType dict, string currentNamespace, string param)
@@ -257,13 +337,18 @@ internal class Generator
             string csType = b.CsType;
             return $"(ref SliceEncoder encoder, {csType} value) => encoder.Encode{b.Suffix}(value)";
         }
-        else if (typeRef.Symbol is EnumWithUnderlying or EnumWithFields)
+        else if (typeRef.Symbol is EnumWithUnderlying or EnumWithFields or CustomType)
         {
             EntityInfo entityInfo = GetEntityInfo(typeRef.Symbol)!;
             string csType = FieldTypeString(typeRef, currentNamespace);
             string extensionClass = GetEncoderExtensionsClass(entityInfo);
             string name = entityInfo.Name;
             return $"(ref SliceEncoder encoder, {csType} value) => {extensionClass}.Encode{name}(ref encoder, value)";
+        }
+        else if (typeRef.Symbol is ResultType r)
+        {
+            string csType = FieldTypeString(typeRef, currentNamespace);
+            return $"(ref SliceEncoder encoder, {csType} value) => encoder.EncodeResult(value, {GetResultEncodeLambda(r.SuccessType, currentNamespace)}, {GetResultEncodeLambda(r.FailureType, currentNamespace)})";
         }
         else
         {
@@ -278,12 +363,16 @@ internal class Generator
         {
             return $"(ref SliceDecoder decoder) => decoder.Decode{b.Suffix}()";
         }
-        else if (typeRef.Symbol is EnumWithUnderlying or EnumWithFields)
+        else if (typeRef.Symbol is EnumWithUnderlying or EnumWithFields or CustomType)
         {
             EntityInfo entityInfo = GetEntityInfo(typeRef.Symbol)!;
             string extensionClass = GetDecoderExtensionsClass(entityInfo);
             string name = entityInfo.Name;
             return $"(ref SliceDecoder decoder) => {extensionClass}.Decode{name}(ref decoder)";
+        }
+        else if (typeRef.Symbol is ResultType r)
+        {
+            return $"(ref SliceDecoder decoder) => decoder.DecodeResult({GetResultDecodeLambda(r.SuccessType, currentNamespace)}, {GetResultDecodeLambda(r.FailureType, currentNamespace)})";
         }
         else
         {

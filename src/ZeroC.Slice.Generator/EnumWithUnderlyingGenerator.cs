@@ -37,12 +37,6 @@ internal sealed class EnumWithUnderlyingGenerator : Generator
         // cs::attribute
         builder.AddCsAttributes(enumDef.EntityInfo.Attributes);
 
-        // [System.Flags] for unchecked enums.
-        if (enumDef.IsUnchecked)
-        {
-            builder.AddAttribute("System.Flags");
-        }
-
         builder.AddBase(enumDef.Underlying.CsType);
 
         // Add enumerator declarations.

@@ -126,12 +126,22 @@ public sealed class SymbolConverter
             return cached;
         }
 
-        if (!_named.TryGetValue(typeId, out var entry))
+        // Try exact match first, then progressively strip leading module components. The slicec compiler
+        // emits only the leaf module component in Module.Identifier, but TypeRef TypeIds use the full
+        // module path, so "ZeroC::Slice::CodeGen::Tests::CustomType" won't match key "Tests::CustomType"
+        // without this fallback.
+        string lookupKey = typeId;
+        while (!_named.ContainsKey(lookupKey))
         {
-            throw new InvalidOperationException($"Failed to resolve named type with ID '{typeId}'.");
+            int sep = lookupKey.IndexOf("::", StringComparison.Ordinal);
+            if (sep < 0)
+            {
+                throw new InvalidOperationException($"Failed to resolve named type with ID '{typeId}'.");
+            }
+            lookupKey = lookupKey[(sep + 2)..];
         }
 
-        (Compiler.SliceFile file, Compiler.Symbol symbol) = entry;
+        (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[lookupKey];
         Module module = ConvertModule(file.ModuleDeclaration);
         Symbol converted = ConvertSymbol(symbol, file, module);
         _cache[typeId] = converted;

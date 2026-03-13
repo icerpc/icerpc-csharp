@@ -24,6 +24,9 @@ public record class Attribute
     /// <summary>The directive for the cs::readonly attribute.</summary>
     public const string CsReadonly = "cs::readonly";
 
+    /// <summary>The directive for the cs::type attribute.</summary>
+    public const string CsType = "cs::type";
+
     /// <summary>
     /// The attribute's directive, e.g. "cs::readonly" for [cs::readonly] attribute.
     /// </summary>
