@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports.Coloc;
 using IceRpc.Transports.Slic;

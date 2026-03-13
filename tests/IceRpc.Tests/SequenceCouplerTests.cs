@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;

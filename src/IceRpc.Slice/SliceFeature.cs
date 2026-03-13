@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using ZeroC.Slice.Codec;
-
 namespace IceRpc.Slice;
 
 /// <summary>Default implementation of <see cref="ISliceFeature" />.</summary>

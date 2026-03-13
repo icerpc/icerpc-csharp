@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice;
 

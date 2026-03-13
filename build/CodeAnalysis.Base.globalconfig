@@ -247,3 +247,6 @@ dotnet_diagnostic.VSSpell001.severity = none
 
 # Use primary constructor
 dotnet_diagnostic.IDE0290.severity = none
+
+# Unnecessary using directives
+dotnet_diagnostic.IDE0005.severity = warning
