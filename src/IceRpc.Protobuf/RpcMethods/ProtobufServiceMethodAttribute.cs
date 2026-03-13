@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace IceRpc.Protobuf;
+namespace IceRpc.Protobuf.RpcMethods;
 
 /// <summary>Represents an attribute that protoc-gen-icerpc-csharp applies to abstract methods in Service interfaces.
 /// </summary>

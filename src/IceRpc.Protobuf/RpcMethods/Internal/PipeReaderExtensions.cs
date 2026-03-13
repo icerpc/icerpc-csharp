@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 
-namespace IceRpc.Protobuf.Internal;
+namespace IceRpc.Protobuf.RpcMethods.Internal;
 
 /// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 internal static class PipeReaderExtensions

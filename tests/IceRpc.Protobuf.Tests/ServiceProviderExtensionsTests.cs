@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 

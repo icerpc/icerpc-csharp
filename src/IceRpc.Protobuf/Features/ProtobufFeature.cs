@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Protobuf;
+using IceRpc.Protobuf;
+
+namespace IceRpc.Features;
 
 /// <summary>Default implementation of <see cref="IProtobufFeature" />.</summary>
 public sealed class ProtobufFeature : IProtobufFeature

@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using Google.Protobuf.WellKnownTypes;
-using IceRpc.Protobuf.Internal;
+using IceRpc.Features;
+using IceRpc.Protobuf.RpcMethods;
+using IceRpc.Protobuf.RpcMethods.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;

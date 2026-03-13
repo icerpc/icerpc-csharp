@@ -46,6 +46,7 @@ foreach (FileDescriptor descriptor in descriptors)
 #pragma warning disable CS0619 // Type or member is obsolete
 
 using IceRpc.Protobuf;
+using IceRpc.Protobuf.RpcMethods;
 ");
 
     codeBlock.AddBlock($"namespace {descriptor.GetCsharpNamespace()};");

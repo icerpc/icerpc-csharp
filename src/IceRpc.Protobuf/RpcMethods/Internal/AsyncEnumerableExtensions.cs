@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace IceRpc.Protobuf.Internal;
+namespace IceRpc.Protobuf.RpcMethods.Internal;
 
 /// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a <see
 /// cref="PipeReader"/>.</summary>
