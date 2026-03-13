@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using System.IO.Pipelines;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Slice.Operations.Internal;
 
 /// <summary>Provides extension methods for <see cref="IncomingFrame" /> to decode its payload when this payload is
 /// encoded with the Slice encoding.</summary>

@@ -4,7 +4,7 @@ using IceRpc.Features;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Slice.Operations;
 
 /// <summary>Represents a delegate that decodes the return value from a Slice-encoded response.</summary>
 /// <typeparam name="T">The type of the return value to read.</typeparam>

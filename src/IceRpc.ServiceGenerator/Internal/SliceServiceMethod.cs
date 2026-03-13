@@ -18,7 +18,7 @@ internal class SliceServiceMethod : ServiceMethod
 
     private static readonly string[] _usingDirectives =
     [
-        "using IceRpc.Slice;",
+        "using IceRpc.Slice.Operations;",
         "using ZeroC.Slice.Codec;",
     ];
 
@@ -295,7 +295,7 @@ internal class SliceServiceMethodFactory : ServiceMethodFactory
     private readonly INamedTypeSymbol? _pipeReaderSymbol;
 
     internal SliceServiceMethodFactory(Compilation compilation)
-        : base(compilation.GetTypeByMetadataName("IceRpc.Slice.SliceOperationAttribute"))
+        : base(compilation.GetTypeByMetadataName("IceRpc.Slice.Operations.SliceOperationAttribute"))
     {
         _asyncEnumerableSymbol = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
         _pipeReaderSymbol = compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");

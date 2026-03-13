@@ -21,7 +21,7 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
     let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-    let proxy_impl_bases: Vec<String> = vec![interface.clone(), "ISliceProxy".to_owned()];
+    let proxy_impl_bases: Vec<String> = vec![interface.clone(), "IceRpc.Slice.ISliceProxy".to_owned()];
 
     let all_base_impl: Vec<String> = all_bases.iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
 
@@ -71,7 +71,7 @@ This remote service must implement Slice interface {slice_interface}."#
 public const string DefaultServicePath = "{default_service_path}";
 
 /// <inheritdoc/>
-public SliceEncodeOptions? EncodeOptions {{ get; init; }}
+public IceRpc.Slice.SliceEncodeOptions? EncodeOptions {{ get; init; }}
 
 /// <inheritdoc/>
 public required IceRpc.IInvoker Invoker {{ get; init; }}
@@ -150,7 +150,7 @@ Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cr
 /// <param name="encoder">The Slice encoder.</param>
 /// <param name="proxy">The proxy to encode as a service address.</param>
 {access} static void Encode{proxy_impl}(this ref SliceEncoder encoder, {proxy_impl} proxy) =>
-    encoder.EncodeServiceAddress(proxy.ServiceAddress);"#
+    IceRpc.Slice.ServiceAddressSliceEncoderExtensions.EncodeServiceAddress(ref encoder, proxy.ServiceAddress);"#
         )
         .into(),
     );
@@ -244,7 +244,7 @@ public static {proxy_impl} FromPath(string path) =>
 public {proxy_impl}(
     IceRpc.IInvoker invoker,
     IceRpc.ServiceAddress? serviceAddress = null,
-    SliceEncodeOptions? encodeOptions = null)
+    IceRpc.Slice.SliceEncodeOptions? encodeOptions = null)
 {{
     Invoker = invoker;
     ServiceAddress = serviceAddress ?? _defaultServiceAddress;
@@ -256,7 +256,7 @@ public {proxy_impl}(
 /// <param name="serviceAddressUri">A URI that represents a service address.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
 [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, SliceEncodeOptions? encodeOptions = null)
+public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, IceRpc.Slice.SliceEncodeOptions? encodeOptions = null)
     : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
 {{
 }}
@@ -466,7 +466,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         }
 
         builder.add_parameter(
-            "SliceEncodeOptions?",
+            "IceRpc.Slice.SliceEncodeOptions?",
             "encodeOptions",
             Some("null"),
             Some("The Slice encode options.".to_owned()),
@@ -508,7 +508,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
 
             builder.add_parameter(
-                "SliceEncodeOptions?",
+                "IceRpc.Slice.SliceEncodeOptions?",
                 "encodeOptions",
                 Some("null"),
                 Some("The Slice encode options.".to_owned()),
@@ -567,7 +567,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", comment_content);
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
-        builder.add_parameter("ISliceProxy", "sender", None, None);
+        builder.add_parameter("IceRpc.Slice.ISliceProxy", "sender", None, None);
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancellationToken",

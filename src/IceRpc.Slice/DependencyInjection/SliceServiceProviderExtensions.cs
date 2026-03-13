@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+using IceRpc.Slice;
+
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for <see cref="IServiceProvider" /> to create Slice proxies.</summary>
 public static class SliceServiceProviderExtensions
