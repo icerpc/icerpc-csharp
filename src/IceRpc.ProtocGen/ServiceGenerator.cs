@@ -68,7 +68,7 @@ public partial interface I{service.Name.ToPascalCase()}Service
                 "returns",
                 method.IsServerStreaming ?
                     "A value task holding the stream of output messages." : "A value task holding the output message.")
-            .AddAttribute($@"ProtobufServiceMethod(""{method.Name}"")")
+            .AddAttribute($@"RpcMethod(""{method.Name}"")")
             .Build();
     }
 }
