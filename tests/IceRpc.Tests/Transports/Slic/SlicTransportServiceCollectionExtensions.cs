@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace IceRpc.Tests.Transports.Slic;
 

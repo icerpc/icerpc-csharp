@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Internal;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Common;

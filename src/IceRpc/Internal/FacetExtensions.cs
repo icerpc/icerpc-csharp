@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Security.Cryptography.X509Certificates;
 using ZeroC.Slice.Codec;
 
 namespace IceRpc.Internal;

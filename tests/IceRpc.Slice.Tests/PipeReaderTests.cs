@@ -4,7 +4,6 @@ using IceRpc.Internal;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice.Tests;
 

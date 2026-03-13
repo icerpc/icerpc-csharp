@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Features;
 
