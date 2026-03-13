@@ -2,7 +2,6 @@
 
 using Google.Protobuf.WellKnownTypes;
 using IceRpc;
-using IceRpc;
 using IceRpc.Features;
 using Igloo;
 using System.Runtime.CompilerServices;

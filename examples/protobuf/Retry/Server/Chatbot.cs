@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc;
 using IceRpc.Features;
 using System.Security.Cryptography;
 using VisitorCenter;
