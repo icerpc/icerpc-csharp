@@ -8,7 +8,7 @@ internal static class StringExtensions
 {
     private static readonly string _newLine = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "\r\n" : "\n";
 
-    // TODO Once generators can target .NET 8 we can use String.ReplaceLineEndings and remove this implementation.
+    // This is a polyfill for String.ReplaceLineEndings, which is not available with netstandard2.0.
     internal static string ReplaceLineEndings(this string contents)
     {
         if (contents.Contains("\r\n", StringComparison.Ordinal))
