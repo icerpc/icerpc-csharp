@@ -8,7 +8,7 @@ namespace IceRpc.ServiceGenerator.Internal;
 /// <summary>Extension methods for <see cref="ISymbol"/>.</summary>
 internal static class SymbolExtensions
 {
-    internal static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol attributeSymbol)
+    internal static AttributeData? FindAttribute(this ISymbol symbol, INamedTypeSymbol attributeSymbol)
     {
         ImmutableArray<AttributeData> attributes = symbol.GetAttributes();
         foreach (AttributeData attribute in attributes)

@@ -62,7 +62,7 @@ internal abstract class ServiceMethodFactory : IServiceMethodFactory
             return false;
         }
 
-        AttributeData? attribute = methodSymbol.GetAttribute(_operationAttribute);
+        AttributeData? attribute = methodSymbol.FindAttribute(_operationAttribute);
         if (attribute is null)
         {
             return false;

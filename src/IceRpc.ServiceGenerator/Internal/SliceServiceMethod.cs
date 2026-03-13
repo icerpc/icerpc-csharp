@@ -102,70 +102,68 @@ internal class SliceServiceMethod : ServiceMethod
             .AddArgument($"method: {method}");
 
         // We don't use the generated Response.EncodeXxx method when _returnCount is 0. So we could not generate it.
-        if (_returnCount > 0)
+
+        if (_returnCount == 1)
         {
-            if (_returnCount == 1)
+            if (_returnStream)
             {
-                if (_returnStream)
-                {
-                    dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: static (_, encodeOptions) =>
+                dispatchCallBuilder.AddArgument(
+                    @$"encodeReturnValue: static (_, encodeOptions) =>
         global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}(encodeOptions)");
 
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: global::{_fullInterfaceName}.Response.EncodeStreamOf{_dispatchMethodName}");
-                }
-                else if (_encodedReturn)
-                {
-                    dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
-                }
-                else
-                {
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}");
-                }
+                dispatchCallBuilder.AddArgument(
+                    $"encodeReturnValueStream: global::{_fullInterfaceName}.Response.EncodeStreamOf{_dispatchMethodName}");
+            }
+            else if (_encodedReturn)
+            {
+                dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
             }
             else
             {
-                // Splatting required.
-                var nonStreamReturnNames = new List<string>(_returnFieldNames);
-                if (_returnStream)
-                {
-                    nonStreamReturnNames.RemoveAt(_returnFieldNames.Length - 1);
-                }
+                dispatchCallBuilder.AddArgument(
+                    $"encodeReturnValue: global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}");
+            }
+        }
+        else if (_returnCount > 1)
+        {
+            // Splatting required.
+            var nonStreamReturnNames = new List<string>(_returnFieldNames);
+            if (_returnStream)
+            {
+                nonStreamReturnNames.RemoveAt(_returnFieldNames.Length - 1);
+            }
 
-                if (_encodedReturn)
-                {
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: (returnValue, _) => returnValue.{nonStreamReturnNames[0]}");
-                }
-                else
-                {
-                    var encodeBuilder = new FunctionCallBuilder(
-                        $"global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}")
-                            .UseSemicolon(false)
-                            .AddArguments(nonStreamReturnNames.Select(name => $"returnValue.{name}"))
-                            .AddArgument("encodeOptions");
+            if (_encodedReturn)
+            {
+                dispatchCallBuilder.AddArgument(
+                    $"encodeReturnValue: (returnValue, _) => returnValue.{nonStreamReturnNames[0]}");
+            }
+            else
+            {
+                var encodeBuilder = new FunctionCallBuilder(
+                    $"global::{_fullInterfaceName}.Response.Encode{_dispatchMethodName}")
+                        .UseSemicolon(false)
+                        .AddArguments(nonStreamReturnNames.Select(name => $"returnValue.{name}"))
+                        .AddArgument("encodeOptions");
 
-                    dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: static (returnValue, encodeOptions) =>
+                dispatchCallBuilder.AddArgument(
+                    @$"encodeReturnValue: static (returnValue, encodeOptions) =>
         {encodeBuilder.Build()}");
-                }
+            }
 
-                if (_returnStream)
-                {
-                    string streamFieldName =
-                        _returnFieldNames[_returnFieldNames.Length - 1];
+            if (_returnStream)
+            {
+                string streamFieldName =
+                    _returnFieldNames[_returnFieldNames.Length - 1];
 
-                    var encodeBuilder = new FunctionCallBuilder(
-                        $"global::{_fullInterfaceName}.Response.EncodeStreamOf{_dispatchMethodName}")
-                            .UseSemicolon(false)
-                            .AddArgument($"returnValue.{streamFieldName}")
-                            .AddArgument("encodeOptions");
+                var encodeBuilder = new FunctionCallBuilder(
+                    $"global::{_fullInterfaceName}.Response.EncodeStreamOf{_dispatchMethodName}")
+                        .UseSemicolon(false)
+                        .AddArgument($"returnValue.{streamFieldName}")
+                        .AddArgument("encodeOptions");
 
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: static (returnValue, encodeOptions) => {encodeBuilder.Build()}");
-                }
+                dispatchCallBuilder.AddArgument(
+                    $"encodeReturnValueStream: static (returnValue, encodeOptions) => {encodeBuilder.Build()}");
             }
         }
 

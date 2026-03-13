@@ -121,7 +121,7 @@ internal sealed class Parser
     {
         if (classSymbol.BaseType is INamedTypeSymbol baseType)
         {
-            if (baseType.GetAttribute(_serviceAttribute!) is not null)
+            if (baseType.FindAttribute(_serviceAttribute!) is not null)
             {
                 return baseType;
             }
