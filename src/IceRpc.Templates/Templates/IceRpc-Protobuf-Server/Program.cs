@@ -1,5 +1,4 @@
 using IceRpc;
-using IceRpc.Protobuf;
 #if (transport == "tcp")
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;

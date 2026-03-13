@@ -190,7 +190,6 @@ public static class InvokerExtensions
         bool idempotent = false,
         CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
                                                        where TOutput : IMessage<TOutput>
-
     {
         var request = new OutgoingRequest(serviceAddress)
         {
