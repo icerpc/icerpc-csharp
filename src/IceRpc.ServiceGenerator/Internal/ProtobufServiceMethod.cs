@@ -16,10 +16,7 @@ internal class ProtobufServiceMethod : ServiceMethod
     /// <inheritdoc />
     internal override IEnumerable<string> UsingDirectives => _usingDirectives;
 
-    private static readonly string[] _usingDirectives =
-    [
-        "using IceRpc.Protobuf;"
-    ];
+    private static readonly string[] _usingDirectives = ["using IceRpc.Protobuf;"];
 
     // The fully qualified input type name (in C#). For example: "VisitorCenter.GreetRequest".
     private readonly string _inputTypeName;
@@ -36,12 +33,11 @@ internal class ProtobufServiceMethod : ServiceMethod
 
     /// <inheritdoc />
     internal override CodeBlock GenerateDispatchCaseBody() =>
-    $@"return request.Dispatch{_methodKind}Async(
-        global::{_inputTypeName}.Parser,
-        (global::{_interfaceName})this,
-        static (service, input, features, cancellationToken) =>
-            service.{_methodName}(input, features, cancellationToken),
-        cancellationToken);";
+        $@"return request.Dispatch{_methodKind}Async(
+    global::{_inputTypeName}.Parser,
+    (global::{_interfaceName})this,
+    static (service, input, features, cancellationToken) => service.{_methodName}(input, features, cancellationToken),
+    cancellationToken);";
 
     internal ProtobufServiceMethod(
         IMethodSymbol method,
