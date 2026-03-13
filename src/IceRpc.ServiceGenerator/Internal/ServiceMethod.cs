@@ -3,7 +3,7 @@
 namespace IceRpc.ServiceGenerator.Internal;
 
 /// <summary>Represents an abstract method in a generated XxxService interface marked with an IDL-specific attribute,
-/// such as <c>IceRpc.Slice.Extensions.SliceOperationAttribute</c> for Slice.</summary>
+/// such as <c>IceRpc.Slice.Operations.SliceOperationAttribute</c> for Slice.</summary>
 internal readonly record struct ServiceMethod
 {
     /// <summary>Gets the IDL used to define the corresponding operation.</summary>

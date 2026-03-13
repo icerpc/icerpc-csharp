@@ -2,13 +2,13 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
-using IceRpc.Slice.Extensions.Internal;
+using IceRpc.Slice.Operations.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice.Extensions;
+namespace IceRpc.Slice.Operations;
 
 /// <summary>Provides extension methods for <see cref="IncomingResponse" /> to decode its Slice-encoded payload.
 /// </summary>

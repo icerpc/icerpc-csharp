@@ -55,7 +55,7 @@ pub enum RpcProvider {
 
     /// IceRPC is being used.
     /// With this set, slicec-cs also generates `*.IceRpc` interface/dispatch files whose preamble includes a
-    /// `using IceRpc.Slice.Extensions` statement.
+    /// `using IceRpc.Slice.Operations` statement.
     #[clap(name = "icerpc")]
     IceRpc,
 }

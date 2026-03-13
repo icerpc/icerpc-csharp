@@ -13,7 +13,7 @@ internal sealed class Parser
     internal const string ServiceAttribute = "IceRpc.ServiceAttribute";
 
     private const string IceOperationAttribute = "IceRpc.Ice.IceOperationAttribute";
-    private const string SliceOperationAttribute = "IceRpc.Slice.Extensions.SliceOperationAttribute";
+    private const string SliceOperationAttribute = "IceRpc.Slice.Operations.SliceOperationAttribute";
 
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;

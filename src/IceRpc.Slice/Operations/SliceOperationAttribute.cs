@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace IceRpc.Slice.Extensions;
+namespace IceRpc.Slice.Operations;
 
 /// <summary>Represents an attribute that the Slice compiler uses to mark helper methods it generates on Service
 /// interfaces.</summary>

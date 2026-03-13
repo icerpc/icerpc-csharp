@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice.Extensions;
+namespace IceRpc.Slice.Operations;
 
 /// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 public static class PipeReaderExtensions

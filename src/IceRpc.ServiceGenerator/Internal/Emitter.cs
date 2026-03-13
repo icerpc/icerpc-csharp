@@ -18,7 +18,7 @@ internal class Emitter
             // TODO: temporary
             if (idl == Idl.Slice)
             {
-                codeBlock.WriteLine("using IceRpc.Slice.Extensions;");
+                codeBlock.WriteLine("using IceRpc.Slice.Operations;");
             }
         }
         codeBlock.WriteLine("using ZeroC.Slice.Codec;");
