@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Operations;
 using System.Diagnostics.CodeAnalysis;
 using ZeroC.Slice.Codec;
 
