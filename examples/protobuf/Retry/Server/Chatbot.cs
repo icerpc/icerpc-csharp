@@ -1,15 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Protobuf;
 using System.Security.Cryptography;
 using VisitorCenter;
 
 namespace RetryServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Protobuf service 'Greeter'.</summary>
-[ProtobufService]
+[Service]
 internal partial class Chatbot : IGreeterService
 {
     private readonly int _serverNumber;

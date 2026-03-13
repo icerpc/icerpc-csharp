@@ -13,7 +13,6 @@
     <Project Path="src/IceRpc.Logger/IceRpc.Logger.csproj" />
     <Project Path="src/IceRpc.Metrics/IceRpc.Metrics.csproj" />
     <Project Path="src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
-    <Project Path="src/IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj" />
     <Project Path="src/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.csproj" />
     <Project Path="src/IceRpc.ProtocGen/IceRpc.ProtocGen.csproj" />
     <Project Path="src/IceRpc.ProtocGen.BuildTelemetry/IceRpc.ProtocGen.BuildTelemetry.csproj" />

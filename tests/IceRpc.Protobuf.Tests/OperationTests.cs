@@ -533,7 +533,7 @@ public partial class OperationTests
         }
     }
 
-    [ProtobufService]
+    [Service]
     internal partial class MyOperationsService : IMyOperationsService
     {
         public List<InputMessage> Messages { get; set; } = new();

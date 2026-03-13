@@ -1,15 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
 using Google.Protobuf.WellKnownTypes;
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Protobuf;
 using Igloo;
 using System.Diagnostics;
 
 namespace ThermostatServer;
 
 /// <summary>Implements Protobuf service `ThermoHome`.</summary>
-[ProtobufService]
+[Service]
 internal partial class ThermoBridge : IThermoHomeService
 {
     private readonly DeviceConnection _deviceConnection;

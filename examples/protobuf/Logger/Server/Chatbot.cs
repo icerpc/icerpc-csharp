@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Protobuf;
 using VisitorCenter;
 
 namespace LoggerServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Protobuf service 'Greeter'.</summary>
-[ProtobufService]
+[Service]
 internal partial class Chatbot : IGreeterService
 {
     public ValueTask<GreetResponse> GreetAsync(

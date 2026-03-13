@@ -2,8 +2,8 @@
 
 using Google.Protobuf.WellKnownTypes;
 using IceRpc;
+using IceRpc;
 using IceRpc.Features;
-using IceRpc.Protobuf;
 using Igloo;
 using System.Runtime.CompilerServices;
 
@@ -11,7 +11,7 @@ namespace ThermostatDevice;
 
 /// <summary>Implements all the logic of our thermostat device, without any actual electronics or a real AC unit.
 /// </summary>
-[ProtobufService]
+[Service]
 internal partial class ThermoBot : IThermoControlService
 {
     internal Task ReadCompleted => _readTcs.Task;
