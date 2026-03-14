@@ -11,11 +11,11 @@ namespace ZeroC.Slice.Generator.Tests;
 public class DictionaryDecodingTests
 {
     [Test]
-    public void Decode_dictionary([Values] SliceEncoding encoding)
+    public void Decode_dictionary()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
         // A dictionary is encoded like a sequence.
@@ -24,7 +24,7 @@ public class DictionaryDecodingTests
             encoder.EncodeInt32(pair.Key);
             encoder.EncodeString(pair.Value);
         });
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         // Act
         var decoded = decoder.DecodeDictionary(

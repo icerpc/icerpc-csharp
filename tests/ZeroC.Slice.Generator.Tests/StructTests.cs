@@ -10,13 +10,13 @@ namespace ZeroC.Slice.Generator.Tests;
 public sealed class StructTests
 {
     [Test]
-    public void Decode_compact_struct([Values] SliceEncoding encoding)
+    public void Decode_compact_struct()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var decoded = new MyCompactStruct(ref decoder);
 
@@ -90,15 +90,15 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_compact_struct([Values] SliceEncoding encoding)
+    public void Encode_compact_struct()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = new MyCompactStruct(10, 20);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.I));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.J));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

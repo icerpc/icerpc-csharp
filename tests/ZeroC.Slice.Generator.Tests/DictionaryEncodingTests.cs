@@ -10,11 +10,11 @@ namespace ZeroC.Slice.Generator.Tests;
 public class DictionaryEncodingTests
 {
     [Test]
-    public void Encode_dictionary([Values] SliceEncoding encoding)
+    public void Encode_dictionary()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
         // Act
@@ -24,7 +24,7 @@ public class DictionaryEncodingTests
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Count));
         var value = new Dictionary<int, string>();
         while (decoder.Consumed != buffer.WrittenMemory.Length)

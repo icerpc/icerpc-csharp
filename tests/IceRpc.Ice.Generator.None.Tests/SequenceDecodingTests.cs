@@ -12,15 +12,15 @@ namespace IceRpc.Ice.Generator.None.Tests;
 public class SequenceDecodingTests
 {
     [Test]
-    public void Decode_bool_sequence_data_member([Values] SliceEncoding encoding)
+    public void Decode_bool_sequence_data_member()
     {
         // Arrange
         bool[] expected = [false, true, false];
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeSize(3);
         encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x00 });
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         // Act
         var sut = new BoolS(ref decoder);
@@ -31,11 +31,11 @@ public class SequenceDecodingTests
     }
 
     [Test]
-    public void Decode_bool_sequence_data_member_with_invalid_values([Values] SliceEncoding encoding)
+    public void Decode_bool_sequence_data_member_with_invalid_values()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeSize(3);
         encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x02 });
 
@@ -43,26 +43,25 @@ public class SequenceDecodingTests
         Assert.Throws<InvalidDataException>(
             () =>
             {
-                var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+                var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
                 var sut = new BoolS(ref decoder);
             });
     }
 
     /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)" /> with a
     /// fixed-size numeric value type.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
     [Test]
-    public void Decode_fixed_sized_numeric_sequence([Values] SliceEncoding encoding)
+    public void Decode_fixed_sized_numeric_sequence()
     {
         int[] expected = Enumerable.Range(0, 256).Select(i => i).ToArray();
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeSize(expected.Length);
         foreach (int value in expected)
         {
             encoder.EncodeInt32(value);
         }
-        var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         int[] result = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
 
@@ -72,19 +71,18 @@ public class SequenceDecodingTests
 
     /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)" /> with a
     /// string sequence.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
     [Test]
-    public void Decode_string_sequence([Values] SliceEncoding encoding)
+    public void Decode_string_sequence()
     {
         string[] expected = Enumerable.Range(0, 256).Select(i => $"string-{i}").ToArray();
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeSize(expected.Length);
         foreach (string value in expected)
         {
             encoder.EncodeString(value);
         }
-        var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         string[] decoded = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeString());
 
