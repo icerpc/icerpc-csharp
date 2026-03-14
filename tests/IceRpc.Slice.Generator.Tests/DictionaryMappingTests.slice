@@ -1,0 +1,83 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Generator::Tests
+
+interface DictionaryMappingOperations {
+    returnDictionaryTuple() -> (r1: Dictionary<int32, int32> r2: Dictionary<int32, int32>)
+
+    returnDictionaryOfInt32() -> Dictionary<int32, int32>
+    sendDictionaryOfInt32(p: Dictionary<int32, int32>)
+
+    returnDictionaryOfString() -> Dictionary<string, string>
+    sendDictionaryOfString(p: Dictionary<string, string>)
+
+    returnDictionaryOfMyFixedSizeEnum() -> Dictionary<MyFixedSizeEnum, MyFixedSizeEnum>
+    sendDictionaryOfMyFixedSizeEnum(p: Dictionary<MyFixedSizeEnum, MyFixedSizeEnum>)
+
+    returnDictionaryOfMyCompactStruct() -> Dictionary<MyCompactStruct, MyCompactStruct>
+    sendDictionaryOfMyCompactStruct(p: Dictionary<MyCompactStruct, MyCompactStruct>)
+
+    returnDictionaryOfCustomValueType() -> Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp>
+    sendDictionaryOfCustomValueType(p: Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp>)
+
+    returnDictionaryOfCustomReferenceType() -> Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri>
+    sendDictionaryOfCustomReferenceType(p: Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri>)
+
+    returnDictionaryOfOptionalInt32() -> Dictionary<int32, int32?>
+    sendDictionaryOfOptionalInt32(p: Dictionary<int32, int32?>)
+
+    returnDictionaryOfOptionalString() -> Dictionary<string, string?>
+    sendDictionaryOfOptionalString(p: Dictionary<string, string?>)
+
+    returnDictionaryOfOptionalMyFixedSizeEnum() -> Dictionary<MyFixedSizeEnum, MyFixedSizeEnum?>
+    sendDictionaryOfOptionalMyFixedSizeEnum(p: Dictionary<MyFixedSizeEnum, MyFixedSizeEnum?>)
+
+    returnDictionaryOfOptionalMyCompactStruct() -> Dictionary<MyCompactStruct, MyCompactStruct?>
+    sendDictionaryOfOptionalMyCompactStruct(p: Dictionary<MyCompactStruct, MyCompactStruct?>)
+
+    returnDictionaryOfOptionalCustomValueType() -> Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp?>
+    sendDictionaryOfOptionalCustomValueType(p: Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp?>)
+
+    returnDictionaryOfOptionalCustomReferenceType() -> Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri?>
+    sendDictionaryOfOptionalCustomReferenceType(p: Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri?>)
+
+    // We don't need to add tests for other cs::type arguments because the code path is always the same. The argument
+    // must be a non-abstract generic type that implements ICollection<KeyValuePair<TKey, TValue>> and provides a
+    // constructor with an initial capacity parameter.
+    returnCustomDictionaryTuple() -> (
+        r1: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
+        r2: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
+    )
+
+    returnCustomDictionary() -> [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
+
+    sendCustomDictionary(p: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>)
+
+    returnCustomDictionary2() -> [cs::type("List<KeyValuePair<int, int>>")] Dictionary<int32, int32>
+
+    sendCustomDictionary2(p: [cs::type("List<KeyValuePair<int, int>>")] Dictionary<int32, int32>)
+}
+
+[cs::readonly] compact struct LargeStruct {
+    x: int64
+    y: int64
+}
+
+[cs::readonly] compact struct KeyValuePair {
+    Key: int32
+    Value: string?
+}
+
+compact struct StructWithCustomDictionary {
+    value: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
+}
+
+// Just to test that the generated code compiles.
+struct NestedOptionalDictionaries {
+    d1: Dictionary<string, Dictionary<string, Dictionary<string, bool?>>>
+    d2: Dictionary<string, Dictionary<string, Dictionary<string, bool>?>>
+    d3: Dictionary<string, Dictionary<string, Dictionary<string, bool>>?>
+    d4: Dictionary<string, Dictionary<string, Dictionary<string, bool>>>?
+
+    d5: Dictionary<string, Dictionary<string, Dictionary<string, bool?>?>?>?
+}

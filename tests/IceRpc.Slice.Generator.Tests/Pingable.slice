@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Generator::Tests
+
+// A simple interface reused by several tests.
+interface Pingable {
+    ping()
+}
+
+[cs::type("IceRpc.Slice.Generator.Tests.PingableProxy")]
+custom PingableProxy

@@ -1,0 +1,17 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::Generator::Tests
+
+struct WellKnown {
+    duration: WellKnownTypes::Duration
+    timeStamp: WellKnownTypes::TimeStamp
+    uri: WellKnownTypes::Uri
+    id: WellKnownTypes::Uuid
+}
+
+struct WellKnownWithOptionals {
+    duration: WellKnownTypes::Duration?
+    timeStamp: WellKnownTypes::TimeStamp?
+    uri: WellKnownTypes::Uri?
+    id: WellKnownTypes::Uuid?
+}

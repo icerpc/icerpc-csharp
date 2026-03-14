@@ -1,7 +1,0 @@
-// Copyright (c) ZeroC, Inc.
-
-module ZeroC::Slice::CodeGen::Tests::TypeIdAttributeTestNamespace
-
-compact struct MyStruct {
-    b: bool // dummy field; a compact struct can't be empty.
-}

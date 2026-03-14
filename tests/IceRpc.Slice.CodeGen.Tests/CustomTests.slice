@@ -1,8 +1,0 @@
-// Copyright (c) ZeroC, Inc.
-
-module IceRpc::Slice::CodeGen::Tests
-
-// We just verify this code compiles.
-struct MyServiceAddressStruct {
-   serviceAddress: ServiceAddress
-}

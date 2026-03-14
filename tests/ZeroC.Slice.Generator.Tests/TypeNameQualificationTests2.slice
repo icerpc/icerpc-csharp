@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::Generator::Tests::Inner
+
+struct S {
+    v: int32
+}
