@@ -5,8 +5,14 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Operations;
 
-/// <summary>Represents an attribute that the Ice compiler uses to mark helper methods it generates on Service
-/// interfaces.</summary>
+/// <summary>An attribute that Ice's Slice compiler (slice2cs) applies to abstract methods it generates on server-side
+/// interfaces (XxxService). This attribute communicates information about the Ice operation to the Service generator
+/// (IceRpc.ServiceGenerator); for <c>IceOperationAttribute</c>, it's the name of the operation plus various optional
+/// properties (see below). The Service generator matches the operation name in incoming requests to the operation name
+/// specified by this attribute.</summary>
+/// <remarks>We limit the information communicated through this attribute to the strict minimum. The Service generator
+/// can deduct most information from the signature of the method decorated with this attribute, such as the number of
+/// parameters and their mapped types.</remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class IceOperationAttribute : Attribute
