@@ -7,7 +7,7 @@ using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Codec.Tests;
 
-/// <summary>Test encoding strings with the supported Slice encodings.</summary>
+/// <summary>Test encoding strings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public class StringEncodingTests
 {

@@ -5,7 +5,7 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Codec.Tests;
 
-/// <summary>Test decoding built-in types with the supported Slice encodings.</summary>
+/// <summary>Test decoding built-in types.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public class NumericTypesDecodingTests
 {

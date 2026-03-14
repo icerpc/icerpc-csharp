@@ -7,7 +7,7 @@ using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Codec.Tests;
 
-/// <summary>Test decoding strings with the supported Slice encodings.</summary>
+/// <summary>Test decoding strings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public class DecodeStringTests
 {
