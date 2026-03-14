@@ -21,7 +21,6 @@ internal class ServiceGenerator
 /// <summary>Represents a template that you use to implement Protobuf service <c>{service.FullName}</c>
 /// with IceRPC.</summary>
 /// <remarks>protoc-gen-icerpc-csharp generated this server-side interface.</remarks>
-/// <seealso cref=""IceRpc.Protobuf.ProtobufServiceAttribute"" />
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
 public partial interface I{service.Name.ToPascalCase()}Service
 {{
@@ -69,7 +68,7 @@ public partial interface I{service.Name.ToPascalCase()}Service
                 "returns",
                 method.IsServerStreaming ?
                     "A value task holding the stream of output messages." : "A value task holding the output message.")
-            .AddAttribute($@"ProtobufServiceMethod(""{method.Name}"")")
+            .AddAttribute($@"RpcMethod(""{method.Name}"")")
             .Build();
     }
 }

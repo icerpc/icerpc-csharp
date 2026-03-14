@@ -2,11 +2,11 @@
 
 using Google.Protobuf;
 using IceRpc.Features;
-using IceRpc.Protobuf.Internal;
+using IceRpc.Protobuf.RpcMethods.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
-namespace IceRpc.Protobuf;
+namespace IceRpc.Protobuf.RpcMethods;
 
 /// <summary>Provides extension methods for <see cref="IInvoker" />.</summary>
 public static class InvokerExtensions

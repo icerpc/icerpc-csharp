@@ -16,7 +16,7 @@ internal class ProtobufServiceMethod : ServiceMethod
     /// <inheritdoc />
     internal override IEnumerable<string> UsingDirectives => _usingDirectives;
 
-    private static readonly string[] _usingDirectives = ["using IceRpc.Protobuf;"];
+    private static readonly string[] _usingDirectives = ["using IceRpc.Protobuf.RpcMethods;"];
 
     // The fully qualified input type name (in C#). For example: "VisitorCenter.GreetRequest".
     private readonly string _inputTypeName;
@@ -69,7 +69,7 @@ internal class ProtobufServiceMethod : ServiceMethod
             _inputTypeName = inputType.GetFullName();
         }
 
-        // Methods with the ProtobufServiceMethodAttribute always have a generic ValueTask return type.
+        // Methods with the RpcMethodAttribute always have a generic ValueTask return type.
         // For server-streaming, the return type's generic argument is IAsyncEnumerable.
         Debug.Assert(method.ReturnType is INamedTypeSymbol);
         var genericReturnType = (INamedTypeSymbol)method.ReturnType;
@@ -93,7 +93,7 @@ internal class ProtobufServiceMethodFactory : ServiceMethodFactory
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
 
     internal ProtobufServiceMethodFactory(Compilation compilation)
-        : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufServiceMethodAttribute")) =>
+        : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.RpcMethods.RpcMethodAttribute")) =>
         _asyncEnumerableSymbol = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
 
     private protected override ServiceMethod CreateServiceMethod(IMethodSymbol methodSymbol, AttributeData attribute) =>

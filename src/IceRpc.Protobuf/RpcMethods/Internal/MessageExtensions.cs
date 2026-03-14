@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Pipelines;
 
-namespace IceRpc.Protobuf.Internal;
+namespace IceRpc.Protobuf.RpcMethods.Internal;
 
 /// <summary>Provides an extension method for <see cref="IMessage" />.</summary>
 internal static class MessageExtensions

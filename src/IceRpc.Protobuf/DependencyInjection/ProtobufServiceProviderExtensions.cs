@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Protobuf;
+using IceRpc.Protobuf;
+
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for <see cref="IServiceProvider" /> to create Protobuf clients.</summary>
 public static class ProtobufServiceProviderExtensions

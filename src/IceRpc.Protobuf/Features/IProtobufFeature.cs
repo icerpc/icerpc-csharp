@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Protobuf;
+using IceRpc.Protobuf;
+
+namespace IceRpc.Features;
 
 /// <summary>Represents a feature used to customize the encoding and decoding of request and response payloads.
 /// </summary>
