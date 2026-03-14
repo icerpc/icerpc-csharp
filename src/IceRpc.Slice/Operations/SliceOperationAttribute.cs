@@ -4,13 +4,13 @@ using System.ComponentModel;
 
 namespace IceRpc.Slice.Operations;
 
-/// <summary>An attribute that IceRPC's slicec plugin applies to abstract methods it generates on server-side
-/// interfaces (XxxService). This attribute communicates information about the Slice operation to the Service generator
-/// (IceRpc.ServiceGenerator); for <c>SliceOperationAttribute</c>, it's the name of the Slice operation plus various
-/// optional properties (see below). The Service generator matches the operation name in incoming requests to the
+/// <summary>An attribute that IceRpc.Slice.Generator applies to abstract methods it generates on server-side
+/// interfaces (I{Name}Service). This attribute communicates information about the Slice operation to the IceRPC
+/// Service Generator (IceRpc.ServiceGenerator): the name of the Slice operation plus various optional properties
+/// (see below). The Service Generator generates code that matches the operation name in incoming requests to the
 /// operation name specified by this attribute.</summary>
-/// <remarks>We limit the information communicated through this attribute to the strict minimum. The Service generator
-/// can deduct most information from the signature of the method decorated with this attribute, such as the number of
+/// <remarks>We limit the information communicated through this attribute to the strict minimum. The Service Generator
+/// can deduce most information from the signature of the method decorated with this attribute, such as the number of
 /// parameters and their mapped types.</remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 [EditorBrowsable(EditorBrowsableState.Never)]
