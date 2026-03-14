@@ -216,7 +216,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         }
 
         builder.add_parameter(
-            "IceRpc.Slice.SliceEncodeOptions?",
+            "SliceEncodeOptions?",
             "encodeOptions",
             Some("null"),
             Some("The Slice encode options.".to_owned()),
@@ -259,7 +259,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             );
 
             builder.add_parameter(
-                "IceRpc.Slice.SliceEncodeOptions?",
+                "SliceEncodeOptions?",
                 "encodeOptions",
                 Some("null"),
                 Some("The Slice encode options.".to_owned()),
