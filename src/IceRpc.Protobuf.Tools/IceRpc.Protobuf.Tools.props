@@ -15,16 +15,16 @@
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
   </PropertyGroup>
   <Choose>
-    <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
+    <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator')">
       <!--
-        Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.ProtocGen assembly from the
+        Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.Protobuf.Generator assembly from the
         source build.
       -->
       <PropertyGroup>
         <IceRpcProtobufToolsSourceBuild>true</IceRpcProtobufToolsSourceBuild>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
-        <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
-        <IceRpcProtocBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen.BuildTelemetry/bin/$(Configuration)/net10.0/</IceRpcProtocBuildTelemetryPath>
+        <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
+        <IceRpcProtocBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/</IceRpcProtocBuildTelemetryPath>
 
         <!-- Use local build of IceRpc.Protobuf.Tools -->
         <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</IceRpcProtobufToolsTaskAssembliesPath>
@@ -35,7 +35,7 @@
     </When>
     <Otherwise>
       <!--
-        Use the protoc compiler, the IceRpc.ProtocGen assembly, and the build telemetry script in this NuGet package.
+        Use the protoc compiler, the IceRpc.Protobuf.Generator assembly, and the build telemetry script in this NuGet package.
       -->
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>

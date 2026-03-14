@@ -4,7 +4,7 @@ using Google.Protobuf.Reflection;
 using IceRpc.CaseConverter.Internal;
 using ZeroC.CodeBuilder;
 
-namespace IceRpc.ProtocGen;
+namespace IceRpc.Protobuf.Generator;
 
 internal class ClientGenerator
 {

@@ -4,7 +4,7 @@ using Google.Protobuf;
 using Google.Protobuf.Compiler;
 using Google.Protobuf.Reflection;
 using IceRpc.CaseConverter.Internal;
-using IceRpc.ProtocGen;
+using IceRpc.Protobuf.Generator;
 using ZeroC.CodeBuilder;
 
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.

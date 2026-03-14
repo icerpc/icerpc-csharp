@@ -7,4 +7,4 @@ set -ue
 # executed from a symlink.
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-dotnet IceRpc.ProtocGen.dll -- "$@"
+dotnet IceRpc.Protobuf.Generator.dll -- "$@"

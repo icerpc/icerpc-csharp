@@ -2,7 +2,7 @@
 
 using Google.Protobuf.Reflection;
 
-namespace IceRpc.ProtocGen;
+namespace IceRpc.Protobuf.Generator;
 
 internal static class FileDescriptorExtensions
 {

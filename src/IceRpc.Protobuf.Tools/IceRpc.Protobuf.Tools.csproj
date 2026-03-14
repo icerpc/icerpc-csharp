@@ -15,8 +15,8 @@
     <NoWarn>NU5100</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../IceRpc.ProtocGen/IceRpc.ProtocGen.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../IceRpc.ProtocGen.BuildTelemetry/IceRpc.ProtocGen.BuildTelemetry.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../IceRpc.Protobuf.Generator/IceRpc.Protobuf.Generator.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../IceRpc.Protobuf.BuildTelemetry/IceRpc.Protobuf.BuildTelemetry.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
     <PackageReference Include="Google.Protobuf.Tools" Version="$(NuGetProtobufVersion)" />
@@ -49,15 +49,15 @@
     <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
     <!-- Include the protoc plug-ins from this source build. -->
     <None
-      Include="../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/*"
+      Include="../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/*"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
-    <!-- We need to exclude Google.Protobuf.dll because it's already included by IceRpc.ProtocGen above. -->
+    <!-- We need to exclude Google.Protobuf.dll because it's already included by IceRpc.Protobuf.Generator above. -->
     <None
-      Include="../IceRpc.ProtocGen.BuildTelemetry/bin/$(Configuration)/net10.0/*"
-      Exclude="../IceRpc.ProtocGen.BuildTelemetry/bin/$(Configuration)/net10.0/Google.Protobuf.dll"
+      Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/*"
+      Exclude="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/Google.Protobuf.dll"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
