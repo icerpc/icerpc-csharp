@@ -11,8 +11,7 @@ namespace IceRpc.Ice.Codec.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class DecodeStringTests
 {
-    /// <summary>Tests the decoding of a string. The only difference between decoding strings with Slice1 and
-    /// the Slice2 is how the size gets encoded that is tested separately.</summary>
+    /// <summary>Tests the decoding of a string.</summary>
     /// <param name="testString">The string to be decoded.</param>
     [TestCase("")]
     [TestCase("Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit.")] // cspell:disable-line
