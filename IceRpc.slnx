@@ -47,6 +47,7 @@
     <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
+    <Project Path="tests/IceRpc.Ice.Codec.Tests/IceRpc.Ice.Codec.Tests.csproj" />
     <Project Path="tests/ZeroC.Slice.Codec.Tests/ZeroC.Slice.Codec.Tests.csproj" />
     <Project Path="tests/IceRpc.Ice.Generator.None.Tests/IceRpc.Ice.Generator.None.Tests.csproj" />
     <Project Path="tests/ZeroC.Slice.Generator.Tests/ZeroC.Slice.Generator.Tests.csproj" />

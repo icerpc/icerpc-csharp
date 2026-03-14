@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
-namespace ZeroC.Slice.Codec.Tests;
+namespace IceRpc.Ice.Codec.Tests;
 
 /// <summary>Test encoding of built-in types with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
@@ -21,7 +22,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
         encoder.EncodeInt64(value);
 
@@ -38,7 +39,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
         encoder.EncodeInt8(value);
 
@@ -60,7 +61,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
         encoder.EncodeVarInt62(value);
 
@@ -82,7 +83,7 @@ public class NumericTypesEncodingTests
             // Arrange
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
             // Act
             encoder.EncodeVarInt62(value);
@@ -100,7 +101,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
         encoder.EncodeVarUInt62(value);
 
@@ -157,10 +158,32 @@ public class NumericTypesEncodingTests
         {
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
             encoder.EncodeVarUInt62(value);
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+    }
+
+    /// <summary>Tests the encoding of sizes with the Slice1 encoding.</summary>
+    /// <param name="size">The size to encode.</param>
+    /// <param name="expected">The expected byte array produced by encoding size.</param>
+    [TestCase(64, new byte[] { 0x40 })]
+    [TestCase(87, new byte[] { 0x57 })]
+    [TestCase(154, new byte[] { 0x9A })]
+    [TestCase(156, new byte[] { 0x9C })]
+    [TestCase(254, new byte[] { 0xFE })]
+    [TestCase(255, new byte[] { 0xFF, 0xFF, 0x00, 0x00, 0x00 })]
+    [TestCase(1000, new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 })]
+    public void Encode_size_with_slice_1(int size, byte[] expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+
+        encoder.EncodeSize(size);
+
+        Assert.That(encoder.EncodedByteCount, Is.EqualTo(expected.Length));
+        Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
     [Test]
@@ -171,7 +194,7 @@ public class NumericTypesEncodingTests
         Assert.That(
             () =>
             {
-                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
                 encoder.EncodeSize(-10);
             },
             Throws.InstanceOf<ArgumentException>());

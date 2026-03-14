@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using ZeroC.Slice.Codec;
 using System.Buffers;
 using System.Collections.Immutable;
 using ZeroC.Tests.Common;
 
-namespace ZeroC.Slice.Codec.Tests;
+namespace IceRpc.Ice.Codec.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceEncodingTests
@@ -16,7 +17,7 @@ public class SequenceEncodingTests
     {
         get
         {
-            foreach (SliceEncoding encoding in new[] { SliceEncoding.Slice2 })
+            foreach (SliceEncoding encoding in new[] { SliceEncoding.Slice1 })
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
@@ -61,12 +62,12 @@ public class SequenceEncodingTests
     public void Encode_string_sequence()
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var sut = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var sut = new SliceEncoder(buffer, SliceEncoding.Slice1);
         string[] expected = Enumerable.Range(0, 1024).Select(i => $"value-{i}").ToArray();
 
         sut.EncodeSequence(expected, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Length));
         var decoded = new List<string>();
         for (int i = 0; i < expected.Length; ++i)
@@ -75,35 +76,5 @@ public class SequenceEncodingTests
         }
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-    }
-
-    [Test]
-    public void Encode_sequence_of_optionals()
-    {
-        // Arrange
-        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var sut = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        int?[] expected = Enumerable.Range(0, 1024).Select(i => i % 2 == 0 ? (int?)i : null).ToArray();
-
-        // Act
-        sut.EncodeSequenceOfOptionals(
-            expected,
-            (ref SliceEncoder encoder, int? value) => encoder.EncodeInt32(value!.Value));
-
-        // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Length));
-        var bitSequenceReader = decoder.GetBitSequenceReader(expected.Length);
-        for (int i = 0; i < expected.Length; ++i)
-        {
-            if (bitSequenceReader.Read())
-            {
-                Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected[i]));
-            }
-            else
-            {
-                Assert.That(expected[i], Is.Null);
-            }
-        }
     }
 }
