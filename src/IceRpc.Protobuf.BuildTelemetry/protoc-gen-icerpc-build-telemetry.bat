@@ -1,3 +1,3 @@
 @echo OFF
 
-call dotnet %~dp0\IceRpc.Protobuf.BuildTelemetry.dll -- %*
+call dotnet "%~dp0\IceRpc.Protobuf.BuildTelemetry.dll" -- %*
