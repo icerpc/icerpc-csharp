@@ -8,7 +8,7 @@ using ZeroC.Tests.Common;
 namespace IceRpc.Ice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class Slice1NullableTests
+public class NullableTests
 {
     [Test]
     public void Using_null_for_non_nullable_proxy_fails_during_decoding()

@@ -9,57 +9,57 @@ namespace IceRpc.Ice.Generator.None.Tests;
 
 public class TaggedTests
 {
-    public static IEnumerable<TestCaseData> EncodeSlice1TaggedFieldsSource
+    public static IEnumerable<TestCaseData> EncodeTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_classWithTaggedFields[0]).SetName(
-                "Encode_slice1_tagged_fields(all_fields_set)");
+                "Encode_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_classWithTaggedFields[1]).SetName(
-                "Encode_slice1_tagged_fields(no_fields_set)");
+                "Encode_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_classWithTaggedFields[2]).SetName(
-                "Encode_slice1_tagged_fields(some_fields_set)");
+                "Encode_tagged_fields(some_fields_set)");
         }
     }
 
-    public static IEnumerable<TestCaseData> DecodeSlice1TaggedFieldsSource
+    public static IEnumerable<TestCaseData> DecodeTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_classWithTaggedFields[0]).SetName(
-                "Decode_slice1_tagged_fields(all_fields_set)");
+                "Decode_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_classWithTaggedFields[1]).SetName(
-                "Decode_slice1_tagged_fields(no_fields_set)");
+                "Decode_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_classWithTaggedFields[2]).SetName(
-                "Decode_slice1_tagged_fields(some_fields_set)");
+                "Decode_tagged_fields(some_fields_set)");
         }
     }
 
-    public static IEnumerable<TestCaseData> SkipSlice1TaggedFieldsSourceWithClassFormat
+    public static IEnumerable<TestCaseData> SkipTaggedFieldsSourceWithClassFormat
     {
         get
         {
             yield return new TestCaseData(_classWithTaggedFields[0], ClassFormat.Sliced).SetName(
-                "Skip_slice1_tagged_fields(all_fields_set, ClassFormat.Sliced)");
+                "Skip_tagged_fields(all_fields_set, ClassFormat.Sliced)");
 
             yield return new TestCaseData(_classWithTaggedFields[0], ClassFormat.Compact).SetName(
-                "Skip_slice1_tagged_fields(all_fields_set, ClassFormat.Compact)");
+                "Skip_tagged_fields(all_fields_set, ClassFormat.Compact)");
 
             yield return new TestCaseData(_classWithTaggedFields[1], ClassFormat.Sliced).SetName(
-                "Skip_slice1_tagged_fields(no_fields_set, ClassFormat.Sliced)");
+                "Skip_tagged_fields(no_fields_set, ClassFormat.Sliced)");
 
             yield return new TestCaseData(_classWithTaggedFields[1], ClassFormat.Compact).SetName(
-                "Skip_slice1_tagged_fields(no_fields_set, ClassFormat.Compact)");
+                "Skip_tagged_fields(no_fields_set, ClassFormat.Compact)");
 
             yield return new TestCaseData(_classWithTaggedFields[2], ClassFormat.Sliced).SetName(
-                "Skip_slice1_tagged_fields(some_fields_set, ClassFormat.Sliced)");
+                "Skip_tagged_fields(some_fields_set, ClassFormat.Sliced)");
 
             yield return new TestCaseData(_classWithTaggedFields[2], ClassFormat.Compact).SetName(
-                "Skip_slice1_tagged_fields(some_fields_set, ClassFormat.Compact)");
+                "Skip_tagged_fields(some_fields_set, ClassFormat.Compact)");
         }
     }
 
@@ -90,8 +90,8 @@ public class TaggedTests
             null)
     };
 
-    [Test, TestCaseSource(nameof(DecodeSlice1TaggedFieldsSource))]
-    public void Decode_slice1_tagged_fields(ClassWithTaggedFields expected)
+    [Test, TestCaseSource(nameof(DecodeTaggedFieldsSource))]
+    public void Decode_tagged_fields(ClassWithTaggedFields expected)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -231,8 +231,8 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeSlice1TaggedFieldsSource))]
-    public void Encode_slice1_tagged_fields(ClassWithTaggedFields c)
+    [Test, TestCaseSource(nameof(EncodeTaggedFieldsSource))]
+    public void Encode_tagged_fields(ClassWithTaggedFields c)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -354,8 +354,8 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(SkipSlice1TaggedFieldsSourceWithClassFormat))]
-    public void Skip_slice1_tagged_fields(ClassWithTaggedFields expected, ClassFormat classFormat)
+    [Test, TestCaseSource(nameof(SkipTaggedFieldsSourceWithClassFormat))]
+    public void Skip_tagged_fields(ClassWithTaggedFields expected, ClassFormat classFormat)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);

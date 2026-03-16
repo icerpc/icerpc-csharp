@@ -12,10 +12,10 @@ namespace IceRpc.Ice.Generator.Tests;
 public sealed class StructTests
 {
     [Test]
-    public void Decode_slice1_compact_struct_with_nullable_proxy(
+    public void Decode_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? serviceAddress)
     {
-        var expected = new MyCompactStructWithNullableProxy(
+        var expected = new MyStructWithNullableProxy(
             10,
             serviceAddress is null ? null : new AnotherPingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -24,15 +24,15 @@ public sealed class StructTests
         encoder.EncodeNullableServiceAddress(expected.I?.ServiceAddress);
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
-        var value = new MyCompactStructWithNullableProxy(ref decoder);
+        var value = new MyStructWithNullableProxy(ref decoder);
 
         Assert.That(value, Is.EqualTo(expected));
     }
 
     [Test]
-    public void Decode_slice1_compact_struct_with_sequence_of_nullable_proxies()
+    public void Decode_struct_with_sequence_of_nullable_proxies()
     {
-        var expected = new MyCompactStructWithSequenceOfNullableProxies
+        var expected = new MyStructWithSequenceOfNullableProxies
         {
             I = new AnotherPingableProxy?[]
             {
@@ -48,15 +48,15 @@ public sealed class StructTests
             (ref IceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
-        var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
+        var value = new MyStructWithSequenceOfNullableProxies(ref decoder);
 
         Assert.That(value.I, Is.EqualTo(expected.I));
     }
 
     [Test]
-    public void Decode_slice1_compact_struct_with_dictionary_of_nullable_proxies()
+    public void Decode_struct_with_dictionary_of_nullable_proxies()
     {
-        var expected = new MyCompactStructWithDictionaryOfNullableProxies
+        var expected = new MyStructWithDictionaryOfNullableProxies
         {
             I = new Dictionary<int, AnotherPingableProxy?>
             {
@@ -73,16 +73,16 @@ public sealed class StructTests
             (ref IceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
-        var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);
+        var value = new MyStructWithDictionaryOfNullableProxies(ref decoder);
 
         Assert.That(value.I, Is.EqualTo(expected.I));
     }
 
     [Test]
-    public void Encode_slice1_compact_struct_with_nullable_proxy(
+    public void Encode_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? serviceAddress)
     {
-        var expected = new MyCompactStructWithNullableProxy(
+        var expected = new MyStructWithNullableProxy(
             10,
             serviceAddress is null ? null : new AnotherPingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -97,9 +97,9 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice1_compact_struct_with_sequence_of_nullable_proxies()
+    public void Encode_struct_with_sequence_of_nullable_proxies()
     {
-        var expected = new MyCompactStructWithSequenceOfNullableProxies
+        var expected = new MyStructWithSequenceOfNullableProxies
         {
             I = new AnotherPingableProxy?[]
             {
@@ -120,9 +120,9 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice1_compact_struct_with_dictionary_of_nullable_proxies()
+    public void Encode_struct_with_dictionary_of_nullable_proxies()
     {
-        var expected = new MyCompactStructWithDictionaryOfNullableProxies
+        var expected = new MyStructWithDictionaryOfNullableProxies
         {
             I = new Dictionary<int, AnotherPingableProxy?>
             {

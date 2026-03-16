@@ -56,7 +56,7 @@ public partial class ProxyTests
     /// <param name="expected">The nullable proxy to test with.</param>
     [TestCase("icerpc://host.zeroc.com/hello")]
     [TestCase(null)]
-    public void Decode_slice1_nullable_proxy(ServiceAddress? expected)
+    public void Decode_nullable_proxy(ServiceAddress? expected)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);

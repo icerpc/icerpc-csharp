@@ -10,18 +10,18 @@ module IceRpc::Ice::Generator::Tests
     sequence<AnotherPingable*> AnotherPingableSeq;
     dictionary<int, AnotherPingable*> AnotherPingableDict;
 
-    struct MyCompactStructWithNullableProxy
+    struct MyStructWithNullableProxy
     {
         int a;
         AnotherPingable* i;
     }
 
-    struct MyCompactStructWithSequenceOfNullableProxies
+    struct MyStructWithSequenceOfNullableProxies
     {
         AnotherPingableSeq i;
     }
 
-    struct MyCompactStructWithDictionaryOfNullableProxies
+    struct MyStructWithDictionaryOfNullableProxies
     {
         AnotherPingableDict i;
     }
