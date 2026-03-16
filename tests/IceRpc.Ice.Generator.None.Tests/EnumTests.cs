@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
+
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.None.Tests;
@@ -21,11 +22,11 @@ public class EnumTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
 
         encoder.EncodeMySlice1Enum(expected);
 
-        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), IceEncoding.Ice1);
         var decoded = (MySlice1Enum)decoder.DecodeSize();
 
         Assert.That(decoded, Is.EqualTo(expected));
@@ -37,11 +38,11 @@ public class EnumTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
 
         encoder.EncodeSize((int)expected);
 
-        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), IceEncoding.Ice1);
         var decoded = decoder.DecodeMySlice1Enum();
 
         Assert.That(decoded, Is.EqualTo(expected));

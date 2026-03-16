@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
+using IceRpc.Ice.Codec;
 
 namespace IceRpc.Ice.Generator.Tests;
 
@@ -22,7 +22,7 @@ public sealed class InterfaceTests
     [TestCase(typeof(IMyOtherWidgetService), "::IceRpc::Ice::Generator::Tests::myOtherWidget")]
     public void Get_slice_type_id(Type type, string? expected)
     {
-        string? typeId = type.GetSliceTypeId();
+        string? typeId = type.GetIceTypeId();
         Assert.That(typeId, Is.EqualTo(expected));
     }
 

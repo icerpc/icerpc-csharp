@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using ZeroC.Slice.Codec;
 
 namespace IceRpc.RequestContext;
@@ -29,18 +30,32 @@ public class RequestContextInterceptor : IInvoker
             }
             else
             {
-                SliceEncoding encoding = request.Protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2;
-
-                request.Fields = request.Fields.With(
-                    RequestFieldKey.Context,
-                    new OutgoingFieldValue(bufferWriter =>
-                    {
-                        var encoder = new SliceEncoder(bufferWriter, encoding);
-                        encoder.EncodeDictionary(
-                            context,
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
-                    }));
+                if (request.Protocol == Protocol.Ice)
+                {
+                    request.Fields = request.Fields.With(
+                        RequestFieldKey.Context,
+                        new OutgoingFieldValue(bufferWriter =>
+                        {
+                            var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+                            encoder.EncodeDictionary(
+                                context,
+                                (ref IceEncoder encoder, string value) => encoder.EncodeString(value),
+                                (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
+                        }));
+                }
+                else
+                {
+                    request.Fields = request.Fields.With(
+                        RequestFieldKey.Context,
+                        new OutgoingFieldValue(bufferWriter =>
+                        {
+                            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+                            encoder.EncodeDictionary(
+                                context,
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                        }));
+                }
             }
         }
         return _next.InvokeAsync(request, cancellationToken);

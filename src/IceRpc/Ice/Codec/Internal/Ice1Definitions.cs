@@ -16,8 +16,8 @@ internal static class Ice1Definitions
         TypeIdMask = 3,
         HasTaggedFields = 4,
         HasIndirectionTable = 8,
-        HasIceSize = 16,
-        IsLastIce = 32
+        HasSliceSize = 16,
+        IsLastSlice = 32
     }
 
     /// <summary>The first 2 bits of the <see cref="IceFlags" />.</summary>

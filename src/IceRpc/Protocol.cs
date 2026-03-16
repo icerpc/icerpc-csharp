@@ -33,7 +33,7 @@ public class Protocol
     public string Name { get; }
 
     /// <summary>Gets the byte value for this protocol.</summary>
-    /// <value>The protocol byte value. It's used as the "protocol major" with the Slice1 encoding.</value>
+    /// <value>The protocol byte value. It's used as the "protocol major" with the Ice encoding.</value>
     internal byte ByteValue { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>

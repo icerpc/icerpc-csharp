@@ -52,7 +52,7 @@ public ref partial struct IceDecoder
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
             sliceException = activator.CreateInstance(typeId) as IceException;
-            if (sliceException is null && SkipIce(typeId))
+            if (sliceException is null && SkipSlice(typeId))
             {
                 // Cannot decode this exception. The message should be set only when the exception was received over
                 // icerpc.
@@ -96,14 +96,14 @@ public ref partial struct IceDecoder
 
     /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void EndIce()
+    public void EndSlice()
     {
         if (Encoding != IceEncoding.Ice1)
         {
-            throw new InvalidOperationException($"{nameof(EndIce)} is not compatible with encoding {Encoding}.");
+            throw new InvalidOperationException($"{nameof(EndSlice)} is not compatible with encoding {Encoding}.");
         }
 
-        // Note that EndIce is not called when we call SkipIce.
+        // Note that EndSlice is not called when we call SkipSlice.
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
         if ((_classContext.Current.IceFlags & IceFlags.HasTaggedFields) != 0)
@@ -123,11 +123,11 @@ public ref partial struct IceDecoder
 
     /// <summary>Marks the start of the decoding of a class or remote exception slice.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void StartIce()
+    public void StartSlice()
     {
         if (Encoding != IceEncoding.Ice1)
         {
-            throw new InvalidOperationException($"{nameof(StartIce)} is not compatible with encoding {Encoding}.");
+            throw new InvalidOperationException($"{nameof(StartSlice)} is not compatible with encoding {Encoding}.");
         }
 
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
@@ -210,7 +210,7 @@ public ref partial struct IceDecoder
         Debug.Assert(_classContext.Current.IndirectionTable is null);
         if ((_classContext.Current.IceFlags & IceFlags.HasIndirectionTable) != 0)
         {
-            if ((_classContext.Current.IceFlags & IceFlags.HasIceSize) == 0)
+            if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) == 0)
             {
                 throw new InvalidDataException("The Ice has indirection table flag but has not size flag.");
             }
@@ -266,7 +266,7 @@ public ref partial struct IceDecoder
                 instance = activator.CreateInstance(typeId) as IceClass;
             }
 
-            if (instance is null && SkipIce(typeId))
+            if (instance is null && SkipSlice(typeId))
             {
                 // Ice off what we don't understand.
                 instance = new UnknownIceClass();
@@ -314,7 +314,7 @@ public ref partial struct IceDecoder
             DecodeIndirectionTableIntoCurrent();
         }
 
-        instance.UnknownIces = _classContext.Current.Ices?.ToImmutableList() ?? ImmutableList<IceInfo>.Empty;
+        instance.UnknownIces = _classContext.Current.Ices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
         _classContext.Current.FirstIce = true;
         instance.Decode(ref this);
 
@@ -338,7 +338,7 @@ public ref partial struct IceDecoder
 
             if (typeId is null)
             {
-                if ((_classContext.Current.IceFlags & IceFlags.HasIceSize) != 0)
+                if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) != 0)
                 {
                     throw new InvalidDataException(
                         "Invalid Ice flags; a Ice in compact format cannot carry a size.");
@@ -352,7 +352,7 @@ public ref partial struct IceDecoder
         }
 
         // Decode the slice size if available.
-        if ((_classContext.Current.IceFlags & IceFlags.HasIceSize) != 0)
+        if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) != 0)
         {
             _classContext.Current.IceSize = DecodeIceSize();
         }
@@ -456,7 +456,7 @@ public ref partial struct IceDecoder
                     _ = DecodeTypeId(sliceFlags.GetTypeIdKind());
 
                     // Decode the slice size, then skip the slice
-                    if ((sliceFlags & IceFlags.HasIceSize) == 0)
+                    if ((sliceFlags & IceFlags.HasSliceSize) == 0)
                     {
                         throw new InvalidDataException("The Ice size flag is missing.");
                     }
@@ -468,7 +468,7 @@ public ref partial struct IceDecoder
                         SkipIndirectionTable();
                     }
                 }
-                while ((sliceFlags & IceFlags.IsLastIce) == 0);
+                while ((sliceFlags & IceFlags.IsLastSlice) == 0);
                 _currentDepth--;
             }
         }
@@ -479,14 +479,14 @@ public ref partial struct IceDecoder
     /// <param name="typeId">The type ID or compact ID of the current slice.</param>
     /// <returns><see langword="true" /> when the current slice is the last slice; otherwise, <see langword="false" />.
     /// </returns>
-    private bool SkipIce(string? typeId)
+    private bool SkipSlice(string? typeId)
     {
         if (typeId is null)
         {
             throw new InvalidDataException("Cannot skip a class slice with no type ID.");
         }
 
-        if ((_classContext.Current.IceFlags & IceFlags.HasIceSize) == 0)
+        if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) == 0)
         {
             throw new InvalidDataException(
                 $"The configured activator cannot find a class for type ID '{typeId}' and the compact format prevents slicing (the sender should use the sliced format instead).");
@@ -496,7 +496,7 @@ public ref partial struct IceDecoder
         byte[] bytes;
         if (hasTaggedFields)
         {
-            // Don't include the tag end marker. It will be re-written by IceEncoder.EndIce when the sliced data
+            // Don't include the tag end marker. It will be re-written by IceEncoder.EndSlice when the sliced data
             // is re-written.
             bytes = new byte[_classContext.Current.IceSize - 1];
             CopyTo(bytes.AsSpan());
@@ -510,7 +510,7 @@ public ref partial struct IceDecoder
 
         bool hasIndirectionTable = (_classContext.Current.IceFlags & IceFlags.HasIndirectionTable) != 0;
 
-        // SkipIce for a class skips the indirection table and preserves its position in
+        // SkipSlice for a class skips the indirection table and preserves its position in
         // _current.DeferredIndirectionTableList for later decoding.
         if (_classContext.Current.InstanceType == InstanceType.Class)
         {
@@ -528,13 +528,13 @@ public ref partial struct IceDecoder
                 _classContext.Current.DeferredIndirectionTableList.Add(0); // keep a slot for each slice
             }
 
-            var info = new IceInfo(
+            var info = new SliceInfo(
                 typeId,
                 new ReadOnlyMemory<byte>(bytes),
                 _classContext.Current.IndirectionTable ?? Array.Empty<IceClass>(),
                 hasTaggedFields);
 
-            _classContext.Current.Ices ??= new List<IceInfo>();
+            _classContext.Current.Ices ??= new List<SliceInfo>();
             _classContext.Current.Ices.Add(info);
         }
         else if (hasIndirectionTable)
@@ -549,7 +549,7 @@ public ref partial struct IceDecoder
         // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.
         _classContext.Current.IndirectionTable = null;
 
-        return (_classContext.Current.IceFlags & IceFlags.IsLastIce) != 0;
+        return (_classContext.Current.IceFlags & IceFlags.IsLastSlice) != 0;
     }
 
     /// <summary>Holds various fields used for class and exception decoding.</summary>
@@ -582,7 +582,7 @@ public ref partial struct IceDecoder
 
         internal List<long>? DeferredIndirectionTableList;
         internal InstanceType InstanceType;
-        internal List<IceInfo>? Ices; // Preserved slices.
+        internal List<SliceInfo>? Ices; // Preserved slices.
 
         // Ice fields
 

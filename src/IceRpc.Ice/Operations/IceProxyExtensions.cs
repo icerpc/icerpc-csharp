@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Operations;
 
@@ -13,7 +13,7 @@ namespace IceRpc.Ice.Operations;
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-/// <returns>A value task that contains the return value or a <see cref="SliceException" /> when the status code of the
+/// <returns>A value task that contains the return value or a <see cref="IceException" /> when the status code of the
 /// response is <see cref="StatusCode.ApplicationError" />.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
@@ -26,7 +26,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-/// <returns>A value task that contains a <see cref="SliceException" /> when the status code of the response is
+/// <returns>A value task that contains a <see cref="IceException" /> when the status code of the response is
 /// <see cref="StatusCode.ApplicationError" />.</returns>
 public delegate ValueTask ResponseDecodeFunc(
     IncomingResponse response,
@@ -57,7 +57,7 @@ public static class IceProxyExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
+    /// <exception cref="IceException">Thrown if the response carries a Slice exception.</exception>
     public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -128,7 +128,7 @@ public static class IceProxyExtensions
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
+    /// <exception cref="IceException">Thrown if the response carries a failure.</exception>
     public static Task InvokeOperationAsync<TProxy>(
         this TProxy proxy,
         string operation,
@@ -210,7 +210,7 @@ public static class IceProxyExtensions
         this IIceProxy proxy,
         IFeatureCollection? features = null,
         CancellationToken cancellationToken = default) where TProxy : struct, IIceProxy =>
-        await proxy.ToProxy<IceObjectProxy>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancellationToken)
+        await proxy.ToProxy<IceObjectProxy>().IceIsAAsync(typeof(TProxy).GetIceTypeId()!, features, cancellationToken)
             .ConfigureAwait(false) ?
             proxy.ToProxy<TProxy>() : null;
 }

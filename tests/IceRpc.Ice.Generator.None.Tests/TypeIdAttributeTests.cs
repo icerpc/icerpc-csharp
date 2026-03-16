@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
+using IceRpc.Ice.Codec;
 
 namespace IceRpc.Ice.Generator.None.Tests.TypeIdAttributeTestNamespace;
 
@@ -14,7 +14,7 @@ public sealed class TypeIdAttributeTests
     [TestCase(typeof(MyOtherClass), "::IceRpc::Ice::Generator::None::Tests::TypeIdAttributeTestNamespace::myOtherClass")]
     public void Get_slice_type_id(Type type, string? expected)
     {
-        string? typeId = type.GetSliceTypeId();
+        string? typeId = type.GetIceTypeId();
         Assert.That(typeId, Is.EqualTo(expected));
     }
 }

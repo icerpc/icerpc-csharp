@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
@@ -791,8 +792,6 @@ public sealed class ProtocolConnectionTests
             return new(new OutgoingResponse(request));
         });
 
-        SliceEncoding encoding = protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2;
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -805,11 +804,22 @@ public sealed class ProtocolConnectionTests
                 RequestFieldKey.Context,
                 new OutgoingFieldValue(bufferWriter =>
                 {
-                    var encoder = new SliceEncoder(bufferWriter, encoding);
-                    encoder.EncodeDictionary(
-                        expectedValue,
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                    if (protocol == Protocol.Ice)
+                    {
+                        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+                        encoder.EncodeDictionary(
+                            expectedValue,
+                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
+                    }
+                    else
+                    {
+                        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+                        encoder.EncodeDictionary(
+                            expectedValue,
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                    }
                 }))
         };
 
@@ -822,11 +832,22 @@ public sealed class ProtocolConnectionTests
 
         Dictionary<string, string> DecodeField()
         {
-            var decoder = new SliceDecoder(field, encoding);
-            return decoder.DecodeDictionary(
-                count => new Dictionary<string, string>(count),
-                (ref SliceDecoder decoder) => decoder.DecodeString(),
-                (ref SliceDecoder decoder) => decoder.DecodeString());
+            if (protocol == Protocol.Ice)
+            {
+                var decoder = new IceDecoder(field, IceEncoding.Ice1);
+                return decoder.DecodeDictionary(
+                    count => new Dictionary<string, string>(count),
+                    (ref IceDecoder decoder) => decoder.DecodeString(),
+                    (ref IceDecoder decoder) => decoder.DecodeString());
+            }
+            else
+            {
+                var decoder = new SliceDecoder(field, SliceEncoding.Slice2);
+                return decoder.DecodeDictionary(
+                    count => new Dictionary<string, string>(count),
+                    (ref SliceDecoder decoder) => decoder.DecodeString(),
+                    (ref SliceDecoder decoder) => decoder.DecodeString());
+            }
         }
     }
 

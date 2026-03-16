@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.ComponentModel;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Operations;
 
@@ -27,7 +26,7 @@ public sealed class IceOperationAttribute : Attribute
 
     /// <summary>Gets the exception specification of the operation.</summary>
     /// <value>An array of Slice exception types that the operation may throw.</value>
-    /// <seealso cref="SliceException"/>
+    /// <seealso cref="IceException"/>
     public Type[] ExceptionSpecification { get; init; } = [];
 
     /// <summary>Gets a value indicating whether the operation is idempotent.</summary>

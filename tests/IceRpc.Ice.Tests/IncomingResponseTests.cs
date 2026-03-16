@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Tests;
 
@@ -47,7 +47,7 @@ public class IncomingResponseTests
             async () => await response.DecodeReturnValueAsync(
                 request,
                 InvalidProxy.Instance,
-                (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                (ref IceDecoder decoder) => decoder.DecodeInt32(),
                 _defaultActivator));
         Assert.That(decodedException, Is.Not.Null);
         Assert.That(decodedException!.ConvertToInternalError, Is.True);

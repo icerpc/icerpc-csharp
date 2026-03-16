@@ -501,7 +501,7 @@ public sealed record class ServiceAddress
     /// <see langword="false" />.</returns>
     internal static bool IsValidParamValue(string value) => IsValid(value, _notValidInParamValue);
 
-    /// <summary>"unchecked" constructor used by the Slice decoder when decoding a Slice1 encoded service address.
+    /// <summary>"unchecked" constructor used by the Ice decoder when decoding a service address.
     /// </summary>
     internal ServiceAddress(
         Protocol protocol,

@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
+
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.Tests;
@@ -40,9 +41,9 @@ public partial class ProxyTests
         // Arrange
         expected ??= value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
         encoder.EncodeServiceAddress(value);
-        var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice1);
+        var sut = new IceDecoder(bufferWriter.WrittenMemory, encoding: IceEncoding.Ice1);
 
         // Act
         var decoded = sut.DecodeNullablePingableProxy();
@@ -59,9 +60,9 @@ public partial class ProxyTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
         encoder.EncodeNullableServiceAddress(expected);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
 
         // Act
         AnotherPingableProxy? decoded = decoder.DecodeNullableAnotherPingableProxy();
@@ -81,7 +82,7 @@ public partial class ProxyTests
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+            var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
             encoder.EncodeServiceAddress(serviceAddress);
         },
         Throws.TypeOf<FormatException>());
@@ -93,7 +94,7 @@ public partial class ProxyTests
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+            var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
             encoder.EncodeServiceAddress(serviceAddress);
         },
         Throws.TypeOf<ArgumentException>());

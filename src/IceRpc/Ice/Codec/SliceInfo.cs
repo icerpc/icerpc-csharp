@@ -4,7 +4,7 @@ namespace IceRpc.Ice.Codec;
 
 /// <summary>Encapsulates the details of a class slice (as in slice of cake) that an <see cref="IActivator" /> could
 /// not decode.</summary>
-public sealed class IceInfo
+public sealed class SliceInfo
 {
     /// <summary>Gets the Ice type ID or compact ID for this slice.</summary>
     public string TypeId { get; }
@@ -18,7 +18,7 @@ public sealed class IceInfo
     /// <summary>Gets the class instances referenced by this slice.</summary>
     public IReadOnlyList<IceClass> Instances { get; internal set; }
 
-    internal IceInfo(
+    internal SliceInfo(
         string typeId,
         ReadOnlyMemory<byte> bytes,
         IReadOnlyList<IceClass> instances,

@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations;
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
+
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.Tests;
@@ -18,10 +19,10 @@ public sealed class StructTests
             10,
             serviceAddress is null ? null : new AnotherPingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
         encoder.EncodeInt32(expected.A);
         encoder.EncodeNullableServiceAddress(expected.I?.ServiceAddress);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
 
         var value = new MyCompactStructWithNullableProxy(ref decoder);
 
@@ -41,11 +42,11 @@ public sealed class StructTests
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
         encoder.EncodeSequence(
             expected.I,
-            (ref SliceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+            (ref IceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
 
@@ -65,12 +66,12 @@ public sealed class StructTests
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
         encoder.EncodeDictionary(
             expected.I,
-            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+            (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value),
+            (ref IceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
 
         var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);
 
@@ -85,11 +86,11 @@ public sealed class StructTests
             10,
             serviceAddress is null ? null : new AnotherPingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.A));
         Assert.That(decoder.DecodeNullableProxy<AnotherPingableProxy>(), Is.EqualTo(expected.I));
 
@@ -108,13 +109,13 @@ public sealed class StructTests
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
         Assert.That(
-            decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeNullableProxy<AnotherPingableProxy>()),
+            decoder.DecodeSequence((ref IceDecoder decoder) => decoder.DecodeNullableProxy<AnotherPingableProxy>()),
             Is.EqualTo(expected.I));
     }
 
@@ -131,16 +132,16 @@ public sealed class StructTests
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
         Assert.That(
             decoder.DecodeDictionary(
                 count => new Dictionary<int, AnotherPingableProxy?>(count),
-                (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-                (ref SliceDecoder decoder) => decoder.DecodeNullableProxy<AnotherPingableProxy>()),
+                (ref IceDecoder decoder) => decoder.DecodeInt32(),
+                (ref IceDecoder decoder) => decoder.DecodeNullableProxy<AnotherPingableProxy>()),
             Is.EqualTo(expected.I));
     }
 }

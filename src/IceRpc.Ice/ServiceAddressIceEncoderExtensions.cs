@@ -1,14 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Internal;
 using IceRpc.Internal;
 using System.Diagnostics;
 using System.Globalization;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice;
 
-/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode service addresses.</summary>
+/// <summary>Provides extension methods for <see cref="IceEncoder" /> to encode service addresses.</summary>
 public static class ServiceAddressIceEncoderExtensions
 {
     /// <summary>The default timeout value for tcp/ssl server addresses encoded with the Ice encoding.</summary>
@@ -19,9 +19,9 @@ public static class ServiceAddressIceEncoderExtensions
     internal const string TcpName = "tcp";
 
     /// <summary>Encodes a service address.</summary>
-    /// <param name="encoder">The Slice encoder.</param>
+    /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The value to encode.</param>
-    public static void EncodeServiceAddress(this ref SliceEncoder encoder, ServiceAddress value)
+    public static void EncodeServiceAddress(this ref IceEncoder encoder, ServiceAddress value)
     {
         if (value.Protocol is not Protocol protocol)
         {
@@ -74,9 +74,9 @@ public static class ServiceAddressIceEncoderExtensions
     }
 
     /// <summary>Encodes a nullable service address.</summary>
-    /// <param name="encoder">The Slice encoder.</param>
+    /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The service address to encode, or <see langword="null" />.</param>
-    public static void EncodeNullableServiceAddress(this ref SliceEncoder encoder, ServiceAddress? value)
+    public static void EncodeNullableServiceAddress(this ref IceEncoder encoder, ServiceAddress? value)
     {
         if (value is not null)
         {
@@ -89,9 +89,9 @@ public static class ServiceAddressIceEncoderExtensions
     }
 
     /// <summary>Encodes a server address in a nested encapsulation.</summary>
-    /// <param name="encoder">The Slice encoder.</param>
+    /// <param name="encoder">The Ice encoder.</param>
     /// <param name="serverAddress">The server address to encode.</param>
-    private static void EncodeServerAddress(this ref SliceEncoder encoder, ServerAddress serverAddress)
+    private static void EncodeServerAddress(this ref IceEncoder encoder, ServerAddress serverAddress)
     {
         // If the server address does not specify a transport, we default to TCP. We can't encode "default".
         string transport = serverAddress.Transport ?? TcpName;
@@ -144,12 +144,12 @@ public static class ServiceAddressIceEncoderExtensions
                     break;
             }
 
-            SliceEncoder.EncodeInt32(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            IceEncoder.EncodeInt32(encoder.EncodedByteCount - startPos, sizePlaceholder);
         }
     }
 
     /// <summary>Encodes the body of a tcp or ssl server address.</summary>
-    private static void EncodeTcpServerAddressBody(this ref SliceEncoder encoder, ServerAddress serverAddress)
+    private static void EncodeTcpServerAddressBody(this ref IceEncoder encoder, ServerAddress serverAddress)
     {
         Debug.Assert(serverAddress.Protocol == Protocol.Ice);
 

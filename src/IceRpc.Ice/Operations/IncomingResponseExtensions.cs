@@ -1,16 +1,16 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations.Internal;
 using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Operations;
 
-/// <summary>Provides extension methods for <see cref="IncomingResponse" /> to decode its Slice-encoded payload.
+/// <summary>Provides extension methods for <see cref="IncomingResponse" /> to decode its Ice-encoded payload.
 /// </summary>
 public static class IncomingResponseExtensions
 {
@@ -24,7 +24,7 @@ public static class IncomingResponseExtensions
     /// <see cref="IIceFeature" /> is <see langword="null" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the operation's return value. This value task is faulted and holds a <see
-    /// cref="SliceException" /> when the status code is <see cref="StatusCode.ApplicationError"/>.</returns>
+    /// cref="IceException" /> when the status code is <see cref="StatusCode.ApplicationError"/>.</returns>
     /// <exception cref="DispatchException">Thrown when the status code of the response is greater than
     /// <see cref="StatusCode.ApplicationError"/>.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
@@ -56,11 +56,11 @@ public static class IncomingResponseExtensions
         };
 
         async ValueTask<T> DecodeAndThrowExceptionAsync() =>
-            throw await response.DecodeSliceExceptionAsync(feature, sender, activator, cancellationToken)
+            throw await response.DecodeIceExceptionAsync(feature, sender, activator, cancellationToken)
                 .ConfigureAwait(false);
     }
 
-    /// <summary>Verifies that a Slice-encoded response payload carries no return value or only tagged return values.
+    /// <summary>Verifies that an Ice-encoded response payload carries no return value or only tagged return values.
     /// </summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
@@ -69,7 +69,7 @@ public static class IncomingResponseExtensions
     /// <see cref="IIceFeature" /> is <see langword="null" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task representing the asynchronous completion of the operation. This value task is faulted and
-    /// holds a <see cref="SliceException" /> when the status code is <see cref="StatusCode.ApplicationError" />.
+    /// holds a <see cref="IceException" /> when the status code is <see cref="StatusCode.ApplicationError" />.
     /// </returns>
     /// <exception cref="DispatchException">Thrown when the status code of the response is greater than
     /// <see cref="StatusCode.ApplicationError"/>.</exception>
@@ -94,11 +94,11 @@ public static class IncomingResponseExtensions
         };
 
         async ValueTask DecodeAndThrowExceptionAsync() =>
-            throw await response.DecodeSliceExceptionAsync(feature, sender, activator, cancellationToken)
+            throw await response.DecodeIceExceptionAsync(feature, sender, activator, cancellationToken)
                 .ConfigureAwait(false);
     }
 
-    private static async ValueTask<SliceException> DecodeSliceExceptionAsync(
+    private static async ValueTask<IceException> DecodeIceExceptionAsync(
         this IncomingResponse response,
         IIceFeature feature,
         IIceProxy sender,
@@ -117,23 +117,23 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
         }
 
-        SliceException exception = DecodeBuffer(readResult.Buffer);
+        IceException exception = DecodeBuffer(readResult.Buffer);
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return exception;
 
-        SliceException DecodeBuffer(ReadOnlySequence<byte> buffer)
+        IceException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
             // A Slice exception never sets Message, even when received over icerpc.
 
-            var decoder = new SliceDecoder(
+            var decoder = new IceDecoder(
                 buffer,
-                SliceEncoding.Slice1,
+                IceEncoding.Ice1,
                 feature.BaseProxy ?? sender,
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 activator,
                 maxDepth: feature.MaxDepth);
 
-            SliceException exception = decoder.DecodeException(response.ErrorMessage);
+            IceException exception = decoder.DecodeException(response.ErrorMessage);
             decoder.CheckEndOfBuffer();
             return exception;
         }

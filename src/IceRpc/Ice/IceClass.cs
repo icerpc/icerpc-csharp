@@ -12,7 +12,7 @@ public abstract class IceClass
 {
     /// <summary>Gets the unknown slices if the class has a preserved-slice base class and has been sliced-off
     /// during decoding.</summary>
-    public ImmutableList<IceInfo> UnknownIces { get; internal set; } = ImmutableList<IceInfo>.Empty;
+    public ImmutableList<SliceInfo> UnknownIces { get; internal set; } = ImmutableList<SliceInfo>.Empty;
 
     internal void Decode(ref IceDecoder decoder) => DecodeCore(ref decoder);
 

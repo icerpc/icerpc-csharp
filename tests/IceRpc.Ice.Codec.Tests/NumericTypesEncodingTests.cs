@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Codec.Tests;
@@ -22,7 +21,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
 
         encoder.EncodeInt64(value);
 
@@ -40,7 +39,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
 
         encoder.EncodeInt8(value);
 
@@ -62,7 +61,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
 
         encoder.EncodeSize(size);
 
@@ -78,7 +77,7 @@ public class NumericTypesEncodingTests
         Assert.That(
             () =>
             {
-                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+                var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
                 encoder.EncodeSize(-10);
             },
             Throws.InstanceOf<ArgumentException>());

@@ -1,39 +1,39 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Internal;
 using IceRpc.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice;
 
-/// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode service addresses.</summary>
+/// <summary>Provides extension methods for <see cref="IceDecoder" /> to decode service addresses.</summary>
 public static class ServiceAddressIceDecoderExtensions
 {
     /// <summary>Decodes a service address.</summary>
-    /// <param name="decoder">The Slice decoder.</param>
+    /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded service address.</returns>
-    public static ServiceAddress DecodeServiceAddress(this ref SliceDecoder decoder) =>
+    public static ServiceAddress DecodeServiceAddress(this ref IceDecoder decoder) =>
         decoder.DecodeNullableServiceAddress() ??
             throw new InvalidDataException("Decoded null for a non-nullable service address.");
 
     /// <summary>Decodes a nullable service address.</summary>
-    /// <param name="decoder">The Slice decoder.</param>
+    /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded service address, or <see langword="null" />.</returns>
-    public static ServiceAddress? DecodeNullableServiceAddress(this ref SliceDecoder decoder)
+    public static ServiceAddress? DecodeNullableServiceAddress(this ref IceDecoder decoder)
     {
         string path = new Identity(ref decoder).ToPath();
         return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 
     /// <summary>Decodes a server address.</summary>
-    /// <param name="decoder">The Slice decoder.</param>
+    /// <param name="decoder">The Ice decoder.</param>
     /// <param name="protocol">The protocol of this server address.</param>
     /// <returns>The server address decoded by this decoder.</returns>
-    private static ServerAddress DecodeServerAddress(this ref SliceDecoder decoder, Protocol protocol)
+    private static ServerAddress DecodeServerAddress(this ref IceDecoder decoder, Protocol protocol)
     {
         // With the Ice encoding, the ice server addresses are transport-specific, with a transport-specific encoding.
 
@@ -146,10 +146,10 @@ public static class ServiceAddressIceDecoderExtensions
     }
 
     /// <summary>Decodes a service address encoded with the Ice encoding.</summary>
-    /// <param name="decoder">The Slice decoder.</param>
+    /// <param name="decoder">The Ice decoder.</param>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded service address.</returns>
-    private static ServiceAddress DecodeServiceAddressCore(this ref SliceDecoder decoder, string path)
+    private static ServiceAddress DecodeServiceAddressCore(this ref IceDecoder decoder, string path)
     {
         // With the Ice encoding, a service address is encoded as a kind of discriminated union with:
         // - Identity
@@ -233,7 +233,7 @@ public static class ServiceAddressIceDecoderExtensions
     }
 
     /// <summary>Decodes the body of a tcp or ssl server address.</summary>
-    private static ServerAddress DecodeTcpServerAddressBody(this ref SliceDecoder decoder, string transport)
+    private static ServerAddress DecodeTcpServerAddressBody(this ref IceDecoder decoder, string transport)
     {
         var body = new TcpServerAddressBody(ref decoder);
 

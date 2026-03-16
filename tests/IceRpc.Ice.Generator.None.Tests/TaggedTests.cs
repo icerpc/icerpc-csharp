@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
+using IceRpc.Ice.Codec.Internal;
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
-using ZeroC.Slice.Codec.Internal;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.None.Tests;
@@ -95,7 +95,7 @@ public class TaggedTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
         bool hasTaggedFields =
             expected.A is not null ||
             expected.B is not null ||
@@ -108,13 +108,13 @@ public class TaggedTests
             expected.J is not null;
 
         encoder.EncodeSize(1); // Instance marker
-        byte flags = (byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice;
+        byte flags = (byte)Ice1Definitions.TypeIdKind.String | (byte)Ice1Definitions.IceFlags.IsLastSlice;
         if (hasTaggedFields)
         {
-            flags |= (byte)Slice1Definitions.SliceFlags.HasTaggedFields;
+            flags |= (byte)Ice1Definitions.IceFlags.HasTaggedFields;
         }
         encoder.EncodeUInt8(flags);
-        encoder.EncodeString(typeof(ClassWithTaggedFields).GetSliceTypeId()!);
+        encoder.EncodeString(typeof(ClassWithTaggedFields).GetIceTypeId()!);
 
         if (expected.A is not null)
         {
@@ -122,7 +122,7 @@ public class TaggedTests
                 1,
                 TagFormat.F1,
                 expected.A.Value,
-                (ref SliceEncoder encoder, byte value) => encoder.EncodeUInt8(value));
+                (ref IceEncoder encoder, byte value) => encoder.EncodeUInt8(value));
         }
 
         if (expected.B is not null)
@@ -131,7 +131,7 @@ public class TaggedTests
                 2,
                 TagFormat.F2,
                 expected.B.Value,
-                (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value));
+                (ref IceEncoder encoder, short value) => encoder.EncodeInt16(value));
         }
 
         if (expected.C is not null)
@@ -140,7 +140,7 @@ public class TaggedTests
                 3,
                 TagFormat.F4,
                 expected.C.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
 
         if (expected.D is not null)
@@ -149,7 +149,7 @@ public class TaggedTests
                 4,
                 TagFormat.F8,
                 expected.D.Value,
-                (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
+                (ref IceEncoder encoder, long value) => encoder.EncodeInt64(value));
         }
 
         if (expected.E is not null)
@@ -158,7 +158,7 @@ public class TaggedTests
                 5,
                 size: 8,
                 expected.E.Value,
-                (ref SliceEncoder encoder, FixedSizeStruct value) => value.Encode(ref encoder));
+                (ref IceEncoder encoder, FixedSizeStruct value) => value.Encode(ref encoder));
         }
 
         if (expected.F is not null)
@@ -167,7 +167,7 @@ public class TaggedTests
                 6,
                 TagFormat.FSize,
                 expected.F.Value,
-                (ref SliceEncoder encoder, VarSizeStruct value) => value.Encode(ref encoder));
+                (ref IceEncoder encoder, VarSizeStruct value) => value.Encode(ref encoder));
         }
 
         if (expected.G is not null)
@@ -176,7 +176,7 @@ public class TaggedTests
                 7,
                 TagFormat.Size,
                 expected.G.Value,
-                (ref SliceEncoder encoder, MyEnum value) => encoder.EncodeMyEnum(value));
+                (ref IceEncoder encoder, MyEnum value) => encoder.EncodeMyEnum(value));
         }
 
         if (expected.H is not null)
@@ -185,7 +185,7 @@ public class TaggedTests
                 8,
                 TagFormat.OptimizedVSize,
                 expected.H,
-                (ref SliceEncoder encoder, IList<byte> value) => encoder.EncodeSequence(value));
+                (ref IceEncoder encoder, IList<byte> value) => encoder.EncodeSequence(value));
         }
 
         if (expected.I is not null)
@@ -194,7 +194,7 @@ public class TaggedTests
                 9,
                 size: encoder.GetSizeLength(expected.I.Count) + (4 * expected.I.Count),
                 expected.I,
-                (ref SliceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value));
+                (ref IceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value));
         }
 
         if (expected.J is not null)
@@ -203,16 +203,16 @@ public class TaggedTests
                 10,
                 TagFormat.OptimizedVSize,
                 expected.J,
-                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
         }
 
         if (hasTaggedFields)
         {
-            encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
+            encoder.EncodeUInt8(Ice1Definitions.TagEndMarker);
         }
-        var decoder = new SliceDecoder(
+        var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            SliceEncoding.Slice1,
+            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(ClassWithTaggedFields).Assembly));
 
         // Act
@@ -237,7 +237,7 @@ public class TaggedTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
 
         // Act
         encoder.EncodeClass(c);
@@ -254,23 +254,23 @@ public class TaggedTests
             c.I is not null ||
             c.J is not null;
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        byte flags = (byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice;
+        byte flags = (byte)Ice1Definitions.TypeIdKind.String | (byte)Ice1Definitions.IceFlags.IsLastSlice;
         if (hasTaggedFields)
         {
-            flags |= (byte)Slice1Definitions.SliceFlags.HasTaggedFields;
+            flags |= (byte)Ice1Definitions.IceFlags.HasTaggedFields;
         }
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(flags));
 
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(ClassWithTaggedFields).GetSliceTypeId()));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(ClassWithTaggedFields).GetIceTypeId()));
 
         Assert.That(
             decoder.DecodeTagged(
                 1,
                 TagFormat.F1,
-                (ref SliceDecoder decoder) => decoder.DecodeUInt8() as byte?,
+                (ref IceDecoder decoder) => decoder.DecodeUInt8() as byte?,
                 useTagEndMarker: false),
             Is.EqualTo(c.A));
 
@@ -278,7 +278,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 2,
                 TagFormat.F2,
-                (ref SliceDecoder decoder) => decoder.DecodeInt16() as short?,
+                (ref IceDecoder decoder) => decoder.DecodeInt16() as short?,
                 useTagEndMarker: false),
             Is.EqualTo(c.B));
 
@@ -286,7 +286,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 3,
                 TagFormat.F4,
-                (ref SliceDecoder decoder) => decoder.DecodeInt32() as int?,
+                (ref IceDecoder decoder) => decoder.DecodeInt32() as int?,
                 useTagEndMarker: false),
             Is.EqualTo(c.C));
 
@@ -294,7 +294,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 4,
                 TagFormat.F8,
-                (ref SliceDecoder decoder) => decoder.DecodeInt64() as long?,
+                (ref IceDecoder decoder) => decoder.DecodeInt64() as long?,
                 useTagEndMarker: false),
             Is.EqualTo(c.D));
 
@@ -302,7 +302,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 5,
                 TagFormat.VSize,
-                (ref SliceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?,
+                (ref IceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?,
                 useTagEndMarker: false),
             Is.EqualTo(c.E));
 
@@ -310,7 +310,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 6,
                 TagFormat.FSize,
-                (ref SliceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?,
+                (ref IceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?,
                 useTagEndMarker: false),
             Is.EqualTo(c.F));
 
@@ -318,8 +318,8 @@ public class TaggedTests
             decoder.DecodeTagged(
                 7,
                 TagFormat.Size,
-                (ref SliceDecoder decoder) =>
-                    MyEnumSliceDecoderExtensions.DecodeMyEnum(ref decoder) as MyEnum?,
+                (ref IceDecoder decoder) =>
+                    MyEnumIceDecoderExtensions.DecodeMyEnum(ref decoder) as MyEnum?,
                 useTagEndMarker: false),
             Is.EqualTo(c.G));
 
@@ -327,7 +327,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 8,
                 TagFormat.OptimizedVSize,
-                (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>(),
+                (ref IceDecoder decoder) => decoder.DecodeSequence<byte>(),
                 useTagEndMarker: false),
             Is.EqualTo(c.H));
 
@@ -335,7 +335,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 9,
                 TagFormat.VSize,
-                (ref SliceDecoder decoder) => decoder.DecodeSequence<int>(),
+                (ref IceDecoder decoder) => decoder.DecodeSequence<int>(),
                 useTagEndMarker: false),
             Is.EqualTo(c.I));
 
@@ -343,13 +343,13 @@ public class TaggedTests
             decoder.DecodeTagged(
                 10,
                 TagFormat.OptimizedVSize,
-                (ref SliceDecoder decoder) => decoder.DecodeString(),
+                (ref IceDecoder decoder) => decoder.DecodeString(),
                 useTagEndMarker: false),
             Is.EqualTo(c.J));
 
         if (hasTaggedFields)
         {
-            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Ice1Definitions.TagEndMarker));
         }
 
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -360,7 +360,7 @@ public class TaggedTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat);
+        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat);
         encoder.EncodeClass(expected);
 
         // Create an activator that replaces ClassWithTaggedFields by ClassWithoutTaggedFields, both classes
@@ -368,10 +368,10 @@ public class TaggedTests
         // ClassWithTaggedFields as ClassWithoutTaggedFields exercise skipping of tagged values.
         var activator = new TypeReplacementActivator(
             IActivator.FromAssembly(typeof(ClassWithTaggedFields).Assembly),
-            typeof(ClassWithTaggedFields).GetSliceTypeId()!,
-            typeof(ClassWithoutTaggedFields).GetSliceTypeId()!);
+            typeof(ClassWithTaggedFields).GetIceTypeId()!,
+            typeof(ClassWithoutTaggedFields).GetIceTypeId()!);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: activator);
+        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1, activator: activator);
 
         // Act
         _ = decoder.DecodeClass<ClassWithoutTaggedFields>();

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 using System.Buffers;
 using System.IO.Pipelines;
 using ZeroC.Tests.Common;
@@ -22,7 +21,7 @@ public class StringEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
 
         encoder.EncodeString(value);
 
@@ -48,7 +47,7 @@ public class StringEncodingTests
         // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
         // minBufferSize given to Rent
         var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
-        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(pipe.Writer, IceEncoding.Ice1);
 
         // Act
         encoder.EncodeString(value);

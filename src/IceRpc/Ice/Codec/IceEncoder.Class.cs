@@ -26,7 +26,7 @@ public ref partial struct IceEncoder
         else
         {
             if (_classContext.Current.InstanceType != InstanceType.None &&
-                _classContext.ClassFormat == ClassFormat.Iced)
+                _classContext.ClassFormat == ClassFormat.Sliced)
             {
                 // If encoding an instance within a slice and using the sliced format, encode an index of that
                 // slice's indirection table.
@@ -54,15 +54,15 @@ public ref partial struct IceEncoder
     }
 
     /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
-    /// <param name="lastIce">Whether this is the last Ice or not.</param>
+    /// <param name="lastSlice">Whether this is the last slice or not.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void EndIce(bool lastIce)
+    public void EndSlice(bool lastSlice)
     {
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
-        if (lastIce)
+        if (lastSlice)
         {
-            _classContext.Current.IceFlags |= IceFlags.IsLastIce;
+            _classContext.Current.IceFlags |= IceFlags.IsLastSlice;
         }
 
         // Encodes the tagged end marker if some tagged fields were encoded. Note that tagged fields are encoded before
@@ -73,7 +73,7 @@ public ref partial struct IceEncoder
         }
 
         // Encodes the slice size if necessary.
-        if ((_classContext.Current.IceFlags & IceFlags.HasIceSize) != 0)
+        if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) != 0)
         {
             // Size includes the size length.
             EncodeInt32(
@@ -83,7 +83,7 @@ public ref partial struct IceEncoder
 
         if (_classContext.Current.IndirectionTable?.Count > 0)
         {
-            Debug.Assert(_classContext.ClassFormat == ClassFormat.Iced);
+            Debug.Assert(_classContext.ClassFormat == ClassFormat.Sliced);
             _classContext.Current.IceFlags |= IceFlags.HasIndirectionTable;
 
             EncodeSize(_classContext.Current.IndirectionTable.Count);
@@ -99,7 +99,7 @@ public ref partial struct IceEncoder
         _classContext.Current.IceFlagsPlaceholder.Span[0] = (byte)_classContext.Current.IceFlags;
 
         // If this is the last slice in an exception, reset the current context.
-        if (lastIce && _classContext.Current.InstanceType == InstanceType.Exception)
+        if (lastSlice && _classContext.Current.InstanceType == InstanceType.Exception)
         {
             _classContext.Current = default;
         }
@@ -109,13 +109,13 @@ public ref partial struct IceEncoder
     /// <param name="typeId">The type ID of this slice.</param>
     /// <param name="compactId ">The compact ID of this slice, if any.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void StartIce(string typeId, int? compactId = null)
+    public void StartSlice(string typeId, int? compactId = null)
     {
         // This will only be called with an InstanceType of 'None' when we're starting to encode the first slice
         // of an exception.
         if (_classContext.Current.InstanceType == InstanceType.None)
         {
-            _classContext.ClassFormat = ClassFormat.Iced; // always encode exceptions in sliced format
+            _classContext.ClassFormat = ClassFormat.Sliced; // always encode exceptions in sliced format
             _classContext.Current.InstanceType = InstanceType.Exception;
             _classContext.Current.FirstIce = true;
         }
@@ -123,11 +123,11 @@ public ref partial struct IceEncoder
         _classContext.Current.IceFlags = default;
         _classContext.Current.IceFlagsPlaceholder = GetPlaceholderMemory(1);
 
-        if (_classContext.ClassFormat == ClassFormat.Iced)
+        if (_classContext.ClassFormat == ClassFormat.Sliced)
         {
             EncodeTypeId(typeId, compactId);
             // Encode the slice size if using the sliced format.
-            _classContext.Current.IceFlags |= IceFlags.HasIceSize;
+            _classContext.Current.IceFlags |= IceFlags.HasSliceSize;
             _classContext.Current.IceSizeStartPos = EncodedByteCount; // size includes size-length
             _classContext.Current.IceSizePlaceholder = GetPlaceholderMemory(4);
         }
@@ -170,9 +170,9 @@ public ref partial struct IceEncoder
             _classContext.Current.InstanceType = InstanceType.Class;
             _classContext.Current.FirstIce = true;
 
-            if (v.UnknownIces.Count > 0 && _classContext.ClassFormat == ClassFormat.Iced)
+            if (v.UnknownIces.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
             {
-                EncodeUnknownIces(v.UnknownIces, fullyIced: v is UnknownIceClass);
+                EncodeUnknownIces(v.UnknownIces, fullySliced: v is UnknownIceClass);
                 _classContext.Current.FirstIce = false;
             }
             v.Encode(ref this);
@@ -226,14 +226,14 @@ public ref partial struct IceEncoder
 
     /// <summary>Encodes sliced-off slices.</summary>
     /// <param name="unknownIces">The sliced-off slices to encode.</param>
-    /// <param name="fullyIced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
-    private void EncodeUnknownIces(ImmutableList<IceInfo> unknownIces, bool fullyIced)
+    /// <param name="fullySliced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
+    private void EncodeUnknownIces(ImmutableList<SliceInfo> unknownIces, bool fullySliced)
     {
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
         // We only re-encode preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
         // slices, which essentially "slices" the instance into the most-derived type known by the sender.
-        if (_classContext.ClassFormat != ClassFormat.Iced)
+        if (_classContext.ClassFormat != ClassFormat.Sliced)
         {
             throw new NotSupportedException(
                 $"Cannot encode sliced data into payload using {_classContext.ClassFormat} format.");
@@ -241,7 +241,7 @@ public ref partial struct IceEncoder
 
         for (int i = 0; i < unknownIces.Count; ++i)
         {
-            IceInfo sliceInfo = unknownIces[i];
+            SliceInfo sliceInfo = unknownIces[i];
 
             // If type ID is a compact ID, extract it.
             int? compactId = null;
@@ -257,7 +257,7 @@ public ref partial struct IceEncoder
                 }
             }
 
-            StartIce(sliceInfo.TypeId, compactId);
+            StartSlice(sliceInfo.TypeId, compactId);
 
             // Writes the bytes associated with this slice.
             WriteByteSpan(sliceInfo.Bytes.Span);
@@ -268,14 +268,14 @@ public ref partial struct IceEncoder
             }
 
             // Make sure to also encode the instance indirection table.
-            // These instances will be encoded (and assigned instance IDs) in EndIce.
+            // These instances will be encoded (and assigned instance IDs) in EndSlice.
             if (sliceInfo.Instances.Count > 0)
             {
                 _classContext.Current.IndirectionTable ??= new List<IceClass>();
                 Debug.Assert(_classContext.Current.IndirectionTable.Count == 0);
                 _classContext.Current.IndirectionTable.AddRange(sliceInfo.Instances);
             }
-            EndIce(lastIce: fullyIced && (i == unknownIces.Count - 1));
+            EndSlice(lastSlice: fullySliced && (i == unknownIces.Count - 1));
         }
     }
 

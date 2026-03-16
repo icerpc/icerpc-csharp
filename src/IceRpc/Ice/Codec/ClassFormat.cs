@@ -11,8 +11,8 @@ public enum ClassFormat
     /// </summary>
     Compact,
 
-    /// <summary>The Iced format allows the receiver to slice off unknown slices. If an application receives a
+    /// <summary>The Sliced format allows the receiver to slice off unknown slices. If an application receives a
     /// derived class it does not know, it can create a base class while preserving the unknown derived slices.
     /// </summary>
-    Iced
+    Sliced
 }
