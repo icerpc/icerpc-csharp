@@ -2,7 +2,7 @@
 
 namespace IceRpc.Ice.Codec;
 
-/// <summary>Represents a delegate that decodes a value from a Ice decoder.</summary>
+/// <summary>Represents a delegate that decodes a value from an Ice decoder.</summary>
 /// <typeparam name="T">The type of the value to decode.</typeparam>
 /// <param name="decoder">The Ice decoder.</param>
 /// <returns>The value.</returns>

@@ -2,7 +2,7 @@
 
 namespace IceRpc.Ice.Codec;
 
-/// <summary>Assigns a Ice type ID to a class, interface, or struct.</summary>
+/// <summary>Assigns an Ice type ID to a class, interface, or struct.</summary>
 /// <remarks>The Ice compiler assigns Ice type IDs to interfaces and record structs it generates from Ice
 /// interfaces. It also assigns Ice type IDs to classes generated from Ice classes and exceptions.</remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, Inherited = false)]
@@ -12,13 +12,13 @@ public sealed class IceTypeIdAttribute : Attribute
     /// <value>The Ice type ID string.</value>
     public string Value { get; }
 
-    /// <summary>Constructs a Ice type ID attribute.</summary>
+    /// <summary>Constructs an Ice type ID attribute.</summary>
     /// <param name="value">The Ice type ID.</param>>
     public IceTypeIdAttribute(string value) => Value = value;
 }
 
 /// <summary>Assigns a compact Ice type ID to a class.</summary>
-/// <remarks>The Ice compiler assigns both a Ice type ID and a compact Ice type ID to the mapped class of a Ice
+/// <remarks>The Ice compiler assigns both an Ice type ID and a compact Ice type ID to the mapped class of an Ice
 /// class that specifies a compact type ID.</remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class CompactIceTypeIdAttribute : Attribute

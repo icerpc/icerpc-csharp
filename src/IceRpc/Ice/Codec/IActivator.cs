@@ -6,7 +6,7 @@ using System.Reflection;
 namespace IceRpc.Ice.Codec;
 
 /// <summary>Provides methods that create class and exception instances from Ice type IDs.</summary>
-/// <remarks>When decoding a Ice1-encoded buffer, a Ice decoder uses its activator to create a class or exception
+/// <remarks>When decoding an Ice1-encoded buffer, an Ice decoder uses its activator to create a class or exception
 /// instance before decoding the instance's fields.</remarks>
 /// <seealso cref="IceDecoder" />
 public interface IActivator
@@ -29,7 +29,7 @@ public interface IActivator
     public static IActivator FromAssemblies(params Assembly[] assemblies) =>
         Internal.Activator.Merge(assemblies.Select(ActivatorFactory.Instance.Get));
 
-    /// <summary>Creates an instance of a Ice class or Ice exception based on a type ID.</summary>
+    /// <summary>Creates an instance of an Ice class or Ice exception based on a type ID.</summary>
     /// <param name="typeId">The Ice type ID.</param>
     /// <returns>A new instance of the class identified by <paramref name="typeId" />, or null if the implementation
     /// cannot find the corresponding C# class.</returns>

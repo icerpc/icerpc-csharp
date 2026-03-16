@@ -155,35 +155,35 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes a Ice float32 into a float.</summary>
+    /// <summary>Decodes an Ice float32 into a float.</summary>
     /// <returns>The float decoded by this decoder.</returns>
     public float DecodeFloat32() =>
         SequenceMarshal.TryRead(ref _reader, out float value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice float64 into a double.</summary>
+    /// <summary>Decodes an Ice float64 into a double.</summary>
     /// <returns>The double decoded by this decoder.</returns>
     public double DecodeFloat64() =>
         SequenceMarshal.TryRead(ref _reader, out double value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice int8 into an sbyte.</summary>
+    /// <summary>Decodes an Ice int8 into an sbyte.</summary>
     /// <returns>The sbyte decoded by this decoder.</returns>
     public sbyte DecodeInt8() => (sbyte)DecodeUInt8();
 
-    /// <summary>Decodes a Ice int16 into a short.</summary>
+    /// <summary>Decodes an Ice int16 into a short.</summary>
     /// <returns>The short decoded by this decoder.</returns>
     public short DecodeInt16() =>
         SequenceMarshal.TryRead(ref _reader, out short value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice int32 into an int.</summary>
+    /// <summary>Decodes an Ice int32 into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
     public int DecodeInt32() =>
         SequenceMarshal.TryRead(ref _reader, out int value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice int64 into a long.</summary>
+    /// <summary>Decodes an Ice int64 into a long.</summary>
     /// <returns>The long decoded by this decoder.</returns>
     public long DecodeInt64() =>
         SequenceMarshal.TryRead(ref _reader, out long value) ?
@@ -223,7 +223,7 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes a Ice string into a string.</summary>
+    /// <summary>Decodes an Ice string into a string.</summary>
     /// <returns>The string decoded by this decoder.</returns>
     public string DecodeString()
     {
@@ -278,30 +278,30 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes a Ice uint8 into a byte.</summary>
+    /// <summary>Decodes an Ice uint8 into a byte.</summary>
     /// <returns>The byte decoded by this decoder.</returns>
     public byte DecodeUInt8() =>
         _reader.TryRead(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice uint16 into a ushort.</summary>
+    /// <summary>Decodes an Ice uint16 into a ushort.</summary>
     /// <returns>The ushort decoded by this decoder.</returns>
     public ushort DecodeUInt16() =>
         SequenceMarshal.TryRead(ref _reader, out ushort value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice uint32 into a uint.</summary>
+    /// <summary>Decodes an Ice uint32 into a uint.</summary>
     /// <returns>The uint decoded by this decoder.</returns>
     public uint DecodeUInt32() =>
         SequenceMarshal.TryRead(ref _reader, out uint value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice uint64 into a ulong.</summary>
+    /// <summary>Decodes an Ice uint64 into a ulong.</summary>
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeUInt64() =>
         SequenceMarshal.TryRead(ref _reader, out ulong value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes a Ice varint32 into an int.</summary>
+    /// <summary>Decodes an Ice varint32 into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
     public int DecodeVarInt32()
     {
@@ -315,7 +315,7 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes a Ice varint62 into a long.</summary>
+    /// <summary>Decodes an Ice varint62 into a long.</summary>
     /// <returns>The long decoded by this decoder.</returns>
     public long DecodeVarInt62() =>
         (PeekByte() & 0x03) switch
@@ -326,7 +326,7 @@ public ref partial struct IceDecoder
             _ => DecodeInt64() >> 2
         };
 
-    /// <summary>Decodes a Ice varuint32 into a uint.</summary>
+    /// <summary>Decodes an Ice varuint32 into a uint.</summary>
     /// <returns>The uint decoded by this decoder.</returns>
     public uint DecodeVarUInt32()
     {
@@ -340,19 +340,19 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes a Ice varuint62 into a ulong.</summary>
+    /// <summary>Decodes an Ice varuint62 into a ulong.</summary>
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeVarUInt62() =>
         TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Tries to decode a Ice uint8 into a byte.</summary>
+    /// <summary>Tries to decode an Ice uint8 into a byte.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
     /// Otherwise, this value is set to its default value.</param>
     /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
     /// succeeded; otherwise, <see langword="false" />.</returns>
     public bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
 
-    /// <summary>Tries to decode a Ice varuint62 into a ulong.</summary>
+    /// <summary>Tries to decode an Ice varuint62 into a ulong.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
     /// Otherwise, this value is set to its default value.</param>
     /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
@@ -432,7 +432,7 @@ public ref partial struct IceDecoder
         _reader.AdvanceToEnd();
     }
 
-    /// <summary>Decodes a Ice2-encoded tagged field.</summary>
+    /// <summary>Decodes an Ice2-encoded tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tagged field.</param>
@@ -473,7 +473,7 @@ public ref partial struct IceDecoder
         return default;
     }
 
-    /// <summary>Decodes a Ice1-encoded tagged field.</summary>
+    /// <summary>Decodes an Ice1-encoded tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>

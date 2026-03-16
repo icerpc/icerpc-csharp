@@ -32,7 +32,7 @@ public ref partial struct IceEncoder
 
     private Encoder? _utf8Encoder; // initialized lazily
 
-    /// <summary>Encodes an int as a Ice int32 into a span of 4 bytes.</summary>
+    /// <summary>Encodes an int as an Ice int32 into a span of 4 bytes.</summary>
     /// <param name="value">The value to encode.</param>
     /// <param name="into">The destination byte buffer, which must be 4 bytes long.</param>
     public static void EncodeInt32(int value, Span<byte> into)
@@ -41,7 +41,7 @@ public ref partial struct IceEncoder
         MemoryMarshal.Write(into, in value);
     }
 
-    /// <summary>Encodes a ulong as a Ice varuint62 into a span of bytes using a fixed number of bytes.</summary>
+    /// <summary>Encodes a ulong as an Ice varuint62 into a span of bytes using a fixed number of bytes.</summary>
     /// <param name="value">The value to encode.</param>
     /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
     public static void EncodeVarUInt62(ulong value, Span<byte> into)
@@ -86,7 +86,7 @@ public ref partial struct IceEncoder
     /// </returns>
     public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
-    /// <summary>Constructs a Ice encoder.</summary>
+    /// <summary>Constructs an Ice encoder.</summary>
     /// <param name="bufferWriter">A buffer writer that writes to byte buffers. See important remarks below.</param>
     /// <param name="encoding">The Ice encoding.</param>
     /// <param name="classFormat">The class format (Ice1 only).</param>
@@ -103,31 +103,31 @@ public ref partial struct IceEncoder
 
     // Encode methods for basic types
 
-    /// <summary>Encodes a bool into a Ice bool.</summary>
+    /// <summary>Encodes a bool into an Ice bool.</summary>
     /// <param name="v">The boolean to encode.</param>
     public void EncodeBool(bool v) => EncodeUInt8(v ? (byte)1 : (byte)0);
 
-    /// <summary>Encodes a float into a Ice float32.</summary>
+    /// <summary>Encodes a float into an Ice float32.</summary>
     /// <param name="v">The float to encode.</param>
     public void EncodeFloat32(float v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes a double into a Ice float64.</summary>
+    /// <summary>Encodes a double into an Ice float64.</summary>
     /// <param name="v">The double to encode.</param>
     public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes an sbyte into a Ice int8.</summary>
+    /// <summary>Encodes an sbyte into an Ice int8.</summary>
     /// <param name="v">The sbyte to encode.</param>
     public void EncodeInt8(sbyte v) => EncodeUInt8((byte)v);
 
-    /// <summary>Encodes a short into a Ice int16.</summary>
+    /// <summary>Encodes a short into an Ice int16.</summary>
     /// <param name="v">The short to encode.</param>
     public void EncodeInt16(short v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes an int into a Ice int32.</summary>
+    /// <summary>Encodes an int into an Ice int32.</summary>
     /// <param name="v">The int to encode.</param>
     public void EncodeInt32(int v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes a long into a Ice int64.</summary>
+    /// <summary>Encodes a long into an Ice int64.</summary>
     /// <param name="v">The long to encode.</param>
     public void EncodeInt64(long v) => EncodeFixedSizeNumeric(v);
 
@@ -160,7 +160,7 @@ public ref partial struct IceEncoder
         }
     }
 
-    /// <summary>Encodes a string into a Ice string.</summary>
+    /// <summary>Encodes a string into an Ice string.</summary>
     /// <param name="v">The string to encode.</param>
     public void EncodeString(string v)
     {
@@ -227,7 +227,7 @@ public ref partial struct IceEncoder
         }
     }
 
-    /// <summary>Encodes a byte into a Ice uint8.</summary>
+    /// <summary>Encodes a byte into an Ice uint8.</summary>
     /// <param name="v">The byte to encode.</param>
     public void EncodeUInt8(byte v)
     {
@@ -236,23 +236,23 @@ public ref partial struct IceEncoder
         Advance(1);
     }
 
-    /// <summary>Encodes a ushort into a Ice uint16.</summary>
+    /// <summary>Encodes a ushort into an Ice uint16.</summary>
     /// <param name="v">The ushort to encode.</param>
     public void EncodeUInt16(ushort v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes a uint into a Ice uint32.</summary>
+    /// <summary>Encodes a uint into an Ice uint32.</summary>
     /// <param name="v">The uint to encode.</param>
     public void EncodeUInt32(uint v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes a ulong into a Ice uint64.</summary>
+    /// <summary>Encodes a ulong into an Ice uint64.</summary>
     /// <param name="v">The ulong to encode.</param>
     public void EncodeUInt64(ulong v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes an int into a Ice varint32.</summary>
+    /// <summary>Encodes an int into an Ice varint32.</summary>
     /// <param name="v">The int to encode.</param>
     public void EncodeVarInt32(int v) => EncodeVarInt62(v);
 
-    /// <summary>Encodes a long into a Ice varint62, with the minimum number of bytes required
+    /// <summary>Encodes a long into an Ice varint62, with the minimum number of bytes required
     /// by the encoding.</summary>
     /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
     public void EncodeVarInt62(long v)
@@ -266,11 +266,11 @@ public ref partial struct IceEncoder
         Advance(1 << encodedSizeExponent);
     }
 
-    /// <summary>Encodes a uint into a Ice varuint32.</summary>
+    /// <summary>Encodes a uint into an Ice varuint32.</summary>
     /// <param name="v">The uint to encode.</param>
     public void EncodeVarUInt32(uint v) => EncodeVarUInt62(v);
 
-    /// <summary>Encodes a ulong into a Ice varuint62, with the minimum number of bytes
+    /// <summary>Encodes a ulong into an Ice varuint62, with the minimum number of bytes
     /// required by the encoding.</summary>
     /// <param name="v">The ulong to encode. It must be in the range [0..2^62 - 1].</param>
     public void EncodeVarUInt62(ulong v)

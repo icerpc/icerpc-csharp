@@ -20,7 +20,7 @@ public ref partial struct IceDecoder
         DecodeNullableClass<T>() ??
            throw new InvalidDataException("Decoded a null class instance, but expected a non-null instance.");
 
-    /// <summary>Decodes a Ice exception.</summary>
+    /// <summary>Decodes an Ice exception.</summary>
     /// <param name="message">The error message. It's used only when this method fails to find an exception class to
     /// instantiate.</param>
     /// <returns>The decoded Ice exception.</returns>
@@ -58,8 +58,8 @@ public ref partial struct IceDecoder
                 // icerpc.
                 throw new InvalidDataException(
                     message is null || message.Length == 0 ?
-                    $"The dispatch returned a Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find." :
-                    $"The dispatch returned a Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
+                    $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find." :
+                    $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
             }
         }
         while (sliceException is null);
@@ -341,7 +341,7 @@ public ref partial struct IceDecoder
                 if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) != 0)
                 {
                     throw new InvalidDataException(
-                        "Invalid Ice flags; a Ice in compact format cannot carry a size.");
+                        "Invalid Ice flags; an Ice in compact format cannot carry a size.");
                 }
             }
         }

@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Ice.Operations;
 
-/// <summary>Represents a delegate that decodes the return value from a Ice-encoded response.</summary>
+/// <summary>Represents a delegate that decodes the return value from an Ice-encoded response.</summary>
 /// <typeparam name="T">The type of the return value to read.</typeparam>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
@@ -21,7 +21,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IIceProxy sender,
     CancellationToken cancellationToken);
 
-/// <summary>Represents a delegate that decodes the "void" return value from a Ice-encoded response.</summary>
+/// <summary>Represents a delegate that decodes the "void" return value from an Ice-encoded response.</summary>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>

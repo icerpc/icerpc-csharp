@@ -7,7 +7,7 @@ namespace IceRpc.Ice.Codec;
 
 /// <summary>Provides a method for reading a bit sequence.</summary>
 /// <remarks>This struct is typically returned by <see cref="IceDecoder.GetBitSequenceReader(int)" />
-/// to read the bit sequence associated with a Ice type.</remarks>
+/// to read the bit sequence associated with an Ice type.</remarks>
 /// <seealso href="https://docs.icerpc.dev/slice2/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceReader
 {
@@ -47,7 +47,7 @@ public ref struct BitSequenceReader
 
 /// <summary>Provides a method for writing a bit sequence.</summary>
 /// <remarks>This struct is returned by <seealso cref="IceEncoder.GetBitSequenceWriter(int)" />
-/// to write the bit sequence associated with a Ice type.</remarks>
+/// to write the bit sequence associated with an Ice type.</remarks>
 /// <seealso href="https://docs.icerpc.dev/slice2/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceWriter
 {

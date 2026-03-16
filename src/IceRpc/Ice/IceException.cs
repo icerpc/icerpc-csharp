@@ -16,7 +16,7 @@ public abstract class IceException : Exception
 
     internal void Decode(ref IceDecoder decoder) => DecodeCore(ref decoder);
 
-    /// <summary>Decodes a Ice exception.</summary>
+    /// <summary>Decodes an Ice exception.</summary>
     /// <param name="decoder">The Ice decoder.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
     protected abstract void DecodeCore(ref IceDecoder decoder);
