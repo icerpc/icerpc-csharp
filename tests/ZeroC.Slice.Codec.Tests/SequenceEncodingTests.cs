@@ -11,40 +11,36 @@ namespace ZeroC.Slice.Codec.Tests;
 public class SequenceEncodingTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Encode_fixed_sized_numeric_sequence(SliceEncoding, IEnumerable{int})" /> test.</summary>
+    /// <see cref="Encode_fixed_sized_numeric_sequence(IEnumerable{int})" /> test.</summary>
     private static IEnumerable<TestCaseData> SequenceLongData
     {
         get
         {
-            foreach (SliceEncoding encoding in Enum.GetValues<SliceEncoding>())
+            foreach (int size in new int[] { 0, 256 })
             {
-                foreach (int size in new int[] { 0, 256 })
-                {
-                    IEnumerable<int> values = Enumerable.Range(0, size).Select(i => i);
+                IEnumerable<int> values = Enumerable.Range(0, size).Select(i => i);
 
-                    yield return new TestCaseData(encoding, values);
-                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(values));
-                    yield return new TestCaseData(encoding, new ArraySegment<int>(values.ToArray()));
-                    yield return new TestCaseData(encoding, values.ToArray());
-                };
-            }
+                yield return new TestCaseData(values);
+                yield return new TestCaseData(ImmutableArray.CreateRange(values));
+                yield return new TestCaseData(new ArraySegment<int>(values.ToArray()));
+                yield return new TestCaseData(values.ToArray());
+            };
         }
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T})" /> with a
     /// value type.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the encoding.</param>
     /// <param name="expected">The enumerable to be encoded.</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
-    public void Encode_fixed_sized_numeric_sequence(SliceEncoding encoding, IEnumerable<int> expected)
+    public void Encode_fixed_sized_numeric_sequence(IEnumerable<int> expected)
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var sut = new SliceEncoder(buffer, encoding);
+        var sut = new SliceEncoder(buffer, SliceEncoding.Slice2);
         int size = expected.Count();
 
         sut.EncodeSequence(expected);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var decoded = new List<int>();
         for (int i = 0; i < size; ++i)
@@ -57,17 +53,16 @@ public class SequenceEncodingTests
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T},
     /// EncodeAction{T})" /> with a sequence of non numeric types.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the encoding.</param>
     [Test]
-    public void Encode_string_sequence([Values] SliceEncoding encoding)
+    public void Encode_string_sequence()
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var sut = new SliceEncoder(buffer, encoding);
+        var sut = new SliceEncoder(buffer, SliceEncoding.Slice2);
         string[] expected = Enumerable.Range(0, 1024).Select(i => $"value-{i}").ToArray();
 
         sut.EncodeSequence(expected, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Length));
         var decoded = new List<string>();
         for (int i = 0; i < expected.Length; ++i)

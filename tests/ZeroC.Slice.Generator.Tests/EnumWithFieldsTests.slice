@@ -1,0 +1,57 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::Generator::Tests
+
+enum Color { Red, White, Blue }
+
+// Compatible with Color, but with an extra code
+enum PaintColor {
+    Red(tag(1) code: uint16?)
+    White(tag(1) code: uint16?)
+    Blue(tag(1) code: uint16?)
+    Yellow(shade: string, code: uint16?) // Extra enumerator, not compatible with Color
+}
+
+/// An extensive shape.
+unchecked enum Shape {
+    /// A circle.
+    /// @param radius: The radius of the circle.
+    Circle(radius: uint32)
+
+    /// A rectangle.
+    /// @param width: The width of the rectangle.
+    /// @param height: The height of the rectangle.
+    Rectangle(width: uint32, height: uint32)
+
+    /// A triangle.
+    /// @param side1: The length of the first side.
+    /// @param side2: The length of the second side.
+    /// @param side3: The length of the third side.
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+}
+
+unchecked enum RevisedShape {
+    Circle(radius: uint32),
+    Rectangle(width: uint32, height: uint32)
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+    Square(side: uint32, tag(1) color: Color?)
+    Oval(name: string?, major: uint32, minor: uint32)
+}
+
+compact enum CompactShape {
+    Circle(radius: uint32)
+    Rectangle(width: uint32, height: uint32)
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+    Oval(name: string?, major: uint32, minor: uint32)
+}
+
+enum ShapeWithAttribute {
+    [cs::attribute("SliceTypeId(\"MyCircle\")")]
+    Circle(radius: uint32)
+
+    [cs::attribute("SliceTypeId(\"MyRectangle\")")]
+    Rectangle(width: uint32, height: uint32)
+
+    [cs::attribute("SliceTypeId(\"MyTriangle\")")]
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+}

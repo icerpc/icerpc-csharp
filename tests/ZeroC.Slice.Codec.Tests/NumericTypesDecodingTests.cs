@@ -5,7 +5,7 @@ using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Codec.Tests;
 
-/// <summary>Test decoding built-in types with the supported Slice encodings.</summary>
+/// <summary>Test decoding built-in types.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public class NumericTypesDecodingTests
 {
@@ -140,21 +140,4 @@ public class NumericTypesDecodingTests
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Tests decoding the size bytes with the 1.1 encoding.</summary>
-    /// <param name="encodedBytes">The encoded byte array to decode.</param>
-    /// <param name="expected">The expected size to be decoded.</param>
-    [TestCase(new byte[] { 0x40 }, 64)]
-    [TestCase(new byte[] { 0x9C }, 156)]
-    [TestCase(new byte[] { 0xFE }, 254)]
-    [TestCase(new byte[] { 0xFF, 0xFF, 0x00, 0x00, 0x00 }, 255)]
-    [TestCase(new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 }, 1000)]
-    public void Decode_size(byte[] encodedBytes, int expected)
-    {
-        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
-
-        var r1 = sut.DecodeSize();
-
-        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
-        Assert.That(r1, Is.EqualTo(expected));
-    }
 }

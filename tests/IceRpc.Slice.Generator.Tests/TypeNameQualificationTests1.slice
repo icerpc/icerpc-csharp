@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Generator::Tests
+
+struct S {
+    v: string
+}
+
+interface TypeNameQualificationOperations {
+    opWithTypeNamesDefinedInMultipleModules(s: Inner::S) -> S
+}

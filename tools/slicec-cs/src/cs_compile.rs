@@ -83,12 +83,12 @@ mod test {
         let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let icerpc_tests_dir = root_dir
             .join("tests")
-            .join("IceRpc.Slice.CodeGen.Tests")
+            .join("IceRpc.Slice.Generator.Tests")
             .display()
             .to_string();
         let zeroc_tests_dir = root_dir
             .join("tests")
-            .join("ZeroC.Slice.CodeGen.Tests")
+            .join("ZeroC.Slice.Generator.Tests")
             .display()
             .to_string();
         let slice_dir = root_dir.join("slice").display().to_string();
