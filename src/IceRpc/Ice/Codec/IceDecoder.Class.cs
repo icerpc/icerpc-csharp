@@ -26,11 +26,6 @@ public ref partial struct IceDecoder
     /// <returns>The decoded Ice exception.</returns>
     public IceException DecodeException(string? message = null)
     {
-        if (Encoding != IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException($"{nameof(DecodeException)} is not compatible with {Encoding}.");
-        }
-
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
         _classContext.Current.InstanceType = InstanceType.Exception;
 
@@ -75,11 +70,6 @@ public ref partial struct IceDecoder
     /// <returns>The class instance, or <see langword="null" />.</returns>
     public T? DecodeNullableClass<T>() where T : class
     {
-        if (Encoding != IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}.");
-        }
-
         IceClass? obj = DecodeClass();
 
         if (obj is T result)
@@ -98,11 +88,6 @@ public ref partial struct IceDecoder
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void EndSlice()
     {
-        if (Encoding != IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException($"{nameof(EndSlice)} is not compatible with encoding {Encoding}.");
-        }
-
         // Note that EndSlice is not called when we call SkipSlice.
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
@@ -125,11 +110,6 @@ public ref partial struct IceDecoder
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void StartSlice()
     {
-        if (Encoding != IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException($"{nameof(StartSlice)} is not compatible with encoding {Encoding}.");
-        }
-
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
         if (_classContext.Current.FirstIce)
         {
@@ -146,8 +126,6 @@ public ref partial struct IceDecoder
     /// <returns>The class instance. Can be <see langword="null" />.</returns>
     private IceClass? DecodeClass()
     {
-        Debug.Assert(Encoding == IceEncoding.Ice1);
-
         int index = DecodeSize();
         if (index < 0)
         {

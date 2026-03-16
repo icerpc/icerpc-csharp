@@ -192,7 +192,7 @@ public class TaggedTests
         {
             encoder.EncodeTagged(
                 9,
-                size: encoder.GetSizeLength(expected.I.Count) + (4 * expected.I.Count),
+                size: IceEncoder.GetSizeLength(expected.I.Count) + (4 * expected.I.Count),
                 expected.I,
                 (ref IceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value));
         }

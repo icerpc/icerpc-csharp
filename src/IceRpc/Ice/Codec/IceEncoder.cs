@@ -15,14 +15,6 @@ public ref partial struct IceEncoder
     /// <summary>Gets the number of bytes encoded by this encoder into the underlying buffer writer.</summary>
     public int EncodedByteCount { get; private set; }
 
-    /// <summary>Gets the Ice encoding of this encoder.</summary>
-    public IceEncoding Encoding { get; }
-
-    internal const long VarInt62MinValue = -2_305_843_009_213_693_952; // -2^61
-    internal const long VarInt62MaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
-    internal const ulong VarUInt62MinValue = 0;
-    internal const ulong VarUInt62MaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
-
     private static readonly UTF8Encoding _utf8 =
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
@@ -41,61 +33,20 @@ public ref partial struct IceEncoder
         MemoryMarshal.Write(into, in value);
     }
 
-    /// <summary>Encodes a ulong as an Ice varuint62 into a span of bytes using a fixed number of bytes.</summary>
-    /// <param name="value">The value to encode.</param>
-    /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-    public static void EncodeVarUInt62(ulong value, Span<byte> into)
-    {
-        int sizeLength = into.Length;
-        Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
-
-        (uint encodedSizeExponent, long maxSize) = sizeLength switch
-        {
-            1 => (0x00u, 63), // 2^6 - 1
-            2 => (0x01u, 16_383), // 2^14 - 1
-            4 => (0x02u, 1_073_741_823), // 2^30 - 1
-            _ => (0x03u, (long)VarUInt62MaxValue)
-        };
-
-        if (value > (ulong)maxSize)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(value),
-                $"The value '{value}' cannot be encoded on {sizeLength} bytes.");
-        }
-
-        Span<byte> ulongBuf = stackalloc byte[8];
-        value <<= 2;
-
-        value |= encodedSizeExponent;
-        MemoryMarshal.Write(ulongBuf, in value);
-        ulongBuf[0..sizeLength].CopyTo(into);
-    }
-
-    /// <summary>Computes the minimum number of bytes required to encode a long value using the Ice encoding's
-    /// variable-size encoded representation.</summary>
-    /// <param name="value">The long value.</param>
-    /// <returns>The minimum number of bytes required to encode <paramref name="value" />. Can be 1, 2, 4 or 8.
-    /// </returns>
-    public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
-
-    /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Ice encoding's
-    /// variable-size encoded representation.</summary>
-    /// <param name="value">The ulong value.</param>
-    /// <returns>The minimum number of bytes required to encode <paramref name="value" />. Can be 1, 2, 4 or 8.
-    /// </returns>
-    public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
+    /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
+    /// <param name="size">The size.</param>
+    /// <returns>The minimum number of bytes.</returns>
+    public static int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
     /// <summary>Constructs an Ice encoder.</summary>
     /// <param name="bufferWriter">A buffer writer that writes to byte buffers. See important remarks below.</param>
-    /// <param name="classFormat">The class format (Ice1 only).</param>
+    /// <param name="classFormat">The class format.</param>
     /// <remarks>Warning: the Ice encoding requires rewriting buffers, and many buffer writers do not support this
     /// behavior. It is safe to use a pipe writer or a buffer writer that writes to a single fixed-size buffer (without
     /// reallocation).</remarks>
     public IceEncoder(IBufferWriter<byte> bufferWriter, ClassFormat classFormat = default)
         : this()
     {
-        Encoding = IceEncoding.Ice1;
         _bufferWriter = bufferWriter;
         _classContext = new ClassContext(classFormat);
     }
@@ -113,10 +64,6 @@ public ref partial struct IceEncoder
     /// <summary>Encodes a double into an Ice float64.</summary>
     /// <param name="v">The double to encode.</param>
     public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
-
-    /// <summary>Encodes an sbyte into an Ice int8.</summary>
-    /// <param name="v">The sbyte to encode.</param>
-    public void EncodeInt8(sbyte v) => EncodeUInt8((byte)v);
 
     /// <summary>Encodes a short into an Ice int16.</summary>
     /// <param name="v">The short to encode.</param>
@@ -141,21 +88,14 @@ public ref partial struct IceEncoder
                 nameof(value));
         }
 
-        if (Encoding == IceEncoding.Ice1)
+        if (value < 255)
         {
-            if (value < 255)
-            {
-                EncodeUInt8((byte)value);
-            }
-            else
-            {
-                EncodeUInt8(255);
-                EncodeInt32(value);
-            }
+            EncodeUInt8((byte)value);
         }
         else
         {
-            EncodeVarUInt62((ulong)value);
+            EncodeUInt8(255);
+            EncodeInt32(value);
         }
     }
 
@@ -178,7 +118,7 @@ public ref partial struct IceEncoder
             {
                 // Encode directly into currentSpan
                 int size = _utf8.GetBytes(v, currentSpan);
-                EncodeSizeIntoPlaceholder(Encoding, size, sizePlaceholder);
+                EncodeSizeIntoPlaceholder(size, sizePlaceholder);
                 Advance(size);
             }
             else
@@ -199,29 +139,22 @@ public ref partial struct IceEncoder
                 Debug.Assert(completed); // completed is always true when flush is true
                 int size = checked((int)bytesUsed);
                 EncodedByteCount += size;
-                EncodeSizeIntoPlaceholder(Encoding, size, sizePlaceholder);
+                EncodeSizeIntoPlaceholder(size, sizePlaceholder);
             }
         }
 
-        static void EncodeSizeIntoPlaceholder(IceEncoding encoding, int size, Span<byte> into)
+        static void EncodeSizeIntoPlaceholder(int size, Span<byte> into)
         {
-            if (encoding == IceEncoding.Ice1)
+            if (into.Length == 1)
             {
-                if (into.Length == 1)
-                {
-                    Debug.Assert(size < 255);
-                    into[0] = (byte)size;
-                }
-                else
-                {
-                    Debug.Assert(into.Length == 5);
-                    into[0] = 255;
-                    EncodeInt32(size, into[1..]);
-                }
+                Debug.Assert(size < 255);
+                into[0] = (byte)size;
             }
             else
             {
-                EncodeVarUInt62((ulong)size, into);
+                Debug.Assert(into.Length == 5);
+                into[0] = 255;
+                EncodeInt32(size, into[1..]);
             }
         }
     }
@@ -235,78 +168,10 @@ public ref partial struct IceEncoder
         Advance(1);
     }
 
-    /// <summary>Encodes a ushort into an Ice uint16.</summary>
-    /// <param name="v">The ushort to encode.</param>
-    public void EncodeUInt16(ushort v) => EncodeFixedSizeNumeric(v);
-
-    /// <summary>Encodes a uint into an Ice uint32.</summary>
-    /// <param name="v">The uint to encode.</param>
-    public void EncodeUInt32(uint v) => EncodeFixedSizeNumeric(v);
-
-    /// <summary>Encodes a ulong into an Ice uint64.</summary>
-    /// <param name="v">The ulong to encode.</param>
-    public void EncodeUInt64(ulong v) => EncodeFixedSizeNumeric(v);
-
-    /// <summary>Encodes an int into an Ice varint32.</summary>
-    /// <param name="v">The int to encode.</param>
-    public void EncodeVarInt32(int v) => EncodeVarInt62(v);
-
-    /// <summary>Encodes a long into an Ice varint62, with the minimum number of bytes required
-    /// by the encoding.</summary>
-    /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
-    public void EncodeVarInt62(long v)
-    {
-        int encodedSizeExponent = GetVarInt62EncodedSizeExponent(v);
-        v <<= 2;
-        v |= (uint)encodedSizeExponent;
-
-        Span<byte> data = _bufferWriter.GetSpan(sizeof(long));
-        MemoryMarshal.Write(data, in v);
-        Advance(1 << encodedSizeExponent);
-    }
-
-    /// <summary>Encodes a uint into an Ice varuint32.</summary>
-    /// <param name="v">The uint to encode.</param>
-    public void EncodeVarUInt32(uint v) => EncodeVarUInt62(v);
-
-    /// <summary>Encodes a ulong into an Ice varuint62, with the minimum number of bytes
-    /// required by the encoding.</summary>
-    /// <param name="v">The ulong to encode. It must be in the range [0..2^62 - 1].</param>
-    public void EncodeVarUInt62(ulong v)
-    {
-        int encodedSizeExponent = GetVarUInt62EncodedSizeExponent(v);
-        v <<= 2;
-        v |= (uint)encodedSizeExponent;
-
-        Span<byte> data = _bufferWriter.GetSpan(sizeof(ulong));
-        MemoryMarshal.Write(data, in v);
-        Advance(1 << encodedSizeExponent);
-    }
-
     // Other methods
 
-    /// <summary>Encodes a non-null Ice2 encoded tagged value. The number of bytes needed to encode the value is
-    /// not known before encoding this value (Ice2 only).</summary>
-    /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag.</param>
-    /// <param name="v">The value to encode.</param>
-    /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-    public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
-    {
-        if (Encoding == IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException("Ice1 encoded tags must be encoded with tag formats.");
-        }
-
-        EncodeVarInt32(tag); // the key
-        Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
-        int startPos = EncodedByteCount;
-        encodeAction(ref this, v);
-        EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
-    }
-
-    /// <summary>Encodes a non-null encoded tagged value. The number of bytes needed to encode the value is
-    /// known before encoding the value. With Ice1 encoding this method always use the VSize tag format.</summary>
+    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
+    /// encoding the value. This method always use the VSize tag format.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="size">The number of bytes needed to encode the value.</param>
@@ -319,14 +184,7 @@ public ref partial struct IceEncoder
             throw new ArgumentException("Invalid size value, size must be greater than zero.", nameof(size));
         }
 
-        if (Encoding == IceEncoding.Ice1)
-        {
-            EncodeTaggedFieldHeader(tag, TagFormat.VSize);
-        }
-        else
-        {
-            EncodeVarInt32(tag);
-        }
+        EncodeTaggedFieldHeader(tag, TagFormat.VSize);
 
         EncodeSize(size);
         int startPos = EncodedByteCount;
@@ -341,8 +199,8 @@ public ref partial struct IceEncoder
         }
     }
 
-    /// <summary>Encodes a non-null Ice1 encoded tagged value. The number of bytes needed to encode the value is
-    /// not known before encoding this value.</summary>
+    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+    /// encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag. Must be either FSize or OptimizedVSize.</param>
     /// <param name="tagFormat">The tag format.</param>
@@ -355,11 +213,6 @@ public ref partial struct IceEncoder
         T v,
         EncodeAction<T> encodeAction) where T : notnull
     {
-        if (Encoding != IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException("Tag formats can only be used with the Ice1 encoding.");
-        }
-
         switch (tagFormat)
         {
             case TagFormat.F1:
@@ -391,77 +244,6 @@ public ref partial struct IceEncoder
         }
     }
 
-    /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit
-    /// sequence.</summary>
-    /// <param name="bitSequenceSize">The minimum number of bits in the bit sequence.</param>
-    /// <returns>The bit sequence writer.</returns>
-    public BitSequenceWriter GetBitSequenceWriter(int bitSequenceSize)
-    {
-        if (Encoding == IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException("The bit sequence writer cannot be used with the Ice1 encoding.");
-        }
-
-        if (bitSequenceSize <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(bitSequenceSize),
-                $"The {nameof(bitSequenceSize)} argument must be greater than 0.");
-        }
-
-        int remaining = GetBitSequenceByteCount(bitSequenceSize);
-
-        Span<byte> firstSpan = _bufferWriter.GetSpan();
-        Span<byte> secondSpan = default;
-
-        // We only create this additionalMemory list in the rare situation where 2 spans are not sufficient.
-        List<Memory<byte>>? additionalMemory = null;
-
-        if (firstSpan.Length >= remaining)
-        {
-            firstSpan = firstSpan[0..remaining];
-            Advance(remaining);
-        }
-        else
-        {
-            Advance(firstSpan.Length);
-            remaining -= firstSpan.Length;
-
-            secondSpan = _bufferWriter.GetSpan();
-            if (secondSpan.Length >= remaining)
-            {
-                secondSpan = secondSpan[0..remaining];
-                Advance(remaining);
-            }
-            else
-            {
-                Advance(secondSpan.Length);
-                remaining -= secondSpan.Length;
-                additionalMemory = new List<Memory<byte>>();
-
-                do
-                {
-                    Memory<byte> memory = _bufferWriter.GetMemory();
-                    if (memory.Length >= remaining)
-                    {
-                        additionalMemory.Add(memory[0..remaining]);
-                        Advance(remaining);
-                        remaining = 0;
-                    }
-                    else
-                    {
-                        additionalMemory.Add(memory);
-                        Advance(memory.Length);
-                        remaining -= memory.Length;
-                    }
-                }
-                while (remaining > 0);
-            }
-        }
-
-        return new BitSequenceWriter(firstSpan, secondSpan, additionalMemory);
-    }
-
     /// <summary>Gets a placeholder to be filled-in later.</summary>
     /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
     /// <returns>A buffer of length <paramref name="size" />.</returns>
@@ -475,12 +257,6 @@ public ref partial struct IceEncoder
         return placeholder;
     }
 
-    /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
-    /// <param name="size">The size.</param>
-    /// <returns>The minimum number of bytes.</returns>
-    public readonly int GetSizeLength(int size) => Encoding == IceEncoding.Ice1 ?
-        (size < 255 ? 1 : 5) : GetVarUInt62EncodedSize(checked((ulong)size));
-
     /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>
     /// <param name="span">The span to copy.</param>
     public void WriteByteSpan(ReadOnlySpan<byte> span)
@@ -488,8 +264,6 @@ public ref partial struct IceEncoder
         _bufferWriter.Write(span);
         EncodedByteCount += span.Length;
     }
-
-    internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
 
     /// <summary>Encodes a fixed-size numeric value.</summary>
     /// <param name="v">The numeric value to encode.</param>
@@ -514,58 +288,17 @@ public ref partial struct IceEncoder
         return placeholder;
     }
 
-    /// <summary>Gets the minimum number of bytes needed to encode a long value with the varint62 encoding as an
-    /// exponent of 2.</summary>
-    /// <param name="value">The value to encode.</param>
-    /// <returns>N where 2^N is the number of bytes needed to encode value with Ice's varint62 encoding.</returns>
-    private static int GetVarInt62EncodedSizeExponent(long value)
-    {
-        if (value < VarInt62MinValue || value > VarInt62MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varint62 range.");
-        }
-
-        return (value << 2) switch
-        {
-            long b when b >= sbyte.MinValue && b <= sbyte.MaxValue => 0,
-            long s when s >= short.MinValue && s <= short.MaxValue => 1,
-            long i when i >= int.MinValue && i <= int.MaxValue => 2,
-            _ => 3
-        };
-    }
-
-    /// <summary>Gets the minimum number of bytes needed to encode a ulong value with the varuint62 encoding as an
-    /// exponent of 2.</summary>
-    /// <param name="value">The value to encode.</param>
-    /// <returns>N where 2^N is the number of bytes needed to encode value with Ice's varuint62 encoding.</returns>
-    private static int GetVarUInt62EncodedSizeExponent(ulong value)
-    {
-        if (value > VarUInt62MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varuint62 range.");
-        }
-
-        return (value << 2) switch
-        {
-            ulong b when b <= byte.MaxValue => 0,
-            ulong s when s <= ushort.MaxValue => 1,
-            ulong i when i <= uint.MaxValue => 2,
-            _ => 3
-        };
-    }
-
     private void Advance(int count)
     {
         _bufferWriter.Advance(count);
         EncodedByteCount += count;
     }
 
-    /// <summary>Encodes the header for a tagged field. Ice1 only.</summary>
+    /// <summary>Encodes the header for a tagged field.</summary>
     /// <param name="tag">The numeric tag associated with the field.</param>
     /// <param name="format">The tag format.</param>
     private void EncodeTaggedFieldHeader(int tag, TagFormat format)
     {
-        Debug.Assert(Encoding == IceEncoding.Ice1);
         Debug.Assert(format != TagFormat.OptimizedVSize); // OptimizedVSize cannot be encoded
 
         int v = (int)format;

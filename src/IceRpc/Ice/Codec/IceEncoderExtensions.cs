@@ -2,7 +2,6 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Ice.Codec;
@@ -29,75 +28,6 @@ public static class IceEncoderExtensions
         {
             keyEncodeAction(ref encoder, key);
             valueEncodeAction(ref encoder, value);
-        }
-    }
-
-    /// <summary>Encodes a dictionary with an optional value type (T? in Ice).</summary>
-    /// <typeparam name="TKey">The dictionary key type.</typeparam>
-    /// <typeparam name="TValue">The dictionary value type.</typeparam>
-    /// <param name="encoder">The Ice encoder.</param>
-    /// <param name="v">The dictionary to encode.</param>
-    /// <param name="keyEncodeAction">The encode action for the keys.</param>
-    /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-    public static void EncodeDictionaryWithOptionalValueType<TKey, TValue>(
-        this ref IceEncoder encoder,
-        IEnumerable<KeyValuePair<TKey, TValue>> v,
-        EncodeAction<TKey> keyEncodeAction,
-        EncodeAction<TValue> valueEncodeAction)
-        where TKey : notnull
-    {
-        int count = v.Count();
-        encoder.EncodeSize(count);
-        if (count > 0)
-        {
-            foreach ((TKey key, TValue value) in v)
-            {
-                // Each entry is encoded like a:
-                // compact struct Pair
-                // {
-                //     key: Key,
-                //     value: Value?
-                // }
-                encoder.EncodeBool(value is not null); // simplified bit sequence
-
-                keyEncodeAction(ref encoder, key);
-                if (value is not null)
-                {
-                    valueEncodeAction(ref encoder, value);
-                }
-            }
-        }
-    }
-
-    /// <summary>Encodes a result.</summary>
-    /// <typeparam name="TSuccess">The type of the success value.</typeparam>
-    /// <typeparam name="TFailure">The type of the failure value.</typeparam>
-    /// <param name="encoder">The Ice encoder.</param>
-    /// <param name="v">The result to encode.</param>
-    /// <param name="successEncodeAction">The encode action for the success type.</param>
-    /// <param name="failureEncodeAction">The encode action for the failure type.</param>
-    public static void EncodeResult<TSuccess, TFailure>(
-        this ref IceEncoder encoder,
-        Result<TSuccess, TFailure> v,
-        EncodeAction<TSuccess> successEncodeAction,
-        EncodeAction<TFailure> failureEncodeAction)
-    {
-        switch (v)
-        {
-            case Result<TSuccess, TFailure>.Success success:
-                encoder.EncodeVarInt32(0);
-                successEncodeAction(ref encoder, success.Value);
-                break;
-
-            case Result<TSuccess, TFailure>.Failure failure:
-                encoder.EncodeVarInt32(1);
-                failureEncodeAction(ref encoder, failure.Value);
-                break;
-
-            default:
-                // Our result type somehow got extended with an additional enumerator.
-                Debug.Fail("Unexpected result type");
-                break;
         }
     }
 
@@ -135,8 +65,7 @@ public static class IceEncoderExtensions
     }
 
     /// <summary>Encodes a sequence.</summary>
-    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class and nullable
-    /// custom types with Ice1.</typeparam>
+    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class.</typeparam>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="v">The sequence to encode.</param>
     /// <param name="encodeAction">The encode action for an element.</param>
@@ -146,33 +75,6 @@ public static class IceEncoderExtensions
         foreach (T item in v)
         {
             encodeAction(ref encoder, item);
-        }
-    }
-
-    /// <summary>Encodes a sequence where the element type is an optional Ice type (T?).</summary>
-    /// <typeparam name="T">The nullable type of the sequence elements.</typeparam>
-    /// <param name="encoder">The Ice encoder.</param>
-    /// <param name="v">The sequence to encode.</param>
-    /// <param name="encodeAction">The encode action for a non-null value.</param>
-    /// <remarks>This method always encodes a bit sequence.</remarks>
-    public static void EncodeSequenceOfOptionals<T>(
-        this ref IceEncoder encoder,
-        IEnumerable<T> v,
-        EncodeAction<T> encodeAction)
-    {
-        int count = v.Count(); // potentially slow Linq Count()
-        encoder.EncodeSize(count);
-        if (count > 0)
-        {
-            BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
-            foreach (T item in v)
-            {
-                bitSequenceWriter.Write(item is not null);
-                if (item is not null)
-                {
-                    encodeAction(ref encoder, item);
-                }
-            }
         }
     }
 

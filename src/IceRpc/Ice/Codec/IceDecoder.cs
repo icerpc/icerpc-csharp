@@ -2,7 +2,6 @@
 
 using IceRpc.Ice.Codec.Internal;
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -20,9 +19,6 @@ public ref partial struct IceDecoder
     /// <remarks>The decoding context is a kind of cookie: the code that creates the decoder can store this context in
     /// the decoder for later retrieval.</remarks>
     public object? DecodingContext { get; }
-
-    /// <summary>Gets the Ice encoding decoded by this decoder.</summary>
-    public IceEncoding Encoding { get; }
 
     /// <summary>Gets a value indicating whether this decoder has reached the end of its underlying buffer.</summary>
     /// <value><see langword="true" /> when this decoder has reached the end of its underlying buffer; otherwise
@@ -66,7 +62,7 @@ public ref partial struct IceDecoder
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
-    /// <param name="activator">The activator for decoding Ice1-encoded classes and exceptions.</param>
+    /// <param name="activator">The activator for decoding classes and exceptions.</param>
     /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public IceDecoder(
         ReadOnlySequence<byte> buffer,
@@ -75,7 +71,6 @@ public ref partial struct IceDecoder
         IActivator? activator = null,
         int maxDepth = 3)
     {
-        Encoding = IceEncoding.Ice1;
         DecodingContext = decodingContext;
 
         _currentCollectionAllocation = 0;
@@ -101,7 +96,7 @@ public ref partial struct IceDecoder
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
-    /// <param name="activator">The activator for decoding Ice1-encoded classes and exceptions.</param>
+    /// <param name="activator">The activator for decoding classes and exceptions.</param>
     /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public IceDecoder(
         ReadOnlyMemory<byte> buffer,
@@ -131,7 +126,7 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes a slice bool into a bool.</summary>
+    /// <summary>Decodes an Ice bool into a bool.</summary>
     /// <returns>The bool decoded by this decoder.</returns>
     public bool DecodeBool()
     {
@@ -162,10 +157,6 @@ public ref partial struct IceDecoder
         SequenceMarshal.TryRead(ref _reader, out double value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes an Ice int8 into an sbyte.</summary>
-    /// <returns>The sbyte decoded by this decoder.</returns>
-    public sbyte DecodeInt8() => (sbyte)DecodeUInt8();
-
     /// <summary>Decodes an Ice int16 into a short.</summary>
     /// <returns>The short decoded by this decoder.</returns>
     public short DecodeInt16() =>
@@ -188,33 +179,19 @@ public ref partial struct IceDecoder
     /// <returns>The size decoded by this decoder.</returns>
     public int DecodeSize()
     {
-        if (Encoding == IceEncoding.Ice1)
+        byte firstByte = DecodeUInt8();
+        if (firstByte < 255)
         {
-            byte firstByte = DecodeUInt8();
-            if (firstByte < 255)
-            {
-                return firstByte;
-            }
-            else
-            {
-                int size = DecodeInt32();
-                if (size < 0)
-                {
-                    throw new InvalidDataException($"Decoded invalid size: {size}.");
-                }
-                return size;
-            }
+            return firstByte;
         }
         else
         {
-            try
+            int size = DecodeInt32();
+            if (size < 0)
             {
-                return checked((int)DecodeVarUInt62());
+                throw new InvalidDataException($"Decoded invalid size: {size}.");
             }
-            catch (OverflowException exception)
-            {
-                throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", exception);
-            }
+            return size;
         }
     }
 
@@ -278,128 +255,6 @@ public ref partial struct IceDecoder
     public byte DecodeUInt8() =>
         _reader.TryRead(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes an Ice uint16 into a ushort.</summary>
-    /// <returns>The ushort decoded by this decoder.</returns>
-    public ushort DecodeUInt16() =>
-        SequenceMarshal.TryRead(ref _reader, out ushort value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
-
-    /// <summary>Decodes an Ice uint32 into a uint.</summary>
-    /// <returns>The uint decoded by this decoder.</returns>
-    public uint DecodeUInt32() =>
-        SequenceMarshal.TryRead(ref _reader, out uint value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
-
-    /// <summary>Decodes an Ice uint64 into a ulong.</summary>
-    /// <returns>The ulong decoded by this decoder.</returns>
-    public ulong DecodeUInt64() =>
-        SequenceMarshal.TryRead(ref _reader, out ulong value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
-
-    /// <summary>Decodes an Ice varint32 into an int.</summary>
-    /// <returns>The int decoded by this decoder.</returns>
-    public int DecodeVarInt32()
-    {
-        try
-        {
-            return checked((int)DecodeVarInt62());
-        }
-        catch (OverflowException exception)
-        {
-            throw new InvalidDataException("The value is out of the varint32 accepted range.", exception);
-        }
-    }
-
-    /// <summary>Decodes an Ice varint62 into a long.</summary>
-    /// <returns>The long decoded by this decoder.</returns>
-    public long DecodeVarInt62() =>
-        (PeekByte() & 0x03) switch
-        {
-            0 => (sbyte)DecodeUInt8() >> 2,
-            1 => DecodeInt16() >> 2,
-            2 => DecodeInt32() >> 2,
-            _ => DecodeInt64() >> 2
-        };
-
-    /// <summary>Decodes an Ice varuint32 into a uint.</summary>
-    /// <returns>The uint decoded by this decoder.</returns>
-    public uint DecodeVarUInt32()
-    {
-        try
-        {
-            return checked((uint)DecodeVarUInt62());
-        }
-        catch (OverflowException exception)
-        {
-            throw new InvalidDataException("The value is out of the varuint32 accepted range.", exception);
-        }
-    }
-
-    /// <summary>Decodes an Ice varuint62 into a ulong.</summary>
-    /// <returns>The ulong decoded by this decoder.</returns>
-    public ulong DecodeVarUInt62() =>
-        TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
-
-    /// <summary>Tries to decode an Ice uint8 into a byte.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    public bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
-
-    /// <summary>Tries to decode an Ice varuint62 into a ulong.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    public bool TryDecodeVarUInt62(out ulong value)
-    {
-        if (_reader.TryPeek(out byte b))
-        {
-            switch (b & 0x03)
-            {
-                case 0:
-                {
-                    if (_reader.TryRead(out byte byteValue))
-                    {
-                        value = (uint)byteValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-                case 1:
-                {
-                    if (SequenceMarshal.TryRead(ref _reader, out ushort ushortValue))
-                    {
-                        value = (uint)ushortValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-                case 2:
-                {
-                    if (SequenceMarshal.TryRead(ref _reader, out uint uintValue))
-                    {
-                        value = uintValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-                default:
-                {
-                    if (SequenceMarshal.TryRead(ref _reader, out ulong ulongValue))
-                    {
-                        value = ulongValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-            }
-        }
-        value = 0;
-        return false;
-    }
-
     // Other methods
 
     /// <summary>Copy bytes from the underlying reader into the destination to fill completely destination.
@@ -418,57 +273,7 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Copy all bytes from the underlying reader into the destination buffer writer.</summary>
-    /// <param name="destination">The destination buffer writer.</param>
-    /// <remarks>This method also moves the reader's Consumed property.</remarks>
-    public void CopyTo(IBufferWriter<byte> destination)
-    {
-        destination.Write(_reader.UnreadSequence);
-        _reader.AdvanceToEnd();
-    }
-
-    /// <summary>Decodes an Ice2-encoded tagged field.</summary>
-    /// <typeparam name="T">The type of the decoded value.</typeparam>
-    /// <param name="tag">The tag.</param>
-    /// <param name="decodeFunc">A decode function that decodes the value of this tagged field.</param>
-    /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
-    /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
-    /// such as string?.</remarks>
-    public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc)
-    {
-        if (Encoding == IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException("Ice1 encoded tags must be decoded with tag formats.");
-        }
-
-        int requestedTag = tag;
-
-        while (true)
-        {
-            long startPos = _reader.Consumed;
-            tag = DecodeVarInt32();
-
-            if (tag == requestedTag)
-            {
-                // Found requested tag, so skip size:
-                SkipSize();
-                return decodeFunc(ref this);
-            }
-            else if (tag == Ice2Definitions.TagEndMarker || tag > requestedTag)
-            {
-                _reader.Rewind(_reader.Consumed - startPos); // rewind
-                break; // while
-            }
-            else
-            {
-                Skip(DecodeSize());
-                // and continue while loop
-            }
-        }
-        return default;
-    }
-
-    /// <summary>Decodes an Ice1-encoded tagged field.</summary>
+    /// <summary>Decodes a tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
@@ -480,11 +285,6 @@ public ref partial struct IceDecoder
     /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
     {
-        if (Encoding != IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException("Tag formats can only be used with the Ice1 encoding.");
-        }
-
         if (DecodeTagHeader(tag, tagFormat, useTagEndMarker))
         {
             if (tagFormat == TagFormat.VSize)
@@ -501,30 +301,6 @@ public ref partial struct IceDecoder
         {
             return default!; // i.e. null
         }
-    }
-
-    /// <summary>Gets a bit sequence reader to read the underlying bit sequence later on.</summary>
-    /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
-    /// <returns>A bit sequence reader.</returns>
-    public BitSequenceReader GetBitSequenceReader(int bitSequenceSize)
-    {
-        if (Encoding == IceEncoding.Ice1)
-        {
-            throw new InvalidOperationException("Cannot create a bit sequence reader using the Ice1 encoding.");
-        }
-
-        if (bitSequenceSize <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(bitSequenceSize),
-                $"The {nameof(bitSequenceSize)} argument must be greater than 0.");
-        }
-
-        int size = IceEncoder.GetBitSequenceByteCount(bitSequenceSize);
-        ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
-        _reader.Advance(size);
-        Debug.Assert(bitSequence.Length == size);
-        return new BitSequenceReader(bitSequence);
     }
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
@@ -557,87 +333,59 @@ public ref partial struct IceDecoder
     }
 
     /// <summary>Skips the remaining tagged fields.</summary>
-    /// <param name="useTagEndMarker">Whether or not the tagged fields use a tag end marker (Ice1 only).</param>
+    /// <param name="useTagEndMarker">Whether or not the tagged fields use a tag end marker.</param>
     public void SkipTagged(bool useTagEndMarker = true)
     {
-        if (Encoding == IceEncoding.Ice1)
+        if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
         {
-            if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
-            {
-                throw new ArgumentException(
-                    $"The {nameof(useTagEndMarker)} argument must be true when decoding a class/exception fields.",
-                    nameof(useTagEndMarker));
-            }
-            else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
-            {
-                throw new ArgumentException(
-                    $"The {nameof(useTagEndMarker)} argument must be false when decoding parameters.",
-                    nameof(useTagEndMarker));
-            }
-
-            while (true)
-            {
-                if (!useTagEndMarker && _reader.End)
-                {
-                    // When we don't use an end marker, the end of the buffer indicates the end of the tagged fields.
-                    break;
-                }
-
-                int v = DecodeUInt8();
-                if (useTagEndMarker && v == TagEndMarker)
-                {
-                    // When we use an end marker, the end marker (and only the end marker) indicates the end of the
-                    // tagged fields.
-                    break;
-                }
-
-                var format = (TagFormat)(v & 0x07); // Read first 3 bits.
-                if ((v >> 3) == 30)
-                {
-                    SkipSize();
-                }
-                SkipTaggedValue(format);
-            }
+            throw new ArgumentException(
+                $"The {nameof(useTagEndMarker)} argument must be true when decoding a class/exception fields.",
+                nameof(useTagEndMarker));
         }
-        else
+        else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
         {
-            while (true)
-            {
-                if (DecodeVarInt32() == Ice2Definitions.TagEndMarker)
-                {
-                    break; // while
-                }
+            throw new ArgumentException(
+                $"The {nameof(useTagEndMarker)} argument must be false when decoding parameters.",
+                nameof(useTagEndMarker));
+        }
 
-                // Skip tagged value
-                Skip(DecodeSize());
+        while (true)
+        {
+            if (!useTagEndMarker && _reader.End)
+            {
+                // When we don't use an end marker, the end of the buffer indicates the end of the tagged fields.
+                break;
             }
+
+            int v = DecodeUInt8();
+            if (useTagEndMarker && v == TagEndMarker)
+            {
+                // When we use an end marker, the end marker (and only the end marker) indicates the end of the
+                // tagged fields.
+                break;
+            }
+
+            var format = (TagFormat)(v & 0x07); // Read first 3 bits.
+            if ((v >> 3) == 30)
+            {
+                SkipSize();
+            }
+            SkipTaggedValue(format);
         }
     }
 
     /// <summary>Skip Ice size.</summary>
     public void SkipSize()
     {
-        if (Encoding == IceEncoding.Ice1)
+        byte b = DecodeUInt8();
+        if (b == 255)
         {
-            byte b = DecodeUInt8();
-            if (b == 255)
-            {
-                Skip(4);
-            }
-        }
-        else
-        {
-            Skip(DecodeVarInt62Length(PeekByte()));
+            Skip(4);
         }
     }
 
-    // Applies to all var type: varint62, varuint62 etc.
-    internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
-
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)
     {
-        Debug.Assert(Encoding == IceEncoding.Ice1);
-
         if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
         {
             throw new ArgumentException(
@@ -711,13 +459,8 @@ public ref partial struct IceDecoder
         }
     }
 
-    private readonly byte PeekByte() =>
-        _reader.TryPeek(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
-
     private void SkipTaggedValue(TagFormat format)
     {
-        Debug.Assert(Encoding == IceEncoding.Ice1);
-
         switch (format)
         {
             case TagFormat.F1:

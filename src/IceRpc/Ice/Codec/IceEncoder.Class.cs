@@ -336,7 +336,7 @@ public ref partial struct IceEncoder
 
         internal IceFlags IceFlags;
 
-        // The slice flags byte.
+        // The Ice flags byte.
         internal Memory<byte> IceFlagsPlaceholder;
 
         // The place holder for the Ice size. Used only for the sliced format.

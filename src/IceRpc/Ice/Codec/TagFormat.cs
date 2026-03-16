@@ -2,8 +2,8 @@
 
 namespace IceRpc.Ice.Codec;
 
-/// <summary>The tag format used by tagged fields with the Ice1 encoding.</summary>
-/// <remarks>With the Ice1 encoding, each tagged fields has a specific tag format. This tag format describes how
+/// <summary>The tag format used by tagged fields with the Ice encoding.</summary>
+/// <remarks>With the Ice encoding, each tagged fields has a specific tag format. This tag format describes how
 /// the data is encoded and how it can be skipped by the decoding code if the tagged field is present in the buffer
 /// but is not known to the receiver. The tag format is encoded on 3 bits; as a result, only values in the range 0 to 7
 /// are encoded.</remarks>
