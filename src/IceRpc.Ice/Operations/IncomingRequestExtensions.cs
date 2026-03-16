@@ -26,8 +26,8 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with
-    /// a Slice exception payload.</summary>
+    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with an Ice
+    /// exception payload.</summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="iceException">The Ice exception to encode in the payload.</param>
     /// <returns>The new outgoing response.</returns>

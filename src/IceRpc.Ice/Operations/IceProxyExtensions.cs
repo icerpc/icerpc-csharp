@@ -48,7 +48,7 @@ public static class IceProxyExtensions
     /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <typeparam name="T">The response type.</typeparam>
     /// <param name="proxy">A proxy to the remote service.</param>
-    /// <param name="operation">The name of the operation, as specified in Slice.</param>
+    /// <param name="operation">The name of the operation, as specified in Ice Slice.</param>
     /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
@@ -57,7 +57,7 @@ public static class IceProxyExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="IceException">Thrown if the response carries a Slice exception.</exception>
+    /// <exception cref="IceException">Thrown if the response carries an Ice exception.</exception>
     public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -195,10 +195,10 @@ public static class IceProxyExtensions
     public static TProxy ToProxy<TProxy>(this IIceProxy proxy) where TProxy : struct, IIceProxy =>
         new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 
-    /// <summary>Tests whether the target service implements the Slice interface associated with
+    /// <summary>Tests whether the target service implements the Ice interface associated with
     /// <typeparamref name="TProxy" />. This method is a wrapper for <see cref="IIceObject.IceIsAAsync" />.
     /// All services implemented with Ice automatically provide this operation. Services implemented with IceRPC provide
-    /// this operation only when they implement Slice interface <c>Ice::Object</c> explicitly.</summary>
+    /// this operation only when they implement Ice interface <c>Ice::Object</c> explicitly.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source proxy being tested.</param>
     /// <param name="features">The invocation features.</param>

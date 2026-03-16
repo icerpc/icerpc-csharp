@@ -84,7 +84,7 @@ public ref partial struct IceEncoder
         if (value < 0)
         {
             throw new ArgumentException(
-                $"The {nameof(value)} argument must be greater than 0.",
+                $"The {nameof(value)} argument must be greater than or equal to 0.",
                 nameof(value));
         }
 

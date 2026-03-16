@@ -53,7 +53,7 @@ public class NumericTypesDecodingTests
 
     /// <summary>Tests the decoding of an uint8.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
-    /// <param name="expected">The expected sbyte to be decoded.</param>
+    /// <param name="expected">The expected byte to be decoded.</param>
     [TestCase(new byte[] { 42 }, 42)]
     [TestCase(new byte[] { 0xFF }, byte.MaxValue)]
     public void Decode_uint8_value(byte[] encodedBytes, byte expected)
