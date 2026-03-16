@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using static IceRpc.Ice.Codec.Internal.Ice1Definitions;
+using static IceRpc.Ice.Codec.Internal.IceEncodingDefinitions;
 
 namespace IceRpc.Ice.Codec;
 

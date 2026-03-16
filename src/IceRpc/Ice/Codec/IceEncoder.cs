@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using static IceRpc.Ice.Codec.Internal.Ice1Definitions;
+using static IceRpc.Ice.Codec.Internal.IceEncodingDefinitions;
 
 namespace IceRpc.Ice.Codec;
 

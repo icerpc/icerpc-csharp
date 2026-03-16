@@ -2,8 +2,8 @@
 
 namespace IceRpc.Ice.Codec.Internal;
 
-/// <summary>Enumerations and constants used by Ice1.</summary>
-internal static class Ice1Definitions
+/// <summary>Enumerations and constants used by the Ice encoding.</summary>
+internal static class IceEncodingDefinitions
 {
     internal const byte TagEndMarker = 0xFF;
 
@@ -32,10 +32,10 @@ internal static class Ice1Definitions
 
 internal static class IceFlagsExtensions
 {
-    /// <summary>Extracts the <see cref="Ice1Definitions.TypeIdKind" /> of a <see cref="Ice1Definitions.IceFlags"
+    /// <summary>Extracts the <see cref="IceEncodingDefinitions.TypeIdKind" /> of a <see cref="IceEncodingDefinitions.IceFlags"
     /// /> value.</summary>
-    /// <param name="sliceFlags">The <see cref="Ice1Definitions.IceFlags" /> value.</param>
-    /// <returns>The <see cref="Ice1Definitions.TypeIdKind" /> encoded in sliceFlags.</returns>
-    internal static Ice1Definitions.TypeIdKind GetTypeIdKind(this Ice1Definitions.IceFlags sliceFlags) =>
-        (Ice1Definitions.TypeIdKind)(sliceFlags & Ice1Definitions.IceFlags.TypeIdMask);
+    /// <param name="sliceFlags">The <see cref="IceEncodingDefinitions.IceFlags" /> value.</param>
+    /// <returns>The <see cref="IceEncodingDefinitions.TypeIdKind" /> encoded in sliceFlags.</returns>
+    internal static IceEncodingDefinitions.TypeIdKind GetTypeIdKind(this IceEncodingDefinitions.IceFlags sliceFlags) =>
+        (IceEncodingDefinitions.TypeIdKind)(sliceFlags & IceEncodingDefinitions.IceFlags.TypeIdMask);
 }

@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using static IceRpc.Ice.Codec.Internal.Ice1Definitions;
+using static IceRpc.Ice.Codec.Internal.IceEncodingDefinitions;
 
 namespace IceRpc.Ice.Codec;
 
