@@ -14,7 +14,7 @@ public class SlicingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         var p2 = new SlicingMostDerivedClass("p2-m1", "p2-m2", null, null);
         var p1 = new SlicingMostDerivedClass("p1-m1", "p1-m2", p2, p2);
@@ -30,12 +30,12 @@ public class SlicingTests
                 excludeTypeId: typeof(SlicingMostDerivedClass).GetIceTypeId());
         }
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1, activator: slicingActivator);
+        var decoder = new IceDecoder(buffer.WrittenMemory, activator: slicingActivator);
         IceClass? r1 = decoder.DecodeClass<IceClass>();
 
         // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
         encoder.EncodeClass(r1!);
 
         // Act
@@ -44,7 +44,6 @@ public class SlicingTests
         // Slices.
         decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
 
         SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>();
@@ -75,7 +74,7 @@ public class SlicingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         var p2 = new SlicingMostDerivedClassWithCompactId("p2-m1", "p2-m2", null);
         var p1 = new SlicingMostDerivedClassWithCompactId("p1-m1", "p1-m2", p2);
@@ -91,12 +90,12 @@ public class SlicingTests
                 excludeTypeId: $"{typeof(SlicingMostDerivedClassWithCompactId).GetCompactIceTypeId()}");
         }
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1, activator: slicingActivator);
+        var decoder = new IceDecoder(buffer.WrittenMemory, activator: slicingActivator);
         IceClass? r1 = decoder.DecodeClass<IceClass>();
 
         // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
         encoder.EncodeClass(r1!);
 
         // Act
@@ -105,7 +104,6 @@ public class SlicingTests
         // Slices.
         decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
 
         SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>();
@@ -130,7 +128,7 @@ public class SlicingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         var p2 = new SlicingClassWithTaggedFields("p2-m1", "p2-m2", null, null, "p2-m5");
         var p1 = new SlicingClassWithTaggedFields("p1-m1", "p1-m2", p2, p2, "p1-m5");
@@ -146,12 +144,12 @@ public class SlicingTests
                 excludeTypeId: typeof(SlicingClassWithTaggedFields).GetIceTypeId());
         }
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1, activator: slicingActivator);
+        var decoder = new IceDecoder(buffer.WrittenMemory, activator: slicingActivator);
         IceClass? r1 = decoder.DecodeClass<IceClass>();
 
         // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
         encoder.EncodeClass(r1!);
 
         // Act
@@ -160,7 +158,6 @@ public class SlicingTests
         // Slices.
         decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));
 
         SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
@@ -187,7 +184,7 @@ public class SlicingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         var p1 = new SlicingMostDerivedException("most-derived-m1", "most-derived-m2", new SlicingBaseClass("base-m1"));
         p1.Encode(ref encoder);
@@ -198,7 +195,7 @@ public class SlicingTests
             IActivator.FromAssembly(typeof(SlicingMostDerivedException).Assembly),
             excludeTypeId: typeof(SlicingMostDerivedException).GetIceTypeId());
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1, activator: slicingActivator);
+        var decoder = new IceDecoder(buffer.WrittenMemory, activator: slicingActivator);
 
         // Act
         IceException sliceException = decoder.DecodeException();
@@ -216,7 +213,7 @@ public class SlicingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         var p1 = new SlicingMostDerivedException("most-derived-m1", "most-derived-m2", new SlicingBaseClass("base-m1"));
         p1.Encode(ref encoder);
@@ -225,7 +222,7 @@ public class SlicingTests
 
         Assert.That(() =>
         {
-            var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1); // no activator
+            var decoder = new IceDecoder(buffer.WrittenMemory); // no activator
             decoder.DecodeException();
         },
         Throws.InstanceOf<InvalidDataException>());
@@ -236,7 +233,7 @@ public class SlicingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         var p5 = new SlicingMostDerivedClass("p5-m1", "p5-m2", null, null);
         var p4 = new SlicingMostDerivedClass("p4-m1", "p4-m2", p5, p5);
@@ -250,7 +247,6 @@ public class SlicingTests
             {
                 var decoder = new IceDecoder(
                     buffer.WrittenMemory,
-                    IceEncoding.Ice1,
                     maxDepth: 3);
                 IceClass? r1 = decoder.DecodeClass<IceClass>();
             },

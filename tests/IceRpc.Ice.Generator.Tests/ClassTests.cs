@@ -21,7 +21,7 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new IceDecoder(readResult.Buffer, IceEncoding.Ice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with compact format (2 Slices)
 
@@ -50,7 +50,7 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new IceDecoder(readResult.Buffer, IceEncoding.Ice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with sliced format (2 Slices)
 
@@ -87,7 +87,7 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new IceDecoder(readResult.Buffer, IceEncoding.Ice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with compact format (2 Slices)
 
@@ -116,7 +116,7 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new IceDecoder(readResult.Buffer, IceEncoding.Ice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with sliced format (2 Slices)
 

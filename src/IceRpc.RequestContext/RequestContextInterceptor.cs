@@ -36,7 +36,7 @@ public class RequestContextInterceptor : IInvoker
                         RequestFieldKey.Context,
                         new OutgoingFieldValue(bufferWriter =>
                         {
-                            var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+                            var encoder = new IceEncoder(bufferWriter);
                             encoder.EncodeDictionary(
                                 context,
                                 (ref IceEncoder encoder, string value) => encoder.EncodeString(value),

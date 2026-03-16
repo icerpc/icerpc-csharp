@@ -21,7 +21,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeInt64(value);
 
@@ -39,7 +39,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeInt8(value);
 
@@ -61,7 +61,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeSize(size);
 
@@ -77,7 +77,7 @@ public class NumericTypesEncodingTests
         Assert.That(
             () =>
             {
-                var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+                var encoder = new IceEncoder(bufferWriter);
                 encoder.EncodeSize(-10);
             },
             Throws.InstanceOf<ArgumentException>());

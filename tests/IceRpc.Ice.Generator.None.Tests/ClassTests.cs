@@ -15,7 +15,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         var theA = new MyClassA();
         var theB = new MyClassB();
         var theC = new MyClassC();
@@ -37,7 +37,6 @@ public sealed class ClassTests
             {
                 var decoder = new IceDecoder(
                     buffer.WrittenMemory,
-                    IceEncoding.Ice1,
                     activator: IActivator.FromAssembly(typeof(MyClassA).Assembly),
                     maxDepth: 100);
                 decoder.DecodeClass<MyClassA>();
@@ -50,12 +49,11 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         encoder.EncodeClass(new MyInternalClass("m1", "m2"));
 
         var decoder = new IceDecoder(
                     buffer.WrittenMemory,
-                    IceEncoding.Ice1,
                     activator: IActivator.FromAssemblies(typeof(MyInternalClass).Assembly),
                     maxDepth: 100);
         // Act
@@ -70,7 +68,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         // Act
         encoder.EncodeClass(
@@ -81,7 +79,7 @@ public sealed class ClassTests
             });
 
         // Assert
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(
@@ -126,7 +124,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         // Act
         encoder.EncodeClass(new MyClassA
@@ -136,7 +134,7 @@ public sealed class ClassTests
         });
 
         // Assert
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -206,7 +204,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         var theA = new MyClassA();
         var theB = new MyClassB();
         var theC = new MyClassC();
@@ -228,7 +226,7 @@ public sealed class ClassTests
         // theB index 3
         // theC index 4
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -271,7 +269,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
         var theA = new MyClassA();
         var theB = new MyClassB();
         var theC = new MyClassC();
@@ -288,7 +286,7 @@ public sealed class ClassTests
 
         // Assert
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(
@@ -366,13 +364,13 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         // Act
         encoder.EncodeClass(new MyDerivedCompactClass());
 
         // Assert
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Ice1Definitions.TypeIdKind.CompactId));
@@ -388,7 +386,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         // Act
         encoder.EncodeClass(new MyDerivedCompactClass());
@@ -396,7 +394,6 @@ public sealed class ClassTests
         // Assert
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
@@ -428,13 +425,13 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         // Act
         encoder.EncodeClass(new MyDerivedClassWithTaggedFields(a, b));
 
         // Assert
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(decoder.DecodeUInt8(),
@@ -485,7 +482,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
@@ -519,7 +516,6 @@ public sealed class ClassTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
@@ -544,7 +540,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         encoder.EncodeSize(1); // Instance marker
 
@@ -599,7 +595,6 @@ public sealed class ClassTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
@@ -624,7 +619,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         // The class graph is encoded inline when using the compact format
         // theA index 2
@@ -662,7 +657,6 @@ public sealed class ClassTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
@@ -690,7 +684,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)Ice1Definitions.TypeIdKind.String |
@@ -754,7 +748,6 @@ public sealed class ClassTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
@@ -787,13 +780,12 @@ public sealed class ClassTests
 
         // Encode/decode it.
         var buffer = new MemoryBufferWriter(new byte[1024]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: classFormat);
+        var encoder = new IceEncoder(buffer, classFormat: classFormat);
         encoder.EncodeClass(john);
         encoder.EncodeClass(yoko);
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(Person).Assembly));
 
         // Act
@@ -812,7 +804,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8((byte)Ice1Definitions.TypeIdKind.CompactId);
@@ -822,7 +814,6 @@ public sealed class ClassTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         // Act
@@ -837,7 +828,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat: ClassFormat.Sliced);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
 
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
@@ -855,7 +846,6 @@ public sealed class ClassTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         // Act
@@ -873,7 +863,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         encoder.EncodeSize(1); // Instance marker
         byte sliceFlags = (byte)Ice1Definitions.TypeIdKind.String;
@@ -929,7 +919,6 @@ public sealed class ClassTests
         }
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyDerivedClassWithTaggedFields).Assembly));
 
         // Act

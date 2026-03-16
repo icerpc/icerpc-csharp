@@ -42,7 +42,6 @@ internal static class IncomingFrameExtensions
 
             var decoder = new IceDecoder(
                 readResult.Buffer,
-                IceEncoding.Ice1,
                 baseProxy,
                 feature.MaxCollectionAllocation,
                 activator,
@@ -93,7 +92,7 @@ internal static class IncomingFrameExtensions
             {
                 // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
                 // do is skip unknown tags
-                var decoder = new IceDecoder(readResult.Buffer, IceEncoding.Ice1);
+                var decoder = new IceDecoder(readResult.Buffer);
                 decoder.SkipTagged(useTagEndMarker: false); // false because we're decoding parameters, not class/exception fields
                 decoder.CheckEndOfBuffer();
             }

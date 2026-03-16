@@ -22,11 +22,11 @@ public class EnumTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeMySlice1Enum(expected);
 
-        var decoder = new IceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount));
         var decoded = (MySlice1Enum)decoder.DecodeSize();
 
         Assert.That(decoded, Is.EqualTo(expected));
@@ -38,11 +38,11 @@ public class EnumTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeSize((int)expected);
 
-        var decoder = new IceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount));
         var decoded = decoder.DecodeMySlice1Enum();
 
         Assert.That(decoded, Is.EqualTo(expected));

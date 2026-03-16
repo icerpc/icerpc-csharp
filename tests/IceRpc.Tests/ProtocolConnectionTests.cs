@@ -806,7 +806,7 @@ public sealed class ProtocolConnectionTests
                 {
                     if (protocol == Protocol.Ice)
                     {
-                        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+                        var encoder = new IceEncoder(bufferWriter);
                         encoder.EncodeDictionary(
                             expectedValue,
                             (ref IceEncoder encoder, string value) => encoder.EncodeString(value),
@@ -834,7 +834,7 @@ public sealed class ProtocolConnectionTests
         {
             if (protocol == Protocol.Ice)
             {
-                var decoder = new IceDecoder(field, IceEncoding.Ice1);
+                var decoder = new IceDecoder(field);
                 return decoder.DecodeDictionary(
                     count => new Dictionary<string, string>(count),
                     (ref IceDecoder decoder) => decoder.DecodeString(),

@@ -127,7 +127,6 @@ public static class IncomingResponseExtensions
 
             var decoder = new IceDecoder(
                 buffer,
-                IceEncoding.Ice1,
                 feature.BaseProxy ?? sender,
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 activator,

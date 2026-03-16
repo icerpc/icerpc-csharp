@@ -20,9 +20,9 @@ public class ServiceAddressTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
         encoder.EncodeServiceAddress(value);
-        var decoder = new IceDecoder(buffer.AsMemory()[0..bufferWriter.WrittenMemory.Length], IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.AsMemory()[0..bufferWriter.WrittenMemory.Length]);
 
         // Act/Assert
         Assert.That(decoder.DecodeServiceAddress(), Is.EqualTo(expectedValue ?? value));
@@ -36,9 +36,9 @@ public class ServiceAddressTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
         encoder.EncodeNullableServiceAddress(value);
-        var decoder = new IceDecoder(buffer.AsMemory()[0..bufferWriter.WrittenMemory.Length], IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.AsMemory()[0..bufferWriter.WrittenMemory.Length]);
 
         // Act/Assert
         Assert.That(decoder.DecodeNullableServiceAddress(), Is.EqualTo(value));

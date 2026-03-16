@@ -42,7 +42,7 @@ public static class IncomingRequestExtensions
 
         try
         {
-            var encoder = new IceEncoder(pipe.Writer, IceEncoding.Ice1);
+            var encoder = new IceEncoder(pipe.Writer);
             iceException.Encode(ref encoder);
             pipe.Writer.Complete();
 

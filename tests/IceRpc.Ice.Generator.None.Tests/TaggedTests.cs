@@ -95,7 +95,7 @@ public class TaggedTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         bool hasTaggedFields =
             expected.A is not null ||
             expected.B is not null ||
@@ -212,7 +212,6 @@ public class TaggedTests
         }
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(ClassWithTaggedFields).Assembly));
 
         // Act
@@ -237,7 +236,7 @@ public class TaggedTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         // Act
         encoder.EncodeClass(c);
@@ -254,7 +253,7 @@ public class TaggedTests
             c.I is not null ||
             c.J is not null;
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         byte flags = (byte)Ice1Definitions.TypeIdKind.String | (byte)Ice1Definitions.IceFlags.IsLastSlice;
@@ -360,7 +359,7 @@ public class TaggedTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1, classFormat);
+        var encoder = new IceEncoder(buffer, classFormat);
         encoder.EncodeClass(expected);
 
         // Create an activator that replaces ClassWithTaggedFields by ClassWithoutTaggedFields, both classes
@@ -371,7 +370,7 @@ public class TaggedTests
             typeof(ClassWithTaggedFields).GetIceTypeId()!,
             typeof(ClassWithoutTaggedFields).GetIceTypeId()!);
 
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1, activator: activator);
+        var decoder = new IceDecoder(buffer.WrittenMemory, activator: activator);
 
         // Act
         _ = decoder.DecodeClass<ClassWithoutTaggedFields>();

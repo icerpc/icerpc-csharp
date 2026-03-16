@@ -21,10 +21,10 @@ public class DecodeStringTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
         encoder.EncodeString(testString);
         byte[] encodedString = buffer[0..bufferWriter.WrittenMemory.Length];
-        var sut = new IceDecoder(encodedString, IceEncoding.Ice1);
+        var sut = new IceDecoder(encodedString);
 
         var r1 = sut.DecodeString();
 
@@ -47,12 +47,12 @@ public class DecodeStringTests
         // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
         // minBufferSize given to Rent
         var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
-        var encoder = new IceEncoder(pipe.Writer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(pipe.Writer);
         encoder.EncodeString(value);
         pipe.Writer.Complete();
         pipe.Reader.TryRead(out ReadResult readResult);
 
-        var sut = new IceDecoder(readResult.Buffer, IceEncoding.Ice1);
+        var sut = new IceDecoder(readResult.Buffer);
 
         // Act
         var r1 = sut.DecodeString();

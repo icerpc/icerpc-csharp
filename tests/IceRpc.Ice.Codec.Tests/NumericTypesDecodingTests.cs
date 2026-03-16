@@ -15,7 +15,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0x01 }, true)]
     public void Decode_bool_value(byte[] encodedBytes, bool expected)
     {
-        var sut = new IceDecoder(encodedBytes, IceEncoding.Ice1);
+        var sut = new IceDecoder(encodedBytes);
 
         bool r1 = sut.DecodeBool();
 
@@ -28,7 +28,7 @@ public class NumericTypesDecodingTests
     public void Decode_invalid_bool_value(byte[] encodedBytes) =>
         Assert.Throws<InvalidDataException>(() =>
         {
-            var sut = new IceDecoder(encodedBytes, IceEncoding.Ice1);
+            var sut = new IceDecoder(encodedBytes);
             sut.DecodeBool();
         });
 
@@ -43,7 +43,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, long.MaxValue)]
     public void Decode_long_value(byte[] encodedBytes, long expected)
     {
-        var sut = new IceDecoder(encodedBytes, IceEncoding.Ice1);
+        var sut = new IceDecoder(encodedBytes);
 
         long r1 = sut.DecodeInt64();
 
@@ -58,7 +58,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0x7F }, sbyte.MaxValue)]
     public void Decode_int8_value(byte[] encodedBytes, sbyte expected)
     {
-        var sut = new IceDecoder(encodedBytes, IceEncoding.Ice1);
+        var sut = new IceDecoder(encodedBytes);
 
         sbyte r1 = sut.DecodeInt8();
 
@@ -76,7 +76,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 }, 1000)]
     public void Decode_size(byte[] encodedBytes, int expected)
     {
-        var sut = new IceDecoder(encodedBytes, IceEncoding.Ice1);
+        var sut = new IceDecoder(encodedBytes);
 
         var r1 = sut.DecodeSize();
 

@@ -41,9 +41,9 @@ public partial class ProxyTests
         // Arrange
         expected ??= value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
         encoder.EncodeServiceAddress(value);
-        var sut = new IceDecoder(bufferWriter.WrittenMemory, encoding: IceEncoding.Ice1);
+        var sut = new IceDecoder(bufferWriter.WrittenMemory);
 
         // Act
         var decoded = sut.DecodeNullablePingableProxy();
@@ -60,9 +60,9 @@ public partial class ProxyTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         encoder.EncodeNullableServiceAddress(expected);
-        var decoder = new IceDecoder(buffer.WrittenMemory, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         // Act
         AnotherPingableProxy? decoded = decoder.DecodeNullableAnotherPingableProxy();
@@ -82,7 +82,7 @@ public partial class ProxyTests
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+            var encoder = new IceEncoder(bufferWriter);
             encoder.EncodeServiceAddress(serviceAddress);
         },
         Throws.TypeOf<FormatException>());
@@ -94,7 +94,7 @@ public partial class ProxyTests
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+            var encoder = new IceEncoder(bufferWriter);
             encoder.EncodeServiceAddress(serviceAddress);
         },
         Throws.TypeOf<ArgumentException>());

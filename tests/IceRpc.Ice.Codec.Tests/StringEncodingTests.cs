@@ -21,7 +21,7 @@ public class StringEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new IceEncoder(bufferWriter, IceEncoding.Ice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeString(value);
 
@@ -47,7 +47,7 @@ public class StringEncodingTests
         // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
         // minBufferSize given to Rent
         var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
-        var encoder = new IceEncoder(pipe.Writer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(pipe.Writer);
 
         // Act
         encoder.EncodeString(value);

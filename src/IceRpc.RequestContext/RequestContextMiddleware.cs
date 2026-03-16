@@ -28,7 +28,7 @@ public class RequestContextMiddleware : IDispatcher
             Dictionary<string, string> context;
             if (request.Protocol == Protocol.Ice)
             {
-                var decoder = new IceDecoder(value, IceEncoding.Ice1);
+                var decoder = new IceDecoder(value);
                 context = decoder.DecodeDictionary(
                     size => new Dictionary<string, string>(size),
                     keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),

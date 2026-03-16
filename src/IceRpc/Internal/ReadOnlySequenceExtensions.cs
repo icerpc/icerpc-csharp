@@ -18,7 +18,7 @@ internal static class ReadOnlySequenceExtensions
     /// </exception>
     internal static T DecodeIceBuffer<T>(this ReadOnlySequence<byte> buffer, IceRpc.Ice.Codec.DecodeFunc<T> decodeFunc)
     {
-        var decoder = new IceDecoder(buffer, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer);
         T result = decodeFunc(ref decoder);
         decoder.CheckEndOfBuffer();
         return result;

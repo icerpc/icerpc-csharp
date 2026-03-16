@@ -103,7 +103,7 @@ public class ActivatorTests
         string typeId,
         Type expectedType)
     {
-        var decoder = new IceDecoder(ReadOnlyMemory<byte>.Empty, IceEncoding.Ice1);
+        var decoder = new IceDecoder(ReadOnlyMemory<byte>.Empty);
         var sut = IActivator.FromAssembly(assembly);
 
         object? instance = sut.CreateInstance(typeId);

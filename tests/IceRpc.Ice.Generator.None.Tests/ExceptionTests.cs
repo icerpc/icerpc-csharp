@@ -14,7 +14,7 @@ public sealed class ExceptionTests
     public void Decode_derived_exception()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
 
         encoder.StartSlice(typeof(MyDerivedException).GetIceTypeId()!);
         encoder.EncodeInt32(30);
@@ -28,7 +28,6 @@ public sealed class ExceptionTests
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
         var value = decoder.DecodeException() as MyDerivedException;
@@ -45,7 +44,7 @@ public sealed class ExceptionTests
     public void Decode_exception([Values(10, null)] int? taggedValue)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         encoder.StartSlice(typeof(MyException).GetIceTypeId()!);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
@@ -61,7 +60,6 @@ public sealed class ExceptionTests
         encoder.EndSlice(lastSlice: true);
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
         var value = decoder.DecodeException() as MyException;
@@ -78,7 +76,7 @@ public sealed class ExceptionTests
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         encoder.StartSlice(typeof(MyExceptionWithTaggedFields).GetIceTypeId()!);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
@@ -101,7 +99,6 @@ public sealed class ExceptionTests
         encoder.EndSlice(lastSlice: true);
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
 
         var value = decoder.DecodeException() as MyExceptionWithTaggedFields;
@@ -120,14 +117,13 @@ public sealed class ExceptionTests
     public void Encode_derived_exception()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         var expected = new MyDerivedException(10, 20, 30, 40);
 
         expected.Encode(ref encoder);
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
         var decoded = decoder.DecodeException() as MyDerivedException;
@@ -142,14 +138,13 @@ public sealed class ExceptionTests
     public void Encode_exception()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         var expected = new MyException(10, 20);
 
         expected.Encode(ref encoder);
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
         var value = decoder.DecodeException() as MyException;
         Assert.That(value, Is.Not.Null);
@@ -164,14 +159,13 @@ public sealed class ExceptionTests
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new IceEncoder(buffer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(buffer);
         var expected = new MyExceptionWithTaggedFields(10, 20, k, l);
 
         expected.Encode(ref encoder);
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
-            IceEncoding.Ice1,
             activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
         var value = decoder.DecodeException() as MyExceptionWithTaggedFields;
         Assert.That(value, Is.Not.Null);

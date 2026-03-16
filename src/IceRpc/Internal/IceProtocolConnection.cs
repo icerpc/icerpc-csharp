@@ -204,13 +204,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
             {
-                var encoder = new IceEncoder(writer, IceEncoding.Ice1);
+                var encoder = new IceEncoder(writer);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
 
             static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, IceEncoding.Ice1);
+                var decoder = new IceDecoder(buffer);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
@@ -563,7 +563,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             static void EncodeCloseConnectionFrame(IBufferWriter<byte> writer)
             {
-                var encoder = new IceEncoder(writer, IceEncoding.Ice1);
+                var encoder = new IceEncoder(writer);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
             }
         }
@@ -673,7 +673,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
                 {
-                    var encoder = new IceEncoder(writer, IceEncoding.Ice1);
+                    var encoder = new IceEncoder(writer);
                     IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
                 }
             }
@@ -683,7 +683,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private static (int RequestId, IceRequestHeader Header, PipeReader? ContextReader, int Consumed) DecodeRequestIdAndHeader(
         ReadOnlySequence<byte> buffer)
     {
-        var decoder = new IceDecoder(buffer, IceEncoding.Ice1);
+        var decoder = new IceDecoder(buffer);
 
         int requestId = decoder.DecodeInt32();
 
@@ -772,7 +772,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _ => StatusCode.InternalError
             };
 
-            var decoder = new IceDecoder(buffer.Slice(1), IceEncoding.Ice1);
+            var decoder = new IceDecoder(buffer.Slice(1));
 
             string message;
             switch (replyStatus)
@@ -804,7 +804,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         int requestId,
         int payloadSize)
     {
-        var encoder = new IceEncoder(output, IceEncoding.Ice1);
+        var encoder = new IceEncoder(output);
 
         // Write the request header.
         encoder.WriteByteSpan(IceDefinitions.FramePrologue);
@@ -863,7 +863,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         int requestId,
         int payloadSize)
     {
-        var encoder = new IceEncoder(writer, IceEncoding.Ice1);
+        var encoder = new IceEncoder(writer);
 
         // Write the response header.
 
