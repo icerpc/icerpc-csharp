@@ -8,10 +8,10 @@ internal static class IceEncodingDefinitions
     internal const byte TagEndMarker = 0xFF;
 
     /// <summary>The first byte of each encoded class or exception slice.</summary>
-    /// <remarks>The first 2 bits of IceFlags represent the TypeIdKind, which can be extracted using
-    /// <see cref="IceFlagsExtensions.GetTypeIdKind" />.</remarks>
+    /// <remarks>The first 2 bits of SliceFlags represent the TypeIdKind, which can be extracted using
+    /// <see cref="SliceFlagsExtensions.GetTypeIdKind" />.</remarks>
     [Flags]
-    internal enum IceFlags : byte
+    internal enum SliceFlags : byte
     {
         TypeIdMask = 3,
         HasTaggedFields = 4,
@@ -20,7 +20,7 @@ internal static class IceEncodingDefinitions
         IsLastSlice = 32
     }
 
-    /// <summary>The first 2 bits of the <see cref="IceFlags" />.</summary>
+    /// <summary>The first 2 bits of the <see cref="SliceFlags" />.</summary>
     internal enum TypeIdKind : byte
     {
         None = 0,
@@ -30,12 +30,12 @@ internal static class IceEncodingDefinitions
     }
 }
 
-internal static class IceFlagsExtensions
+internal static class SliceFlagsExtensions
 {
-    /// <summary>Extracts the <see cref="IceEncodingDefinitions.TypeIdKind" /> of a <see cref="IceEncodingDefinitions.IceFlags"
+    /// <summary>Extracts the <see cref="IceEncodingDefinitions.TypeIdKind" /> of a <see cref="IceEncodingDefinitions.SliceFlags"
     /// /> value.</summary>
-    /// <param name="sliceFlags">The <see cref="IceEncodingDefinitions.IceFlags" /> value.</param>
+    /// <param name="sliceFlags">The <see cref="IceEncodingDefinitions.SliceFlags" /> value.</param>
     /// <returns>The <see cref="IceEncodingDefinitions.TypeIdKind" /> encoded in sliceFlags.</returns>
-    internal static IceEncodingDefinitions.TypeIdKind GetTypeIdKind(this IceEncodingDefinitions.IceFlags sliceFlags) =>
-        (IceEncodingDefinitions.TypeIdKind)(sliceFlags & IceEncodingDefinitions.IceFlags.TypeIdMask);
+    internal static IceEncodingDefinitions.TypeIdKind GetTypeIdKind(this IceEncodingDefinitions.SliceFlags sliceFlags) =>
+        (IceEncodingDefinitions.TypeIdKind)(sliceFlags & IceEncodingDefinitions.SliceFlags.TypeIdMask);
 }

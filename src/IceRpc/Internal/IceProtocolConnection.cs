@@ -8,7 +8,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Security.Authentication;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Internal;
 
@@ -853,7 +852,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             encodingMinor).Encode(ref encoder);
 
         int frameSize = checked(encoder.EncodedByteCount + directWriteSize + payloadSize);
-        SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+        IceEncoder.EncodeInt32(frameSize, sizePlaceholder);
     }
 
     private static void EncodeResponseHeader(
@@ -924,7 +923,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         int frameSize = encoder.EncodedByteCount + payloadSize;
-        SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+        IceEncoder.EncodeInt32(frameSize, sizePlaceholder);
     }
 
     /// <summary>Reads the full Ice payload from the given pipe reader.</summary>

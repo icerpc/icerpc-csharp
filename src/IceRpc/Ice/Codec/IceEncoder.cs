@@ -316,7 +316,7 @@ public ref partial struct IceEncoder
 
         if (_classContext.Current.InstanceType != InstanceType.None)
         {
-            _classContext.Current.IceFlags |= IceFlags.HasTaggedFields;
+            _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
         }
     }
 }

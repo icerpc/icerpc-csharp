@@ -402,7 +402,7 @@ public ref partial struct IceDecoder
         if (_classContext.Current.InstanceType != InstanceType.None)
         {
             // tagged fields of a class or exception
-            if ((_classContext.Current.IceFlags & IceFlags.HasTaggedFields) == 0)
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) == 0)
             {
                 // The current slice has no tagged field.
                 return false;

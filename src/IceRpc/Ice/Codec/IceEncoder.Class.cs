@@ -62,29 +62,29 @@ public ref partial struct IceEncoder
 
         if (lastSlice)
         {
-            _classContext.Current.IceFlags |= IceFlags.IsLastSlice;
+            _classContext.Current.SliceFlags |= SliceFlags.IsLastSlice;
         }
 
         // Encodes the tagged end marker if some tagged fields were encoded. Note that tagged fields are encoded before
         // the indirection table and are included in the slice size.
-        if ((_classContext.Current.IceFlags & IceFlags.HasTaggedFields) != 0)
+        if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0)
         {
             EncodeUInt8(TagEndMarker);
         }
 
         // Encodes the slice size if necessary.
-        if ((_classContext.Current.IceFlags & IceFlags.HasSliceSize) != 0)
+        if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
         {
             // Size includes the size length.
             EncodeInt32(
-                EncodedByteCount - _classContext.Current.IceSizeStartPos,
-                _classContext.Current.IceSizePlaceholder.Span);
+                EncodedByteCount - _classContext.Current.SliceSizeStartPos,
+                _classContext.Current.SliceSizePlaceholder.Span);
         }
 
         if (_classContext.Current.IndirectionTable?.Count > 0)
         {
             Debug.Assert(_classContext.ClassFormat == ClassFormat.Sliced);
-            _classContext.Current.IceFlags |= IceFlags.HasIndirectionTable;
+            _classContext.Current.SliceFlags |= SliceFlags.HasIndirectionTable;
 
             EncodeSize(_classContext.Current.IndirectionTable.Count);
             foreach (IceClass v in _classContext.Current.IndirectionTable)
@@ -95,8 +95,8 @@ public ref partial struct IceEncoder
             _classContext.Current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding unknown slices.
         }
 
-        // Update IceFlags in case they were updated.
-        _classContext.Current.IceFlagsPlaceholder.Span[0] = (byte)_classContext.Current.IceFlags;
+        // Update SliceFlags in case they were updated.
+        _classContext.Current.SliceFlagsPlaceholder.Span[0] = (byte)_classContext.Current.SliceFlags;
 
         // If this is the last slice in an exception, reset the current context.
         if (lastSlice && _classContext.Current.InstanceType == InstanceType.Exception)
@@ -117,28 +117,28 @@ public ref partial struct IceEncoder
         {
             _classContext.ClassFormat = ClassFormat.Sliced; // always encode exceptions in sliced format
             _classContext.Current.InstanceType = InstanceType.Exception;
-            _classContext.Current.FirstIce = true;
+            _classContext.Current.FirstSlice = true;
         }
 
-        _classContext.Current.IceFlags = default;
-        _classContext.Current.IceFlagsPlaceholder = GetPlaceholderMemory(1);
+        _classContext.Current.SliceFlags = default;
+        _classContext.Current.SliceFlagsPlaceholder = GetPlaceholderMemory(1);
 
         if (_classContext.ClassFormat == ClassFormat.Sliced)
         {
             EncodeTypeId(typeId, compactId);
             // Encode the slice size if using the sliced format.
-            _classContext.Current.IceFlags |= IceFlags.HasSliceSize;
-            _classContext.Current.IceSizeStartPos = EncodedByteCount; // size includes size-length
-            _classContext.Current.IceSizePlaceholder = GetPlaceholderMemory(4);
+            _classContext.Current.SliceFlags |= SliceFlags.HasSliceSize;
+            _classContext.Current.SliceSizeStartPos = EncodedByteCount; // size includes size-length
+            _classContext.Current.SliceSizePlaceholder = GetPlaceholderMemory(4);
         }
-        else if (_classContext.Current.FirstIce)
+        else if (_classContext.Current.FirstSlice)
         {
             EncodeTypeId(typeId, compactId);
         }
 
-        if (_classContext.Current.FirstIce)
+        if (_classContext.Current.FirstSlice)
         {
-            _classContext.Current.FirstIce = false;
+            _classContext.Current.FirstSlice = false;
         }
     }
 
@@ -168,12 +168,12 @@ public ref partial struct IceEncoder
             InstanceData previousCurrent = _classContext.Current;
             _classContext.Current = default;
             _classContext.Current.InstanceType = InstanceType.Class;
-            _classContext.Current.FirstIce = true;
+            _classContext.Current.FirstSlice = true;
 
-            if (v.UnknownIces.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
+            if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
             {
-                EncodeUnknownIces(v.UnknownIces, fullySliced: v is UnknownIceClass);
-                _classContext.Current.FirstIce = false;
+                EncodeUnknownSlices(v.UnknownSlices, fullySliced: v is UnknownIceClass);
+                _classContext.Current.FirstSlice = false;
             }
             v.Encode(ref this);
 
@@ -217,17 +217,17 @@ public ref partial struct IceEncoder
         else
         {
             Debug.Assert(compactId is null);
-            // We always encode a string and don't set a type ID kind in IceFlags.
+            // We always encode a string and don't set a type ID kind in SliceFlags.
             EncodeString(typeId);
         }
 
-        _classContext.Current.IceFlags |= (IceFlags)typeIdKind;
+        _classContext.Current.SliceFlags |= (SliceFlags)typeIdKind;
     }
 
     /// <summary>Encodes sliced-off slices.</summary>
-    /// <param name="unknownIces">The sliced-off slices to encode.</param>
+    /// <param name="unknownSlices">The sliced-off slices to encode.</param>
     /// <param name="fullySliced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
-    private void EncodeUnknownIces(ImmutableList<SliceInfo> unknownIces, bool fullySliced)
+    private void EncodeUnknownSlices(ImmutableList<SliceInfo> unknownSlices, bool fullySliced)
     {
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
@@ -239,9 +239,9 @@ public ref partial struct IceEncoder
                 $"Cannot encode sliced data into payload using {_classContext.ClassFormat} format.");
         }
 
-        for (int i = 0; i < unknownIces.Count; ++i)
+        for (int i = 0; i < unknownSlices.Count; ++i)
         {
-            SliceInfo sliceInfo = unknownIces[i];
+            SliceInfo sliceInfo = unknownSlices[i];
 
             // If type ID is a compact ID, extract it.
             int? compactId = null;
@@ -264,7 +264,7 @@ public ref partial struct IceEncoder
 
             if (sliceInfo.HasTaggedFields)
             {
-                _classContext.Current.IceFlags |= IceFlags.HasTaggedFields;
+                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
             }
 
             // Make sure to also encode the instance indirection table.
@@ -275,7 +275,7 @@ public ref partial struct IceEncoder
                 Debug.Assert(_classContext.Current.IndirectionTable.Count == 0);
                 _classContext.Current.IndirectionTable.AddRange(sliceInfo.Instances);
             }
-            EndSlice(lastSlice: fullySliced && (i == unknownIces.Count - 1));
+            EndSlice(lastSlice: fullySliced && (i == unknownSlices.Count - 1));
         }
     }
 
@@ -328,23 +328,23 @@ public ref partial struct IceEncoder
 
         // The following fields are used for the current slice:
 
-        internal bool FirstIce;
+        internal bool FirstSlice;
 
         // The indirection map and indirection table are only used for the sliced format.
         internal Dictionary<IceClass, int>? IndirectionMap;
         internal List<IceClass>? IndirectionTable;
 
-        internal IceFlags IceFlags;
+        internal SliceFlags SliceFlags;
 
         // The Ice flags byte.
-        internal Memory<byte> IceFlagsPlaceholder;
+        internal Memory<byte> SliceFlagsPlaceholder;
 
-        // The place holder for the Ice size. Used only for the sliced format.
-        internal Memory<byte> IceSizePlaceholder;
+        // The place holder for the Slice size. Used only for the sliced format.
+        internal Memory<byte> SliceSizePlaceholder;
 
-        // The starting position for computing the size of the slice. It's just before the IceSizePlaceholder as
+        // The starting position for computing the size of the slice. It's just before the SliceSizePlaceholder as
         // the size includes the size length.
-        internal int IceSizeStartPos;
+        internal int SliceSizeStartPos;
     }
 
     private enum InstanceType : byte

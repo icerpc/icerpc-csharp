@@ -108,10 +108,10 @@ public class TaggedTests
             expected.J is not null;
 
         encoder.EncodeSize(1); // Instance marker
-        byte flags = (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice;
+        byte flags = (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice;
         if (hasTaggedFields)
         {
-            flags |= (byte)IceEncodingDefinitions.IceFlags.HasTaggedFields;
+            flags |= (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields;
         }
         encoder.EncodeUInt8(flags);
         encoder.EncodeString(typeof(ClassWithTaggedFields).GetIceTypeId()!);
@@ -256,10 +256,10 @@ public class TaggedTests
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        byte flags = (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice;
+        byte flags = (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice;
         if (hasTaggedFields)
         {
-            flags |= (byte)IceEncodingDefinitions.IceFlags.HasTaggedFields;
+            flags |= (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields;
         }
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(flags));
 

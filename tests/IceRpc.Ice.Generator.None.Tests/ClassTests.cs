@@ -86,7 +86,7 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |  // The first Slice include a type Id
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetIceTypeId()));
 
         // MyClassA.theB field encoded inline (2 Slices)
@@ -101,7 +101,7 @@ public sealed class ClassTests
         // theB - Second Slice
         Assert.That(
             decoder.DecodeUInt8(),
-            Is.EqualTo((byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+            Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -112,7 +112,7 @@ public sealed class ClassTests
         // theC - First Slice
         Assert.That(
             decoder.DecodeUInt8(),
-            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetIceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -142,9 +142,9 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |
-                (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable | // The sliced format includes an indirection
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |        // table and the Slice size for MyClassA
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable | // The sliced format includes an indirection
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |        // table and the Slice size for MyClassA
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
 
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetIceTypeId()));
 
@@ -163,7 +163,7 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize));
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
@@ -173,8 +173,8 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.Index |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // TypeId encoded as an index as this TypeId already appears
                                                           // with the first instance.
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
@@ -190,8 +190,8 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
@@ -232,7 +232,7 @@ public sealed class ClassTests
 
         Assert.That(
             decoder.DecodeUInt8(),
-            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetIceTypeId()));
 
         // MyClassA.theB field encoded inline (2 Slices)
@@ -245,7 +245,7 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
 
         // theB - Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
 
         // theB.theC instance encoded inline
@@ -254,7 +254,7 @@ public sealed class ClassTests
         // MyClassA.theB.theC encoded inline (1 Slice)
         Assert.That(
             decoder.DecodeUInt8(),
-            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetIceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(3)); // reference to the 3rd instance
 
@@ -293,9 +293,9 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |
-                (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable |
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size
 
@@ -311,7 +311,7 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize));
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize));
 
         // theB - First Slice
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetIceTypeId()));
@@ -323,9 +323,9 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.Index |
-                (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable |
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // TypeId encoded as an index as this TypeId already appears
                                                           // with the first instance.
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
@@ -340,9 +340,9 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.String |
-                (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable |
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
 
         // First Slice
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetIceTypeId()));
@@ -376,7 +376,7 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.CompactId));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyDerivedCompactClass).GetCompactIceTypeId()!.Value));
 
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
 
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -401,7 +401,7 @@ public sealed class ClassTests
             decoder.DecodeUInt8(),
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.CompactId |
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize));
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyDerivedCompactClass).GetCompactIceTypeId()!.Value));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(4)); // Empty Slice 4 bytes
 
@@ -410,8 +410,8 @@ public sealed class ClassTests
             Is.EqualTo(
                 (byte)IceEncodingDefinitions.TypeIdKind.CompactId |
 
-                (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-                (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+                (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyCompactClass).GetCompactIceTypeId()!.Value));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(4)); // Empty Slice 4 bytes
 
@@ -439,7 +439,7 @@ public sealed class ClassTests
                 Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String) :
                 Is.EqualTo(
                     (byte)IceEncodingDefinitions.TypeIdKind.String |
-                    (byte)IceEncodingDefinitions.IceFlags.HasTaggedFields));
+                    (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields));
 
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyDerivedClassWithTaggedFields).GetIceTypeId()));
 
@@ -458,10 +458,10 @@ public sealed class ClassTests
 
         Assert.That(decoder.DecodeUInt8(),
             a is null ?
-                Is.EqualTo((byte)IceEncodingDefinitions.IceFlags.IsLastSlice) :
+                Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice) :
                 Is.EqualTo(
-                    (byte)IceEncodingDefinitions.IceFlags.HasTaggedFields |
-                    (byte)IceEncodingDefinitions.IceFlags.IsLastSlice));
+                    (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields |
+                    (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         // MyClassWithTaggedFields.A
         if (a is not null)
         {
@@ -487,7 +487,7 @@ public sealed class ClassTests
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |  // The first Slice include a type Id
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(typeof(MyClassA).GetIceTypeId()!);
 
         // MyClassA.theB field encoded inline (2 Slices)
@@ -500,7 +500,7 @@ public sealed class ClassTests
         encoder.EncodeSize(0); // null instance
 
         // MyClassA.theB - Second Slice
-        encoder.EncodeUInt8((byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+        encoder.EncodeUInt8((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeSize(0); // null instance
         encoder.EncodeSize(0); // null instance
 
@@ -510,7 +510,7 @@ public sealed class ClassTests
 
         // MyClassA.theC - First Slice
         encoder.EncodeUInt8(
-            (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(typeof(MyClassC).GetIceTypeId()!);
         encoder.EncodeSize(0); // null instance
 
@@ -546,9 +546,9 @@ public sealed class ClassTests
 
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |
-            (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable | // The sliced format includes an indirection
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |        // table and the Slice size for MyClassA
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable | // The sliced format includes an indirection
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |        // table and the Slice size for MyClassA
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
 
         encoder.EncodeString(typeof(MyClassA).GetIceTypeId()!);
 
@@ -565,7 +565,7 @@ public sealed class ClassTests
         // theB - First Slice
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize);
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize);
         encoder.EncodeString(typeof(MyClassB).GetIceTypeId()!);
         encoder.EncodeInt32(5); // Slice size (int size + one reference)
         encoder.EncodeSize(0); // null instance
@@ -573,8 +573,8 @@ public sealed class ClassTests
         // theB - Second Slice
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.Index |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeSize(1); // TypeId encoded as an index as this TypeId already appears
                                // with the first instance.
         encoder.EncodeInt32(6); // Slice size (int size + two references)
@@ -587,8 +587,8 @@ public sealed class ClassTests
         // theC - First Slice
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(typeof(MyClassC).GetIceTypeId()!);
         encoder.EncodeInt32(5); // Slice size (int size + one reference)
         encoder.EncodeSize(0); // null instance
@@ -627,7 +627,7 @@ public sealed class ClassTests
         // theC index 4
         encoder.EncodeSize(1); // Instance marker
 
-        encoder.EncodeUInt8((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+        encoder.EncodeUInt8((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(typeof(MyClassA).GetIceTypeId()!);
 
         // MyClassA.theB field encoded inline (2 Slices)
@@ -640,7 +640,7 @@ public sealed class ClassTests
         encoder.EncodeSize(0); // null reference
 
         // theB - Second Slice
-        encoder.EncodeUInt8((byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+        encoder.EncodeUInt8((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeSize(0); // null reference
 
         // theB.theC instance encoded inline
@@ -648,7 +648,7 @@ public sealed class ClassTests
 
         // MyClassA.theB.theC encoded inline (1 Slice)
         encoder.EncodeUInt8(
-            (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(typeof(MyClassC).GetIceTypeId()!);
         encoder.EncodeSize(3); // reference to instance with index 3
 
@@ -688,9 +688,9 @@ public sealed class ClassTests
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |
-            (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable |
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(typeof(MyClassA).GetIceTypeId()!);
         encoder.EncodeInt32(6); // Slice size
 
@@ -705,7 +705,7 @@ public sealed class ClassTests
         // First Slice
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize);
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize);
 
         // theB - First Slice
         encoder.EncodeString(typeof(MyClassB).GetIceTypeId()!);
@@ -715,9 +715,9 @@ public sealed class ClassTests
         // theB - Second Slice
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.Index |
-            (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable |
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeSize(1); // TypeId encoded as an index as this TypeId already appears
                                // with the first instance.
         encoder.EncodeInt32(6); // Slice size (int size + two references)
@@ -730,9 +730,9 @@ public sealed class ClassTests
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.String |
-            (byte)IceEncodingDefinitions.IceFlags.HasIndirectionTable |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasIndirectionTable |
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
 
         // First Slice
         encoder.EncodeString(typeof(MyClassC).GetIceTypeId()!);
@@ -810,7 +810,7 @@ public sealed class ClassTests
         encoder.EncodeUInt8((byte)IceEncodingDefinitions.TypeIdKind.CompactId);
         encoder.EncodeSize(typeof(MyDerivedCompactClass).GetCompactIceTypeId()!.Value);
 
-        encoder.EncodeUInt8((byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+        encoder.EncodeUInt8((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
 
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
@@ -833,14 +833,14 @@ public sealed class ClassTests
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.CompactId |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize);
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize);
         encoder.EncodeSize(typeof(MyDerivedCompactClass).GetCompactIceTypeId()!.Value);
         encoder.EncodeInt32(4); // Empty Slice 4 bytes
 
         encoder.EncodeUInt8(
             (byte)IceEncodingDefinitions.TypeIdKind.CompactId |
-            (byte)IceEncodingDefinitions.IceFlags.HasSliceSize |
-            (byte)IceEncodingDefinitions.IceFlags.IsLastSlice);
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice);
         encoder.EncodeSize(typeof(MyCompactClass).GetCompactIceTypeId()!.Value);
         encoder.EncodeInt32(4); // Empty Slice 4 bytes
 
@@ -869,7 +869,7 @@ public sealed class ClassTests
         byte sliceFlags = (byte)IceEncodingDefinitions.TypeIdKind.String;
         if (b is not null || c is not null)
         {
-            sliceFlags |= (byte)IceEncodingDefinitions.IceFlags.HasTaggedFields;
+            sliceFlags |= (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields;
         }
         encoder.EncodeUInt8(sliceFlags);
 
@@ -900,10 +900,10 @@ public sealed class ClassTests
             encoder.EncodeUInt8(IceEncodingDefinitions.TagEndMarker);
         }
 
-        sliceFlags = (byte)IceEncodingDefinitions.IceFlags.IsLastSlice;
+        sliceFlags = (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice;
         if (a is not null)
         {
-            sliceFlags |= (byte)IceEncodingDefinitions.IceFlags.HasTaggedFields;
+            sliceFlags |= (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields;
         }
         encoder.EncodeUInt8(sliceFlags);
 
