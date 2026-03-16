@@ -7,9 +7,9 @@ using ZeroC.Slice.Symbols;
 namespace ZeroC.Slice.Generator;
 
 /// <summary>Generates Dunet discriminated unions from Slice enums with fields.</summary>
-internal sealed class EnumWithFieldsGenerator : Generator
+internal static class EnumWithFieldsGenerator
 {
-    internal CodeBlock Generate(EnumWithFields enumDef)
+    internal static CodeBlock Generate(EnumWithFields enumDef)
     {
         string identifier = enumDef.Name;
         string accessModifier = enumDef.AccessModifier;
@@ -84,7 +84,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         return builder.Build();
     }
 
-    private CodeBlock GenerateUnionDeclaration(
+    private static CodeBlock GenerateUnionDeclaration(
         EnumWithFields enumDef,
         string identifier,
         string accessModifier,
@@ -130,7 +130,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         return builder.Build();
     }
 
-    private CodeBlock GenerateEnumeratorRecord(
+    private static CodeBlock GenerateEnumeratorRecord(
         EnumWithFields.Enumerator enumerator,
         EnumWithFields enumDef,
         string parentIdentifier,
@@ -163,7 +163,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         return builder.Build();
     }
 
-    private CodeBlock GenerateEncodeMethod(
+    private static CodeBlock GenerateEncodeMethod(
         EnumWithFields.Enumerator enumerator,
         EnumWithFields enumDef,
         string currentNamespace)
@@ -201,30 +201,30 @@ internal sealed class EnumWithFieldsGenerator : Generator
 
             if (field.IsTagged)
             {
-                string taggedExpr = EncodeTaggedField(field, currentNamespace);
+                string taggedExpr = field.EncodeTaggedField(currentNamespace);
                 // Indent multi-line tagged field expressions.
                 foreach (string line in taggedExpr.Split('\n'))
                 {
                     code.WriteLine($"    {line}");
                 }
             }
-            else if (field.IsOptional)
+            else if (field.DataTypeIsOptional)
             {
-                bool isValueType = field.Type.IsValueType();
+                bool isValueType = field.DataType.IsValueType();
                 string valueParam = isValueType ? $"{param}.Value" : param;
-                string encodeExpr = EncodeExpression(field.Type.Type, currentNamespace, valueParam);
+                string encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
                 code.WriteLine($$"""
                         bitSequenceWriter.Write({{param}} != null);
                         if ({{param}} != null)
                         {
-                            {{encodeExpr}}
+                            {{encodeExpr}};
                         }
                     """);
             }
             else
             {
-                string encodeExpr = EncodeExpression(field.Type.Type, currentNamespace, param);
-                code.WriteLine($"    {encodeExpr}");
+                string encodeExpr = field.DataType.EncodeExpression(currentNamespace, param);
+                code.WriteLine($"    {encodeExpr};");
             }
         }
 
@@ -244,7 +244,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         return code;
     }
 
-    private CodeBlock GenerateDecoderExtensions(
+    private static CodeBlock GenerateDecoderExtensions(
         EnumWithFields enumDef,
         string identifier,
         string accessModifier,
@@ -311,7 +311,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         return builder.Build();
     }
 
-    private CodeBlock GenerateDecodeLocalFunction(
+    private static CodeBlock GenerateDecodeLocalFunction(
         EnumWithFields.Enumerator enumerator,
         EnumWithFields enumDef,
         string parentIdentifier,
@@ -347,7 +347,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
             // Single non-tagged field, simple one-liner.
             Field field = sortedFields[0];
             string paramName = field.Name;
-            string decodeExpr = GetFieldDecodeExpression(field, currentNamespace);
+            string decodeExpr = field.GetFieldDecodeExpression(currentNamespace);
             code.WriteLine($"    var result = new {parentIdentifier}.{enumeratorName}({paramName}: {decodeExpr});");
         }
         else
@@ -365,7 +365,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
             {
                 Field field = allFields[i];
                 string paramName = field.Name;
-                string decodeExpr = GetFieldDecodeExpression(field, currentNamespace);
+                string decodeExpr = field.GetFieldDecodeExpression(currentNamespace);
                 string separator = i < allFields.Count - 1 ? "," : ");";
                 code.WriteLine($"        {paramName}: {decodeExpr}{separator}");
             }
@@ -383,11 +383,11 @@ internal sealed class EnumWithFieldsGenerator : Generator
         return code;
     }
 
-    private string BuildParameterList(ImmutableList<Field> fields, string currentNamespace)
+    private static string BuildParameterList(ImmutableList<Field> fields, string currentNamespace)
     {
         return string.Join(", ", fields.Select(f =>
         {
-            string typeString = TypeString(f.Type.Type, f.IsOptional, currentNamespace);
+            string typeString = f.DataType.FieldTypeString(f.DataTypeIsOptional, currentNamespace);
             string paramName = f.Name;
             return $"{typeString} {paramName}";
         }));

@@ -15,4 +15,37 @@ internal static class TypeRefExtensions
         EnumWithUnderlying => true,
         _ => false,
     };
+
+    /// <summary>Returns the C# type string for a field type reference.</summary>
+    internal static string FieldTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
+    {
+        string baseType = typeRef.Type.ToTypeString(currentNamespace);
+        return isOptional ? $"{baseType}?" : baseType;
+    }
+
+    /// <summary>Generates encode expression for a type reference.</summary>
+    internal static string EncodeExpression(this TypeRef typeRef, string currentNamespace, string param) =>
+        typeRef.Type.EncodeExpression(currentNamespace, param);
+
+    /// <summary>Generates decode expression for a type reference.</summary>
+    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace) =>
+        typeRef.Type.DecodeExpression(currentNamespace);
+
+    /// <summary>Returns an encode lambda for a type reference.</summary>
+    internal static string GetEncodeLambda(this TypeRef typeRef, bool isOptional, string currentNamespace) =>
+        typeRef.Type.GetEncodeLambda(isOptional, currentNamespace);
+
+    /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
+    internal static int? GetFixedSize(this TypeRef typeRef) => typeRef.Type switch
+    {
+        Builtin b => b.Kind switch
+        {
+            BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
+            BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
+            BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
+            BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
+            _ => null,
+        },
+        _ => null,
+    };
 }

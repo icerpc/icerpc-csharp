@@ -12,19 +12,7 @@ internal static class EntityExtensions
     extension(Entity entity)
     {
         /// <summary>Gets the C# namespace for this entity (respects cs::namespace attribute on the module).</summary>
-        internal string Namespace
-        {
-            get
-            {
-                Module module = entity.Module;
-                if (module.Attributes.FindAttribute(CsAttributes.CsNamespace) is { } attr)
-                {
-                    return attr.Args[0];
-                }
-                string[] segments = module.Identifier.Split("::");
-                return string.Join(".", segments.Select(s => s.ToPascalCase()));
-            }
-        }
+        internal string Namespace => entity.Module.Namespace;
 
         /// <summary>Gets the C# identifier (checks cs::identifier attribute, applies PascalCase).</summary>
         internal string Name
@@ -49,5 +37,11 @@ internal static class EntityExtensions
         /// <summary>Gets the access modifier for this entity ("public" or "internal").</summary>
         internal string AccessModifier =>
             entity.Attributes.HasAttribute(CsAttributes.CsInternal) ? "internal" : "public";
+
+        /// <summary>Gets the name of the generated SliceEncoder extensions class for this entity.</summary>
+        internal string EncoderExtensionsClass => $"{entity.Name}SliceEncoderExtensions";
+
+        /// <summary>Gets the name of the generated SliceDecoder extensions class for this entity.</summary>
+        internal string DecoderExtensionsClass => $"{entity.Name}SliceDecoderExtensions";
     }
 }

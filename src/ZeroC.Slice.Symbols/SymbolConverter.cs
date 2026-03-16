@@ -295,8 +295,8 @@ public sealed class SymbolConverter
         Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
         Module = module,
         Tag = raw.Tag,
-        Type = ConvertTypeRef(raw.DataType, file),
-        IsOptional = raw.DataType.IsOptional,
+        DataType = ConvertTypeRef(raw.DataType, file),
+        DataTypeIsOptional = raw.DataType.IsOptional,
     };
 
     private TypeRef ConvertTypeRef(Compiler.TypeRef raw, Compiler.SliceFile file) => new()

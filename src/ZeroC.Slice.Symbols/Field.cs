@@ -11,10 +11,10 @@ public class Field : Entity
     public required int? Tag { get; init; }
 
     /// <summary>Gets the field's type.</summary>
-    public required TypeRef Type { get; init; }
+    public required TypeRef DataType { get; init; }
 
     /// <summary>Gets a value indicating whether this field's type is optional.</summary>
-    public required bool IsOptional { get; init; }
+    public required bool DataTypeIsOptional { get; init; }
 
     /// <summary>Gets a value indicating whether this field is tagged. When <see langword="true"/>, the
     /// <see cref="Tag"/> property has a value; otherwise, it is <see langword="null"/>.</summary>

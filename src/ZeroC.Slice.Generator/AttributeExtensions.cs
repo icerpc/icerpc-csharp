@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using ZeroC.Slice.Symbols;
-
 using Attribute = ZeroC.Slice.Symbols.Attribute;
 
 namespace ZeroC.Slice.Generator;
@@ -13,6 +11,6 @@ internal static class AttributeExtensions
     {
         /// <summary>Returns all cs::attribute attributes from the list.</summary>
         internal IEnumerable<Attribute> CsAttributes() =>
-            attributes.Where(a => a.Directive == ZeroC.Slice.Generator.CsAttributes.CsAttribute);
+            attributes.Where(a => a.Directive == Slice.Generator.CsAttributes.CsAttribute);
     }
 }

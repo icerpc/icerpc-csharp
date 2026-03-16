@@ -7,7 +7,7 @@ using ZeroC.Slice.Symbols;
 namespace ZeroC.Slice.Generator;
 
 /// <summary>Generates C# enums and extension classes from Slice enum definitions.</summary>
-internal sealed class EnumWithUnderlyingGenerator : Generator
+internal static class EnumWithUnderlyingGenerator
 {
     internal static CodeBlock Generate(EnumWithUnderlying enumDef) => enumDef.Underlying.Kind switch
     {

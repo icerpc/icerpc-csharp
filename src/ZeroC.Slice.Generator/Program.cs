@@ -43,9 +43,6 @@ reader.Complete();
 ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
 // Generate code for each source file.
-var structGen = new StructGenerator();
-var enumUnderlyingGen = new EnumWithUnderlyingGenerator();
-var enumFieldsGen = new EnumWithFieldsGenerator();
 
 foreach (SliceFile file in symbolFiles)
 {
@@ -54,9 +51,9 @@ foreach (SliceFile file in symbolFiles)
     {
         CodeBlock? code = symbol switch
         {
-            Struct s => structGen.Generate(s),
+            Struct s => StructGenerator.Generate(s),
             EnumWithUnderlying e => EnumWithUnderlyingGenerator.Generate(e),
-            EnumWithFields e => enumFieldsGen.Generate(e),
+            EnumWithFields e => EnumWithFieldsGenerator.Generate(e),
             _ => null,
         };
 

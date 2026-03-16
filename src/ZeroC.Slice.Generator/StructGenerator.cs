@@ -6,9 +6,9 @@ using ZeroC.Slice.Symbols;
 namespace ZeroC.Slice.Generator;
 
 /// <summary>Generates C# record structs from Slice struct definitions.</summary>
-internal sealed class StructGenerator : Generator
+internal static class StructGenerator
 {
-    internal CodeBlock Generate(Struct structDef)
+    internal static CodeBlock Generate(Struct structDef)
     {
         string identifier = structDef.Name;
         string currentNamespace = structDef.Namespace;
@@ -48,7 +48,7 @@ internal sealed class StructGenerator : Generator
         return builder.Build();
     }
 
-    private CodeBlock GenerateMainConstructor(
+    private static CodeBlock GenerateMainConstructor(
         Struct structDef,
         string currentNamespace,
         string identifier,
@@ -67,7 +67,7 @@ internal sealed class StructGenerator : Generator
 
         foreach (Field field in structDef.Fields)
         {
-            string typeString = TypeString(field.Type.Type, field.IsOptional, currentNamespace);
+            string typeString = field.DataType.FieldTypeString(field.DataTypeIsOptional, currentNamespace);
             string paramName = field.ParameterName;
             ctor.AddParameter(typeString, paramName);
         }
@@ -82,7 +82,7 @@ internal sealed class StructGenerator : Generator
         return ctor.Build();
     }
 
-    private CodeBlock GenerateDecodeConstructor(
+    private static CodeBlock GenerateDecodeConstructor(
         Struct structDef,
         string currentNamespace,
         string identifier,
@@ -115,7 +115,7 @@ internal sealed class StructGenerator : Generator
         foreach (Field field in sortedFields)
         {
             string fieldName = field.Name;
-            string decodeExpr = GetFieldDecodeExpression(field, currentNamespace);
+            string decodeExpr = field.GetFieldDecodeExpression(currentNamespace);
             body.WriteLine($"this.{fieldName} = {decodeExpr};");
         }
 
@@ -128,7 +128,7 @@ internal sealed class StructGenerator : Generator
         return ctor.Build();
     }
 
-    private CodeBlock GenerateEncodeMethod(Struct structDef, string currentNamespace, string accessModifier)
+    private static CodeBlock GenerateEncodeMethod(Struct structDef, string currentNamespace, string accessModifier)
     {
         IReadOnlyList<Field> sortedFields = structDef.Fields.GetSortedFields();
 
@@ -149,25 +149,25 @@ internal sealed class StructGenerator : Generator
         {
             if (field.IsTagged)
             {
-                body.WriteLine(EncodeTaggedField(field, currentNamespace));
+                body.WriteLine(field.EncodeTaggedField(currentNamespace));
             }
-            else if (field.IsOptional)
+            else if (field.DataTypeIsOptional)
             {
                 // Non-tagged optional: write bit and encode conditionally.
                 string param = $"this.{field.Name}";
-                string valueParam = field.Type.IsValueType() ? $"{param}.Value" : param;
-                string encodeExpr = EncodeExpression(field.Type.Type, currentNamespace, valueParam);
+                string valueParam = field.DataType.IsValueType() ? $"{param}.Value" : param;
+                string encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
                 body.WriteLine($$"""
                     bitSequenceWriter.Write({param} != null);
                     if ({{param}} != null)
                     {
-                        {{encodeExpr}}
+                        {{encodeExpr}};
                     }
                     """);
             }
             else
             {
-                body.WriteLine(EncodeField(field, currentNamespace));
+                body.WriteLine(field.EncodeField(currentNamespace));
             }
         }
 
@@ -178,5 +178,27 @@ internal sealed class StructGenerator : Generator
 
         method.SetBody(body);
         return method.Build();
+    }
+
+    private static CodeBlock FieldDeclaration(
+        Field field,
+        string currentNamespace,
+        string accessModifier,
+        bool parentReadonly)
+    {
+        var code = new CodeBlock();
+
+        // cs::attribute
+        code.WriteCsAttributes(field.Attributes);
+
+        string typeString = field.DataType.FieldTypeString(field.DataTypeIsOptional, currentNamespace);
+        string fieldName = field.Name;
+        string required = field.IsRequired() ? "required " : "";
+        bool fieldReadonly = field.Attributes.HasAttribute(CsAttributes.CsReadonly);
+        string accessor = (parentReadonly || fieldReadonly) ? "{ get; init; }" : "{ get; set; }";
+
+        code.WriteLine($"{accessModifier} {required}{typeString} {fieldName} {accessor}");
+
+        return code;
     }
 }
