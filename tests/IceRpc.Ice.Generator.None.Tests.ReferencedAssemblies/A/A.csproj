@@ -7,7 +7,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <ProjectReference Include="../../../src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <ProjectReference Include="../../../src/IceRpc/IceRpc.csproj" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
   </ItemGroup>
