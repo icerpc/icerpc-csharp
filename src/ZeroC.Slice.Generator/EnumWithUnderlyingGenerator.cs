@@ -9,10 +9,23 @@ namespace ZeroC.Slice.Generator;
 /// <summary>Generates C# enums and extension classes from Slice enum definitions.</summary>
 internal sealed class EnumWithUnderlyingGenerator : Generator
 {
-    internal static CodeBlock Generate(EnumWithUnderlying enumDef)
+    internal static CodeBlock Generate(EnumWithUnderlying enumDef) => enumDef.Underlying.Kind switch
     {
-        string identifier = enumDef.EntityInfo.Name;
-        string accessModifier = AccessModifier(enumDef.EntityInfo);
+        BuiltinKind.Int8 => GenerateCore((EnumWithUnderlying<sbyte>)enumDef),
+        BuiltinKind.UInt8 => GenerateCore((EnumWithUnderlying<byte>)enumDef),
+        BuiltinKind.Int16 => GenerateCore((EnumWithUnderlying<short>)enumDef),
+        BuiltinKind.UInt16 => GenerateCore((EnumWithUnderlying<ushort>)enumDef),
+        BuiltinKind.Int32 or BuiltinKind.VarInt32 => GenerateCore((EnumWithUnderlying<int>)enumDef),
+        BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => GenerateCore((EnumWithUnderlying<uint>)enumDef),
+        BuiltinKind.Int64 or BuiltinKind.VarInt62 => GenerateCore((EnumWithUnderlying<long>)enumDef),
+        BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => GenerateCore((EnumWithUnderlying<ulong>)enumDef),
+        _ => throw new InvalidOperationException($"Unsupported enum underlying type: {enumDef.Underlying.Kind}"),
+    };
+
+    private static CodeBlock GenerateCore<T>(EnumWithUnderlying<T> enumDef) where T : struct, IFormattable
+    {
+        string identifier = enumDef.Name;
+        string accessModifier = enumDef.AccessModifier;
 
         return CodeBlock.FromBlocks(
         [
@@ -23,41 +36,41 @@ internal sealed class EnumWithUnderlyingGenerator : Generator
         ]);
     }
 
-    private static CodeBlock GenerateEnumDeclaration(
-        EnumWithUnderlying enumDef,
+    private static CodeBlock GenerateEnumDeclaration<T>(
+        EnumWithUnderlying<T> enumDef,
         string identifier,
-        string accessModifier)
+        string accessModifier) where T : struct, IFormattable
     {
         var builder = new ContainerBuilder($"{accessModifier} enum", identifier);
 
         builder.AddComment(
             "remarks",
-            $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.EntityInfo.ScopedSliceId}</c>.");
+            $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.ScopedIdentifier}</c>.");
 
         // cs::attribute
-        builder.AddCsAttributes(enumDef.EntityInfo.Attributes);
+        builder.AddCsAttributes(enumDef.Attributes);
 
-        builder.AddBase(enumDef.Underlying.CsType);
+        builder.AddBase(enumDef.Underlying.CsType());
 
         // Add enumerator declarations.
-        foreach (EnumWithUnderlying.Enumerator enumerator in enumDef.Enumerators)
+        foreach (EnumWithUnderlying<T>.Enumerator enumerator in enumDef.Enumerators)
         {
             var code = new CodeBlock();
-            code.WriteCsAttributes(enumerator.EntityInfo.Attributes);
-            code.WriteLine($"{enumerator.EntityInfo.Name} = {EnumeratorValue(enumerator)},");
+            code.WriteCsAttributes(enumerator.Attributes);
+            code.WriteLine($"{enumerator.Name} = {FormatValue(enumerator)},");
             builder.AddBlock(code);
         }
         return builder.Build();
     }
 
-    private static CodeBlock GenerateEnumUnderlyingExtensions(
-        EnumWithUnderlying enumDef,
+    private static CodeBlock GenerateEnumUnderlyingExtensions<T>(
+        EnumWithUnderlying<T> enumDef,
         string identifier,
-        string accessModifier)
+        string accessModifier) where T : struct, IFormattable
     {
-        string csType = enumDef.Underlying.CsType;
+        string csType = enumDef.Underlying.CsType();
         string csTypePascal = csType.ToPascalCase();
-        string scopedId = enumDef.EntityInfo.ScopedSliceId;
+        string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}{csTypePascal}Extensions");
 
@@ -72,7 +85,7 @@ internal sealed class EnumWithUnderlyingGenerator : Generator
 
         if (useSet)
         {
-            string values = string.Join(", ", enumDef.Enumerators.Select(EnumeratorValue));
+            string values = string.Join(", ", enumDef.Enumerators.Select(FormatValue));
             var hashSetBlock = new CodeBlock();
             hashSetBlock.WriteLine(
                 @$"private static readonly global::System.Collections.Generic.HashSet<{csType}> _enumeratorValues =
@@ -106,8 +119,10 @@ internal sealed class EnumWithUnderlyingGenerator : Generator
             }
             else
             {
-                string minValue = enumDef.Enumerators.Select(SignedValue).Min().ToString(CultureInfo.InvariantCulture);
-                string maxValue = enumDef.Enumerators.Select(SignedValue).Max().ToString(CultureInfo.InvariantCulture);
+                string minValue = enumDef.Enumerators.Min(e => Convert.ToInt64(e.Value, CultureInfo.InvariantCulture))
+                    .ToString(CultureInfo.InvariantCulture);
+                string maxValue = enumDef.Enumerators.Max(e => Convert.ToInt64(e.Value, CultureInfo.InvariantCulture))
+                    .ToString(CultureInfo.InvariantCulture);
                 checkExpr = $"value is >= {minValue} and <= {maxValue}";
             }
 
@@ -132,9 +147,9 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         string identifier,
         string accessModifier)
     {
-        string csType = enumDef.Underlying.CsType;
-        string suffix = enumDef.Underlying.Suffix;
-        string scopedId = enumDef.EntityInfo.ScopedSliceId;
+        string csType = enumDef.Underlying.CsType();
+        string suffix = enumDef.Underlying.Suffix();
+        string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions");
 
@@ -171,10 +186,10 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         string identifier,
         string accessModifier)
     {
-        string csType = enumDef.Underlying.CsType;
-        string suffix = enumDef.Underlying.Suffix;
+        string csType = enumDef.Underlying.CsType();
+        string suffix = enumDef.Underlying.Suffix();
         string csTypePascal = csType.ToPascalCase();
-        string scopedId = enumDef.EntityInfo.ScopedSliceId;
+        string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder(
             $"{accessModifier} static class",
@@ -207,27 +222,22 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         return builder.Build();
     }
 
-    private static string EnumeratorValue(EnumWithUnderlying.Enumerator e) =>
-        e.IsPositive
-            ? e.AbsoluteValue.ToString(CultureInfo.InvariantCulture)
-            : $"-{e.AbsoluteValue.ToString(CultureInfo.InvariantCulture)}";
+    private static string FormatValue<T>(EnumWithUnderlying<T>.Enumerator e) where T : struct, IFormattable =>
+        e.Value.ToString(null, CultureInfo.InvariantCulture);
 
     private static string GetArticle(string word) =>
         word.Length > 0 && "aeiouAEIOU".Contains(word[0], StringComparison.Ordinal) ? "an" : "a";
 
-    private static bool NeedsHashSetValidation(EnumWithUnderlying enumDef)
+    private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, IFormattable
     {
         if (enumDef.IsUnchecked || enumDef.Enumerators.Count == 0)
         {
             return false;
         }
 
-        var values = enumDef.Enumerators.Select(SignedValue).ToList();
+        var values = enumDef.Enumerators.Select(e => Convert.ToInt64(e.Value, CultureInfo.InvariantCulture)).ToList();
         long min = values.Min();
         long max = values.Max();
         return enumDef.Enumerators.Count < (max - min + 1);
     }
-
-    private static long SignedValue(EnumWithUnderlying.Enumerator e) =>
-        e.IsPositive ? (long)e.AbsoluteValue : -(long)e.AbsoluteValue;
 }

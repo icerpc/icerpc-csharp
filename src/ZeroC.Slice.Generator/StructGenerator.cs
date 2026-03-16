@@ -2,7 +2,6 @@
 
 using ZeroC.CodeBuilder;
 using ZeroC.Slice.Symbols;
-using Attribute = ZeroC.Slice.Symbols.Attribute;
 
 namespace ZeroC.Slice.Generator;
 
@@ -11,10 +10,10 @@ internal sealed class StructGenerator : Generator
 {
     internal CodeBlock Generate(Struct structDef)
     {
-        string identifier = structDef.EntityInfo.Name;
-        string currentNamespace = structDef.EntityInfo.Namespace;
-        string accessModifier = AccessModifier(structDef.EntityInfo);
-        bool isReadonly = structDef.EntityInfo.Attributes.HasAttribute(Attribute.CsReadonly);
+        string identifier = structDef.Name;
+        string currentNamespace = structDef.Namespace;
+        string accessModifier = structDef.AccessModifier;
+        bool isReadonly = structDef.Attributes.HasAttribute(CsAttributes.CsReadonly);
 
         // Build the declaration prefix.
         string declaration = isReadonly
@@ -24,9 +23,9 @@ internal sealed class StructGenerator : Generator
         var builder = new ContainerBuilder(declaration, identifier);
 
         // Add doc comments.
-        // TODO: format doc comment from structDef.EntityInfo.Comment
+        // TODO: format doc comment from structDef.Comment
 
-        string scopedId = structDef.EntityInfo.ScopedSliceId;
+        string scopedId = structDef.ScopedIdentifier;
         builder.AddComment(
             "remarks",
             $"The Slice compiler generated this record struct from the Slice struct <c>{scopedId}</c>.");
@@ -55,7 +54,7 @@ internal sealed class StructGenerator : Generator
         string identifier,
         string accessModifier)
     {
-        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired);
+        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired());
 
         var ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody);
 
@@ -68,15 +67,15 @@ internal sealed class StructGenerator : Generator
 
         foreach (Field field in structDef.Fields)
         {
-            string typeString = FieldTypeString(field.Type, currentNamespace);
-            string paramName = field.EntityInfo.ParameterName;
+            string typeString = TypeString(field.Type.Type, field.IsOptional, currentNamespace);
+            string paramName = field.ParameterName;
             ctor.AddParameter(typeString, paramName);
         }
 
         var body = new CodeBlock();
         foreach (Field field in structDef.Fields)
         {
-            body.WriteLine($"this.{field.EntityInfo.Name} = {field.EntityInfo.ParameterName};");
+            body.WriteLine($"this.{field.Name} = {field.ParameterName};");
         }
         ctor.SetBody(body);
 
@@ -89,8 +88,8 @@ internal sealed class StructGenerator : Generator
         string identifier,
         string accessModifier)
     {
-        IReadOnlyList<Field> sortedFields = GetSortedFields(structDef.Fields);
-        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired);
+        IReadOnlyList<Field> sortedFields = structDef.Fields.GetSortedFields();
+        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired());
 
         var ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody);
 
@@ -107,7 +106,7 @@ internal sealed class StructGenerator : Generator
 
         var body = new CodeBlock();
 
-        int bitSequenceSize = GetBitSequenceSize(structDef.Fields);
+        int bitSequenceSize = structDef.Fields.GetBitSequenceSize();
         if (bitSequenceSize > 0)
         {
             body.WriteLine($"var bitSequenceReader = decoder.GetBitSequenceReader({bitSequenceSize});");
@@ -115,7 +114,7 @@ internal sealed class StructGenerator : Generator
 
         foreach (Field field in sortedFields)
         {
-            string fieldName = field.EntityInfo.Name;
+            string fieldName = field.Name;
             string decodeExpr = GetFieldDecodeExpression(field, currentNamespace);
             body.WriteLine($"this.{fieldName} = {decodeExpr};");
         }
@@ -131,7 +130,7 @@ internal sealed class StructGenerator : Generator
 
     private CodeBlock GenerateEncodeMethod(Struct structDef, string currentNamespace, string accessModifier)
     {
-        IReadOnlyList<Field> sortedFields = GetSortedFields(structDef.Fields);
+        IReadOnlyList<Field> sortedFields = structDef.Fields.GetSortedFields();
 
         var method = new FunctionBuilder($"{accessModifier} readonly", "void", "Encode", FunctionType.BlockBody);
         method.AddComment("summary", "Encodes the fields of this struct with a Slice encoder.");
@@ -140,7 +139,7 @@ internal sealed class StructGenerator : Generator
 
         var body = new CodeBlock();
 
-        int bitSequenceSize = GetBitSequenceSize(structDef.Fields);
+        int bitSequenceSize = structDef.Fields.GetBitSequenceSize();
         if (bitSequenceSize > 0)
         {
             body.WriteLine($"var bitSequenceWriter = encoder.GetBitSequenceWriter({bitSequenceSize});");
@@ -152,12 +151,12 @@ internal sealed class StructGenerator : Generator
             {
                 body.WriteLine(EncodeTaggedField(field, currentNamespace));
             }
-            else if (field.Type.IsOptional)
+            else if (field.IsOptional)
             {
                 // Non-tagged optional: write bit and encode conditionally.
-                string param = $"this.{field.EntityInfo.Name}";
-                string valueParam = field.Type.IsValueType ? $"{param}.Value" : param;
-                string encodeExpr = EncodeExpression(field.Type, currentNamespace, valueParam);
+                string param = $"this.{field.Name}";
+                string valueParam = field.Type.IsValueType() ? $"{param}.Value" : param;
+                string encodeExpr = EncodeExpression(field.Type.Type, currentNamespace, valueParam);
                 body.WriteLine($$"""
                     bitSequenceWriter.Write({param} != null);
                     if ({{param}} != null)

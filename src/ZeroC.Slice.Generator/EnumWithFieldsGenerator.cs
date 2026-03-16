@@ -11,9 +11,9 @@ internal sealed class EnumWithFieldsGenerator : Generator
 {
     internal CodeBlock Generate(EnumWithFields enumDef)
     {
-        string identifier = enumDef.EntityInfo.Name;
-        string accessModifier = AccessModifier(enumDef.EntityInfo);
-        string currentNamespace = enumDef.EntityInfo.Namespace;
+        string identifier = enumDef.Name;
+        string accessModifier = enumDef.AccessModifier;
+        string currentNamespace = enumDef.Namespace;
 
         return CodeBlock.FromBlocks(
         [
@@ -28,7 +28,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         string parentIdentifier,
         string accessModifier)
     {
-        string enumName = enumDef.EntityInfo.Name;
+        string enumName = enumDef.Name;
         var builder = new ContainerBuilder(
             $"{accessModifier} partial record class",
             $"Unknown(int Discriminant, global::System.ReadOnlyMemory<byte> Fields)");
@@ -54,7 +54,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
 
     private static CodeBlock GenerateEncoderExtensions(EnumWithFields enumDef, string identifier, string accessModifier)
     {
-        string scopedId = enumDef.EntityInfo.ScopedSliceId;
+        string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions");
 
@@ -90,7 +90,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         string accessModifier,
         string currentNamespace)
     {
-        string scopedId = enumDef.EntityInfo.ScopedSliceId;
+        string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder($"{accessModifier} abstract partial record class", identifier);
 
@@ -138,7 +138,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         string currentNamespace,
         int discriminant)
     {
-        string enumeratorName = enumerator.EntityInfo.Name;
+        string enumeratorName = enumerator.Name;
 
         // Build parameter list for the record constructor.
         string nameWithParams = enumerator.Fields.Count > 0
@@ -149,7 +149,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         builder.AddBase(parentIdentifier);
 
         // cs::attribute on the enumerator.
-        builder.AddCsAttributes(enumerator.EntityInfo.Attributes);
+        builder.AddCsAttributes(enumerator.Attributes);
 
         // Discriminant constant.
         var discriminantBlock = new CodeBlock();
@@ -168,7 +168,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         EnumWithFields enumDef,
         string currentNamespace)
     {
-        IReadOnlyList<Field> sortedFields = GetSortedFields(enumerator.Fields);
+        IReadOnlyList<Field> sortedFields = enumerator.Fields.GetSortedFields();
 
         var code = new CodeBlock();
         code.WriteLine("""
@@ -188,7 +188,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         }
 
         // Bit sequence for non-tagged optional fields.
-        int bitSequenceSize = GetBitSequenceSize(enumerator.Fields);
+        int bitSequenceSize = enumerator.Fields.GetBitSequenceSize();
         if (bitSequenceSize > 0)
         {
             code.WriteLine($"    var bitSequenceWriter = encoder.GetBitSequenceWriter({bitSequenceSize});");
@@ -197,7 +197,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         // Encode each field.
         foreach (Field field in sortedFields)
         {
-            string param = $"this.{field.EntityInfo.Name}";
+            string param = $"this.{field.Name}";
 
             if (field.IsTagged)
             {
@@ -208,11 +208,11 @@ internal sealed class EnumWithFieldsGenerator : Generator
                     code.WriteLine($"    {line}");
                 }
             }
-            else if (field.Type.IsOptional)
+            else if (field.IsOptional)
             {
-                bool isValueType = field.Type.IsValueType;
+                bool isValueType = field.Type.IsValueType();
                 string valueParam = isValueType ? $"{param}.Value" : param;
-                string encodeExpr = EncodeExpression(field.Type, currentNamespace, valueParam);
+                string encodeExpr = EncodeExpression(field.Type.Type, currentNamespace, valueParam);
                 code.WriteLine($$"""
                         bitSequenceWriter.Write({{param}} != null);
                         if ({{param}} != null)
@@ -223,7 +223,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
             }
             else
             {
-                string encodeExpr = EncodeExpression(field.Type, currentNamespace, param);
+                string encodeExpr = EncodeExpression(field.Type.Type, currentNamespace, param);
                 code.WriteLine($"    {encodeExpr}");
             }
         }
@@ -250,7 +250,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         string accessModifier,
         string currentNamespace)
     {
-        string scopedId = enumDef.EntityInfo.ScopedSliceId;
+        string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder(
             $"{accessModifier} static class",
@@ -282,7 +282,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         body.WriteLine("{");
         foreach (EnumWithFields.Enumerator enumerator in enumDef.Enumerators)
         {
-            string enumeratorName = enumerator.EntityInfo.Name;
+            string enumeratorName = enumerator.Name;
             body.WriteLine(
                 $"    {identifier}.{enumeratorName}.Discriminant => Decode{enumeratorName}(ref decoder),");
         }
@@ -317,8 +317,8 @@ internal sealed class EnumWithFieldsGenerator : Generator
         string parentIdentifier,
         string currentNamespace)
     {
-        string enumeratorName = enumerator.EntityInfo.Name;
-        IReadOnlyList<Field> sortedFields = GetSortedFields(enumerator.Fields);
+        string enumeratorName = enumerator.Name;
+        IReadOnlyList<Field> sortedFields = enumerator.Fields.GetSortedFields();
 
         var code = new CodeBlock();
         code.WriteLine($"static {parentIdentifier}.{enumeratorName} Decode{enumeratorName}(ref SliceDecoder decoder)");
@@ -331,7 +331,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         }
 
         // Bit sequence for non-tagged optional fields.
-        int bitSequenceSize = GetBitSequenceSize(enumerator.Fields);
+        int bitSequenceSize = enumerator.Fields.GetBitSequenceSize();
         if (bitSequenceSize > 0)
         {
             code.WriteLine($"    var bitSequenceReader = decoder.GetBitSequenceReader({bitSequenceSize});");
@@ -346,7 +346,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
         {
             // Single non-tagged field, simple one-liner.
             Field field = sortedFields[0];
-            string paramName = field.EntityInfo.Name;
+            string paramName = field.Name;
             string decodeExpr = GetFieldDecodeExpression(field, currentNamespace);
             code.WriteLine($"    var result = new {parentIdentifier}.{enumeratorName}({paramName}: {decodeExpr});");
         }
@@ -364,7 +364,7 @@ internal sealed class EnumWithFieldsGenerator : Generator
             for (int i = 0; i < allFields.Count; i++)
             {
                 Field field = allFields[i];
-                string paramName = field.EntityInfo.Name;
+                string paramName = field.Name;
                 string decodeExpr = GetFieldDecodeExpression(field, currentNamespace);
                 string separator = i < allFields.Count - 1 ? "," : ");";
                 code.WriteLine($"        {paramName}: {decodeExpr}{separator}");
@@ -387,8 +387,8 @@ internal sealed class EnumWithFieldsGenerator : Generator
     {
         return string.Join(", ", fields.Select(f =>
         {
-            string typeString = FieldTypeString(f.Type, currentNamespace);
-            string paramName = f.EntityInfo.Name;
+            string typeString = TypeString(f.Type.Type, f.IsOptional, currentNamespace);
+            string paramName = f.Name;
             return $"{typeString} {paramName}";
         }));
     }

@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc.
+
+using ZeroC.CodeBuilder;
+
+using Attribute = ZeroC.Slice.Symbols.Attribute;
+
+namespace ZeroC.Slice.Generator;
+
+/// <summary>Extension methods for <see cref="CodeBlock"/>.</summary>
+internal static class CodeBlockExtensions
+{
+    extension(CodeBlock code)
+    {
+        /// <summary>Writes all cs::attribute attributes as C# attribute lines.</summary>
+        internal void WriteCsAttributes(IList<Attribute> attributes)
+        {
+            foreach (Attribute attr in attributes.CsAttributes())
+            {
+                code.WriteLine($"[{attr.Args[0]}]");
+            }
+        }
+    }
+}

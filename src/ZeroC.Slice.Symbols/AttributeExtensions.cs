@@ -23,9 +23,5 @@ public static class AttributeExtensions
             }
             return null;
         }
-
-        /// <summary>Returns all cs::attribute attributes from the list.</summary>
-        public IEnumerable<Attribute> CsAttributes() =>
-            attributes.Where(a => a.Directive == Attribute.CsAttribute);
     }
 }

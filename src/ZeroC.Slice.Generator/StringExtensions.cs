@@ -11,17 +11,22 @@ internal static class StringExtensions
     internal static string ToPascalCase(this string identifier)
     {
         var sb = new StringBuilder(identifier.Length);
-        bool newWord = true;
+        bool capitalizeNext = true;
         foreach (char c in identifier)
         {
-            if (char.IsLetterOrDigit(c))
+            if (c == '_')
             {
-                sb.Append(newWord ? char.ToUpperInvariant(c) : c);
-                newWord = false;
+                capitalizeNext = true;
+                // consume the underscore
+            }
+            else if (capitalizeNext)
+            {
+                sb.Append(char.ToUpperInvariant(c));
+                capitalizeNext = false;
             }
             else
             {
-                newWord = true;
+                sb.Append(c);
             }
         }
         return sb.ToString();

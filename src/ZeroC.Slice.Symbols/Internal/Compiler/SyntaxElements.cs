@@ -14,7 +14,7 @@ using ZeroC.Slice.Codec;
 
 [assembly:Slice("SyntaxElements.slice")]
 
-namespace ZeroC.Slice.Compiler;
+namespace ZeroC.Slice.Symbols.Internal.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Attribute</c>.</remarks>
 public partial record struct Attribute

@@ -14,7 +14,7 @@ using ZeroC.Slice.Codec;
 
 [assembly:Slice("DocComment.slice")]
 
-namespace ZeroC.Slice.Compiler;
+namespace ZeroC.Slice.Symbols.Internal.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::DocComment</c>.</remarks>
 public partial record struct DocComment

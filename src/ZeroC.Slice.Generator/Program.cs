@@ -4,8 +4,10 @@ using System.Collections.Immutable;
 using System.IO.Pipelines;
 using ZeroC.CodeBuilder;
 using ZeroC.Slice.Codec;
-using ZeroC.Slice.Compiler;
 using ZeroC.Slice.Generator;
+using ZeroC.Slice.Symbols;
+
+using Compiler = ZeroC.Slice.Symbols.Internal.Compiler;
 
 // The Slice compiler executes this program and writes the Slice2-encoded request to stdin.
 
@@ -31,31 +33,30 @@ var decoder = new SliceDecoder(
 string op = decoder.DecodeString();
 
 // Decode source files and reference files.
-SliceFile[] sourceFiles = decoder.DecodeSequence((ref decoder) => new SliceFile(ref decoder));
-SliceFile[] referenceFiles = decoder.DecodeSequence((ref decoder) => new SliceFile(ref decoder));
+Compiler.SliceFile[] sourceFiles = decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
+Compiler.SliceFile[] referenceFiles = decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
 
 reader.AdvanceTo(readResult.Buffer.End);
 reader.Complete();
 
 // Convert decoded types into rich symbols with resolved references.
-ImmutableList<ZeroC.Slice.Symbols.SliceFile> symbolFiles =
-    ZeroC.Slice.Symbols.SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
+ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
 // Generate code for each source file.
 var structGen = new StructGenerator();
 var enumUnderlyingGen = new EnumWithUnderlyingGenerator();
 var enumFieldsGen = new EnumWithFieldsGenerator();
 
-foreach (ZeroC.Slice.Symbols.SliceFile file in symbolFiles)
+foreach (SliceFile file in symbolFiles)
 {
     var fileCode = new CodeBlock($"// Generated from '{file.Path}'");
-    foreach (ZeroC.Slice.Symbols.Symbol symbol in file.Contents)
+    foreach (ISymbol symbol in file.Contents)
     {
         CodeBlock? code = symbol switch
         {
-            ZeroC.Slice.Symbols.Struct s => structGen.Generate(s),
-            ZeroC.Slice.Symbols.EnumWithUnderlying e => EnumWithUnderlyingGenerator.Generate(e),
-            ZeroC.Slice.Symbols.EnumWithFields e => enumFieldsGen.Generate(e),
+            Struct s => structGen.Generate(s),
+            EnumWithUnderlying e => EnumWithUnderlyingGenerator.Generate(e),
+            EnumWithFields e => enumFieldsGen.Generate(e),
             _ => null,
         };
 

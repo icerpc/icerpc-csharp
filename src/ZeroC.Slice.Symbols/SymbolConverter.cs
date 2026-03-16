@@ -1,18 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Collections.Immutable;
+using Compiler = ZeroC.Slice.Symbols.Internal.Compiler;
 
 namespace ZeroC.Slice.Symbols;
 
-/// <summary>
-/// Converts decoded Slice compiler types into rich symbol types intended to use in code generators.
-/// </summary>
+/// <summary>Converts decoded Slice compiler types into rich symbol types intended to use in code generators.</summary>
 public sealed class SymbolConverter
 {
-    /// <summary>
-    /// Converts source files into rich symbol types with all TypeRefs resolved. Reference files are used
-    /// for type resolution but are not included in the output.
-    /// </summary>
+    /// <summary>Converts source files into rich symbol types with all TypeRefs resolved. Reference files are used for
+    /// type resolution but are not included in the output.</summary>
     public static ImmutableList<SliceFile> ConvertFiles(
         IEnumerable<Compiler.SliceFile> sourceFiles,
         IEnumerable<Compiler.SliceFile> referenceFiles)
@@ -45,7 +42,7 @@ public sealed class SymbolConverter
     private readonly Dictionary<string, (Compiler.SliceFile File, Compiler.Symbol Symbol)> _named;
 
     // Cache of converted named symbols, keyed by fully-scoped TypeId.
-    private readonly Dictionary<string, Symbol> _cache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ISymbol> _cache = new(StringComparer.Ordinal);
 
     private SymbolConverter(IEnumerable<Compiler.SliceFile> allFiles)
     {
@@ -71,7 +68,7 @@ public sealed class SymbolConverter
         string moduleScope = file.ModuleDeclaration.Identifier;
         Module module = ConvertModule(file.ModuleDeclaration);
 
-        var contents = ImmutableList.CreateBuilder<Symbol>();
+        var contents = ImmutableList.CreateBuilder<ISymbol>();
         for (int i = 0; i < file.Contents.Count; i++)
         {
             Compiler.Symbol raw = file.Contents[i];
@@ -81,7 +78,7 @@ public sealed class SymbolConverter
             {
                 // Named type — resolve through cache using its scoped TypeId.
                 string key = string.IsNullOrEmpty(moduleScope) ? id : $"{moduleScope}::{id}";
-                contents.Add(ResolveNamedType(key));
+                contents.Add(ResolveNamedSymbol(key));
             }
             else
             {
@@ -99,8 +96,8 @@ public sealed class SymbolConverter
         };
     }
 
-    /// <summary>Resolves a TypeId to a Symbol, handling primitives, anonymous types, and named types.</summary>
-    private Symbol ResolveTypeId(string typeId, Compiler.SliceFile currentFile)
+    /// <summary>Resolves a TypeId to an IType, handling primitives, anonymous types, and named types.</summary>
+    private IType ResolveTypeId(string typeId, Compiler.SliceFile currentFile)
     {
         // Builtin.
         if (_builtins.TryGetValue(typeId, out Builtin? prim))
@@ -112,16 +109,16 @@ public sealed class SymbolConverter
         if (int.TryParse(typeId, out int index))
         {
             Module module = ConvertModule(currentFile.ModuleDeclaration);
-            return ConvertSymbol(currentFile.Contents[index], currentFile, module);
+            return (IType)ConvertSymbol(currentFile.Contents[index], currentFile, module);
         }
 
         // Named type.
-        return ResolveNamedType(typeId);
+        return (IType)ResolveNamedSymbol(typeId);
     }
 
-    private Symbol ResolveNamedType(string typeId)
+    private ISymbol ResolveNamedSymbol(string typeId)
     {
-        if (_cache.TryGetValue(typeId, out Symbol? cached))
+        if (_cache.TryGetValue(typeId, out ISymbol? cached))
         {
             return cached;
         }
@@ -143,12 +140,12 @@ public sealed class SymbolConverter
 
         (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[lookupKey];
         Module module = ConvertModule(file.ModuleDeclaration);
-        Symbol converted = ConvertSymbol(symbol, file, module);
+        ISymbol converted = ConvertSymbol(symbol, file, module);
         _cache[typeId] = converted;
         return converted;
     }
 
-    private Symbol ConvertSymbol(Compiler.Symbol symbol, Compiler.SliceFile file, Module module) =>
+    private ISymbol ConvertSymbol(Compiler.Symbol symbol, Compiler.SliceFile file, Module module) =>
         symbol switch
         {
             Compiler.Symbol.Struct s => ConvertStruct(s.V, file, module),
@@ -156,64 +153,87 @@ public sealed class SymbolConverter
             Compiler.Symbol.Interface i => ConvertInterface(i.V, file, module),
             Compiler.Symbol.CustomType c => new CustomType
             {
-                EntityInfo = ConvertEntityInfo(c.V.EntityInfo, module),
+                Identifier = c.V.EntityInfo.Identifier,
+                Attributes = ConvertAttributes(c.V.EntityInfo.Attributes),
+                Module = module,
             },
             Compiler.Symbol.TypeAlias t => new TypeAlias
             {
-                EntityInfo = ConvertEntityInfo(t.V.EntityInfo, module),
+                Identifier = t.V.EntityInfo.Identifier,
+                Attributes = ConvertAttributes(t.V.EntityInfo.Attributes),
+                Module = module,
                 UnderlyingType = ConvertTypeRef(t.V.UnderlyingType, file),
             },
             Compiler.Symbol.SequenceType s => new SequenceType
             {
                 ElementType = ConvertTypeRef(s.V.ElementType, file),
+                ElementTypeIsOptional = s.V.ElementType.IsOptional,
             },
             Compiler.Symbol.DictionaryType d => new DictionaryType
             {
                 KeyType = ConvertTypeRef(d.V.KeyType, file),
                 ValueType = ConvertTypeRef(d.V.ValueType, file),
+                ValueTypeIsOptional = d.V.ValueType.IsOptional,
             },
             Compiler.Symbol.ResultType r => new ResultType
             {
                 SuccessType = ConvertTypeRef(r.V.SuccessType, file),
                 FailureType = ConvertTypeRef(r.V.FailureType, file),
+                SuccessTypeIsOptional = r.V.SuccessType.IsOptional,
+                FailureTypeIsOptional = r.V.FailureType.IsOptional,
             },
             _ => throw new InvalidOperationException($"Unknown symbol type: {symbol.GetType().Name}"),
         };
 
     private Struct ConvertStruct(Compiler.Struct raw, Compiler.SliceFile file, Module module) => new()
     {
-        EntityInfo = ConvertEntityInfo(raw.EntityInfo, module),
+        Identifier = raw.EntityInfo.Identifier,
+        Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+        Module = module,
         IsCompact = raw.IsCompact,
         Fields = raw.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
     };
 
-    private Symbol ConvertEnum(Compiler.Enum raw, Compiler.SliceFile file, Module module)
+    private ISymbol ConvertEnum(Compiler.Enum raw, Compiler.SliceFile file, Module module)
     {
         if (raw.Underlying is string u && _builtins.TryGetValue(u, out var builtin))
         {
-            return new EnumWithUnderlying
+            return builtin.Kind switch
             {
-                EntityInfo = ConvertEntityInfo(raw.EntityInfo, module),
-                IsUnchecked = raw.IsUnchecked,
-                Underlying = builtin,
-                Enumerators = raw.Enumerators.Select(e => new EnumWithUnderlying.Enumerator
-                {
-                    EntityInfo = ConvertEntityInfo(e.EntityInfo, module),
-                    AbsoluteValue = e.Value.AbsoluteValue,
-                    IsPositive = e.Value.IsPositive,
-                }).ToImmutableList(),
+                BuiltinKind.Int8 => CreateEnumWithUnderlying<sbyte>(raw, module, builtin,
+                    (abs, pos) => pos ? (sbyte)abs : (sbyte)-(long)abs),
+                BuiltinKind.UInt8 => CreateEnumWithUnderlying<byte>(raw, module, builtin,
+                    (abs, _) => (byte)abs),
+                BuiltinKind.Int16 => CreateEnumWithUnderlying<short>(raw, module, builtin,
+                    (abs, pos) => pos ? (short)abs : (short)-(long)abs),
+                BuiltinKind.UInt16 => CreateEnumWithUnderlying<ushort>(raw, module, builtin,
+                    (abs, _) => (ushort)abs),
+                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateEnumWithUnderlying<int>(raw, module, builtin,
+                    (abs, pos) => pos ? (int)abs : (int)-(long)abs),
+                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateEnumWithUnderlying<uint>(raw, module, builtin,
+                    (abs, _) => (uint)abs),
+                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateEnumWithUnderlying<long>(raw, module, builtin,
+                    (abs, pos) => pos ? (long)abs : -(long)abs),
+                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateEnumWithUnderlying<ulong>(raw, module, builtin,
+                    (abs, _) => abs),
+                _ => throw new InvalidOperationException(
+                    $"Unsupported enum underlying type: {builtin.Kind}"),
             };
         }
         else
         {
             return new EnumWithFields
             {
-                EntityInfo = ConvertEntityInfo(raw.EntityInfo, module),
+                Identifier = raw.EntityInfo.Identifier,
+                Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+                Module = module,
                 IsCompact = raw.IsCompact,
                 IsUnchecked = raw.IsUnchecked,
                 Enumerators = raw.Enumerators.Select(e => new EnumWithFields.Enumerator
                 {
-                    EntityInfo = ConvertEntityInfo(e.EntityInfo, module),
+                    Identifier = e.EntityInfo.Identifier,
+                    Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                    Module = module,
                     Discriminant = (int)e.Value.AbsoluteValue,
                     Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
                 }).ToImmutableList(),
@@ -224,9 +244,11 @@ public sealed class SymbolConverter
     private Interface ConvertInterface(Compiler.Interface raw, Compiler.SliceFile file, Module module) =>
         new()
         {
-            EntityInfo = ConvertEntityInfo(raw.EntityInfo, module),
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Module = module,
             Bases = raw.Bases
-            .Select(baseId => ResolveNamedType(baseId))
+            .Select(baseId => ResolveNamedSymbol(baseId))
             .OfType<Interface>()
             .ToImmutableList(),
             Operations = raw.Operations.Select(op => ConvertOperation(op, file, module)).ToImmutableList(),
@@ -237,7 +259,9 @@ public sealed class SymbolConverter
         Compiler.SliceFile file,
         Module module) => new()
         {
-            EntityInfo = ConvertEntityInfo(raw.EntityInfo, module),
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Module = module,
             IsIdempotent = raw.IsIdempotent,
             Parameters = raw.Parameters.Select(f => ConvertField(f, file, module)).ToImmutableList(),
             HasStreamedParameter = raw.HasStreamedParameter,
@@ -245,25 +269,40 @@ public sealed class SymbolConverter
             HasStreamedReturn = raw.HasStreamedReturn,
         };
 
+    private static EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
+        Compiler.Enum raw,
+        Module module,
+        Builtin builtin,
+        Func<ulong, bool, T> toValue) where T : struct => new()
+        {
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Module = module,
+            IsUnchecked = raw.IsUnchecked,
+            Underlying = builtin,
+            Enumerators = raw.Enumerators.Select(e => new EnumWithUnderlying<T>.Enumerator
+            {
+                Identifier = e.EntityInfo.Identifier,
+                Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                Module = module,
+                Value = toValue(e.Value.AbsoluteValue, e.Value.IsPositive),
+            }).ToImmutableList(),
+        };
+
     private Field ConvertField(Compiler.Field raw, Compiler.SliceFile file, Module module) => new()
     {
-        EntityInfo = ConvertEntityInfo(raw.EntityInfo, module),
+        Identifier = raw.EntityInfo.Identifier,
+        Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+        Module = module,
         Tag = raw.Tag,
         Type = ConvertTypeRef(raw.DataType, file),
+        IsOptional = raw.DataType.IsOptional,
     };
 
     private TypeRef ConvertTypeRef(Compiler.TypeRef raw, Compiler.SliceFile file) => new()
     {
-        Symbol = ResolveTypeId(raw.TypeId, file),
-        IsOptional = raw.IsOptional,
+        Type = ResolveTypeId(raw.TypeId, file),
         Attributes = ConvertAttributes(raw.TypeAttributes),
-    };
-
-    private static EntityInfo ConvertEntityInfo(Compiler.EntityInfo raw, Module module) => new()
-    {
-        Identifier = raw.Identifier,
-        Attributes = ConvertAttributes(raw.Attributes),
-        Module = module,
     };
 
     private static Module ConvertModule(Compiler.Module raw) => new()

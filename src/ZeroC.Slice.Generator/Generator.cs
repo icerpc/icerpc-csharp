@@ -1,80 +1,48 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Collections.Immutable;
 using ZeroC.CodeBuilder;
 using ZeroC.Slice.Symbols;
-using Attribute = ZeroC.Slice.Symbols.Attribute;
 
 namespace ZeroC.Slice.Generator;
 
-/// <summary>Abstract base class for code generators. Owns the type registry (symbol-to-namespace mapping) and
-/// provides type resolution and field helper methods.</summary>
+/// <summary>Abstract base class for code generators.</summary>
 internal class Generator
 {
-    /// <summary>Gets the access modifier for an entity ("public" or "internal").</summary>
-    protected static string AccessModifier(EntityInfo entity) =>
-        entity.Attributes.HasAttribute(Attribute.CsInternal) ? "internal" : "public";
-
     /// <summary>Qualifies a type name relative to the current namespace.</summary>
     protected static string ScopedIdentifier(string identifier, string identifierNamespace, string currentNamespace) =>
         currentNamespace == identifierNamespace
             ? identifier
             : $"global::{identifierNamespace}.{identifier}";
 
-    /// <summary>Gets the EntityInfo from a named symbol, or null for anonymous/builtin symbols.</summary>
-    protected static EntityInfo? GetEntityInfo(Symbol symbol) => symbol switch
+    /// <summary>Resolves a type to its C# type string.</summary>
+    protected string TypeString(IType type, bool isOptional, string currentNamespace)
     {
-        Struct s => s.EntityInfo,
-        EnumWithUnderlying e => e.EntityInfo,
-        EnumWithFields e => e.EntityInfo,
-        Interface i => i.EntityInfo,
-        CustomType c => c.EntityInfo,
-        TypeAlias t => t.EntityInfo,
-        _ => null,
-    };
-
-    /// <summary>Returns fields sorted: non-tagged in original order, then tagged sorted by tag value.</summary>
-    protected static IReadOnlyList<Field> GetSortedFields(ImmutableList<Field> fields)
-    {
-        var nonTagged = fields.Where(f => !f.IsTagged).ToList();
-        var tagged = fields.Where(f => f.IsTagged).OrderBy(f => f.Tag!.Value).ToList();
-        nonTagged.AddRange(tagged);
-        return nonTagged;
-    }
-
-    /// <summary>Counts non-tagged optional fields (for Slice2 bit sequence sizing).</summary>
-    protected static int GetBitSequenceSize(ImmutableList<Field> fields) =>
-        fields.Count(f => !f.IsTagged && f.Type.IsOptional);
-
-    /// <summary>Resolves a TypeRef to its C# type string for field declarations.</summary>
-    protected string FieldTypeString(TypeRef typeRef, string currentNamespace)
-    {
-        string baseType = ResolveBaseType(typeRef.Symbol, currentNamespace);
-        return typeRef.IsOptional ? $"{baseType}?" : baseType;
+        string baseType = ResolveBaseType(type, currentNamespace);
+        return isOptional ? $"{baseType}?" : baseType;
     }
 
     /// <summary>Generates encode code for a non-tagged field.</summary>
     protected string EncodeField(Field field, string currentNamespace) =>
-        EncodeExpression(field.Type, currentNamespace, $"this.{field.EntityInfo.Name}");
+        EncodeExpression(field.Type.Type, currentNamespace, $"this.{field.Name}");
 
     /// <summary>Generates decode expression for a non-tagged field.</summary>
     protected string DecodeField(Field field, string currentNamespace) =>
-        DecodeExpression(field.Type, currentNamespace);
+        DecodeExpression(field.Type.Type, currentNamespace);
 
     /// <summary>Generates encode code for a tagged field.</summary>
     protected string EncodeTaggedField(Field field, string currentNamespace)
     {
-        string param = $"this.{field.EntityInfo.Name}";
+        string param = $"this.{field.Name}";
         int tag = field.Tag!.Value;
 
-        bool isValueType = field.Type.IsValueType;
-        string csType = ResolveBaseType(field.Type.Symbol, currentNamespace);
-        string varName = $"{field.EntityInfo.ParameterName}_";
-        string encodeLambda = GetEncodeLambda(field.Type, currentNamespace);
+        bool isValueType = field.Type.IsValueType();
+        string csType = ResolveBaseType(field.Type.Type, currentNamespace);
+        string varName = $"{field.ParameterName}_";
+        string encodeLambda = GetEncodeLambda(field.Type.Type, false, currentNamespace);
 
         if (isValueType)
         {
-            int? fixedSize = GetFixedSize(field.Type);
+            int? fixedSize = GetFixedSize(field.Type.Type);
             string encodeCall = fixedSize.HasValue
                 ? $"encoder.EncodeTagged({tag}, size: {fixedSize.Value}, {varName}, {encodeLambda});"
                 : $"encoder.EncodeTagged({tag}, {varName}, {encodeLambda});";
@@ -98,11 +66,11 @@ internal class Generator
         if (field.IsTagged)
         {
             int tag = field.Tag!.Value;
-            string decodeExpr = DecodeExpression(field.Type, currentNamespace);
-            string csType = ResolveBaseType(field.Type.Symbol, currentNamespace);
+            string decodeExpr = DecodeExpression(field.Type.Type, currentNamespace);
+            string csType = ResolveBaseType(field.Type.Type, currentNamespace);
             return $"decoder.DecodeTagged({tag}, (ref SliceDecoder decoder) => ({csType}?){decodeExpr})";
         }
-        else if (field.Type.IsOptional)
+        else if (field.IsOptional)
         {
             string decodeExpr = DecodeField(field, currentNamespace);
             return $"bitSequenceReader.Read() ? {decodeExpr} : null";
@@ -123,12 +91,12 @@ internal class Generator
         var code = new CodeBlock();
 
         // cs::attribute
-        code.WriteCsAttributes(field.EntityInfo.Attributes);
+        code.WriteCsAttributes(field.Attributes);
 
-        string typeString = FieldTypeString(field.Type, currentNamespace);
-        string fieldName = field.EntityInfo.Name;
-        string required = field.IsRequired ? "required " : "";
-        bool fieldReadonly = field.EntityInfo.Attributes.HasAttribute(Attribute.CsReadonly);
+        string typeString = TypeString(field.Type.Type, field.IsOptional, currentNamespace);
+        string fieldName = field.Name;
+        string required = field.IsRequired() ? "required " : "";
+        bool fieldReadonly = field.Attributes.HasAttribute(CsAttributes.CsReadonly);
         string accessor = (parentReadonly || fieldReadonly) ? "{ get; init; }" : "{ get; set; }";
 
         code.WriteLine($"{accessModifier} {required}{typeString} {fieldName} {accessor}");
@@ -136,42 +104,30 @@ internal class Generator
         return code;
     }
 
-    protected string EncodeExpression(TypeRef typeRef, string currentNamespace, string param) =>
-        typeRef.Symbol switch
+    protected string EncodeExpression(IType type, string currentNamespace, string param) =>
+        type switch
         {
-            Builtin builtin => $"encoder.Encode{builtin.Suffix}({param});",
+            Builtin builtin => $"encoder.Encode{builtin.Suffix()}({param});",
             SequenceType seq => EncodeSequence(seq, currentNamespace, param),
             DictionaryType dict => EncodeDictionary(dict, currentNamespace, param),
             EnumWithUnderlying e when !e.IsUnchecked =>
-                $"{GetEncoderExtensionsClass(e.EntityInfo)}.Encode{e.EntityInfo.Name}(ref encoder, {param});",
+                $"{GetEncoderExtensionsClass(e)}.Encode{e.Name}(ref encoder, {param});",
             EnumWithFields e =>
-                $"{GetEncoderExtensionsClass(e.EntityInfo)}.Encode{e.EntityInfo.Name}(ref encoder, {param});",
+                $"{GetEncoderExtensionsClass(e)}.Encode{e.Name}(ref encoder, {param});",
             CustomType c =>
-                $"{GetEncoderExtensionsClass(c.EntityInfo)}.Encode{c.EntityInfo.Name}(ref encoder, {param});",
+                $"{GetEncoderExtensionsClass(c)}.Encode{c.Name}(ref encoder, {param});",
             ResultType r =>
-                $"encoder.EncodeResult({param}, {GetResultEncodeLambda(r.SuccessType, currentNamespace)}, {GetResultEncodeLambda(r.FailureType, currentNamespace)});",
+                $"encoder.EncodeResult({param}, {GetResultEncodeLambda(r, currentNamespace)}, {GetResultEncodeLambda(r, currentNamespace, failure: true)});",
             _ => $"{param}.Encode(ref encoder);",
         };
 
-    private static string AsNamespace(Module module)
-    {
-        if (module.Attributes.FindAttribute(Attribute.CsNamespace) is { } attr)
-        {
-            return attr.Args[0];
-        }
+    private static string GetEncoderExtensionsClass(Entity entity) =>
+        $"{entity.Name}SliceEncoderExtensions";
 
-        // Convert "Foo::Bar::Baz" to "Foo.Bar.Baz" with PascalCase on each segment.
-        string[] segments = module.Identifier.Split("::");
-        return string.Join(".", segments.Select(s => s.ToPascalCase()));
-    }
+    private static string GetDecoderExtensionsClass(Entity entity) =>
+        $"{entity.Name}SliceDecoderExtensions";
 
-    private static string GetEncoderExtensionsClass(EntityInfo entityInfo) =>
-        $"{entityInfo.Name}SliceEncoderExtensions";
-
-    private static string GetDecoderExtensionsClass(EntityInfo entityInfo) =>
-        $"{entityInfo.Name}SliceDecoderExtensions";
-
-    private static int? GetFixedSize(TypeRef typeRef) => typeRef.Symbol switch
+    private static int? GetFixedSize(IType type) => type switch
     {
         Builtin b => b.Kind switch
         {
@@ -184,95 +140,83 @@ internal class Generator
         _ => null,
     };
 
-    private string ResolveBaseType(Symbol symbol, string currentNamespace)
+    private string ResolveBaseType(IType type, string currentNamespace)
     {
-        return symbol switch
+        return type switch
         {
-            Builtin builtin => builtin.CsType,
+            Builtin builtin => builtin.CsType(),
             SequenceType seq =>
-                $"global::System.Collections.Generic.IList<{FieldTypeString(seq.ElementType, currentNamespace)}>",
+                $"global::System.Collections.Generic.IList<{TypeString(seq.ElementType.Type, seq.ElementTypeIsOptional, currentNamespace)}>",
             DictionaryType dict =>
-                $"global::System.Collections.Generic.IDictionary<{FieldTypeString(dict.KeyType, currentNamespace)}, {FieldTypeString(dict.ValueType, currentNamespace)}>",
+                $"global::System.Collections.Generic.IDictionary<{TypeString(dict.KeyType.Type, false, currentNamespace)}, {TypeString(dict.ValueType.Type, dict.ValueTypeIsOptional, currentNamespace)}>",
             ResultType result =>
-                $"Result<{FieldTypeString(result.SuccessType, currentNamespace)}, {FieldTypeString(result.FailureType, currentNamespace)}>",
-            _ => ResolveUserTypeName(symbol, currentNamespace),
+                $"Result<{TypeString(result.SuccessType.Type, result.SuccessTypeIsOptional, currentNamespace)}, {TypeString(result.FailureType.Type, result.FailureTypeIsOptional, currentNamespace)}>",
+            _ => ResolveUserTypeName(type, currentNamespace),
         };
     }
 
-    private static string ResolveUserTypeName(Symbol symbol, string currentNamespace)
+    private static string ResolveUserTypeName(IType type, string currentNamespace)
     {
-        EntityInfo entityInfo = GetEntityInfo(symbol)
-            ?? throw new InvalidOperationException($"Symbol '{symbol.GetType().Name}' does not have an EntityInfo.");
+        Entity entity = type as Entity
+            ?? throw new InvalidOperationException($"Type '{type.GetType().Name}' is not an Entity.");
 
         // Custom types use the cs::type attribute value directly as the C# type name.
-        if (symbol is CustomType && entityInfo.Attributes.FindAttribute(Attribute.CsType) is { } csTypeAttr)
+        if (type is CustomType && entity.Attributes.FindAttribute(CsAttributes.CsType) is { } csTypeAttr)
         {
             return csTypeAttr.Args[0];
         }
-
-        string typeName = entityInfo.Name;
-        string typeNamespace = entityInfo.Namespace;
-
-        if (typeNamespace != currentNamespace)
-        {
-            return ScopedIdentifier(typeName, typeNamespace, currentNamespace);
-        }
-
-        return typeName;
+        return ScopedIdentifier(entity.Name, entity.Namespace, currentNamespace);
     }
 
-    private string DecodeExpression(TypeRef typeRef, string currentNamespace) =>
-        typeRef.Symbol switch
+    private string DecodeExpression(IType type, string currentNamespace) =>
+        type switch
         {
-            Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
+            Builtin builtin => $"decoder.Decode{builtin.Suffix()}()",
             SequenceType seq => DecodeSequence(seq, currentNamespace),
             DictionaryType dict => DecodeDictionary(dict, currentNamespace),
             EnumWithUnderlying e when !e.IsUnchecked =>
-                $"{GetDecoderExtensionsClass(e.EntityInfo)}.Decode{e.EntityInfo.Name}(ref decoder)",
+                $"{GetDecoderExtensionsClass(e)}.Decode{e.Name}(ref decoder)",
             EnumWithFields e =>
-                $"{GetDecoderExtensionsClass(e.EntityInfo)}.Decode{e.EntityInfo.Name}(ref decoder)",
+                $"{GetDecoderExtensionsClass(e)}.Decode{e.Name}(ref decoder)",
             CustomType c =>
-                $"{GetDecoderExtensionsClass(c.EntityInfo)}.Decode{c.EntityInfo.Name}(ref decoder)",
+                $"{GetDecoderExtensionsClass(c)}.Decode{c.Name}(ref decoder)",
             ResultType r =>
-                $"decoder.DecodeResult({GetResultDecodeLambda(r.SuccessType, currentNamespace)}, {GetResultDecodeLambda(r.FailureType, currentNamespace)})",
-            _ => $"new {ResolveUserTypeName(typeRef.Symbol, currentNamespace)}(ref decoder)",
+                $"decoder.DecodeResult({GetResultDecodeLambda(r, currentNamespace)}, {GetResultDecodeLambda(r, currentNamespace, failure: true)})",
+            _ => $"new {ResolveUserTypeName(type, currentNamespace)}(ref decoder)",
         };
 
     private string EncodeSequence(SequenceType seq, string currentNamespace, string param)
     {
-        TypeRef elemType = seq.ElementType;
-        if (elemType.IsOptional && (elemType.IsValueType || elemType.Symbol is CustomType))
+        IType elemType = seq.ElementType.Type;
+        if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType() || elemType is CustomType))
         {
-            TypeRef nonOptElemType = elemType with { IsOptional = false };
-            string csOptType = FieldTypeString(elemType, currentNamespace);
-            string lambda = GetEncodeOptionalValueLambda(nonOptElemType, currentNamespace, csOptType);
+            string csOptType = TypeString(elemType, true, currentNamespace);
+            string lambda = GetEncodeOptionalValueLambda(elemType, csOptType);
             return $"encoder.EncodeSequenceOfOptionals({param}, {lambda});";
         }
-        string elementEncodeLambda = GetEncodeLambda(elemType, currentNamespace);
+        string elementEncodeLambda = GetEncodeLambda(elemType, seq.ElementTypeIsOptional, currentNamespace);
         return $"encoder.EncodeSequence({param}, {elementEncodeLambda});";
     }
 
     private string DecodeSequence(SequenceType seq, string currentNamespace)
     {
-        TypeRef elemType = seq.ElementType;
-        if (elemType.IsOptional && (elemType.IsValueType || elemType.Symbol is CustomType))
+        IType elemType = seq.ElementType.Type;
+        if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType() || elemType is CustomType))
         {
-            TypeRef nonOptElemType = elemType with { IsOptional = false };
-            string baseType = ResolveBaseType(nonOptElemType.Symbol, currentNamespace);
-            string decodeExpr = DecodeExpression(nonOptElemType, currentNamespace);
+            string baseType = ResolveBaseType(elemType, currentNamespace);
+            string decodeExpr = DecodeExpression(elemType, currentNamespace);
             return $"decoder.DecodeSequenceOfOptionals((ref SliceDecoder decoder) => ({baseType}?){decodeExpr})";
         }
-        string elementDecodeLambda = GetDecodeLambda(elemType, currentNamespace);
+        string elementDecodeLambda = GetDecodeLambda(elemType, seq.ElementTypeIsOptional, currentNamespace);
         return $"decoder.DecodeSequence({elementDecodeLambda})";
     }
 
-    private static string GetEncodeOptionalValueLambda(TypeRef nonOptElemType, string currentNamespace, string csOptType)
+    private static string GetEncodeOptionalValueLambda(IType elemType, string csOptType)
     {
-        if (nonOptElemType.Symbol is EnumWithUnderlying or EnumWithFields or CustomType)
+        if (elemType is Entity entity and (EnumWithUnderlying or EnumWithFields or CustomType))
         {
-            EntityInfo entityInfo = GetEntityInfo(nonOptElemType.Symbol)!;
-            string extClass = GetEncoderExtensionsClass(entityInfo);
-            string name = entityInfo.Name;
+            string extClass = GetEncoderExtensionsClass(entity);
+            string name = entity.Name;
             return $"(ref SliceEncoder encoder, {csOptType} value) => {extClass}.Encode{name}(ref encoder, (value ?? default!))";
         }
         return $"(ref SliceEncoder encoder, {csOptType} value) => (value ?? default!).Encode(ref encoder)";
@@ -280,30 +224,35 @@ internal class Generator
 
     // Returns a decode lambda for a result success/failure type, handling optional inner types with an inline bool
     // marker (decoder.DecodeBool()) rather than the bit-sequence pattern used for struct fields.
-    private string GetResultDecodeLambda(TypeRef typeRef, string currentNamespace)
+    private string GetResultDecodeLambda(ResultType result, string currentNamespace, bool failure = false)
     {
-        if (!typeRef.IsOptional)
+        IType type = failure ? result.FailureType.Type : result.SuccessType.Type;
+        bool isOptional = failure ? result.FailureTypeIsOptional : result.SuccessTypeIsOptional;
+
+        if (!isOptional)
         {
-            return GetDecodeLambda(typeRef, currentNamespace);
+            return GetDecodeLambda(type, false, currentNamespace);
         }
-        TypeRef nonOptTypeRef = typeRef with { IsOptional = false };
-        string csType = FieldTypeString(typeRef, currentNamespace);
-        string decodeExpr = DecodeExpression(nonOptTypeRef, currentNamespace);
+        string csType = TypeString(type, true, currentNamespace);
+        string decodeExpr = DecodeExpression(type, currentNamespace);
         return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}){decodeExpr} : null";
     }
 
     // Returns an encode lambda for a result success/failure type, handling optional inner types with an inline bool
     // marker (encoder.EncodeBool()) rather than the bit-sequence pattern used for struct fields.
-    private string GetResultEncodeLambda(TypeRef typeRef, string currentNamespace)
+    private string GetResultEncodeLambda(ResultType result, string currentNamespace, bool failure = false)
     {
-        if (!typeRef.IsOptional)
+        IType type = failure ? result.FailureType.Type : result.SuccessType.Type;
+        bool isOptional = failure ? result.FailureTypeIsOptional : result.SuccessTypeIsOptional;
+        TypeRef typeRef = failure ? result.FailureType : result.SuccessType;
+
+        if (!isOptional)
         {
-            return GetEncodeLambda(typeRef, currentNamespace);
+            return GetEncodeLambda(type, false, currentNamespace);
         }
-        TypeRef nonOptTypeRef = typeRef with { IsOptional = false };
-        string csType = FieldTypeString(typeRef, currentNamespace);
-        string valueParam = typeRef.IsValueType ? "value!.Value" : "value!";
-        string encodeBody = EncodeExpression(nonOptTypeRef, currentNamespace, valueParam);
+        string csType = TypeString(type, true, currentNamespace);
+        string valueParam = typeRef.IsValueType() ? "value!.Value" : "value!";
+        string encodeBody = EncodeExpression(type, currentNamespace, valueParam);
         return $$"""
             (ref SliceEncoder encoder, {{csType}} value) =>
             {
@@ -318,65 +267,63 @@ internal class Generator
 
     private string EncodeDictionary(DictionaryType dict, string currentNamespace, string param)
     {
-        string keyEncodeLambda = GetEncodeLambda(dict.KeyType, currentNamespace);
-        string valueEncodeLambda = GetEncodeLambda(dict.ValueType, currentNamespace);
+        string keyEncodeLambda = GetEncodeLambda(dict.KeyType.Type, false, currentNamespace);
+        string valueEncodeLambda = GetEncodeLambda(dict.ValueType.Type, dict.ValueTypeIsOptional, currentNamespace);
         return $"encoder.EncodeDictionary({param}, {keyEncodeLambda}, {valueEncodeLambda});";
     }
 
     private string DecodeDictionary(DictionaryType dict, string currentNamespace)
     {
-        string keyDecodeLambda = GetDecodeLambda(dict.KeyType, currentNamespace);
-        string valueDecodeLambda = GetDecodeLambda(dict.ValueType, currentNamespace);
+        string keyDecodeLambda = GetDecodeLambda(dict.KeyType.Type, false, currentNamespace);
+        string valueDecodeLambda = GetDecodeLambda(dict.ValueType.Type, dict.ValueTypeIsOptional, currentNamespace);
         return $"decoder.DecodeDictionary({keyDecodeLambda}, {valueDecodeLambda})";
     }
 
-    private string GetEncodeLambda(TypeRef typeRef, string currentNamespace)
+    private string GetEncodeLambda(IType type, bool isOptional, string currentNamespace)
     {
-        if (typeRef.Symbol is Builtin b)
+        if (type is Builtin b)
         {
-            string csType = b.CsType;
-            return $"(ref SliceEncoder encoder, {csType} value) => encoder.Encode{b.Suffix}(value)";
+            string csType = b.CsType();
+            return $"(ref SliceEncoder encoder, {csType} value) => encoder.Encode{b.Suffix()}(value)";
         }
-        else if (typeRef.Symbol is EnumWithUnderlying or EnumWithFields or CustomType)
+        else if (type is Entity entity and (EnumWithUnderlying or EnumWithFields or CustomType))
         {
-            EntityInfo entityInfo = GetEntityInfo(typeRef.Symbol)!;
-            string csType = FieldTypeString(typeRef, currentNamespace);
-            string extensionClass = GetEncoderExtensionsClass(entityInfo);
-            string name = entityInfo.Name;
+            string csType = TypeString(type, isOptional, currentNamespace);
+            string extensionClass = GetEncoderExtensionsClass(entity);
+            string name = entity.Name;
             return $"(ref SliceEncoder encoder, {csType} value) => {extensionClass}.Encode{name}(ref encoder, value)";
         }
-        else if (typeRef.Symbol is ResultType r)
+        else if (type is ResultType r)
         {
-            string csType = FieldTypeString(typeRef, currentNamespace);
-            return $"(ref SliceEncoder encoder, {csType} value) => encoder.EncodeResult(value, {GetResultEncodeLambda(r.SuccessType, currentNamespace)}, {GetResultEncodeLambda(r.FailureType, currentNamespace)})";
+            string csType = TypeString(type, isOptional, currentNamespace);
+            return $"(ref SliceEncoder encoder, {csType} value) => encoder.EncodeResult(value, {GetResultEncodeLambda(r, currentNamespace)}, {GetResultEncodeLambda(r, currentNamespace, failure: true)})";
         }
         else
         {
-            string csType = FieldTypeString(typeRef, currentNamespace);
+            string csType = TypeString(type, isOptional, currentNamespace);
             return $"(ref SliceEncoder encoder, {csType} value) => value.Encode(ref encoder)";
         }
     }
 
-    private string GetDecodeLambda(TypeRef typeRef, string currentNamespace)
+    private string GetDecodeLambda(IType type, bool isOptional, string currentNamespace)
     {
-        if (typeRef.Symbol is Builtin b)
+        if (type is Builtin b)
         {
-            return $"(ref SliceDecoder decoder) => decoder.Decode{b.Suffix}()";
+            return $"(ref SliceDecoder decoder) => decoder.Decode{b.Suffix()}()";
         }
-        else if (typeRef.Symbol is EnumWithUnderlying or EnumWithFields or CustomType)
+        else if (type is Entity entity and (EnumWithUnderlying or EnumWithFields or CustomType))
         {
-            EntityInfo entityInfo = GetEntityInfo(typeRef.Symbol)!;
-            string extensionClass = GetDecoderExtensionsClass(entityInfo);
-            string name = entityInfo.Name;
+            string extensionClass = GetDecoderExtensionsClass(entity);
+            string name = entity.Name;
             return $"(ref SliceDecoder decoder) => {extensionClass}.Decode{name}(ref decoder)";
         }
-        else if (typeRef.Symbol is ResultType r)
+        else if (type is ResultType r)
         {
-            return $"(ref SliceDecoder decoder) => decoder.DecodeResult({GetResultDecodeLambda(r.SuccessType, currentNamespace)}, {GetResultDecodeLambda(r.FailureType, currentNamespace)})";
+            return $"(ref SliceDecoder decoder) => decoder.DecodeResult({GetResultDecodeLambda(r, currentNamespace)}, {GetResultDecodeLambda(r, currentNamespace, failure: true)})";
         }
         else
         {
-            string csType = FieldTypeString(typeRef, currentNamespace);
+            string csType = TypeString(type, isOptional, currentNamespace);
             return $"(ref SliceDecoder decoder) => new {csType}(ref decoder)";
         }
     }

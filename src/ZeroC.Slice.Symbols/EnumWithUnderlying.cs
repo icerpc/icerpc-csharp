@@ -4,49 +4,27 @@ using System.Collections.Immutable;
 
 namespace ZeroC.Slice.Symbols;
 
-/// <summary>
-/// Represents a Slice enumeration with an underlying type, mapped to a C# enum.
-/// </summary>
-public record class EnumWithUnderlying : Symbol
+/// <summary>Represents a Slice enumeration with an underlying type.</summary>
+public abstract class EnumWithUnderlying : Entity, ISymbol, IType
 {
-    /// <summary>
-    /// Gets the enum's entity information.
-    /// </summary>
-    public required EntityInfo EntityInfo { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this enumeration is unchecked.
-    /// </summary>
+    /// <summary>Gets a value indicating whether this enumeration is unchecked.</summary>
     public required bool IsUnchecked { get; init; }
 
-    /// <summary>
-    /// Gets the underlying type of this enumeration.
-    /// </summary>
+    /// <summary>Gets the underlying type of this enumeration.</summary>
     public required Builtin Underlying { get; init; }
+}
 
-    /// <summary>
-    /// Gets the list of enumerators for this enumeration.
-    /// </summary>
+/// <summary>Represents a Slice enumeration with a typed underlying value.</summary>
+/// <typeparam name="T">The C# type that corresponds to the underlying Slice type.</typeparam>
+public sealed class EnumWithUnderlying<T> : EnumWithUnderlying where T : struct
+{
+    /// <summary>Gets the list of enumerators for this enumeration.</summary>
     public required ImmutableList<Enumerator> Enumerators { get; init; }
 
-    /// <summary>
-    /// Represents an enumerator in a Slice enumeration with an underlying type.
-    /// </summary>
-    public record class Enumerator
+    /// <summary>Represents an enumerator in a Slice enumeration with an underlying type.</summary>
+    public sealed class Enumerator : Entity
     {
-        /// <summary>
-        /// Gets the enumerator's entity information.
-        /// </summary>
-        public required EntityInfo EntityInfo { get; init; }
-
-        /// <summary>
-        /// Gets the absolute value of this enumerator.
-        /// </summary>
-        public required ulong AbsoluteValue { get; init; }
-
-        /// <summary>
-        /// Gets a value indicating whether this enumerator is positive.
-        /// </summary>
-        public required bool IsPositive { get; init; }
+        /// <summary>Gets the value of this enumerator.</summary>
+        public required T Value { get; init; }
     }
 }
