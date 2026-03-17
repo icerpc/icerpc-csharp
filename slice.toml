@@ -12,6 +12,6 @@ include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ic
 
 [source.icerpc]
 repo    = "https://github.com/icerpc/icerpc-slice"
-rev     = "720f0f27949453102858f8f70e40e78c4241aac3"
+rev     = "b2360da0b3d48c5a7f90529bfbb65e61afcf61a6"
 dest    = "slice"
 include = ["**/*.slice", "**/*.ice"]
