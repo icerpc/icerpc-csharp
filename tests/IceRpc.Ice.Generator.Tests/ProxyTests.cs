@@ -4,7 +4,6 @@ using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.Tests;
