@@ -168,6 +168,20 @@ public class EnumWithFieldsTests
     }
 
     [Test]
-    public void Enumerator_with_fields_gets_attribute() =>
-        Assert.That(typeof(ShapeWithAttribute.Rectangle).GetSliceTypeId(), Is.EqualTo("MyRectangle"));
+    public void Enumerator_with_fields_gets_attribute()
+    {
+        var attribute = typeof(ShapeWithAttribute.Rectangle)
+            .GetCustomAttributes(typeof(MyEnumeratorNameAttribute), false)
+            .Cast<MyEnumeratorNameAttribute>()
+            .Single();
+        Assert.That(attribute.Name, Is.EqualTo("MyRectangle"));
+    }
+}
+
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class MyEnumeratorNameAttribute : Attribute
+{
+    public string Name { get; }
+
+    public MyEnumeratorNameAttribute(string name) => Name = name;
 }

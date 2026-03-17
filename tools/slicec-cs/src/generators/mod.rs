@@ -58,13 +58,10 @@ pub fn generate_from_slice_file(slice_file: &SliceFile, for_interfaces: bool, _o
     // Write the preamble at the top of the generated file.
     let mut generated_code = preamble(slice_file);
 
-    let filename = &slice_file.filename;
-
     if for_interfaces {
         generated_code.add_block("using IceRpc.Slice;\nusing IceRpc.Slice.Operations;\nusing ZeroC.Slice.Codec;");
     } else {
         generated_code.add_block("using ZeroC.Slice.Codec;");
-        generated_code.add_block(format!("[assembly:Slice(\"{filename}.slice\")]"));
     }
 
     // If the slice file wasn't empty, generate code for its contents.

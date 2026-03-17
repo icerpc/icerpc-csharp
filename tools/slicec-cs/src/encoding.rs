@@ -198,15 +198,13 @@ fn encode_tagged_type(
                 } else if read_only_memory {
                     (
                         Some(format!(
-                            "{encoder_param}.GetSizeLength({value}.Length) + {element_size} * {value}.Length",
+                            "SliceEncoder.GetSizeLength({value}.Length) + {element_size} * {value}.Length",
                         )),
                         None,
                     )
                 } else {
                     (
-                        Some(format!(
-                            "{encoder_param}.GetSizeLength(count_) + {element_size} * count_",
-                        )),
+                        Some(format!("SliceEncoder.GetSizeLength(count_) + {element_size} * count_",)),
                         Some(value.clone()),
                     )
                 }
@@ -222,7 +220,7 @@ fn encode_tagged_type(
             ) {
                 let size = key_size + value_size;
                 (
-                    Some(format!("{encoder_param}.GetSizeLength(count_) + ({size}) * count_",)),
+                    Some(format!("SliceEncoder.GetSizeLength(count_) + ({size}) * count_",)),
                     Some(value.clone()),
                 )
             } else {
@@ -505,7 +503,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
     }
 
     if operation.encoding != Encoding::Slice1 {
-        writeln!(code, "{encoder_param}.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+        writeln!(code, "{encoder_param}.EncodeVarInt32(SliceDefinitions.TagEndMarker);");
     }
 
     code

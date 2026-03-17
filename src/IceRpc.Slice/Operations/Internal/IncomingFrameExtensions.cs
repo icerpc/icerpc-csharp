@@ -38,13 +38,9 @@ internal static class IncomingFrameExtensions
                 throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
             }
 
-            var decoder = new SliceDecoder(
-                readResult.Buffer,
-                baseProxy,
-                feature.MaxCollectionAllocation,
-                activator: null);
+            var decoder = new SliceDecoder(readResult.Buffer, baseProxy, feature.MaxCollectionAllocation);
             T value = decodeFunc(ref decoder);
-            decoder.SkipTagged(useTagEndMarker: false); // useTagEndMarker is Slice1-only
+            decoder.SkipTagged();
             decoder.CheckEndOfBuffer();
 
             frame.Payload.AdvanceTo(readResult.Buffer.End);
@@ -88,7 +84,7 @@ internal static class IncomingFrameExtensions
                 // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
                 // do is skip unknown tags
                 var decoder = new SliceDecoder(readResult.Buffer);
-                decoder.SkipTagged(useTagEndMarker: false); // useTagEndMarker is Slice1-only
+                decoder.SkipTagged();
                 decoder.CheckEndOfBuffer();
             }
             frame.Payload.AdvanceTo(readResult.Buffer.End);

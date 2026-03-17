@@ -43,7 +43,7 @@ public class WellKnownTypesTests
         encoder.EncodeTimeStamp(expected.TimeStamp);
         encoder.EncodeUri(expected.Uri);
         encoder.EncodeUuid(expected.Id);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new WellKnown(ref decoder);
@@ -94,7 +94,7 @@ public class WellKnownTypesTests
         {
             encoder.EncodeUuid(uuidValue.Value);
         }
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new WellKnownWithOptionals(ref decoder);
@@ -124,7 +124,7 @@ public class WellKnownTypesTests
         Assert.That(decoder.DecodeTimeStamp(), Is.EqualTo(expected.TimeStamp));
         Assert.That(decoder.DecodeUri(), Is.EqualTo(expected.Uri));
         Assert.That(decoder.DecodeUuid(), Is.EqualTo(expected.Id));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -188,7 +188,7 @@ public class WellKnownTypesTests
             Assert.That(bitSequenceReader.Read(), Is.False);
         }
 
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }

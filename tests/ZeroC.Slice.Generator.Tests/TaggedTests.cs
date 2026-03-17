@@ -98,7 +98,7 @@ public class TaggedTests
         {
             encoder.EncodeTagged(5, e, (ref SliceEncoder encoder, string value) => encoder.EncodeString(e));
         }
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new MyStructWithTaggedFields(ref decoder);
@@ -140,7 +140,7 @@ public class TaggedTests
             decoder.DecodeTagged(5, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expected.E));
 
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
