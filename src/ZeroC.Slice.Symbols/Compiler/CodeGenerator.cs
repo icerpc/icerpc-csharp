@@ -14,7 +14,7 @@ using ZeroC.Slice.Codec;
 
 [assembly:Slice("CodeGenerator.slice")]
 
-namespace ZeroC.Slice.Symbols.Internal.Compiler;
+namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::SliceFile</c>.</remarks>
 public partial record struct SliceFile
@@ -112,7 +112,7 @@ public partial record struct GeneratedFile
 [Dunet.Union]
 public abstract partial record class Symbol
 {
-    public partial record class Interface(global::ZeroC.Slice.Symbols.Internal.Compiler.Interface V) : Symbol
+    public partial record class Interface(global::ZeroC.Slice.Symbols.Compiler.Interface V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 0;
@@ -126,7 +126,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class Enum(global::ZeroC.Slice.Symbols.Internal.Compiler.Enum V) : Symbol
+    public partial record class Enum(global::ZeroC.Slice.Symbols.Compiler.Enum V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 1;
@@ -140,7 +140,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class Struct(global::ZeroC.Slice.Symbols.Internal.Compiler.Struct V) : Symbol
+    public partial record class Struct(global::ZeroC.Slice.Symbols.Compiler.Struct V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 2;
@@ -154,7 +154,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class CustomType(global::ZeroC.Slice.Symbols.Internal.Compiler.CustomType V) : Symbol
+    public partial record class CustomType(global::ZeroC.Slice.Symbols.Compiler.CustomType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 3;
@@ -168,7 +168,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class SequenceType(global::ZeroC.Slice.Symbols.Internal.Compiler.SequenceType V) : Symbol
+    public partial record class SequenceType(global::ZeroC.Slice.Symbols.Compiler.SequenceType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 4;
@@ -182,7 +182,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class DictionaryType(global::ZeroC.Slice.Symbols.Internal.Compiler.DictionaryType V) : Symbol
+    public partial record class DictionaryType(global::ZeroC.Slice.Symbols.Compiler.DictionaryType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 5;
@@ -196,7 +196,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class ResultType(global::ZeroC.Slice.Symbols.Internal.Compiler.ResultType V) : Symbol
+    public partial record class ResultType(global::ZeroC.Slice.Symbols.Compiler.ResultType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 6;
@@ -210,7 +210,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class TypeAlias(global::ZeroC.Slice.Symbols.Internal.Compiler.TypeAlias V) : Symbol
+    public partial record class TypeAlias(global::ZeroC.Slice.Symbols.Compiler.TypeAlias V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 7;

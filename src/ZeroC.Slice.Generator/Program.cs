@@ -7,7 +7,7 @@ using ZeroC.Slice.Codec;
 using ZeroC.Slice.Generator;
 using ZeroC.Slice.Symbols;
 
-using Compiler = ZeroC.Slice.Symbols.Internal.Compiler;
+using Compiler = ZeroC.Slice.Symbols.Compiler;
 
 // The Slice compiler executes this program and writes the Slice2-encoded request to stdin.
 
@@ -47,7 +47,7 @@ var generatedFiles = new List<Compiler.GeneratedFile>();
 var diagnostics = new List<Compiler.Diagnostic>();
 foreach (SliceFile file in symbolFiles)
 {
-    var fileCode = new CodeBlock($"// Generated from '{file.Path}'");
+    var codeBlocks = new List<CodeBlock>();
     foreach (ISymbol symbol in file.Contents)
     {
         CodeBlock? code = symbol switch
@@ -60,30 +60,37 @@ foreach (SliceFile file in symbolFiles)
 
         if (code is not null)
         {
-            fileCode.AddBlock(code);
-            generatedFiles.Add(new Compiler.GeneratedFile(
-                Path.ChangeExtension(file.Path, ".slice"), code.ToString()));
+            codeBlocks.Add(code);
         }
     }
-    Console.Error.WriteLine(fileCode.ToString());
+
+    if (codeBlocks.Count > 0)
+    {
+        var fileCode = new CodeBlock($"// Generated from '{file.Path}'");
+        fileCode.AddBlock(CodeBlock.FromBlocks(codeBlocks));
+        generatedFiles.Add(new Compiler.GeneratedFile(
+            Path.ChangeExtension(file.Path, ".slice"), fileCode.ToString()));
+    }
 }
 
 // Encode and write the response to stdout.
 var pipe = new Pipe();
 var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-encoder.EncodeSequence(generatedFiles, (ref SliceEncoder encoder, Compiler.GeneratedFile file) =>
-{
-    encoder.EncodeString(file.Path);
-    encoder.EncodeString(file.Contents);
-});
+encoder.EncodeSequence(
+    generatedFiles, 
+    (ref encoder, file) =>
+    {
+        encoder.EncodeString(file.Path);
+        encoder.EncodeString(file.Contents);
+    });
 
 encoder.EncodeSequence(
     diagnostics,
-    (ref SliceEncoder encoder, Compiler.Diagnostic diagnostic) => diagnostic.Encode(ref encoder));
+    (ref encoder, diagnostic) => diagnostic.Encode(ref encoder));
 
 await pipe.Writer.FlushAsync().ConfigureAwait(false);
 pipe.Writer.Complete();
 
-using Stream stdout = Console.OpenStandardOutput();
+/*using Stream stdout = Console.OpenStandardOutput();
 await pipe.Reader.CopyToAsync(stdout).ConfigureAwait(false);
-pipe.Reader.Complete();
+pipe.Reader.Complete();*/

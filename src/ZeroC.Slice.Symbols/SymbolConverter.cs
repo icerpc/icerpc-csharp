@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Collections.Immutable;
-using Compiler = ZeroC.Slice.Symbols.Internal.Compiler;
 
 namespace ZeroC.Slice.Symbols;
 
@@ -118,27 +117,13 @@ public sealed class SymbolConverter
 
     private ISymbol ResolveNamedSymbol(string typeId)
     {
+        Console.WriteLine($"Resolving TypeId: {typeId}");
         if (_cache.TryGetValue(typeId, out ISymbol? cached))
         {
             return cached;
         }
 
-        // Try exact match first, then progressively strip leading module components. The slicec compiler
-        // emits only the leaf module component in Module.Identifier, but TypeRef TypeIds use the full
-        // module path, so "ZeroC::Slice::CodeGen::Tests::CustomType" won't match key "Tests::CustomType"
-        // without this fallback.
-        string lookupKey = typeId;
-        while (!_named.ContainsKey(lookupKey))
-        {
-            int sep = lookupKey.IndexOf("::", StringComparison.Ordinal);
-            if (sep < 0)
-            {
-                throw new InvalidOperationException($"Failed to resolve named type with ID '{typeId}'.");
-            }
-            lookupKey = lookupKey[(sep + 2)..];
-        }
-
-        (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[lookupKey];
+        (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[typeId];
         Module module = ConvertModule(file.ModuleDeclaration);
         ISymbol converted = ConvertSymbol(symbol, file, module);
         _cache[typeId] = converted;
@@ -200,21 +185,45 @@ public sealed class SymbolConverter
         {
             return builtin.Kind switch
             {
-                BuiltinKind.Int8 => CreateEnumWithUnderlying<sbyte>(raw, module, builtin,
-                    (abs, pos) => pos ? (sbyte)abs : (sbyte)-(long)abs),
-                BuiltinKind.UInt8 => CreateEnumWithUnderlying<byte>(raw, module, builtin,
+                BuiltinKind.Int8 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
+                    (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
+                BuiltinKind.UInt8 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
                     (abs, _) => (byte)abs),
-                BuiltinKind.Int16 => CreateEnumWithUnderlying<short>(raw, module, builtin,
-                    (abs, pos) => pos ? (short)abs : (short)-(long)abs),
-                BuiltinKind.UInt16 => CreateEnumWithUnderlying<ushort>(raw, module, builtin,
+                BuiltinKind.Int16 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
+                    (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
+                BuiltinKind.UInt16 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
                     (abs, _) => (ushort)abs),
-                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateEnumWithUnderlying<int>(raw, module, builtin,
-                    (abs, pos) => pos ? (int)abs : (int)-(long)abs),
-                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateEnumWithUnderlying<uint>(raw, module, builtin,
+                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
+                    (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
+                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
                     (abs, _) => (uint)abs),
-                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateEnumWithUnderlying<long>(raw, module, builtin,
-                    (abs, pos) => pos ? (long)abs : -(long)abs),
-                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateEnumWithUnderlying<ulong>(raw, module, builtin,
+                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
+                    (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
+                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateEnumWithUnderlying(
+                    raw,
+                    module,
+                    builtin,
                     (abs, _) => abs),
                 _ => throw new InvalidOperationException(
                     $"Unsupported enum underlying type: {builtin.Kind}"),
@@ -285,7 +294,7 @@ public sealed class SymbolConverter
                 Identifier = e.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(e.EntityInfo.Attributes),
                 Module = module,
-                Value = toValue(e.Value.AbsoluteValue, e.Value.IsPositive),
+                Value = toValue(e.Value.AbsoluteValue, e.Value.IsNegative),
             }).ToImmutableList(),
         };
 

@@ -100,7 +100,6 @@ internal static class EnumWithFieldsGenerator
         builder.AddAttribute("Dunet.Union");
 
         // Generate nested record classes for each enumerator.
-        int discriminant = 0;
         foreach (EnumWithFields.Enumerator enumerator in enumDef.Enumerators)
         {
             builder.AddBlock(
@@ -110,8 +109,7 @@ internal static class EnumWithFieldsGenerator
                     identifier,
                     accessModifier,
                     currentNamespace,
-                    discriminant));
-            discriminant++;
+                    enumerator.Discriminant));
         }
 
         // For unchecked enums, add the Unknown variant.

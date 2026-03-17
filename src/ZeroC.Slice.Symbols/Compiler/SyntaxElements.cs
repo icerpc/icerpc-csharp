@@ -14,7 +14,7 @@ using ZeroC.Slice.Codec;
 
 [assembly:Slice("SyntaxElements.slice")]
 
-namespace ZeroC.Slice.Symbols.Internal.Compiler;
+namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Attribute</c>.</remarks>
 public partial record struct Attribute
@@ -515,15 +515,15 @@ public partial record struct Discriminant
 {
     public ulong AbsoluteValue { get; set; }
 
-    public bool IsPositive { get; set; }
+    public bool IsNegative { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Discriminant" />.</summary>
     public Discriminant(
         ulong absoluteValue,
-        bool isPositive)
+        bool isNegative)
     {
         this.AbsoluteValue = absoluteValue;
-        this.IsPositive = isPositive;
+        this.IsNegative = isNegative;
     }
 
     /// <summary>Constructs a new instance of <see cref="Discriminant" /> and decodes its fields from a Slice decoder.</summary>
@@ -531,7 +531,7 @@ public partial record struct Discriminant
     public Discriminant(ref SliceDecoder decoder)
     {
         this.AbsoluteValue = decoder.DecodeUInt64();
-        this.IsPositive = decoder.DecodeBool();
+        this.IsNegative = decoder.DecodeBool();
         decoder.SkipTagged();
     }
 
@@ -540,7 +540,7 @@ public partial record struct Discriminant
     public readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeUInt64(this.AbsoluteValue);
-        encoder.EncodeBool(this.IsPositive);
+        encoder.EncodeBool(this.IsNegative);
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
     }
 }
