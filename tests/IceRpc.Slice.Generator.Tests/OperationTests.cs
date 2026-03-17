@@ -440,7 +440,7 @@ public partial class OperationTests
     /// <summary>Verifies that sequence of fixed size numeric values outgoing parameter is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
-    public void Slice2_operation_encode_with_readonly_memory_param()
+    public void Slice_operation_encode_with_readonly_memory_param()
     {
         // Arrange
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
@@ -462,7 +462,7 @@ public partial class OperationTests
     /// <summary>Verifies that sequence of fixed size numeric values outgoing return value is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming return value is not affected.</summary>
     [Test]
-    public void Slice2_operation_encode_with_readonly_memory_return()
+    public void Slice_operation_encode_with_readonly_memory_return()
     {
         // Arrange
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
@@ -488,7 +488,7 @@ public partial class OperationTests
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
-    public void Slice2_operation_encode_with_readonly_memory_optional_param(
+    public void Slice_operation_encode_with_readonly_memory_optional_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
         PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
@@ -507,7 +507,7 @@ public partial class OperationTests
     /// <summary>Verifies that sequence of fixed size numeric values outgoing optional return value is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the optional incoming return value is not affected.</summary>
     [Test]
-    public void Slice2_operation_encode_with_readonly_memory_optional_return(
+    public void Slice_operation_encode_with_readonly_memory_optional_return(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
         // Arrange
@@ -534,7 +534,7 @@ public partial class OperationTests
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing tagged parameter is mapped to
     /// a <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
-    public void Slice2_operation_encode_with_readonly_memory_tagged_param(
+    public void Slice_operation_encode_with_readonly_memory_tagged_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
         // Arrange
@@ -554,7 +554,7 @@ public partial class OperationTests
     /// <summary>Verifies that sequence of fixed size numeric values outgoing tagged return value is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the optional incoming return value is not affected.</summary>
     [Test]
-    public void Slice2_operation_encode_with_readonly_memory_tagged_return(
+    public void Slice_operation_encode_with_readonly_memory_tagged_return(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
         // Arrange

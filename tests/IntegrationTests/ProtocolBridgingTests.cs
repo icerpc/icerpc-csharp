@@ -67,7 +67,7 @@ public sealed partial class ProtocolBridgingTests
             _ = server.Listen();
         }
 
-        // TODO: test with the other encoding; currently, the encoding is always slice2
+        // TODO: test with the other encoding; currently, the encoding is always Ice.
 
         ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderProxy, direct: false);
         Assert.That((object)newProxy.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));

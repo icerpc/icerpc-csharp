@@ -13,7 +13,7 @@ namespace IceRpc.Slice.Generator.Tests;
 public class OperationEncodingTests
 {
     [Test]
-    public void Slice2_operation_encode_with_single_parameter()
+    public void Slice_operation_encode_with_single_parameter()
     {
         // Act
         PipeReader payload = MyOperationsBProxy.Request.EncodeOpInt32(10);
@@ -29,7 +29,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_single_parameter()
+    public async Task Slice_operation_decode_with_single_parameter()
     {
         // Arrange
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
@@ -56,7 +56,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_single_return()
+    public void Slice_operation_encode_with_single_return()
     {
         // Act
         PipeReader payload = IMyOperationsBService.Response.EncodeOpInt32(10);
@@ -72,7 +72,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_single_return()
+    public async Task Slice_operation_decode_with_single_return()
     {
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -97,7 +97,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_multiple_parameters()
+    public void Slice_operation_encode_with_multiple_parameters()
     {
         var payload = MyOperationsBProxy.Request.EncodeOpInt32AndString(10, "hello world!");
 
@@ -114,7 +114,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_multiple_parameters()
+    public async Task Slice_operation_decode_with_multiple_parameters()
     {
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
         {
@@ -140,7 +140,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_multiple_return()
+    public void Slice_operation_encode_with_multiple_return()
     {
         var payload = IMyOperationsBService.Response.EncodeOpInt32AndString(10, "hello world!");
 
@@ -158,7 +158,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_multiple_return()
+    public async Task Slice_operation_decode_with_multiple_return()
     {
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -189,7 +189,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_optional_parameters(
+    public void Slice_operation_encode_with_optional_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -234,7 +234,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_optional_parameters(
+    public async Task Slice_operation_decode_with_optional_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -280,7 +280,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_optional_return(
+    public void Slice_operation_encode_with_optional_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -324,7 +324,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_optional_return(
+    public async Task Slice_operation_decode_with_optional_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -371,7 +371,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_tagged_parameters(
+    public void Slice_operation_encode_with_tagged_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -411,7 +411,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_tagged_parameters(
+    public async Task Slice_operation_decode_with_tagged_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -465,7 +465,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public void Slice2_operation_encode_with_tagged_return(
+    public void Slice_operation_encode_with_tagged_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -504,7 +504,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_tagged_return(
+    public async Task Slice_operation_decode_with_tagged_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {

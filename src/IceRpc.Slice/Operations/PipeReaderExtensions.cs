@@ -111,7 +111,6 @@ public static class PipeReaderExtensions
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // No activator or max depth since streams are Slice2.
             var decoder = new SliceDecoder(buffer, baseProxy, sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();

@@ -8,48 +8,48 @@ namespace ZeroC.Slice.Generator.Tests;
 
 public class TaggedTests
 {
-    public static IEnumerable<TestCaseData> EncodeSlice2TaggedFieldsSource
+    public static IEnumerable<TestCaseData> EncodeSliceTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_structWithTaggedFields[0]).SetName(
-                "Encode_slice2_tagged_fields(all_fields_set)");
+                "Encode_slice_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
-                "Encode_slice2_tagged_fields(no_fields_set)");
+                "Encode_slice_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
-                "Encode_slice2_tagged_fields(some_fields_set)");
+                "Encode_slice_tagged_fields(some_fields_set)");
         }
     }
 
-    public static IEnumerable<TestCaseData> DecodeSlice2TaggedFieldsSource
+    public static IEnumerable<TestCaseData> DecodeSliceTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_structWithTaggedFields[0]).SetName(
-                "Decode_slice2_tagged_fields(all_fields_set)");
+                "Decode_slice_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
-                "Decode_slice2_tagged_fields(no_fields_set)");
+                "Decode_slice_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
-                "Decode_slice2_tagged_fields(some_fields_set)");
+                "Decode_slice_tagged_fields(some_fields_set)");
         }
     }
 
-    public static IEnumerable<TestCaseData> SkipSlice2TaggedFieldsSource
+    public static IEnumerable<TestCaseData> SkipSliceTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_structWithTaggedFields[0]).SetName(
-                "Skip_slice2_tagged_fields(all_fields_set)");
+                "Skip_slice_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
-                "Skip_slice2_tagged_fields(no_fields_set)");
+                "Skip_slice_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
-                "Skip_slice2_tagged_fields(some_fields_set)");
+                "Skip_slice_tagged_fields(some_fields_set)");
         }
     }
 
@@ -70,8 +70,8 @@ public class TaggedTests
             "hello world!"),
     };
 
-    [Test, TestCaseSource(nameof(DecodeSlice2TaggedFieldsSource))]
-    public void Decode_slice2_tagged_fields(MyStructWithTaggedFields expected)
+    [Test, TestCaseSource(nameof(DecodeSliceTaggedFieldsSource))]
+    public void Decode_slice_tagged_fields(MyStructWithTaggedFields expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
@@ -110,8 +110,8 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeSlice2TaggedFieldsSource))]
-    public void Encode_slice2_tagged_fields(MyStructWithTaggedFields expected)
+    [Test, TestCaseSource(nameof(EncodeSliceTaggedFieldsSource))]
+    public void Encode_slice_tagged_fields(MyStructWithTaggedFields expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
@@ -144,8 +144,8 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(SkipSlice2TaggedFieldsSource))]
-    public void Skip_slice2_tagged_fields(MyStructWithTaggedFields value)
+    [Test, TestCaseSource(nameof(SkipSliceTaggedFieldsSource))]
+    public void Skip_slice_tagged_fields(MyStructWithTaggedFields value)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);

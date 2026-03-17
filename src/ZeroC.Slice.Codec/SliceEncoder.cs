@@ -242,8 +242,8 @@ public ref partial struct SliceEncoder
 
     // Other methods
 
-    /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
-    /// not known before encoding this value (Slice2 only).</summary>
+    /// <summary>Encodes a non-null Slice encoded tagged value. The number of bytes needed to encode the value is
+    /// not known before encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="v">The value to encode.</param>
