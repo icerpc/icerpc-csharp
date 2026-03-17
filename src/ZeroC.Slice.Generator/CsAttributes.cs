@@ -8,6 +8,9 @@ internal static class CSAttributes
     /// <summary>The directive for the cs::attribute attribute.</summary>
     internal const string CSAttribute = "cs::attribute";
 
+    /// <summary>The directive for the cs::encodedReturn attribute.</summary>
+    internal const string CSEncodedReturn = "cs::encodedReturn";
+
     /// <summary>The directive for the cs::identifier attribute.</summary>
     internal const string CSIdentifier = "cs::identifier";
 

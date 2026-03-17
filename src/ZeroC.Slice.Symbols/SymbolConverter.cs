@@ -50,13 +50,11 @@ public sealed class SymbolConverter
         foreach (Compiler.SliceFile file in allFiles)
         {
             string moduleScope = file.ModuleDeclaration.Identifier;
-
             foreach (Compiler.Symbol symbol in file.Contents)
             {
                 if (GetNamedIdentifier(symbol) is string id)
                 {
-                    string key = string.IsNullOrEmpty(moduleScope) ? id : $"{moduleScope}::{id}";
-                    _named.TryAdd(key, (file, symbol));
+                    _named.TryAdd($"{moduleScope}::{id}", (file, symbol));
                 }
             }
         }
@@ -123,93 +121,132 @@ public sealed class SymbolConverter
         return (IType)ResolveNamedSymbol(typeId);
     }
 
-    private ISymbol ResolveNamedSymbol(string typeId) => _cache[typeId];
-
-    // Collects all named TypeIds that symbol depends on into result. For anonymous TypeIds (numeric),
-    // recurses into the anonymous symbol so transitive dependencies through sequence/dictionary/result
-    // wrappers are captured.
-    private void CollectNamedTypeIds(Compiler.Symbol symbol, Compiler.SliceFile file, HashSet<string> result)
+    private ISymbol ResolveNamedSymbol(string typeId)
     {
-        IEnumerable<string> typeIds = symbol switch
+        if (_cache.TryGetValue(typeId, out ISymbol? cached))
         {
-            Compiler.Symbol.Struct s => s.V.Fields.Select(f => f.DataType.TypeId),
-            Compiler.Symbol.TypeAlias t => [t.V.UnderlyingType.TypeId],
-            Compiler.Symbol.Interface i =>
-                i.V.Bases.Concat(
-                    i.V.Operations.SelectMany(op =>
-                        op.Parameters.Select(p => p.DataType.TypeId)
-                        .Concat(op.ReturnType.Select(r => r.DataType.TypeId)))),
-            Compiler.Symbol.Enum e =>
-                e.V.Enumerators.SelectMany(en => en.Fields.Select(f => f.DataType.TypeId)),
-            Compiler.Symbol.SequenceType s => [s.V.ElementType.TypeId],
-            Compiler.Symbol.DictionaryType d => [d.V.KeyType.TypeId, d.V.ValueType.TypeId],
-            Compiler.Symbol.ResultType r => [r.V.SuccessType.TypeId, r.V.FailureType.TypeId],
-            _ => [],
-        };
-
-        foreach (string typeId in typeIds)
-        {
-            if (_named.ContainsKey(typeId))
-            {
-                result.Add(typeId);
-            }
-            else if (int.TryParse(typeId, out int index))
-            {
-                // Anonymous type — recurse to collect any named types it references.
-                CollectNamedTypeIds(file.Contents[index], file, result);
-            }
-            // else: builtin, ignore.
+            return cached;
         }
+
+        // Fallback: convert on demand if the topological sort didn't pre-cache this type.
+        (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[typeId];
+        Module module = ConvertModule(file.ModuleDeclaration);
+        ISymbol converted = ConvertSymbol(symbol, file, module);
+        _cache[typeId] = converted;
+        return converted;
     }
 
-    // Topologically sorts all named symbols using Kahn's algorithm so dependencies appear before
-    // the symbols that use them.
+    // Sorts all named symbols so dependencies appear before the symbols that use them.
     private List<string> TopologicalSort()
     {
-        var inDegree = new Dictionary<string, int>(_named.Count, StringComparer.Ordinal);
-        var adjacency = new Dictionary<string, List<string>>(_named.Count, StringComparer.Ordinal);
-
-        foreach (string typeId in _named.Keys)
-        {
-            inDegree[typeId] = 0;
-            adjacency[typeId] = [];
-        }
-
+        // Build dependency map: typeId -> set of named typeIds it depends on.
+        var pending = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         foreach ((string typeId, (Compiler.SliceFile file, Compiler.Symbol symbol)) in _named)
         {
             var deps = new HashSet<string>(StringComparer.Ordinal);
             CollectNamedTypeIds(symbol, file, deps);
-            foreach (string dep in deps)
-            {
-                adjacency[dep].Add(typeId);
-                inDegree[typeId]++;
-            }
-        }
-
-        var queue = new Queue<string>();
-        foreach ((string typeId, int degree) in inDegree)
-        {
-            if (degree == 0)
-            {
-                queue.Enqueue(typeId);
-            }
+            pending[typeId] = deps;
         }
 
         var sorted = new List<string>(_named.Count);
-        while (queue.Count > 0)
+        var resolved = new HashSet<string>(StringComparer.Ordinal);
+
+        while (pending.Count > 0)
         {
-            string current = queue.Dequeue();
-            sorted.Add(current);
-            foreach (string dependent in adjacency[current])
+            // Collect all entries whose deps are fully resolved.
+            var ready = new List<string>();
+            foreach ((string typeId, HashSet<string> deps) in pending)
             {
-                if (--inDegree[dependent] == 0)
+                if (deps.All(resolved.Contains))
                 {
-                    queue.Enqueue(dependent);
+                    ready.Add(typeId);
                 }
+            }
+
+            if (ready.Count == 0)
+            {
+                // Remaining types have unresolved deps — append them as-is.
+                sorted.AddRange(pending.Keys);
+                break;
+            }
+
+            foreach (string typeId in ready)
+            {
+                sorted.Add(typeId);
+                resolved.Add(typeId);
+                pending.Remove(typeId);
             }
         }
 
         return sorted;
+
+        void CollectNamedTypeIds(Compiler.Symbol symbol, Compiler.SliceFile file, HashSet<string> result)
+        {
+            IEnumerable<string> typeIds = symbol switch
+            {
+                Compiler.Symbol.Struct structSymbol => StructDeps(structSymbol.V),
+                Compiler.Symbol.TypeAlias typeAliasSymbol => TypeAliasDeps(typeAliasSymbol.V),
+                Compiler.Symbol.Interface interfaceSymbol => InterfaceDeps(interfaceSymbol.V),
+                Compiler.Symbol.Enum enumSymbol => EnumDeps(enumSymbol.V),
+                Compiler.Symbol.SequenceType sequenceTypeSymbol => SequenceTypeDeps(sequenceTypeSymbol.V),
+                Compiler.Symbol.DictionaryType dictionaryTypeSymbol => DictionaryTypeDeps(dictionaryTypeSymbol.V),
+                Compiler.Symbol.ResultType resultTypeSymbol => ResultTypeDeps(resultTypeSymbol.V),
+                _ => [],
+            };
+
+            foreach (string typeId in typeIds)
+            {
+                if (_named.ContainsKey(typeId))
+                {
+                    result.Add(typeId);
+                }
+                else if (int.TryParse(typeId, out int index))
+                {
+                    // Anonymous type — recurse to collect any named types it references.
+                    CollectNamedTypeIds(file.Contents[index], file, result);
+                }
+                // else: builtin, ignore.
+            }
+
+            static IEnumerable<string> StructDeps(Compiler.Struct s) =>
+                s.Fields.Select(f => f.DataType.TypeId);
+
+            static IEnumerable<string> TypeAliasDeps(Compiler.TypeAlias t) =>
+                [t.UnderlyingType.TypeId];
+
+            static IEnumerable<string> SequenceTypeDeps(Compiler.SequenceType s) =>
+                [s.ElementType.TypeId];
+
+            static IEnumerable<string> DictionaryTypeDeps(Compiler.DictionaryType d) =>
+                [d.KeyType.TypeId, d.ValueType.TypeId];
+
+            static IEnumerable<string> ResultTypeDeps(Compiler.ResultType r) =>
+                [r.SuccessType.TypeId, r.FailureType.TypeId];
+
+            static IEnumerable<string> InterfaceDeps(Compiler.Interface i)
+            {
+                foreach (string baseId in i.Bases)
+                {
+                    yield return baseId;
+                }
+
+                foreach (Compiler.Operation op in i.Operations)
+                {
+                    foreach (Compiler.Field param in op.Parameters)
+                    {
+                        yield return param.DataType.TypeId;
+                    }
+
+                    foreach (Compiler.Field ret in op.ReturnType)
+                    {;
+                        yield return ret.DataType.TypeId;
+                    }
+                }
+            }
+
+            static IEnumerable<string> EnumDeps(Compiler.Enum e) =>
+                e.Enumerators.SelectMany(en => en.Fields.Select(f => f.DataType.TypeId));
+        }
     }
 
     private ISymbol ConvertSymbol(Compiler.Symbol symbol, Compiler.SliceFile file, Module module) =>

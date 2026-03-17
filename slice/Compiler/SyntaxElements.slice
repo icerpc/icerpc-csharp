@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.Compiler")]
+[cs::namespace("ZeroC.Slice.Symbols.Compiler")]
 module Compiler
 
 /// A unique identifier for a Slice entity. This is always a fully-scoped identifier.
@@ -80,7 +80,7 @@ struct Enumerator {
 
 struct Discriminant {
     absoluteValue: uint64
-    isPositive: bool
+    isNegative: bool
 }
 
 struct CustomType {
