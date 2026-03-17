@@ -23,16 +23,14 @@ internal static class FieldExtensions
         string param = $"this.{field.Name}";
         int tag = field.Tag!.Value;
 
-        bool isValueType = field.DataType.IsValueType();
         string csType = field.DataType.FieldTypeString(false, currentNamespace);
         string varName = $"{field.ParameterName}_";
         string encodeLambda = field.DataType.GetEncodeLambda(false, currentNamespace);
 
-        if (isValueType)
+        if (field.DataType.IsValueType)
         {
-            int? fixedSize = field.DataType.GetFixedSize();
-            string encodeCall = fixedSize.HasValue
-                ? $"encoder.EncodeTagged({tag}, size: {fixedSize.Value}, {varName}, {encodeLambda});"
+            string encodeCall = (field.DataType.FixedSize is int fixedSizeValue)
+                ? $"encoder.EncodeTagged({tag}, size: {fixedSizeValue}, {varName}, {encodeLambda});"
                 : $"encoder.EncodeTagged({tag}, {varName}, {encodeLambda});";
             return @$"if ({param} is {csType} {varName})
 {{
@@ -82,7 +80,13 @@ internal static class FieldExtensions
         return nonTagged;
     }
 
-    /// <summary>Gets a value indicating whether this field should have the C# 'required' keyword
-    /// (non-optional reference type).</summary>
-    internal static bool IsRequired(this Field field) => !field.DataTypeIsOptional && !field.DataType.IsValueType();
+    extension(Field value)
+    {
+        /// <summary>Gets a value indicating whether this field has the cs::readonly attribute.</summary>
+        internal bool IsReadonly => value.Attributes.HasAttribute(CSAttributes.CSReadonly);
+
+        /// <summary>Gets a value indicating whether this field should have the C# 'required' keyword
+        /// (non-optional reference type).</summary>
+        internal bool IsRequired => !value.DataTypeIsOptional && !value.DataType.IsValueType;
+    }
 }

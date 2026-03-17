@@ -29,26 +29,29 @@ internal static class TypeRefExtensions
     internal static string GetEncodeLambda(this TypeRef typeRef, bool isOptional, string currentNamespace) =>
         typeRef.Type.GetEncodeLambda(isOptional, currentNamespace);
 
-    /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
-    internal static int? GetFixedSize(this TypeRef typeRef) => typeRef.Type switch
+    extension(TypeRef value)
     {
-        Builtin b => b.Kind switch
+        /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
+        internal int? FixedSize => value.Type switch
         {
-            BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
-            BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
-            BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
-            BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
+            Builtin b => b.Kind switch
+            {
+                BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
+                BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
+                BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
+                BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
+                _ => null,
+            },
             _ => null,
-        },
-        _ => null,
-    };
+        };
 
-    /// <summary>Gets a value indicating whether the referenced type is a C# value type.</summary>
-    internal static bool IsValueType(this TypeRef typeRef) => typeRef.Type switch
-    {
-        Builtin b => b.Kind != BuiltinKind.String,
-        Struct => true,
-        EnumWithUnderlying => true,
-        _ => false,
-    };
+        /// <summary>Gets a value indicating whether the referenced type is a C# value type.</summary>
+        internal bool IsValueType => value.Type switch
+        {
+            Builtin b => b.Kind != BuiltinKind.String,
+            Struct => true,
+            EnumWithUnderlying => true,
+            _ => false,
+        };
+    }
 }

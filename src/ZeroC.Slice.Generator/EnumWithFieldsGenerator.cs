@@ -210,8 +210,7 @@ internal static class EnumWithFieldsGenerator
             }
             else if (field.DataTypeIsOptional)
             {
-                bool isValueType = field.DataType.IsValueType();
-                string valueParam = isValueType ? $"{param}.Value" : param;
+                string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
                 string encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
                 code.WriteLine($$"""
                         bitSequenceWriter.Write({{param}} != null);

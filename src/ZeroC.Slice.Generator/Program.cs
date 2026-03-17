@@ -43,7 +43,8 @@ reader.Complete();
 ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
 // Generate code for each source file.
-
+var generatedFiles = new List<Compiler.GeneratedFile>();
+var diagnostics = new List<Compiler.Diagnostic>();
 foreach (SliceFile file in symbolFiles)
 {
     var fileCode = new CodeBlock($"// Generated from '{file.Path}'");
@@ -60,7 +61,29 @@ foreach (SliceFile file in symbolFiles)
         if (code is not null)
         {
             fileCode.AddBlock(code);
+            generatedFiles.Add(new Compiler.GeneratedFile(
+                Path.ChangeExtension(file.Path, ".slice"), code.ToString()));
         }
     }
     Console.Error.WriteLine(fileCode.ToString());
 }
+
+// Encode and write the response to stdout.
+var pipe = new Pipe();
+var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+encoder.EncodeSequence(generatedFiles, (ref SliceEncoder encoder, Compiler.GeneratedFile file) =>
+{
+    encoder.EncodeString(file.Path);
+    encoder.EncodeString(file.Contents);
+});
+
+encoder.EncodeSequence(
+    diagnostics,
+    (ref SliceEncoder encoder, Compiler.Diagnostic diagnostic) => diagnostic.Encode(ref encoder));
+
+await pipe.Writer.FlushAsync().ConfigureAwait(false);
+pipe.Writer.Complete();
+
+using Stream stdout = Console.OpenStandardOutput();
+await pipe.Reader.CopyToAsync(stdout).ConfigureAwait(false);
+pipe.Reader.Complete();

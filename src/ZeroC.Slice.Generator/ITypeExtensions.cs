@@ -50,7 +50,7 @@ internal static class ITypeExtensions
         static string DecodeSequence(SequenceType seq, string currentNamespace)
         {
             IType elemType = seq.ElementType.Type;
-            if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType() || elemType is CustomType))
+            if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType || elemType is CustomType))
             {
                 string baseType = elemType.ToTypeString(currentNamespace);
                 string decodeExpr = elemType.DecodeExpression(currentNamespace);
@@ -111,7 +111,7 @@ internal static class ITypeExtensions
         static string EncodeSequence(SequenceType seq, string currentNamespace, string param)
         {
             IType elemType = seq.ElementType.Type;
-            if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType() || elemType is CustomType))
+            if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType || elemType is CustomType))
             {
                 string csOptType = seq.ElementType.FieldTypeString(true, currentNamespace);
                 string lambda = EncodeOptionalValueLambda(elemType, csOptType);
@@ -143,7 +143,7 @@ internal static class ITypeExtensions
                 return type.GetEncodeLambda(false, currentNamespace);
             }
             string csType = typeRef.FieldTypeString(true, currentNamespace);
-            string valueParam = typeRef.IsValueType() ? "value!.Value" : "value!";
+            string valueParam = typeRef.IsValueType ? "value!.Value" : "value!";
             string encodeBody = type.EncodeExpression(currentNamespace, valueParam);
             return $$"""
                 (ref SliceEncoder encoder, {{csType}} value) =>

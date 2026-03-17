@@ -54,7 +54,7 @@ internal static class StructGenerator
         string identifier,
         string accessModifier)
     {
-        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired());
+        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired);
 
         var ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody);
 
@@ -89,7 +89,7 @@ internal static class StructGenerator
         string accessModifier)
     {
         IReadOnlyList<Field> sortedFields = structDef.Fields.GetSortedFields();
-        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired());
+        bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired);
 
         var ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody);
 
@@ -155,7 +155,7 @@ internal static class StructGenerator
             {
                 // Non-tagged optional: write bit and encode conditionally.
                 string param = $"this.{field.Name}";
-                string valueParam = field.DataType.IsValueType() ? $"{param}.Value" : param;
+                string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
                 string encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
                 body.WriteLine($$"""
                     bitSequenceWriter.Write({param} != null);
@@ -193,8 +193,8 @@ internal static class StructGenerator
 
         string typeString = field.DataType.FieldTypeString(field.DataTypeIsOptional, currentNamespace);
         string fieldName = field.Name;
-        string required = field.IsRequired() ? "required " : "";
-        bool fieldReadonly = field.Attributes.HasAttribute(CSAttributes.CSReadonly);
+        string required = field.IsRequired ? "required " : "";
+        bool fieldReadonly = field.IsReadonly;
         string accessor = (parentReadonly || fieldReadonly) ? "{ get; init; }" : "{ get; set; }";
 
         code.WriteLine($"{accessModifier} {required}{typeString} {fieldName} {accessor}");
