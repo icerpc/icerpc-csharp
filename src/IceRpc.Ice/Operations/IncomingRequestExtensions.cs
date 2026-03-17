@@ -101,7 +101,7 @@ public static class IncomingRequestExtensions
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -135,7 +135,7 @@ public static class IncomingRequestExtensions
     /// <param name="decodeArgs">A function that decodes the empty arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -168,7 +168,7 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -196,7 +196,7 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeArgs">A function that decodes the empty arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
