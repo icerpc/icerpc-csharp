@@ -82,7 +82,7 @@ if (!diagnostics.Any(d => d.Level == Compiler.DiagnosticLevel.Error))
 var pipe = new Pipe();
 var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
 encoder.EncodeSequence(
-    generatedFiles, 
+    generatedFiles,
     (ref encoder, file) =>
     {
         encoder.EncodeString(file.Path);

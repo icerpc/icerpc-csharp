@@ -101,37 +101,49 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateEnumWithUnderlyingEnumerators(
+    private static void ValidateEnumWithUnderlyingEnumerators<T>(
         EnumWithUnderlying e,
         List<Compiler.Diagnostic> diagnostics)
     {
-        // EnumWithUnderlying<T> is generic, so we use reflection-free dynamic dispatch via the known subtypes.
+        // TODO will be better to refactor EnumWithUnderlying to avoid the need for this switch,
+        // We can have Enumerators and TypedEnumerators and only used the typed one to access the value.
         switch (e)
         {
-            case EnumWithUnderlying<sbyte> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<sbyte> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<byte> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<byte> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<short> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<short> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<ushort> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<ushort> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<int> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<int> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<uint> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<uint> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<long> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<long> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<ulong> eu:
-                foreach (var en in eu.Enumerators) ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            case EnumWithUnderlying<ulong> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
+        }
+
+        static void ValidateEnumerators<T>(
+            EnumWithUnderlying<T> e,
+            List<Compiler.Diagnostic> diagnostics)
+            where T : struct
+        {
+            foreach (EnumWithUnderlying<T>.Enumerator en in e.Enumerators)
+            {
+                ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            }
         }
     }
 

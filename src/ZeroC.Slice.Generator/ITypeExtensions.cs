@@ -198,8 +198,7 @@ internal static class ITypeExtensions
 
         static string CustomToTypeString(CustomType c)
         {
-            // TODO: we should validate all CustomType definitions have the required cs::type attribute before we
-            // generate any code.
+            // The attribute validator ensures custom types has a cs::type attribute.
             Symbols.Attribute csTypeAttr = c.Attributes.FindAttribute(CSAttributes.CSType)!.Value;
             return csTypeAttr.Args[0];
         }

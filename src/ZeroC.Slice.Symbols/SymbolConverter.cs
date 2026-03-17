@@ -238,7 +238,7 @@ public sealed class SymbolConverter
                     }
 
                     foreach (Compiler.Field ret in op.ReturnType)
-                    {;
+                    {
                         yield return ret.DataType.TypeId;
                     }
                 }
