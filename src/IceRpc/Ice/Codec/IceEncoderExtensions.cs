@@ -65,7 +65,8 @@ public static class IceEncoderExtensions
     }
 
     /// <summary>Encodes a sequence.</summary>
-    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class.</typeparam>
+    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable classes and
+    /// nullable proxies.</typeparam>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="v">The sequence to encode.</param>
     /// <param name="encodeAction">The encode action for an element.</param>
