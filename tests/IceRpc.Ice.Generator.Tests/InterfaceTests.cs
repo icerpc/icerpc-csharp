@@ -20,7 +20,7 @@ public sealed class InterfaceTests
     [TestCase(typeof(IMyWidgetService), "::IceRpc::Ice::Generator::Tests::MyWidget")]
     [TestCase(typeof(MyOtherWidgetProxy), "::IceRpc::Ice::Generator::Tests::myOtherWidget")]
     [TestCase(typeof(IMyOtherWidgetService), "::IceRpc::Ice::Generator::Tests::myOtherWidget")]
-    public void Get_slice_type_id(Type type, string? expected)
+    public void Get_ice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetIceTypeId();
         Assert.That(typeId, Is.EqualTo(expected));
