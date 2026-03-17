@@ -12,7 +12,7 @@ public sealed class TypeIdAttributeTests
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(MyClass), "::IceRpc::Ice::Generator::None::Tests::TypeIdAttributeTestNamespace::MyClass")]
     [TestCase(typeof(MyOtherClass), "::IceRpc::Ice::Generator::None::Tests::TypeIdAttributeTestNamespace::myOtherClass")]
-    public void Get_slice_type_id(Type type, string? expected)
+    public void Get_ice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetIceTypeId();
         Assert.That(typeId, Is.EqualTo(expected));
