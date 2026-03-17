@@ -10,9 +10,9 @@ namespace ZeroC.Slice.Generator;
 internal static class BuilderExtensions
 {
     /// <summary>Adds all cs::attribute attributes to the builder.</summary>
-    internal static T AddCsAttributes<T>(this T builder, IList<Attribute> attributes) where T : IAttributeBuilder<T>
+    internal static T AddCSAttributes<T>(this T builder, IList<Attribute> attributes) where T : IAttributeBuilder<T>
     {
-        foreach (Attribute attr in attributes.CsAttributes())
+        foreach (Attribute attr in attributes.CSAttributes())
         {
             builder.AddAttribute(attr.Args[0]);
         }

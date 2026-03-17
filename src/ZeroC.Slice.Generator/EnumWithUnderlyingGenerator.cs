@@ -48,15 +48,15 @@ internal static class EnumWithUnderlyingGenerator
             $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.ScopedIdentifier}</c>.");
 
         // cs::attribute
-        builder.AddCsAttributes(enumDef.Attributes);
+        builder.AddCSAttributes(enumDef.Attributes);
 
-        builder.AddBase(enumDef.Underlying.CsType());
+        builder.AddBase(enumDef.Underlying.CSType);
 
         // Add enumerator declarations.
         foreach (EnumWithUnderlying<T>.Enumerator enumerator in enumDef.Enumerators)
         {
             var code = new CodeBlock();
-            code.WriteCsAttributes(enumerator.Attributes);
+            code.WriteCSAttributes(enumerator.Attributes);
             code.WriteLine($"{enumerator.Name} = {FormatValue(enumerator)},");
             builder.AddBlock(code);
         }
@@ -68,7 +68,7 @@ internal static class EnumWithUnderlyingGenerator
         string identifier,
         string accessModifier) where T : struct, IFormattable
     {
-        string csType = enumDef.Underlying.CsType();
+        string csType = enumDef.Underlying.CSType;
         string csTypePascal = csType.ToPascalCase();
         string scopedId = enumDef.ScopedIdentifier;
 
@@ -147,8 +147,8 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         string identifier,
         string accessModifier)
     {
-        string csType = enumDef.Underlying.CsType();
-        string suffix = enumDef.Underlying.Suffix();
+        string csType = enumDef.Underlying.CSType;
+        string suffix = enumDef.Underlying.Suffix;
         string scopedId = enumDef.ScopedIdentifier;
 
         var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions");
@@ -186,8 +186,8 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         string identifier,
         string accessModifier)
     {
-        string csType = enumDef.Underlying.CsType();
-        string suffix = enumDef.Underlying.Suffix();
+        string csType = enumDef.Underlying.CSType;
+        string suffix = enumDef.Underlying.Suffix;
         string csTypePascal = csType.ToPascalCase();
         string scopedId = enumDef.ScopedIdentifier;
 

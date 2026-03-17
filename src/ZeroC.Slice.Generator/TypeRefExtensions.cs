@@ -7,14 +7,16 @@ namespace ZeroC.Slice.Generator;
 /// <summary>C#-specific extension methods for <see cref="TypeRef"/>.</summary>
 internal static class TypeRefExtensions
 {
-    /// <summary>Gets a value indicating whether the referenced type is a C# value type.</summary>
-    internal static bool IsValueType(this TypeRef typeRef) => typeRef.Type switch
-    {
-        Builtin b => b.Kind != BuiltinKind.String,
-        Struct => true,
-        EnumWithUnderlying => true,
-        _ => false,
-    };
+
+    /// <summary>Generates decode expression for a type reference.</summary>
+    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace) =>
+        typeRef.Type.DecodeExpression(currentNamespace);
+
+
+    /// <summary>Generates encode expression for a type reference.</summary>
+    internal static string EncodeExpression(this TypeRef typeRef, string currentNamespace, string param) =>
+        typeRef.Type.EncodeExpression(currentNamespace, param);
+
 
     /// <summary>Returns the C# type string for a field type reference.</summary>
     internal static string FieldTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
@@ -22,14 +24,6 @@ internal static class TypeRefExtensions
         string baseType = typeRef.Type.ToTypeString(currentNamespace);
         return isOptional ? $"{baseType}?" : baseType;
     }
-
-    /// <summary>Generates encode expression for a type reference.</summary>
-    internal static string EncodeExpression(this TypeRef typeRef, string currentNamespace, string param) =>
-        typeRef.Type.EncodeExpression(currentNamespace, param);
-
-    /// <summary>Generates decode expression for a type reference.</summary>
-    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace) =>
-        typeRef.Type.DecodeExpression(currentNamespace);
 
     /// <summary>Returns an encode lambda for a type reference.</summary>
     internal static string GetEncodeLambda(this TypeRef typeRef, bool isOptional, string currentNamespace) =>
@@ -47,5 +41,14 @@ internal static class TypeRefExtensions
             _ => null,
         },
         _ => null,
+    };
+
+    /// <summary>Gets a value indicating whether the referenced type is a C# value type.</summary>
+    internal static bool IsValueType(this TypeRef typeRef) => typeRef.Type switch
+    {
+        Builtin b => b.Kind != BuiltinKind.String,
+        Struct => true,
+        EnumWithUnderlying => true,
+        _ => false,
     };
 }

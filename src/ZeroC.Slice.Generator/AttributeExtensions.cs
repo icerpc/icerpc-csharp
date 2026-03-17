@@ -10,7 +10,7 @@ internal static class AttributeExtensions
     extension(IList<Attribute> attributes)
     {
         /// <summary>Returns all cs::attribute attributes from the list.</summary>
-        internal IEnumerable<Attribute> CsAttributes() =>
-            attributes.Where(a => a.Directive == Slice.Generator.CsAttributes.CsAttribute);
+        internal IEnumerable<Attribute> CSAttributes() =>
+            attributes.Where(a => a.Directive == Generator.CSAttributes.CSAttribute);
     }
 }

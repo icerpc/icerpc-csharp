@@ -14,7 +14,7 @@ internal static class ModuleExtensions
         {
             get
             {
-                if (module.Attributes.FindAttribute(CsAttributes.CsNamespace) is { } attr)
+                if (module.Attributes.FindAttribute(CSAttributes.CSNamespace) is { } attr)
                 {
                     return attr.Args[0];
                 }

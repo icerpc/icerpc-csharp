@@ -149,7 +149,7 @@ internal static class EnumWithFieldsGenerator
         builder.AddBase(parentIdentifier);
 
         // cs::attribute on the enumerator.
-        builder.AddCsAttributes(enumerator.Attributes);
+        builder.AddCSAttributes(enumerator.Attributes);
 
         // Discriminant constant.
         var discriminantBlock = new CodeBlock();

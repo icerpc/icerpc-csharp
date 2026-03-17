@@ -12,9 +12,9 @@ internal static class CodeBlockExtensions
     extension(CodeBlock code)
     {
         /// <summary>Writes all cs::attribute attributes as C# attribute lines.</summary>
-        internal void WriteCsAttributes(IList<Attribute> attributes)
+        internal void WriteCSAttributes(IList<Attribute> attributes)
         {
-            foreach (Attribute attr in attributes.CsAttributes())
+            foreach (Attribute attr in attributes.CSAttributes())
             {
                 code.WriteLine($"[{attr.Args[0]}]");
             }

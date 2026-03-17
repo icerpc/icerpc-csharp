@@ -13,7 +13,7 @@ internal static class StructGenerator
         string identifier = structDef.Name;
         string currentNamespace = structDef.Namespace;
         string accessModifier = structDef.AccessModifier;
-        bool isReadonly = structDef.Attributes.HasAttribute(CsAttributes.CsReadonly);
+        bool isReadonly = structDef.Attributes.HasAttribute(CSAttributes.CSReadonly);
 
         // Build the declaration prefix.
         string declaration = isReadonly
@@ -189,12 +189,12 @@ internal static class StructGenerator
         var code = new CodeBlock();
 
         // cs::attribute
-        code.WriteCsAttributes(field.Attributes);
+        code.WriteCSAttributes(field.Attributes);
 
         string typeString = field.DataType.FieldTypeString(field.DataTypeIsOptional, currentNamespace);
         string fieldName = field.Name;
         string required = field.IsRequired() ? "required " : "";
-        bool fieldReadonly = field.Attributes.HasAttribute(CsAttributes.CsReadonly);
+        bool fieldReadonly = field.Attributes.HasAttribute(CSAttributes.CSReadonly);
         string accessor = (parentReadonly || fieldReadonly) ? "{ get; init; }" : "{ get; set; }";
 
         code.WriteLine($"{accessModifier} {required}{typeString} {fieldName} {accessor}");

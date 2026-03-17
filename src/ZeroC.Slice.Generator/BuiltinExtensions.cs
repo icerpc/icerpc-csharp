@@ -27,12 +27,15 @@ internal static class BuiltinExtensions
         [BuiltinKind.String] = "string",
     };
 
-    /// <summary>The C# type name for this built-in (e.g. "int", "string").</summary>
-    internal static string CsType(this Builtin builtin) => _csTypeMap[builtin.Kind];
+    extension(Builtin builtin)
+    {
+        /// <summary>The C# type name for this built-in (e.g. "int", "string").</summary>
+        internal string CSType => _csTypeMap[builtin.Kind];
 
-    /// <summary>Whether the C# type is a value type.</summary>
-    internal static bool IsValueType(this Builtin builtin) => builtin.Kind != BuiltinKind.String;
+        /// <summary>Whether the C# type is a value type.</summary>
+        internal bool IsValueType => builtin.Kind != BuiltinKind.String;
 
-    /// <summary>The encoder/decoder method suffix for this built-in (e.g. "Int32", "String").</summary>
-    internal static string Suffix(this Builtin builtin) => builtin.Kind.ToString();
+        /// <summary>The encoder/decoder method suffix for this built-in (e.g. "Int32", "String").</summary>
+        internal string Suffix => builtin.Kind.ToString();
+    }
 }
