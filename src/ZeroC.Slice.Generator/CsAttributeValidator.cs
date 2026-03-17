@@ -101,7 +101,7 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateEnumWithUnderlyingEnumerators<T>(
+    private static void ValidateEnumWithUnderlyingEnumerators(
         EnumWithUnderlying e,
         List<Compiler.Diagnostic> diagnostics)
     {
