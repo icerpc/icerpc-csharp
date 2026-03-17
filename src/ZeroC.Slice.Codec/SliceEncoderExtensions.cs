@@ -7,7 +7,8 @@ using System.Runtime.InteropServices;
 
 namespace ZeroC.Slice.Codec;
 
-/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode sequences or dictionaries.</summary>
+/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode dictionaries, results, and sequences.
+/// </summary>
 public static class SliceEncoderExtensions
 {
     /// <summary>Encodes a dictionary.</summary>
@@ -135,12 +136,12 @@ public static class SliceEncoderExtensions
     }
 
     /// <summary>Encodes a sequence.</summary>
-    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class and nullable
-    /// custom types with Slice1.</typeparam>
+    /// <typeparam name="T">The type of the sequence elements.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The sequence to encode.</param>
     /// <param name="encodeAction">The encode action for an element.</param>
     public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v, EncodeAction<T> encodeAction)
+        where T : notnull
     {
         encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
         foreach (T item in v)
