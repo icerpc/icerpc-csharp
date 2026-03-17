@@ -25,7 +25,7 @@ public sealed class IceOperationAttribute : Attribute
     public bool EncodedReturn { get; init; }
 
     /// <summary>Gets the exception specification of the operation.</summary>
-    /// <value>An array of Slice exception types that the operation may throw.</value>
+    /// <value>An array of Ice exception types that the operation may throw.</value>
     /// <seealso cref="IceException"/>
     public Type[] ExceptionSpecification { get; init; } = [];
 

@@ -123,7 +123,7 @@ public static class IncomingResponseExtensions
 
         IceException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // A Slice exception never sets Message, even when received over icerpc.
+            // An Ice exception never sets Message, even when received over icerpc.
 
             var decoder = new IceDecoder(
                 buffer,

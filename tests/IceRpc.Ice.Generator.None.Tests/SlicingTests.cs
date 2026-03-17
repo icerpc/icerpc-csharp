@@ -198,12 +198,12 @@ public class SlicingTests
         var decoder = new IceDecoder(buffer.WrittenMemory, activator: slicingActivator);
 
         // Act
-        IceException sliceException = decoder.DecodeException();
+        IceException iceException = decoder.DecodeException();
 
         // Assert
         Assert.That(decoder.End, Is.True);
-        Assert.That(sliceException, Is.TypeOf<SlicingDerivedException>());
-        var slicingDerivedException = (SlicingDerivedException)sliceException;
+        Assert.That(iceException, Is.TypeOf<SlicingDerivedException>());
+        var slicingDerivedException = (SlicingDerivedException)iceException;
         Assert.That(slicingDerivedException.M1, Is.EqualTo(p1.M1));
         Assert.That(slicingDerivedException.M2, Is.EqualTo(p1.M2));
     }

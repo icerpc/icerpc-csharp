@@ -24,7 +24,7 @@ module IceRpc::Ice::Generator::Tests
 
     exception EmptyException {}
 
-    interface SliceExceptionOperations
+    interface IceExceptionOperations
     {
         void opThrowsMultipleExceptions() throws MyException, EmptyException;
 
@@ -33,8 +33,8 @@ module IceRpc::Ice::Generator::Tests
         void opThrowsNothing();
     }
 
-    // Just like SliceExceptionOperations, but with different exception specifications
-    interface AltSliceExceptionOperations
+    // Just like IceExceptionOperations, but with different exception specifications
+    interface AltIceExceptionOperations
     {
         void opThrowsMultipleExceptions() throws MyException;
 

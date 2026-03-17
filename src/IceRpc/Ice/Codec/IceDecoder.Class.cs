@@ -35,7 +35,7 @@ public ref partial struct IceDecoder
 
         string? mostDerivedTypeId = null;
         IActivator activator = _activator ?? _defaultActivator;
-        IceException? sliceException;
+        IceException? iceException;
 
         do
         {
@@ -46,8 +46,8 @@ public ref partial struct IceDecoder
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-            sliceException = activator.CreateInstance(typeId) as IceException;
-            if (sliceException is null && SkipSlice(typeId))
+            iceException = activator.CreateInstance(typeId) as IceException;
+            if (iceException is null && SkipSlice(typeId))
             {
                 // Cannot decode this exception. The message should be set only when the exception was received over
                 // icerpc.
@@ -57,12 +57,12 @@ public ref partial struct IceDecoder
                     $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
             }
         }
-        while (sliceException is null);
+        while (iceException is null);
 
         _classContext.Current.FirstSlice = true;
-        sliceException.Decode(ref this);
+        iceException.Decode(ref this);
         _classContext.Current = default;
-        return sliceException;
+        return iceException;
     }
 
     /// <summary>Decodes a nullable class instance.</summary>
