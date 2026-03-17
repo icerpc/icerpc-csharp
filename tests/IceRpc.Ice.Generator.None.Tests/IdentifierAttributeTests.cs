@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
+using IceRpc.Ice.Codec;
 
 namespace IceRpc.Ice.Generator.None.Tests.Identifiers;
 
@@ -17,7 +17,7 @@ public class IdentifierAttributeTests
         _ = new REnamedException();
 
         // Assert
-        Assert.That(typeof(REnamedException).GetSliceTypeId(), Is.EqualTo("::IceRpc::Ice::Generator::None::Tests::OriginalException"));
+        Assert.That(typeof(REnamedException).GetIceTypeId(), Is.EqualTo("::IceRpc::Ice::Generator::None::Tests::OriginalException"));
     }
 
     [Test]

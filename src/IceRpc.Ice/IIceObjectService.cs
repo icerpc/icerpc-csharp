@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations;
 using System.Diagnostics.CodeAnalysis;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice;
 
@@ -25,7 +25,7 @@ public partial interface IIceObjectService
         var sortedSet = new SortedSet<string>(StringComparer.Ordinal);
         foreach (Type type in GetType().GetInterfaces())
         {
-            if (type.GetSliceTypeId() is string typeId)
+            if (type.GetIceTypeId() is string typeId)
             {
                 sortedSet.Add(typeId);
             }
@@ -46,7 +46,7 @@ public partial interface IIceObjectService
     {
         foreach (Type type in GetType().GetInterfaces())
         {
-            if (type.GetSliceTypeId() is string typeId && typeId == id)
+            if (type.GetIceTypeId() is string typeId && typeId == id)
             {
                 return new(true);
             }

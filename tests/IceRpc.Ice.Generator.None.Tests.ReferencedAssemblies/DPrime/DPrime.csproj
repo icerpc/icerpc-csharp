@@ -3,7 +3,6 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
     <ProjectReference Include="../B/B.csproj" />
     <ProjectReference Include="../C/C.csproj" />

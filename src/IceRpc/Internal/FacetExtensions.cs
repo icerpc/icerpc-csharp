@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using ZeroC.Slice.Codec;
+using IceRpc.Ice.Codec;
 
 namespace IceRpc.Internal;
 
@@ -15,7 +15,7 @@ internal static class FacetExtensions
         }
     }
 
-    internal static void EncodeFragmentAsFacet(this ref SliceEncoder encoder, string fragment)
+    internal static void EncodeFragmentAsFacet(this ref IceEncoder encoder, string fragment)
     {
         if (fragment.Length == 0)
         {
@@ -28,8 +28,8 @@ internal static class FacetExtensions
         }
     }
 
-    internal static string[] DecodeFacet(this ref SliceDecoder decoder) =>
-        decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeString());
+    internal static string[] DecodeFacet(this ref IceDecoder decoder) =>
+        decoder.DecodeSequence((ref IceDecoder decoder) => decoder.DecodeString());
 
     internal static string ToFragment(this IList<string> facet) =>
         facet.Count switch

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Codec.Tests;
@@ -22,7 +21,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeInt64(value);
 
@@ -30,21 +29,20 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    // TODO: replace by test for unsigned byte.
-    /// <summary>Tests the encoding of an sbyte.</summary>
-    /// <param name="value">The sbyte to be encoded.</param>
+    /// <summary>Tests the encoding of an byte.</summary>
+    /// <param name="value">The byte to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
-    [TestCase(sbyte.MinValue, new byte[] { 0x80 })]
-    [TestCase(sbyte.MaxValue, new byte[] { 0x7F })]
-    public void Encode_int8_value(sbyte value, byte[] expected)
+    [TestCase(42, new byte[] { 42 })]
+    [TestCase(byte.MaxValue, new byte[] { 0xFF })]
+    public void Encode_uint8_value(byte value, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter);
 
-        encoder.EncodeInt8(value);
+        encoder.EncodeUInt8(value);
 
-        Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(sbyte)));
+        Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(byte)));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
@@ -62,7 +60,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(bufferWriter);
 
         encoder.EncodeSize(size);
 
@@ -78,7 +76,7 @@ public class NumericTypesEncodingTests
         Assert.That(
             () =>
             {
-                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+                var encoder = new IceEncoder(bufferWriter);
                 encoder.EncodeSize(-10);
             },
             Throws.InstanceOf<ArgumentException>());

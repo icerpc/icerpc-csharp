@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using IceRpc.Internal;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Operations.Internal;
 
@@ -40,9 +40,8 @@ internal static class IncomingFrameExtensions
                 throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
             }
 
-            var decoder = new SliceDecoder(
+            var decoder = new IceDecoder(
                 readResult.Buffer,
-                SliceEncoding.Slice1,
                 baseProxy,
                 feature.MaxCollectionAllocation,
                 activator,
@@ -93,7 +92,7 @@ internal static class IncomingFrameExtensions
             {
                 // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
                 // do is skip unknown tags
-                var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+                var decoder = new IceDecoder(readResult.Buffer);
                 decoder.SkipTagged(useTagEndMarker: false); // false because we're decoding parameters, not class/exception fields
                 decoder.CheckEndOfBuffer();
             }

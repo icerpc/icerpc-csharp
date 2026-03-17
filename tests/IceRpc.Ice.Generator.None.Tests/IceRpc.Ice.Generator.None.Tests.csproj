@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
-    <ProjectReference Include="../../src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
 
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
 

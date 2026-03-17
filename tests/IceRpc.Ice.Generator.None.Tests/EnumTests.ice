@@ -2,7 +2,7 @@
 
 module IceRpc::Ice::Generator::None::Tests
 {
-    enum MySlice1Enum
+    enum MyPlainEnum
     {
         Enum1,
         Enum2,
@@ -10,7 +10,7 @@ module IceRpc::Ice::Generator::None::Tests
     }
 
     ["cs:attribute:System.Flags"]
-    enum MySlice1FlagsEnum
+    enum MyFlagsEnum
     {
         E0 = 1,
         E1 = 2,

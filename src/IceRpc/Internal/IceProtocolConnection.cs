@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
@@ -7,7 +8,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Security.Authentication;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Internal;
 
@@ -203,13 +203,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                var encoder = new IceEncoder(writer);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
 
             static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                var decoder = new IceDecoder(buffer);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
@@ -562,7 +562,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             static void EncodeCloseConnectionFrame(IBufferWriter<byte> writer)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                var encoder = new IceEncoder(writer);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
             }
         }
@@ -672,7 +672,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
                 {
-                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                    var encoder = new IceEncoder(writer);
                     IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
                 }
             }
@@ -682,7 +682,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private static (int RequestId, IceRequestHeader Header, PipeReader? ContextReader, int Consumed) DecodeRequestIdAndHeader(
         ReadOnlySequence<byte> buffer)
     {
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(buffer);
 
         int requestId = decoder.DecodeInt32();
 
@@ -741,7 +741,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             EncapsulationHeader encapsulationHeader =
-                buffer.Slice(1, 6).DecodeIceBuffer((ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+                buffer.Slice(1, 6).DecodeIceBuffer((ref IceDecoder decoder) => new EncapsulationHeader(ref decoder));
 
             // Sanity check
             int payloadSize = encapsulationHeader.EncapsulationSize - 6;
@@ -771,7 +771,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _ => StatusCode.InternalError
             };
 
-            var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
+            var decoder = new IceDecoder(buffer.Slice(1));
 
             string message;
             switch (replyStatus)
@@ -803,7 +803,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         int requestId,
         int payloadSize)
     {
-        var encoder = new SliceEncoder(output, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(output);
 
         // Write the request header.
         encoder.WriteByteSpan(IceDefinitions.FramePrologue);
@@ -852,7 +852,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             encodingMinor).Encode(ref encoder);
 
         int frameSize = checked(encoder.EncodedByteCount + directWriteSize + payloadSize);
-        SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+        IceEncoder.EncodeInt32(frameSize, sizePlaceholder);
     }
 
     private static void EncodeResponseHeader(
@@ -862,7 +862,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         int requestId,
         int payloadSize)
     {
-        var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+        var encoder = new IceEncoder(writer);
 
         // Write the response header.
 
@@ -923,7 +923,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         int frameSize = encoder.EncodedByteCount + payloadSize;
-        SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+        IceEncoder.EncodeInt32(frameSize, sizePlaceholder);
     }
 
     /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
@@ -1169,7 +1169,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
 
                 IcePrologue prologue =
-                    prologueBuffer.DecodeIceBuffer((ref SliceDecoder decoder) => new IcePrologue(ref decoder));
+                    prologueBuffer.DecodeIceBuffer((ref IceDecoder decoder) => new IcePrologue(ref decoder));
 
                 _duplexConnectionReader.AdvanceTo(prologueBuffer.End);
 
@@ -1358,7 +1358,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
-            int requestId = requestIdBuffer.DecodeIceBuffer((ref SliceDecoder decoder) => decoder.DecodeInt32());
+            int requestId = requestIdBuffer.DecodeIceBuffer((ref IceDecoder decoder) => decoder.DecodeInt32());
             replyFrameReader.AdvanceTo(requestIdBuffer.End);
 
             lock (_mutex)

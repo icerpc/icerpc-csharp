@@ -132,11 +132,11 @@ public class EnumTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
         encoder.EncodeMyUncheckedEnum(expected);
 
-        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice2);
         var decoded = (MyUncheckedEnum)decoder.DecodeUInt32();
 
         Assert.That(decoded, Is.EqualTo(expected));

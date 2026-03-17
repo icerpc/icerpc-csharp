@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Codec.Tests;
 
@@ -16,7 +15,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0x01 }, true)]
     public void Decode_bool_value(byte[] encodedBytes, bool expected)
     {
-        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
+        var sut = new IceDecoder(encodedBytes);
 
         bool r1 = sut.DecodeBool();
 
@@ -29,12 +28,12 @@ public class NumericTypesDecodingTests
     public void Decode_invalid_bool_value(byte[] encodedBytes) =>
         Assert.Throws<InvalidDataException>(() =>
         {
-            var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
+            var sut = new IceDecoder(encodedBytes);
             sut.DecodeBool();
         });
 
     /// <summary>Tests the decoding of long. Decoding any fixed size numeric is handled the same way by the
-    /// SliceDecoder, as such it is sufficient to just test decoding a long.</summary>
+    /// IceDecoder, as such it is sufficient to just test decoding a long.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, long.MinValue)]
@@ -44,7 +43,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, long.MaxValue)]
     public void Decode_long_value(byte[] encodedBytes, long expected)
     {
-        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
+        var sut = new IceDecoder(encodedBytes);
 
         long r1 = sut.DecodeInt64();
 
@@ -52,16 +51,16 @@ public class NumericTypesDecodingTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Tests the decoding of an int8.</summary>
+    /// <summary>Tests the decoding of an uint8.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
-    /// <param name="expected">The expected sbyte to be decoded.</param>
-    [TestCase(new byte[] { 0x80 }, sbyte.MinValue)]
-    [TestCase(new byte[] { 0x7F }, sbyte.MaxValue)]
-    public void Decode_int8_value(byte[] encodedBytes, sbyte expected)
+    /// <param name="expected">The expected byte to be decoded.</param>
+    [TestCase(new byte[] { 42 }, 42)]
+    [TestCase(new byte[] { 0xFF }, byte.MaxValue)]
+    public void Decode_uint8_value(byte[] encodedBytes, byte expected)
     {
-        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
+        var sut = new IceDecoder(encodedBytes);
 
-        sbyte r1 = sut.DecodeInt8();
+        byte r1 = sut.DecodeUInt8();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -77,7 +76,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 }, 1000)]
     public void Decode_size(byte[] encodedBytes, int expected)
     {
-        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
+        var sut = new IceDecoder(encodedBytes);
 
         var r1 = sut.DecodeSize();
 

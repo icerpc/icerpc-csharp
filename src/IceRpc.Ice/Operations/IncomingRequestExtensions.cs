@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations.Internal;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 
 namespace IceRpc.Ice.Operations;
 
@@ -26,14 +26,14 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with
-    /// a Slice exception payload.</summary>
+    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with an Ice
+    /// exception payload.</summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="sliceException">The Slice exception to encode in the payload.</param>
+    /// <param name="iceException">The Ice exception to encode in the payload.</param>
     /// <returns>The new outgoing response.</returns>
     public static OutgoingResponse CreateIceExceptionResponse(
         this IncomingRequest request,
-        SliceException sliceException)
+        IceException iceException)
     {
         IceEncodeOptions encodeOptions =
             request.Features.Get<IIceFeature>()?.EncodeOptions ?? IceEncodeOptions.Default;
@@ -42,11 +42,11 @@ public static class IncomingRequestExtensions
 
         try
         {
-            var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
-            sliceException.Encode(ref encoder);
+            var encoder = new IceEncoder(pipe.Writer);
+            iceException.Encode(ref encoder);
             pipe.Writer.Complete();
 
-            return new OutgoingResponse(request, StatusCode.ApplicationError, GetErrorMessage(sliceException))
+            return new OutgoingResponse(request, StatusCode.ApplicationError, GetErrorMessage(iceException))
             {
                 Payload = pipe.Reader
             };
@@ -101,7 +101,7 @@ public static class IncomingRequestExtensions
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -110,7 +110,7 @@ public static class IncomingRequestExtensions
         Func<IncomingRequest, CancellationToken, ValueTask<TArgs>> decodeArgs,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
         Func<TReturnValue, IceEncodeOptions?, PipeReader> encodeReturnValue,
-        Func<SliceException, bool>? inExceptionSpecification = null,
+        Func<IceException, bool>? inExceptionSpecification = null,
         CancellationToken cancellationToken = default)
     {
         TArgs args = await decodeArgs(request, cancellationToken).ConfigureAwait(false);
@@ -122,9 +122,9 @@ public static class IncomingRequestExtensions
                 Payload = encodeReturnValue(returnValue, request.Features.Get<IIceFeature>()?.EncodeOptions),
             };
         }
-        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        catch (IceException iceException) when (inExceptionSpecification?.Invoke(iceException) ?? false)
         {
-            return request.CreateIceExceptionResponse(sliceException);
+            return request.CreateIceExceptionResponse(iceException);
         }
     }
 
@@ -135,7 +135,7 @@ public static class IncomingRequestExtensions
     /// <param name="decodeArgs">A function that decodes the empty arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -144,7 +144,7 @@ public static class IncomingRequestExtensions
         Func<IncomingRequest, CancellationToken, ValueTask> decodeArgs,
         Func<IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
         Func<TReturnValue, IceEncodeOptions?, PipeReader> encodeReturnValue,
-        Func<SliceException, bool>? inExceptionSpecification = null,
+        Func<IceException, bool>? inExceptionSpecification = null,
         CancellationToken cancellationToken = default)
     {
         await decodeArgs(request, cancellationToken).ConfigureAwait(false);
@@ -156,9 +156,9 @@ public static class IncomingRequestExtensions
                 Payload = encodeReturnValue(returnValue, request.Features.Get<IIceFeature>()?.EncodeOptions)
             };
         }
-        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        catch (IceException iceException) when (inExceptionSpecification?.Invoke(iceException) ?? false)
         {
-            return request.CreateIceExceptionResponse(sliceException);
+            return request.CreateIceExceptionResponse(iceException);
         }
     }
 
@@ -168,7 +168,7 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -176,7 +176,7 @@ public static class IncomingRequestExtensions
         this IncomingRequest request,
         Func<IncomingRequest, CancellationToken, ValueTask<TArgs>> decodeArgs,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask> method,
-        Func<SliceException, bool>? inExceptionSpecification = null,
+        Func<IceException, bool>? inExceptionSpecification = null,
         CancellationToken cancellationToken = default)
     {
         TArgs args = await decodeArgs(request, cancellationToken).ConfigureAwait(false);
@@ -185,9 +185,9 @@ public static class IncomingRequestExtensions
             await method(args, request.Features, cancellationToken).ConfigureAwait(false);
             return new OutgoingResponse(request);
         }
-        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        catch (IceException iceException) when (inExceptionSpecification?.Invoke(iceException) ?? false)
         {
-            return request.CreateIceExceptionResponse(sliceException);
+            return request.CreateIceExceptionResponse(iceException);
         }
     }
 
@@ -196,7 +196,7 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeArgs">A function that decodes the empty arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
-    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Ice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
@@ -204,7 +204,7 @@ public static class IncomingRequestExtensions
         this IncomingRequest request,
         Func<IncomingRequest, CancellationToken, ValueTask> decodeArgs,
         Func<IFeatureCollection, CancellationToken, ValueTask> method,
-        Func<SliceException, bool>? inExceptionSpecification = null,
+        Func<IceException, bool>? inExceptionSpecification = null,
         CancellationToken cancellationToken = default)
     {
         await decodeArgs(request, cancellationToken).ConfigureAwait(false);
@@ -213,15 +213,15 @@ public static class IncomingRequestExtensions
             await method(request.Features, cancellationToken).ConfigureAwait(false);
             return new OutgoingResponse(request);
         }
-        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        catch (IceException iceException) when (inExceptionSpecification?.Invoke(iceException) ?? false)
         {
-            return request.CreateIceExceptionResponse(sliceException);
+            return request.CreateIceExceptionResponse(iceException);
         }
     }
 
     // The error message includes the inner exception type and message because we don't transmit this inner exception
     // with the response.
-    private static string GetErrorMessage(SliceException exception) =>
+    private static string GetErrorMessage(IceException exception) =>
         exception.InnerException is Exception innerException ?
             $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
             exception.Message;

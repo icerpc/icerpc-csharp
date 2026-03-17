@@ -196,8 +196,8 @@ public readonly record struct ServerAddress
 
     /// <summary>Constructs a server address from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>
-    /// <remarks>This constructor is used by <see cref="ServiceAddress" /> for its main server address and by the Slice
-    /// decoder for Slice1 server addresses.</remarks>
+    /// <remarks>This constructor is used by <see cref="ServiceAddress" /> for its main server address and by the Ice
+    /// decoder for server addresses.</remarks>
     internal ServerAddress(
         Protocol protocol,
         string host,

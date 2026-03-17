@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using NUnit.Framework;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
-
 namespace IceRpc.Ice.Generator.Tests;
 
 [Parallelizable(ParallelScope.All)]
@@ -20,19 +19,19 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with compact format (2 Slices)
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
         // First Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetIceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
@@ -49,7 +48,7 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with sliced format (2 Slices)
 
@@ -58,17 +57,17 @@ public sealed class ClassTests
         // First Slice
         Assert.That(
             decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
+            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // Second Slice
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(
-            (byte)Slice1Definitions.TypeIdKind.String |
-            (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-            (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
+            (byte)IceEncodingDefinitions.TypeIdKind.String |
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
@@ -86,19 +85,19 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with compact format (2 Slices)
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
         // First Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetIceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
@@ -115,7 +114,7 @@ public sealed class ClassTests
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        var decoder = new IceDecoder(readResult.Buffer);
 
         // MyClassB instance encoded with sliced format (2 Slices)
 
@@ -124,25 +123,25 @@ public sealed class ClassTests
         // First Slice
         Assert.That(
             decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
+            Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // Second Slice
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(
-            (byte)Slice1Definitions.TypeIdKind.String |
-            (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-            (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
+            (byte)IceEncodingDefinitions.TypeIdKind.String |
+            (byte)IceEncodingDefinitions.SliceFlags.HasSliceSize |
+            (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetIceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
-    // Copied from Slice/Internal/Slice1Definitions.cs
-    internal static class Slice1Definitions
+    // Copied from Ice/Codec/Internal/IceEncodingDefinitions.cs
+    internal static class IceEncodingDefinitions
     {
         [Flags]
         internal enum SliceFlags : byte

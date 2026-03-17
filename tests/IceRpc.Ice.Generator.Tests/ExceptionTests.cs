@@ -56,8 +56,8 @@ public sealed partial class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(throwException));
-        var proxy = new SliceExceptionOperationsProxy(invoker);
+        var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
+        var proxy = new IceExceptionOperationsProxy(invoker);
 
         Type expectedType = (throwException is MyException or EmptyException) &&
             expectedStatusCode == StatusCode.ApplicationError ? throwException.GetType() : typeof(DispatchException);
@@ -78,8 +78,8 @@ public sealed partial class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(throwException));
-        var proxy = new SliceExceptionOperationsProxy(invoker);
+        var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
+        var proxy = new IceExceptionOperationsProxy(invoker);
 
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
@@ -100,8 +100,8 @@ public sealed partial class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(throwException));
-        var proxy = new SliceExceptionOperationsProxy(invoker);
+        var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
+        var proxy = new IceExceptionOperationsProxy(invoker);
 
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
         Assert.That(exception, Is.Not.Null);
@@ -111,8 +111,8 @@ public sealed partial class ExceptionTests
     [Test]
     public void Slice_operation_throws_invalid_data_when_exception_not_in_specification()
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new EmptyException()));
-        var proxy = new AltSliceExceptionOperationsProxy(invoker);
+        var invoker = new ColocInvoker(new IceExceptionOperationsService(new EmptyException()));
+        var proxy = new AltIceExceptionOperationsProxy(invoker);
 
         InvalidDataException? exception =
             Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMultipleExceptionsAsync());
@@ -122,8 +122,8 @@ public sealed partial class ExceptionTests
     [Test]
     public void Slice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new MyException(1, 2)));
-        var proxy = new AltSliceExceptionOperationsProxy(invoker);
+        var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(1, 2)));
+        var proxy = new AltIceExceptionOperationsProxy(invoker);
 
         InvalidDataException? exception =
             Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMyExceptionAsync());
@@ -134,19 +134,19 @@ public sealed partial class ExceptionTests
     [Test]
     public void Slice_exception_can_have_custom_message()
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new MyException(5, 6)));
-        var proxy = new SliceExceptionOperationsProxy(invoker);
+        var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(5, 6)));
+        var proxy = new IceExceptionOperationsProxy(invoker);
 
         var exception = Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
         Assert.That(exception.Message, Is.EqualTo("MyException: i=5, j=6"));
     }
 
     [Service]
-    private sealed partial class SliceExceptionOperationsService : ISliceExceptionOperationsService
+    private sealed partial class IceExceptionOperationsService : IIceExceptionOperationsService
     {
         private readonly Exception _exception;
 
-        public SliceExceptionOperationsService(Exception exception) => _exception = exception;
+        public IceExceptionOperationsService(Exception exception) => _exception = exception;
 
         public ValueTask OpThrowsMultipleExceptionsAsync(
             IFeatureCollection features,

@@ -1,7 +1,6 @@
 # Interop Greeter
 
-This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol and `Slice1`
-mode.
+This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol.
 
 First, build the client and server applications for IceRPC with:
 

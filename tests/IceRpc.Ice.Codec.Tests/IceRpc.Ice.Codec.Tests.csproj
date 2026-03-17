@@ -21,6 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
-    <ProjectReference Include="../../src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
   </ItemGroup>
 </Project>

@@ -11,10 +11,10 @@ internal sealed class IceProtocol : Protocol
     internal static IceProtocol Instance { get; } = new();
 
     /// <summary>Checks if this absolute path is well-formed.</summary>
-    /// <remarks>This check is more lenient than the check performed when encoding a service address with Slice1 because
+    /// <remarks>This check is more lenient than the check performed when encoding a service address with Ice because
     /// we want the default path (`/`) to be a valid path for all protocols. Sending a request to a null/empty identity
-    /// is in itself ok and will most likely result in a dispatch exception with a
-    /// <see cref="StatusCode.NotFound" /> status code.</remarks>
+    /// is in itself ok and can succeed with an IceRPC server. With an Ice server, it will result in a dispatch
+    /// exception with a <see cref="StatusCode.NotFound" /> status code.</remarks>
     internal override void CheckPath(string uriPath)
     {
         string workingPath = uriPath[1..]; // removes leading /.
