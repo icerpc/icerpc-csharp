@@ -241,7 +241,7 @@ internal static class PipeReaderExtensions
             return true; // the caller will call AdvanceTo on this buffer.
         }
 
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         if (decoder.TryDecodeVarUInt62(out ulong ulongSize))
         {
             consumed = decoder.Consumed;

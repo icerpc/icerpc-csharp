@@ -32,7 +32,7 @@ public class WellKnownTypesTests
     public void Decode_struct_with_custom_fields()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new WellKnown(
             TimeSpan.FromSeconds(10),
             DateTime.UnixEpoch,
@@ -44,7 +44,7 @@ public class WellKnownTypesTests
         encoder.EncodeUri(expected.Uri);
         encoder.EncodeUuid(expected.Id);
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new WellKnown(ref decoder);
 
@@ -63,7 +63,7 @@ public class WellKnownTypesTests
         Guid? uuidValue)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new WellKnownWithOptionals(
             durationValue,
             timeStampValue,
@@ -95,7 +95,7 @@ public class WellKnownTypesTests
             encoder.EncodeUuid(uuidValue.Value);
         }
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new WellKnownWithOptionals(ref decoder);
 
@@ -110,7 +110,7 @@ public class WellKnownTypesTests
     public void Encode_struct_with_custom_fields()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new WellKnown(
             TimeSpan.FromSeconds(10),
             DateTime.UnixEpoch,
@@ -119,7 +119,7 @@ public class WellKnownTypesTests
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeDuration(), Is.EqualTo(expected.Duration));
         Assert.That(decoder.DecodeTimeStamp(), Is.EqualTo(expected.TimeStamp));
         Assert.That(decoder.DecodeUri(), Is.EqualTo(expected.Uri));
@@ -136,7 +136,7 @@ public class WellKnownTypesTests
         Guid? uuidValue)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new WellKnownWithOptionals(
             durationValue,
             timeStampValue,
@@ -146,7 +146,7 @@ public class WellKnownTypesTests
         expected.Encode(ref encoder);
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         var bitSequenceReader = decoder.GetBitSequenceReader(4);
         if (durationValue is not null)
         {

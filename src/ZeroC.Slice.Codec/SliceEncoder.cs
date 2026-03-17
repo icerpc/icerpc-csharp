@@ -88,17 +88,14 @@ public ref partial struct SliceEncoder
 
     /// <summary>Constructs a Slice encoder.</summary>
     /// <param name="bufferWriter">A buffer writer that writes to byte buffers. See important remarks below.</param>
-    /// <param name="encoding">The Slice encoding.</param>
-    /// <param name="classFormat">The class format (Slice1 only).</param>
     /// <remarks>Warning: the Slice encoding requires rewriting buffers, and many buffer writers do not support this
     /// behavior. It is safe to use a pipe writer or a buffer writer that writes to a single fixed-size buffer (without
     /// reallocation).</remarks>
-    public SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, ClassFormat classFormat = default)
+    public SliceEncoder(IBufferWriter<byte> bufferWriter)
         : this()
     {
-        Encoding = encoding;
+        Encoding = SliceEncoding.Slice2;
         _bufferWriter = bufferWriter;
-        _classContext = new ClassContext(classFormat);
     }
 
     // Encode methods for basic types

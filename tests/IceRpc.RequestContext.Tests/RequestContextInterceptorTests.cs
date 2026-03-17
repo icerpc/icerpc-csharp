@@ -33,7 +33,7 @@ public sealed class RequestContextInterceptorTests
 
                    if (pipe.Reader.TryRead(out ReadResult readResult))
                    {
-                       var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+                       var decoder = new SliceDecoder(readResult.Buffer);
                        decoded = decoder.DecodeDictionary(
                            count => new Dictionary<string, string>(count),
                            (ref SliceDecoder decoder) => decoder.DecodeString(),

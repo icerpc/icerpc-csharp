@@ -21,7 +21,7 @@ public class OperationEncodingTests
         // Assert
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(5));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
@@ -46,7 +46,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int value)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             encoder.EncodeSize(5);
             encoder.EncodeInt32(value);
             encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
@@ -64,7 +64,7 @@ public class OperationEncodingTests
         // Assert
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(5));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
@@ -88,7 +88,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int value)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             encoder.EncodeSize(5);
             encoder.EncodeInt32(value);
             encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
@@ -105,7 +105,7 @@ public class OperationEncodingTests
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(18));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
@@ -129,7 +129,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int value1, string value2)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
             encoder.EncodeSize(18);
             encoder.EncodeInt32(value1);
@@ -149,7 +149,7 @@ public class OperationEncodingTests
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(18));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
@@ -178,7 +178,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int value1, string value2)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
             encoder.EncodeSize(18);
             encoder.EncodeInt32(value1);
@@ -205,7 +205,7 @@ public class OperationEncodingTests
         int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
@@ -255,7 +255,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
 
             // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (optional int 0|4 bytes) + (optional string 0|13 bytes) + 1
@@ -295,7 +295,7 @@ public class OperationEncodingTests
         int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
@@ -347,7 +347,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (optional int 0|4 bytes) + (optional string 0|13 bytes) + 1 (tag end marker)
             int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13) + 1;
@@ -389,7 +389,7 @@ public class OperationEncodingTests
         int size = 4 + 13 + (p3 is null ? 0 : 6) + (p4 is null ? 0 : 18) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
@@ -432,7 +432,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
 
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
@@ -483,7 +483,7 @@ public class OperationEncodingTests
         int size = 4 + 13 + (p3 is null ? 0 : 6) + (p4 is null ? 0 : 18) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
@@ -527,7 +527,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
             // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)

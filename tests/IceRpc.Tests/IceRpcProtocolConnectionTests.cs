@@ -1803,7 +1803,7 @@ public sealed class IceRpcProtocolConnectionTests
     private static TestCaseData CreateFrameTestCaseData(IceRpcControlFrameType frameType, EncodeAction encode)
     {
         var writer = new MemoryBufferWriter(new byte[1024]);
-        var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(writer);
         encoder.EncodeUInt8((byte)frameType);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;

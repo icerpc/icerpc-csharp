@@ -16,13 +16,13 @@ public class ResultTests
         const int failureValue = 123;
 
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         StringInt32Result result =
             success ? new StringInt32Result.Success(successValue) : new StringInt32Result.Failure(failureValue);
 
         encoder.EncodeStringInt32Result(result);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var holder = new StringInt32ResultHolder(ref decoder);
@@ -50,12 +50,12 @@ public class ResultTests
         // Arrange
 
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var result = new StringOptInt32Result.Failure(failureValue);
 
         encoder.EncodeStringOptInt32Result(result);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var holder = new StringOptInt32ResultHolder(ref decoder);

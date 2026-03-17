@@ -825,9 +825,9 @@ public class DictionaryMappingTests
             Value = new CustomDictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         value.Encode(ref encoder);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decodedValue = new StructWithCustomDictionary(ref decoder);

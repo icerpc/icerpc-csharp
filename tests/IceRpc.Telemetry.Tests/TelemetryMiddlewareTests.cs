@@ -80,7 +80,7 @@ public sealed class TelemetryMiddlewareTests
             parentSpanId = encodedActivity.SpanId;
 
             var pipe = new Pipe();
-            var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(pipe.Writer);
             TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
             pipe.Writer.Complete();
 

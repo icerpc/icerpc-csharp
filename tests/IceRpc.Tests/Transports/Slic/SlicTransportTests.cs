@@ -78,7 +78,7 @@ public class SlicTransportTests
                 {
                     var writer = new MemoryBufferWriter(new byte[1024]);
                     {
-                        var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+                        var encoder = new SliceEncoder(writer);
                         encoder.EncodeFrameType(FrameType.Stream);
                         encoder.EncodeSize(1);
                         encoder.EncodeVarUInt62(int.MaxValue);
@@ -521,7 +521,7 @@ public class SlicTransportTests
 
         static VersionBody DecodeVersionBody(ReadOnlySequence<byte> buffer)
         {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(buffer);
             var versionBody = new VersionBody(ref decoder);
             decoder.CheckEndOfBuffer();
             return versionBody;
@@ -1241,7 +1241,7 @@ public class SlicTransportTests
             header = default;
             consumed = default;
 
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(buffer);
 
             // Decode the frame type and frame size.
             if (!decoder.TryDecodeUInt8(out byte frameType) || !decoder.TryDecodeVarUInt62(out ulong frameSize))
@@ -1266,7 +1266,7 @@ public class SlicTransportTests
 
         void Encode(IBufferWriter<byte> writer)
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(writer);
             encoder.EncodeFrameType(frameType);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;

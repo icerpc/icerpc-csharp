@@ -95,7 +95,7 @@ public sealed class DeadlineMiddlewareTests
     private static PipeReader WriteDeadline(DateTime deadline)
     {
         var pipe = new Pipe();
-        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(pipe.Writer);
         encoder.EncodeTimeStamp(deadline);
         pipe.Writer.Complete();
 

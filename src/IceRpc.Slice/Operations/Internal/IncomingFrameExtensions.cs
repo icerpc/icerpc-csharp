@@ -40,7 +40,6 @@ internal static class IncomingFrameExtensions
 
             var decoder = new SliceDecoder(
                 readResult.Buffer,
-                SliceEncoding.Slice2,
                 baseProxy,
                 feature.MaxCollectionAllocation,
                 activator: null);
@@ -88,7 +87,7 @@ internal static class IncomingFrameExtensions
             {
                 // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
                 // do is skip unknown tags
-                var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+                var decoder = new SliceDecoder(readResult.Buffer);
                 decoder.SkipTagged(useTagEndMarker: false); // useTagEndMarker is Slice1-only
                 decoder.CheckEndOfBuffer();
             }

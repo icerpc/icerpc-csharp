@@ -62,7 +62,6 @@ public ref partial struct SliceDecoder
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
-    /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -71,13 +70,12 @@ public ref partial struct SliceDecoder
     /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
-        SliceEncoding encoding,
         object? decodingContext = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
     {
-        Encoding = encoding;
+        Encoding = SliceEncoding.Slice2;
         DecodingContext = decodingContext;
 
         _currentCollectionAllocation = 0;
@@ -99,7 +97,6 @@ public ref partial struct SliceDecoder
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
-    /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -108,14 +105,12 @@ public ref partial struct SliceDecoder
     /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
-        SliceEncoding encoding,
         object? decodingContext = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
         : this(
             new ReadOnlySequence<byte>(buffer),
-            encoding,
             decodingContext,
             maxCollectionAllocation,
             activator,
@@ -536,7 +531,7 @@ public ref partial struct SliceDecoder
     /// <param name="byteCount">The number of bytes to add.</param>
     /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
     /// allocation.</exception>
-    /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, SliceEncoding, object?, int, IActivator?, int)" />
+    /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, object?, int, IActivator?, int)" />
     public void IncreaseCollectionAllocation(int byteCount)
     {
         _currentCollectionAllocation += byteCount;
