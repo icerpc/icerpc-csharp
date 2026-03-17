@@ -17,7 +17,7 @@ internal static class IceDefinitions
     internal static readonly byte[] Magic = "IceP"u8.ToArray(); // 'I', 'c', 'e', 'P'
 
     // 4-bytes after magic that provide the protocol version (always 1.0 for an ice frame) and the encoding of the
-    // frame header (always set to 1.0 with an ice frame, even though the IceEncoder/Decoder are really 1.1).
+    // frame header (always set to 1.0 with an ice frame, even though the IceEncoder/Decoder really use 1.1).
     internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
     internal static readonly IcePrologue CloseConnectionFrame = new(
