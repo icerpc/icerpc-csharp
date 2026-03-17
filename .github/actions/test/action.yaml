@@ -30,7 +30,7 @@ runs:
     if: always()
 
   - name: Upload blame dumps and logs
-    uses: actions/upload-artifact@v4
+    uses: actions/upload-artifact@v6
     if: failure()
     with:
       name: blame-and-dumps-${{ runner.os }}
@@ -42,7 +42,7 @@ runs:
       if-no-files-found: ignore
 
   - name: Upload test results
-    uses: actions/upload-artifact@v4
+    uses: actions/upload-artifact@v6
     with:
       name: test-results-${{ runner.os }}
       path: TestResults/*.trx

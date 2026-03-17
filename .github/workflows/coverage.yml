@@ -12,8 +12,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Build
         uses: ./.github/actions/build
 
@@ -28,7 +27,7 @@ jobs:
           format: cobertura
 
       - name: ReportGenerator
-        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
+        uses: danielpalme/ReportGenerator-GitHub-Action@5
         with:
           reports: tests/*/TestResults/*/coverage.cobertura.xml
           targetdir: coveragereport

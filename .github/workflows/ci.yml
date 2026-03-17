@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: ulimit -a
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Build
         uses: ./.github/actions/build
       - name: Publish
