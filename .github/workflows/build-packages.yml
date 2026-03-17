@@ -52,7 +52,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build
         uses: ./.github/actions/build-compiler
@@ -61,7 +61,7 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Archive Build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: slicec-cs-${{ matrix.target }}
           path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
@@ -78,10 +78,10 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download slicec-cs compiler artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
 
       - name: Copy slicec-cs binaries to staging path
         run: |
@@ -118,7 +118,7 @@ jobs:
 
       - name: Sign .NET Assemblies and slicec-cs.exe compiler
         if: inputs.authenticode_sign
-        uses: azure/trusted-signing-action@v0
+        uses: azure/trusted-signing-action@v1
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -152,7 +152,7 @@ jobs:
         run: dotnet pack --configuration Release --output ../../
 
       - name: Upload NuGet packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: nuget-packages
           path: |

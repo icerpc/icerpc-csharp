@@ -10,9 +10,9 @@ jobs:
   spellcheck:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: streetsidesoftware/cspell-action@v6
+      - uses: streetsidesoftware/cspell-action@v8
         with:
           files: |
             **/*.{cs,rs,md,json,csproj,slice}
