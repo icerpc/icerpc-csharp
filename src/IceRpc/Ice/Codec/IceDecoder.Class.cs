@@ -142,6 +142,8 @@ public ref partial struct IceDecoder
             // this indirection table.
             // We need to decrement index since position 0 in the indirection table corresponds to index 1.
             index--;
+
+            // If the right-hand side is null, the comparison simply evaluates to false.
             if (index < _classContext.Current.IndirectionTable?.Length)
             {
                 return _classContext.Current.IndirectionTable[index];
