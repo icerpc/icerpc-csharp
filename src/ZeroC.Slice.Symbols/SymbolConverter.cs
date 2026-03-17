@@ -60,6 +60,14 @@ public sealed class SymbolConverter
                 }
             }
         }
+
+        // Convert all named symbols in dependency order to fully populate _cache.
+        foreach (string typeId in TopologicalSort())
+        {
+            (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[typeId];
+            Module module = ConvertModule(file.ModuleDeclaration);
+            _cache[typeId] = ConvertSymbol(symbol, file, module);
+        }
     }
 
     private SliceFile ConvertFile(Compiler.SliceFile file)
@@ -115,19 +123,93 @@ public sealed class SymbolConverter
         return (IType)ResolveNamedSymbol(typeId);
     }
 
-    private ISymbol ResolveNamedSymbol(string typeId)
+    private ISymbol ResolveNamedSymbol(string typeId) => _cache[typeId];
+
+    // Collects all named TypeIds that symbol depends on into result. For anonymous TypeIds (numeric),
+    // recurses into the anonymous symbol so transitive dependencies through sequence/dictionary/result
+    // wrappers are captured.
+    private void CollectNamedTypeIds(Compiler.Symbol symbol, Compiler.SliceFile file, HashSet<string> result)
     {
-        Console.WriteLine($"Resolving TypeId: {typeId}");
-        if (_cache.TryGetValue(typeId, out ISymbol? cached))
+        IEnumerable<string> typeIds = symbol switch
         {
-            return cached;
+            Compiler.Symbol.Struct s => s.V.Fields.Select(f => f.DataType.TypeId),
+            Compiler.Symbol.TypeAlias t => [t.V.UnderlyingType.TypeId],
+            Compiler.Symbol.Interface i =>
+                i.V.Bases.Concat(
+                    i.V.Operations.SelectMany(op =>
+                        op.Parameters.Select(p => p.DataType.TypeId)
+                        .Concat(op.ReturnType.Select(r => r.DataType.TypeId)))),
+            Compiler.Symbol.Enum e =>
+                e.V.Enumerators.SelectMany(en => en.Fields.Select(f => f.DataType.TypeId)),
+            Compiler.Symbol.SequenceType s => [s.V.ElementType.TypeId],
+            Compiler.Symbol.DictionaryType d => [d.V.KeyType.TypeId, d.V.ValueType.TypeId],
+            Compiler.Symbol.ResultType r => [r.V.SuccessType.TypeId, r.V.FailureType.TypeId],
+            _ => [],
+        };
+
+        foreach (string typeId in typeIds)
+        {
+            if (_named.ContainsKey(typeId))
+            {
+                result.Add(typeId);
+            }
+            else if (int.TryParse(typeId, out int index))
+            {
+                // Anonymous type — recurse to collect any named types it references.
+                CollectNamedTypeIds(file.Contents[index], file, result);
+            }
+            // else: builtin, ignore.
+        }
+    }
+
+    // Topologically sorts all named symbols using Kahn's algorithm so dependencies appear before
+    // the symbols that use them.
+    private List<string> TopologicalSort()
+    {
+        var inDegree = new Dictionary<string, int>(_named.Count, StringComparer.Ordinal);
+        var adjacency = new Dictionary<string, List<string>>(_named.Count, StringComparer.Ordinal);
+
+        foreach (string typeId in _named.Keys)
+        {
+            inDegree[typeId] = 0;
+            adjacency[typeId] = [];
         }
 
-        (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[typeId];
-        Module module = ConvertModule(file.ModuleDeclaration);
-        ISymbol converted = ConvertSymbol(symbol, file, module);
-        _cache[typeId] = converted;
-        return converted;
+        foreach ((string typeId, (Compiler.SliceFile file, Compiler.Symbol symbol)) in _named)
+        {
+            var deps = new HashSet<string>(StringComparer.Ordinal);
+            CollectNamedTypeIds(symbol, file, deps);
+            foreach (string dep in deps)
+            {
+                adjacency[dep].Add(typeId);
+                inDegree[typeId]++;
+            }
+        }
+
+        var queue = new Queue<string>();
+        foreach ((string typeId, int degree) in inDegree)
+        {
+            if (degree == 0)
+            {
+                queue.Enqueue(typeId);
+            }
+        }
+
+        var sorted = new List<string>(_named.Count);
+        while (queue.Count > 0)
+        {
+            string current = queue.Dequeue();
+            sorted.Add(current);
+            foreach (string dependent in adjacency[current])
+            {
+                if (--inDegree[dependent] == 0)
+                {
+                    queue.Enqueue(dependent);
+                }
+            }
+        }
+
+        return sorted;
     }
 
     private ISymbol ConvertSymbol(Compiler.Symbol symbol, Compiler.SliceFile file, Module module) =>
