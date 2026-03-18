@@ -13,22 +13,27 @@ internal sealed class FakeLocator : ILocator
     private readonly ServiceAddress _serviceAddress;
     private readonly bool _adapterId;
 
-    public Task<ServiceAddress?> FindAdapterByIdAsync(
+    public Task<IceObjectProxy?> FindAdapterByIdAsync(
         string id,
         IFeatureCollection? features,
         CancellationToken cancellationToken)
     {
         ResolvedCount++;
-        return Task.FromResult(id == "good" && _adapterId ? _serviceAddress : null);
+        // Null invoker is ok since we're just encoding this proxy.
+        return Task.FromResult<IceObjectProxy?>(
+            id == "good" && _adapterId ? new IceObjectProxy(invoker: InvalidInvoker.Instance, _serviceAddress) : null);
     }
 
-    public Task<ServiceAddress?> FindObjectByIdAsync(
+    public Task<IceObjectProxy?> FindObjectByIdAsync(
         Identity id,
         IFeatureCollection? features,
         CancellationToken cancellationToken)
     {
         ResolvedCount++;
-        return Task.FromResult(id.Name == "good" && !_adapterId ? _serviceAddress : null);
+        // Null invoker is ok since we're just encoding this proxy.
+        return Task.FromResult<IceObjectProxy?>(
+            id.Name == "good" && !_adapterId ?
+                new IceObjectProxy(invoker: InvalidInvoker.Instance, _serviceAddress) : null);
     }
 
     Task<LocatorRegistryProxy?> ILocator.GetRegistryAsync(
