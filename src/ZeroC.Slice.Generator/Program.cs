@@ -43,7 +43,7 @@ reader.Complete();
 ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
 // Validate CS attributes before generation.
-var diagnostics = CsAttributeValidator.Validate(symbolFiles);
+List<Compiler.Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
 
 // Generate code for each source file, skipping generation if there are validation errors.
 var generatedFiles = new List<Compiler.GeneratedFile>();

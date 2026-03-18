@@ -222,7 +222,7 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         e.Value.ToString(null, CultureInfo.InvariantCulture);
 
     private static string GetArticle(string word) =>
-        // cspell:disable-line
+        // cspell:disable-next-line
         word.Length > 0 && "aeiouAEIOU".Contains(word[0], StringComparison.Ordinal) ? "an" : "a";
 
     private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>    {
