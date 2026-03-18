@@ -23,7 +23,13 @@ public static class IceEncoderExtensions
         EncodeAction<TValue> valueEncodeAction)
         where TKey : notnull
     {
-        encoder.EncodeSize(v.Count());
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            KeyValuePair<TKey, TValue>[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
+        encoder.EncodeSize(count);
         foreach ((TKey key, TValue value) in v)
         {
             keyEncodeAction(ref encoder, key);
@@ -72,7 +78,13 @@ public static class IceEncoderExtensions
     /// <param name="encodeAction">The encode action for an element.</param>
     public static void EncodeSequence<T>(this ref IceEncoder encoder, IEnumerable<T> v, EncodeAction<T> encodeAction)
     {
-        encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            T[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
+        encoder.EncodeSize(count);
         foreach (T item in v)
         {
             encodeAction(ref encoder, item);
