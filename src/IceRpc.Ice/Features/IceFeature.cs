@@ -31,7 +31,7 @@ public sealed class IceFeature : IIceFeature
     /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
     /// <value>The maximum size of an Ice-encoded payload, in bytes. Defaults to <c>1</c> MB.</value>
     /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
-    /// header with the ice protocol.</remarks>.
+    /// header with the ice protocol.</remarks>
     public int MaxPayloadSize { get; }
 
     /// <summary>Constructs an Ice feature.</summary>
