@@ -138,8 +138,7 @@ internal static class CsAttributeValidator
         static void ValidateEnumerators<T>(
             EnumWithUnderlying<T> e,
             List<Compiler.Diagnostic> diagnostics)
-            where T : struct
-        {
+            where T : struct, System.Numerics.INumber<T>        {
             foreach (EnumWithUnderlying<T>.Enumerator en in e.Enumerators)
             {
                 ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);

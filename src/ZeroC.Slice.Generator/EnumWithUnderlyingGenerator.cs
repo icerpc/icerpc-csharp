@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Globalization;
+using System.Numerics;
 using ZeroC.CodeBuilder;
 using ZeroC.Slice.Symbols;
 
@@ -22,8 +23,7 @@ internal static class EnumWithUnderlyingGenerator
         _ => throw new InvalidOperationException($"Unsupported enum underlying type: {enumDef.Underlying.Kind}"),
     };
 
-    private static CodeBlock GenerateCore<T>(EnumWithUnderlying<T> enumDef) where T : struct, IFormattable
-    {
+    private static CodeBlock GenerateCore<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>    {
         string identifier = enumDef.Name;
         string accessModifier = enumDef.AccessModifier;
 
@@ -39,8 +39,7 @@ internal static class EnumWithUnderlyingGenerator
     private static CodeBlock GenerateEnumDeclaration<T>(
         EnumWithUnderlying<T> enumDef,
         string identifier,
-        string accessModifier) where T : struct, IFormattable
-    {
+        string accessModifier) where T : struct, INumber<T>    {
         var builder = new ContainerBuilder($"{accessModifier} enum", identifier);
 
         builder.AddComment(
@@ -66,8 +65,7 @@ internal static class EnumWithUnderlyingGenerator
     private static CodeBlock GenerateEnumUnderlyingExtensions<T>(
         EnumWithUnderlying<T> enumDef,
         string identifier,
-        string accessModifier) where T : struct, IFormattable
-    {
+        string accessModifier) where T : struct, INumber<T>    {
         string csType = enumDef.Underlying.CSType;
         string csTypePascal = csType.ToPascalCase();
         string scopedId = enumDef.ScopedIdentifier;
@@ -85,7 +83,7 @@ internal static class EnumWithUnderlyingGenerator
 
         if (useSet)
         {
-            string values = string.Join(", ", enumDef.Enumerators.Select(FormatValue));
+            string values = string.Join(", ", enumDef.Enumerators.Select(e => FormatValue(e)));
             var hashSetBlock = new CodeBlock();
             hashSetBlock.WriteLine(
                 @$"private static readonly global::System.Collections.Generic.HashSet<{csType}> _enumeratorValues =
@@ -119,10 +117,8 @@ internal static class EnumWithUnderlyingGenerator
             }
             else
             {
-                string minValue = enumDef.Enumerators.Min(e => Convert.ToInt64(e.Value, CultureInfo.InvariantCulture))
-                    .ToString(CultureInfo.InvariantCulture);
-                string maxValue = enumDef.Enumerators.Max(e => Convert.ToInt64(e.Value, CultureInfo.InvariantCulture))
-                    .ToString(CultureInfo.InvariantCulture);
+                string minValue = enumDef.Enumerators.Min(e => e.Value).ToString(null, CultureInfo.InvariantCulture);
+                string maxValue = enumDef.Enumerators.Max(e => e.Value).ToString(null, CultureInfo.InvariantCulture);
                 checkExpr = $"value is >= {minValue} and <= {maxValue}";
             }
 
@@ -222,22 +218,32 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         return builder.Build();
     }
 
-    private static string FormatValue<T>(EnumWithUnderlying<T>.Enumerator e) where T : struct, IFormattable =>
+    private static string FormatValue<T>(EnumWithUnderlying<T>.Enumerator e) where T : struct, INumber<T> =>
         e.Value.ToString(null, CultureInfo.InvariantCulture);
 
     private static string GetArticle(string word) =>
         word.Length > 0 && "aeiouAEIOU".Contains(word[0], StringComparison.Ordinal) ? "an" : "a";
 
-    private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, IFormattable
-    {
-        if (enumDef.IsUnchecked || enumDef.Enumerators.Count == 0)
+    private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>    {
+        // If the enumerator count covers the full range of the underlying type, every value is valid
+        // and no validation is needed. This also prevents overflow when computing max - min below
+        // for small types like sbyte where MaxValue - MinValue (127 - (-128) = 255) overflows.
+        int? bitSize = enumDef.Underlying.Kind switch
+        {
+            BuiltinKind.Int8 or BuiltinKind.UInt8 => 8,
+            BuiltinKind.Int16 or BuiltinKind.UInt16 => 16,
+            _ => null, // int32 and larger: count (an int) can never cover the full range
+        };
+
+        if (enumDef.IsUnchecked
+            || enumDef.Enumerators.Count == 0
+            || (bitSize is int bits && enumDef.Enumerators.Count >= (1 << bits)))
         {
             return false;
         }
 
-        var values = enumDef.Enumerators.Select(e => Convert.ToInt64(e.Value, CultureInfo.InvariantCulture)).ToList();
-        long min = values.Min();
-        long max = values.Max();
-        return enumDef.Enumerators.Count < (max - min + 1);
+        T min = enumDef.Enumerators.Min(e => e.Value);
+        T max = enumDef.Enumerators.Max(e => e.Value);
+        return T.CreateChecked(enumDef.Enumerators.Count - 1) < max - min;
     }
 }

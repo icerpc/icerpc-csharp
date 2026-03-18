@@ -16,8 +16,7 @@ public abstract class EnumWithUnderlying : Entity, ISymbol, IType
 
 /// <summary>Represents a Slice enumeration with a typed underlying value.</summary>
 /// <typeparam name="T">The C# type that corresponds to the underlying Slice type.</typeparam>
-public sealed class EnumWithUnderlying<T> : EnumWithUnderlying where T : struct
-{
+public sealed class EnumWithUnderlying<T> : EnumWithUnderlying where T : struct, System.Numerics.INumber<T>{
     /// <summary>Gets the list of enumerators for this enumeration.</summary>
     public required ImmutableList<Enumerator> Enumerators { get; init; }
 

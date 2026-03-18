@@ -400,7 +400,7 @@ public sealed class SymbolConverter
         Compiler.Enum raw,
         Module module,
         Builtin builtin,
-        Func<ulong, bool, T> toValue) where T : struct => new()
+        Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T> => new()
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
