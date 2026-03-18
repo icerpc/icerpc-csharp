@@ -857,7 +857,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
         {
-            var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(_duplexConnectionWriter);
             encoder.EncodeFrameType(!lastStreamFrame ? FrameType.Stream : FrameType.StreamLast);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
@@ -1281,7 +1281,7 @@ internal class SlicConnection : IMultiplexedConnection
             header = default;
             consumed = default;
 
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(buffer);
 
             // Decode the frame type and frame size.
             if (!decoder.TryDecodeUInt8(out byte frameType) || !decoder.TryDecodeVarUInt62(out ulong frameSize))
@@ -1558,7 +1558,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void WriteFrame(FrameType frameType, ulong? streamId, EncodeAction? encode)
     {
-        var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(_duplexConnectionWriter);
         encoder.EncodeFrameType(frameType);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;

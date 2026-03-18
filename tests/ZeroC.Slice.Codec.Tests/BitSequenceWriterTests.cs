@@ -59,7 +59,7 @@ public class BitSequenceWriterTests
         const int maxBufferSize = 7;
         using var testPool = new TestMemoryPool(maxBufferSize);
         var pipe = new Pipe(new PipeOptions(pool: testPool));
-        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(pipe.Writer);
         BitSequenceWriter writer = encoder.GetBitSequenceWriter(bitSize);
 
         // Act

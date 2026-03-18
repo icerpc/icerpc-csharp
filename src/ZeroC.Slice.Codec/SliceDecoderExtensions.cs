@@ -5,7 +5,8 @@ using System.Runtime.InteropServices;
 
 namespace ZeroC.Slice.Codec;
 
-/// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode sequences or dictionaries.</summary>
+/// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode dictionaries, results, and sequences.
+/// </summary>
 public static class SliceDecoderExtensions
 {
     /// <summary>Decodes a dictionary.</summary>
@@ -142,7 +143,7 @@ public static class SliceDecoderExtensions
     /// <param name="decoder">The Slice decoder.</param>
     /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
     /// <returns>An array of T.</returns>
-    public static T[] DecodeSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
+    public static T[] DecodeSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc) where T : notnull
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -172,6 +173,7 @@ public static class SliceDecoderExtensions
         this ref SliceDecoder decoder,
         Func<int, TSequence> sequenceFactory,
         DecodeFunc<TElement> decodeFunc) where TSequence : ICollection<TElement>
+        where TElement : notnull
     {
         int count = decoder.DecodeSize();
         if (count == 0)

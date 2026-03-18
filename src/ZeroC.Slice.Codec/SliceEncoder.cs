@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using static ZeroC.Slice.Codec.Internal.Slice1Definitions;
 
 namespace ZeroC.Slice.Codec;
 
@@ -14,9 +13,6 @@ public ref partial struct SliceEncoder
 {
     /// <summary>Gets the number of bytes encoded by this encoder into the underlying buffer writer.</summary>
     public int EncodedByteCount { get; private set; }
-
-    /// <summary>Gets the Slice encoding of this encoder.</summary>
-    public SliceEncoding Encoding { get; }
 
     internal const long VarInt62MinValue = -2_305_843_009_213_693_952; // -2^61
     internal const long VarInt62MaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
@@ -27,8 +23,6 @@ public ref partial struct SliceEncoder
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
     private readonly IBufferWriter<byte> _bufferWriter;
-
-    private ClassContext _classContext;
 
     private Encoder? _utf8Encoder; // initialized lazily
 
@@ -86,20 +80,19 @@ public ref partial struct SliceEncoder
     /// </returns>
     public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
+    /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
+    /// <param name="size">The size.</param>
+    /// <returns>The minimum number of bytes.</returns>
+    public static int GetSizeLength(int size) => GetVarUInt62EncodedSize(checked((ulong)size));
+
     /// <summary>Constructs a Slice encoder.</summary>
     /// <param name="bufferWriter">A buffer writer that writes to byte buffers. See important remarks below.</param>
-    /// <param name="encoding">The Slice encoding.</param>
-    /// <param name="classFormat">The class format (Slice1 only).</param>
     /// <remarks>Warning: the Slice encoding requires rewriting buffers, and many buffer writers do not support this
     /// behavior. It is safe to use a pipe writer or a buffer writer that writes to a single fixed-size buffer (without
     /// reallocation).</remarks>
-    public SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, ClassFormat classFormat = default)
-        : this()
-    {
-        Encoding = encoding;
+    public SliceEncoder(IBufferWriter<byte> bufferWriter)
+        : this() =>
         _bufferWriter = bufferWriter;
-        _classContext = new ClassContext(classFormat);
-    }
 
     // Encode methods for basic types
 
@@ -142,22 +135,7 @@ public ref partial struct SliceEncoder
                 nameof(value));
         }
 
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            if (value < 255)
-            {
-                EncodeUInt8((byte)value);
-            }
-            else
-            {
-                EncodeUInt8(255);
-                EncodeInt32(value);
-            }
-        }
-        else
-        {
-            EncodeVarUInt62((ulong)value);
-        }
+        EncodeVarUInt62((ulong)value);
     }
 
     /// <summary>Encodes a string into a Slice string.</summary>
@@ -179,7 +157,7 @@ public ref partial struct SliceEncoder
             {
                 // Encode directly into currentSpan
                 int size = _utf8.GetBytes(v, currentSpan);
-                EncodeSizeIntoPlaceholder(Encoding, size, sizePlaceholder);
+                EncodeVarUInt62((ulong)size, sizePlaceholder);
                 Advance(size);
             }
             else
@@ -200,29 +178,7 @@ public ref partial struct SliceEncoder
                 Debug.Assert(completed); // completed is always true when flush is true
                 int size = checked((int)bytesUsed);
                 EncodedByteCount += size;
-                EncodeSizeIntoPlaceholder(Encoding, size, sizePlaceholder);
-            }
-        }
-
-        static void EncodeSizeIntoPlaceholder(SliceEncoding encoding, int size, Span<byte> into)
-        {
-            if (encoding == SliceEncoding.Slice1)
-            {
-                if (into.Length == 1)
-                {
-                    Debug.Assert(size < 255);
-                    into[0] = (byte)size;
-                }
-                else
-                {
-                    Debug.Assert(into.Length == 5);
-                    into[0] = 255;
-                    EncodeInt32(size, into[1..]);
-                }
-            }
-            else
-            {
-                EncodeVarUInt62((ulong)size, into);
+                EncodeVarUInt62((ulong)size, sizePlaceholder);
             }
         }
     }
@@ -286,19 +242,14 @@ public ref partial struct SliceEncoder
 
     // Other methods
 
-    /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
-    /// not known before encoding this value (Slice2 only).</summary>
+    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+    /// encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
     public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
     {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats.");
-        }
-
         EncodeVarInt32(tag); // the key
         Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
         int startPos = EncodedByteCount;
@@ -306,8 +257,8 @@ public ref partial struct SliceEncoder
         EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
     }
 
-    /// <summary>Encodes a non-null encoded tagged value. The number of bytes needed to encode the value is
-    /// known before encoding the value. With Slice1 encoding this method always use the VSize tag format.</summary>
+    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
+    /// encoding the value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="size">The number of bytes needed to encode the value.</param>
@@ -317,17 +268,10 @@ public ref partial struct SliceEncoder
     {
         if (size <= 0)
         {
-            throw new ArgumentException("Invalid size value, size must be greater than zero.", nameof(size));
+            throw new ArgumentException("Invalid size value, size must be greater than 0.", nameof(size));
         }
 
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            EncodeTaggedFieldHeader(tag, TagFormat.VSize);
-        }
-        else
-        {
-            EncodeVarInt32(tag);
-        }
+        EncodeVarInt32(tag);
 
         EncodeSize(size);
         int startPos = EncodedByteCount;
@@ -342,67 +286,12 @@ public ref partial struct SliceEncoder
         }
     }
 
-    /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the value is
-    /// not known before encoding this value.</summary>
-    /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag. Must be either FSize or OptimizedVSize.</param>
-    /// <param name="tagFormat">The tag format.</param>
-    /// <param name="v">The value to encode.</param>
-    /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat" /> is VSize.</exception>
-    public void EncodeTagged<T>(
-        int tag,
-        TagFormat tagFormat,
-        T v,
-        EncodeAction<T> encodeAction) where T : notnull
-    {
-        if (Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException("Tag formats can only be used with the Slice1 encoding.");
-        }
-
-        switch (tagFormat)
-        {
-            case TagFormat.F1:
-            case TagFormat.F2:
-            case TagFormat.F4:
-            case TagFormat.F8:
-            case TagFormat.Size:
-                EncodeTaggedFieldHeader(tag, tagFormat);
-                encodeAction(ref this, v);
-                break;
-            case TagFormat.FSize:
-                EncodeTaggedFieldHeader(tag, tagFormat);
-                Span<byte> placeholder = GetPlaceholderSpan(4);
-                int startPos = EncodedByteCount;
-                encodeAction(ref this, v);
-                // We don't include the size-length in the size we encode.
-                EncodeInt32(EncodedByteCount - startPos, placeholder);
-                break;
-
-            case TagFormat.OptimizedVSize:
-                // Used to encode string, and sequences of non optional elements with 1 byte min wire size,
-                // in this case OptimizedVSize is always used to optimize out the size.
-                EncodeTaggedFieldHeader(tag, TagFormat.VSize);
-                encodeAction(ref this, v);
-                break;
-
-            default:
-                throw new ArgumentException($"Invalid tag format value: '{tagFormat}'.", nameof(tagFormat));
-        }
-    }
-
-    /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit
-    /// sequence.</summary>
+    /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit sequence.
+    /// </summary>
     /// <param name="bitSequenceSize">The minimum number of bits in the bit sequence.</param>
     /// <returns>The bit sequence writer.</returns>
     public BitSequenceWriter GetBitSequenceWriter(int bitSequenceSize)
     {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException("The bit sequence writer cannot be used with the Slice1 encoding.");
-        }
-
         if (bitSequenceSize <= 0)
         {
             throw new ArgumentOutOfRangeException(
@@ -475,12 +364,6 @@ public ref partial struct SliceEncoder
         Advance(size);
         return placeholder;
     }
-
-    /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
-    /// <param name="size">The size.</param>
-    /// <returns>The minimum number of bytes.</returns>
-    public readonly int GetSizeLength(int size) => Encoding == SliceEncoding.Slice1 ?
-        (size < 255 ? 1 : 5) : GetVarUInt62EncodedSize(checked((ulong)size));
 
     /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>
     /// <param name="span">The span to copy.</param>
@@ -559,32 +442,5 @@ public ref partial struct SliceEncoder
     {
         _bufferWriter.Advance(count);
         EncodedByteCount += count;
-    }
-
-    /// <summary>Encodes the header for a tagged field. Slice1 only.</summary>
-    /// <param name="tag">The numeric tag associated with the field.</param>
-    /// <param name="format">The tag format.</param>
-    private void EncodeTaggedFieldHeader(int tag, TagFormat format)
-    {
-        Debug.Assert(Encoding == SliceEncoding.Slice1);
-        Debug.Assert(format != TagFormat.OptimizedVSize); // OptimizedVSize cannot be encoded
-
-        int v = (int)format;
-        if (tag < 30)
-        {
-            v |= tag << 3;
-            EncodeUInt8((byte)v);
-        }
-        else
-        {
-            v |= 0x0F0; // tag = 30
-            EncodeUInt8((byte)v);
-            EncodeSize(tag);
-        }
-
-        if (_classContext.Current.InstanceType != InstanceType.None)
-        {
-            _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
-        }
     }
 }

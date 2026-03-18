@@ -7,7 +7,8 @@ using System.Runtime.InteropServices;
 
 namespace ZeroC.Slice.Codec;
 
-/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode sequences or dictionaries.</summary>
+/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode dictionaries, results, and sequences.
+/// </summary>
 public static class SliceEncoderExtensions
 {
     /// <summary>Encodes a dictionary.</summary>
@@ -24,7 +25,13 @@ public static class SliceEncoderExtensions
         EncodeAction<TValue> valueEncodeAction)
         where TKey : notnull
     {
-        encoder.EncodeSize(v.Count());
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            KeyValuePair<TKey, TValue>[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
+        encoder.EncodeSize(count);
         foreach ((TKey key, TValue value) in v)
         {
             keyEncodeAction(ref encoder, key);
@@ -46,7 +53,12 @@ public static class SliceEncoderExtensions
         EncodeAction<TValue> valueEncodeAction)
         where TKey : notnull
     {
-        int count = v.Count();
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            KeyValuePair<TKey, TValue>[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
         encoder.EncodeSize(count);
         if (count > 0)
         {
@@ -135,14 +147,20 @@ public static class SliceEncoderExtensions
     }
 
     /// <summary>Encodes a sequence.</summary>
-    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class and nullable
-    /// custom types with Slice1.</typeparam>
+    /// <typeparam name="T">The type of the sequence elements.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The sequence to encode.</param>
     /// <param name="encodeAction">The encode action for an element.</param>
     public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v, EncodeAction<T> encodeAction)
+        where T : notnull
     {
-        encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            T[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
+        encoder.EncodeSize(count);
         foreach (T item in v)
         {
             encodeAction(ref encoder, item);
@@ -160,7 +178,12 @@ public static class SliceEncoderExtensions
         IEnumerable<T> v,
         EncodeAction<T> encodeAction)
     {
-        int count = v.Count(); // potentially slow Linq Count()
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            T[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
         encoder.EncodeSize(count);
         if (count > 0)
         {

@@ -33,7 +33,7 @@ internal static class ReadOnlySequenceExtensions
     /// </exception>
     internal static T DecodeSliceBuffer<T>(this ReadOnlySequence<byte> buffer, ZeroC.Slice.Codec.DecodeFunc<T> decodeFunc)
     {
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
         T result = decodeFunc(ref decoder);
         decoder.CheckEndOfBuffer();
         return result;

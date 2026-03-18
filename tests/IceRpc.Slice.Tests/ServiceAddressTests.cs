@@ -15,9 +15,9 @@ public class ServiceAddressTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeServiceAddress(value);
-        var decoder = new SliceDecoder(buffer.AsMemory()[0..bufferWriter.WrittenMemory.Length], SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.AsMemory()[0..bufferWriter.WrittenMemory.Length]);
 
         // Act/Assert
         Assert.That(decoder.DecodeServiceAddress(), Is.EqualTo(value));

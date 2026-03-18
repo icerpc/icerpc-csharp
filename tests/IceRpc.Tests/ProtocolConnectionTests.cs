@@ -814,7 +814,7 @@ public sealed class ProtocolConnectionTests
                     }
                     else
                     {
-                        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+                        var encoder = new SliceEncoder(bufferWriter);
                         encoder.EncodeDictionary(
                             expectedValue,
                             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
@@ -842,7 +842,7 @@ public sealed class ProtocolConnectionTests
             }
             else
             {
-                var decoder = new SliceDecoder(field, SliceEncoding.Slice2);
+                var decoder = new SliceDecoder(field);
                 return decoder.DecodeDictionary(
                     count => new Dictionary<string, string>(count),
                     (ref SliceDecoder decoder) => decoder.DecodeString(),

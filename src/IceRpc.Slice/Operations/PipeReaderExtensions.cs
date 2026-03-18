@@ -55,7 +55,6 @@ public static class PipeReaderExtensions
             // Since the elements are fixed-size, they can't contain service addresses hence baseProxy can remain null.
             var decoder = new SliceDecoder(
                 buffer,
-                SliceEncoding.Slice2,
                 maxCollectionAllocation: sliceFeature.MaxCollectionAllocation);
 
             var items = new T[buffer.Length / elementSize];
@@ -112,8 +111,7 @@ public static class PipeReaderExtensions
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // No activator or max depth since streams are Slice2.
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2, baseProxy, sliceFeature.MaxCollectionAllocation);
+            var decoder = new SliceDecoder(buffer, baseProxy, sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();
             do

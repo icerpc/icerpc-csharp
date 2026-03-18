@@ -6,25 +6,11 @@ use crate::cs_attributes::CsEncodedReturn;
 use slicec::grammar::{AttributeFunctions, Operation};
 
 pub trait OperationExt {
-    /// Returns the format that classes should be encoded with.
-    fn get_class_format(&self, is_dispatch: bool) -> &str;
-
     fn invocation_return_task(&self, task_type: &str) -> String;
     fn dispatch_return_task(&self) -> String;
 }
 
 impl OperationExt for Operation {
-    fn get_class_format(&self, is_dispatch: bool) -> &str {
-        let use_sliced_format = match is_dispatch {
-            true => self.slice_classes_in_return(),
-            false => self.slice_classes_in_arguments(),
-        };
-        match use_sliced_format {
-            true => "ClassFormat.Sliced",
-            false => "default", // `ClassFormat.Compact` is the default value
-        }
-    }
-
     fn invocation_return_task(&self, task_type: &str) -> String {
         let namespace = &self.namespace();
         let return_type = match self.return_members().as_slice() {

@@ -29,9 +29,9 @@ public partial class ProxyTests
         // Arrange
         var expected = value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeServiceAddress(value);
-        var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2);
+        var sut = new SliceDecoder(bufferWriter.WrittenMemory);
 
         // Act
         var decoded = sut.DecodePingableProxy();
@@ -48,9 +48,9 @@ public partial class ProxyTests
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
-            var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
             return decoder.DecodePingableProxy().Invoker;
         },
         Is.EqualTo(InvalidInvoker.Instance));

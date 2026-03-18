@@ -60,7 +60,7 @@ public static class FieldsExtensions
         where TKey : struct =>
         fields.With(key, new OutgoingFieldValue(bufferWriter =>
         {
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             encodeAction(ref encoder, value);
         }));
 

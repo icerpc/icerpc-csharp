@@ -14,7 +14,7 @@ public class DictionaryEncodingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
         // Act
@@ -24,7 +24,7 @@ public class DictionaryEncodingTests
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Count));
         var value = new Dictionary<int, string>();
         while (decoder.Consumed != buffer.WrittenMemory.Length)
@@ -39,7 +39,7 @@ public class DictionaryEncodingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = Enumerable.Range(0, 1024).ToDictionary(
             key => key,
             value => value % 2 == 0 ? $"value-{value}" : null);
@@ -51,7 +51,7 @@ public class DictionaryEncodingTests
             (ref SliceEncoder encoder, string? value) => encoder.EncodeString(value!));
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Count));
 
         var value = new Dictionary<int, string?>();

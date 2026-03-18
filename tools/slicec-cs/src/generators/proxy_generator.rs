@@ -60,7 +60,6 @@ This remote service must implement Slice interface {slice_interface}."#
             ),
         )
         .add_generated_remark("record struct", interface_def)
-        .add_type_id_attribute(interface_def)
         .add_block(request_class(interface_def))
         .add_block(response_class(interface_def))
         .add_block(
@@ -472,13 +471,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             Some("The Slice encode options.".to_owned()),
         );
 
-        builder.add_comment(
-            "returns",
-            format!(
-                "The payload encoded with <see cref=\"{}\" />.",
-                operation.encoding.to_cs_encoding(),
-            ),
-        );
+        builder.add_comment("returns", "The Slice-encoded payload.");
 
         builder.set_body(encode_operation(operation, false));
 

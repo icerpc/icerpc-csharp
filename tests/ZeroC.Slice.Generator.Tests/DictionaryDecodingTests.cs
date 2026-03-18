@@ -15,7 +15,7 @@ public class DictionaryDecodingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
         // A dictionary is encoded like a sequence.
@@ -24,7 +24,7 @@ public class DictionaryDecodingTests
             encoder.EncodeInt32(pair.Key);
             encoder.EncodeString(pair.Value);
         });
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeDictionary(
@@ -42,7 +42,7 @@ public class DictionaryDecodingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = Enumerable.Range(0, 1024).ToDictionary(
             key => key,
             value => value % 2 == 0 ? null : $"value-{value}");
@@ -51,7 +51,7 @@ public class DictionaryDecodingTests
         encoder.EncodeSequence(expected, (ref SliceEncoder encoder, KeyValuePair<int, string?> pair) =>
             new KeyValuePair(pair.Key, pair.Value).Encode(ref encoder));
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeDictionaryWithOptionalValueType(
@@ -68,7 +68,7 @@ public class DictionaryDecodingTests
     public void Decode_dictionary_with_optional_value_type_exceeds_default_max_collection_allocation()
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 4]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (LargeStruct?)null);
         // Each entry is encoded on 3 bytes.
         encoder.EncodeDictionaryWithOptionalValueType(
@@ -81,7 +81,7 @@ public class DictionaryDecodingTests
             {
                 // The default max collection allocation here is a little over 8 * 1024 * 3 = 24K, compared to
                 // an actual increase of 1024 * (2 + 24) = 26K (Unsafe.SizeOf<LargeStruct?>() is 24).
-                var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+                var sut = new SliceDecoder(buffer.WrittenMemory);
                 _ = sut.DecodeDictionaryWithOptionalValueType(
                     count => new Dictionary<short, LargeStruct?>(count),
                     (ref SliceDecoder decoder) => decoder.DecodeInt16(),
@@ -94,7 +94,7 @@ public class DictionaryDecodingTests
     public void Decode_dictionary_with_optional_value_type_and_custom_max_collection_allocation()
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 4]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (LargeStruct?)null);
         // Each entry is encoded on 3 bytes.
         encoder.EncodeDictionaryWithOptionalValueType(
@@ -107,7 +107,6 @@ public class DictionaryDecodingTests
             {
                 var sut = new SliceDecoder(
                     buffer.WrittenMemory,
-                    SliceEncoding.Slice2,
                     maxCollectionAllocation: 1024 * (Unsafe.SizeOf<short>() + Unsafe.SizeOf<LargeStruct?>()));
                 _ = sut.DecodeDictionaryWithOptionalValueType(
                     count => new Dictionary<short, LargeStruct?>(count),

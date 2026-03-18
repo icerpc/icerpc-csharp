@@ -160,7 +160,7 @@ public static class AsyncEnumerableExtensions
 
             Task<bool>? EncodeElements()
             {
-                var encoder = new SliceEncoder(_pipe.Writer, SliceEncoding.Slice2);
+                var encoder = new SliceEncoder(_pipe.Writer);
 
                 Span<byte> sizePlaceholder = default;
                 if (_useSegments)

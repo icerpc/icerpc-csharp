@@ -13,11 +13,11 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var paintColor = new PaintColor.Blue(10);
         encoder.EncodePaintColor(paintColor);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeColor();
@@ -36,11 +36,11 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var paintColor = new PaintColor.Yellow(shade, code);
         encoder.EncodePaintColor(paintColor);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodePaintColor();
@@ -55,11 +55,11 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var shape = new RevisedShape.Square(10, new Color.Blue());
         encoder.EncodeRevisedShape(shape);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeShape();
@@ -75,18 +75,18 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder1 = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder1 = new SliceEncoder(buffer);
         var revisedShape = new RevisedShape.Square(10, new Color.White());
         encoder1.EncodeRevisedShape(revisedShape);
 
-        var decoder1 = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder1 = new SliceDecoder(buffer.WrittenMemory);
         var shape = decoder1.DecodeShape();
         buffer.Clear();
 
-        var encoder2 = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder2 = new SliceEncoder(buffer);
         encoder2.EncodeShape(shape);
 
-        var decoder2 = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder2 = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder2.DecodeRevisedShape();
@@ -103,11 +103,11 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var shape = new RevisedShape.Oval(name, major, minor);
         encoder.EncodeRevisedShape(shape);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeRevisedShape();
@@ -122,11 +122,11 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var shape = new CompactShape.Rectangle(10, 20);
         encoder.EncodeCompactShape(shape);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeCompactShape();
@@ -142,11 +142,11 @@ public class EnumWithFieldsTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var shape = new CompactShape.Oval(name, major, minor);
         encoder.EncodeCompactShape(shape);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = decoder.DecodeCompactShape();
@@ -168,6 +168,20 @@ public class EnumWithFieldsTests
     }
 
     [Test]
-    public void Enumerator_with_fields_gets_attribute() =>
-        Assert.That(typeof(ShapeWithAttribute.Rectangle).GetSliceTypeId(), Is.EqualTo("MyRectangle"));
+    public void Enumerator_with_fields_gets_attribute()
+    {
+        var attribute = typeof(ShapeWithAttribute.Rectangle)
+            .GetCustomAttributes(typeof(MyEnumeratorNameAttribute), false)
+            .Cast<MyEnumeratorNameAttribute>()
+            .Single();
+        Assert.That(attribute.Name, Is.EqualTo("MyRectangle"));
+    }
+}
+
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class MyEnumeratorNameAttribute : Attribute
+{
+    public string Name { get; }
+
+    public MyEnumeratorNameAttribute(string name) => Name = name;
 }
