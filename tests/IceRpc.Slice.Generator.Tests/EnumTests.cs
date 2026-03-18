@@ -30,7 +30,7 @@ public class EnumTests
         static MyEnum[] Decode(PipeReader payload)
         {
             payload.TryRead(out var readResult);
-            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(readResult.Buffer);
             decoder.SkipSize();
             return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyEnum());
         }
@@ -58,7 +58,7 @@ public class EnumTests
         static MyFixedSizeEnum[] Decode(PipeReader payload)
         {
             payload.TryRead(out var readResult);
-            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(readResult.Buffer);
             decoder.SkipSize();
             return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyFixedSizeEnum());
         }
@@ -87,7 +87,7 @@ public class EnumTests
         static MyUncheckedEnum[] Decode(PipeReader payload)
         {
             payload.TryRead(out var readResult);
-            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(readResult.Buffer);
             decoder.SkipSize();
             return decoder.DecodeSequence<MyUncheckedEnum>();
         }

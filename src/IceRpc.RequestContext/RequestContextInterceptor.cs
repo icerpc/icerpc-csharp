@@ -49,7 +49,7 @@ public class RequestContextInterceptor : IInvoker
                         RequestFieldKey.Context,
                         new OutgoingFieldValue(bufferWriter =>
                         {
-                            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+                            var encoder = new SliceEncoder(bufferWriter);
                             encoder.EncodeDictionary(
                                 context,
                                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),

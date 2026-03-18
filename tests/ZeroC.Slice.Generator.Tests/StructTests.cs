@@ -13,10 +13,10 @@ public sealed class StructTests
     public void Decode_compact_struct()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new MyCompactStruct(ref decoder);
 
@@ -29,11 +29,11 @@ public sealed class StructTests
     public void Decode_struct()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new MyStruct(ref decoder);
 
@@ -50,7 +50,7 @@ public sealed class StructTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
@@ -73,9 +73,9 @@ public sealed class StructTests
             encoder.EncodeMyEnum(e.Value);
         }
 
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var decoded = new MyStructWithOptionalFields(ref decoder);
@@ -93,12 +93,12 @@ public sealed class StructTests
     public void Encode_compact_struct()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new MyCompactStruct(10, 20);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.I));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.J));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -108,15 +108,15 @@ public sealed class StructTests
     public void Encode_struct()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new MyStruct(10, 20);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.I));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.J));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -127,13 +127,13 @@ public sealed class StructTests
         [Values(MyEnum.Enum2, null)] MyEnum? e)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new MyStructWithOptionalFields(10, 20, k, l, e);
 
         expected.Encode(ref encoder);
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         var bitSequenceReader = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(20));
@@ -167,7 +167,7 @@ public sealed class StructTests
             Assert.That(bitSequenceReader.Read(), Is.False);
         }
 
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 

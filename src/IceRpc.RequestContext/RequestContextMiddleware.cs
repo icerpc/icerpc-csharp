@@ -36,7 +36,7 @@ public class RequestContextMiddleware : IDispatcher
             }
             else
             {
-                var decoder = new SliceDecoder(value, SliceEncoding.Slice2);
+                var decoder = new SliceDecoder(value);
                 context = decoder.DecodeDictionary(
                     size => new Dictionary<string, string>(size),
                     keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),

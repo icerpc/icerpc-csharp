@@ -565,7 +565,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+                var decoder = new SliceDecoder(buffer);
 
                 StatusCode statusCode = decoder.DecodeStatusCode();
                 string? errorMessage = statusCode == StatusCode.Ok ? null : decoder.DecodeString();
@@ -580,7 +580,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             void EncodeHeader(PipeWriter streamOutput)
             {
-                var encoder = new SliceEncoder(streamOutput, SliceEncoding.Slice2);
+                var encoder = new SliceEncoder(streamOutput);
 
                 // Write the IceRpc request header.
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
@@ -828,7 +828,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             try
             {
                 _ = pipe.Reader.TryRead(out ReadResult readResult);
-                var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+                var fieldsDecoder = new SliceDecoder(readResult.Buffer);
 
                 for (int i = 0; i < count; ++i)
                 {
@@ -1225,7 +1225,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
             ReadOnlySequence<byte> buffer)
         {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(buffer);
             var header = new IceRpcRequestHeader(ref decoder);
             (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
                 DecodeFieldDictionary(
@@ -1237,7 +1237,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         void EncodeHeader(OutgoingResponse response)
         {
-            var encoder = new SliceEncoder(streamOutput, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(streamOutput);
 
             // Write the IceRpc response header.
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
@@ -1461,7 +1461,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {
-            var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(buffer);
             encoder.EncodeIceRpcControlFrameType(frameType);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
             int startPos = encoder.EncodedByteCount; // does not include the size

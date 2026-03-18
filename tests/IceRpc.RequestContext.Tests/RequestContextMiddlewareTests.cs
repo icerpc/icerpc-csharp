@@ -48,7 +48,7 @@ public sealed class RequestContextMiddlewareTests
         static PipeReader EncodeContextField(Dictionary<string, string> context)
         {
             var pipe = new Pipe();
-            var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(pipe.Writer);
             encoder.EncodeDictionary(
                 context,
                 (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),

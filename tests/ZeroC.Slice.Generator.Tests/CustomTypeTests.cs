@@ -13,10 +13,10 @@ public class CustomTypeTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new MyCustomType { Flag = true, Value = 10 };
         encoder.EncodeCustomType(expected);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var value = new StructWithCustomTypeField(ref decoder);
@@ -31,14 +31,14 @@ public class CustomTypeTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new StructWithCustomTypeField(new MyCustomType { Flag = true, Value = 10 });
 
         // Act
         expected.Encode(ref encoder);
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         var value = decoder.DecodeCustomType();
         Assert.That(expected.M, Is.EqualTo(value));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -49,7 +49,7 @@ public class CustomTypeTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new[]
         {
             new MyCustomType { Flag = true, Value = 79 },
@@ -59,7 +59,7 @@ public class CustomTypeTests
         encoder.EncodeSequence(
             expected,
             CustomTypeSliceEncoderExtensions.EncodeCustomType);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         var value = new StructWithSequenceOfCustomTypes(ref decoder);
@@ -74,7 +74,7 @@ public class CustomTypeTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         var expected = new StructWithSequenceOfCustomTypes(new[]
         {
             new MyCustomType { Flag = true, Value = 79 },
@@ -86,7 +86,7 @@ public class CustomTypeTests
         expected.Encode(ref encoder);
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
         var value = decoder.DecodeSequence(CustomTypeSliceDecoderExtensions.DecodeCustomType);
         Assert.That(expected.S, Is.EqualTo(value));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

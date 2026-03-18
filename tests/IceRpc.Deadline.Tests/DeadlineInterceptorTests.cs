@@ -169,7 +169,7 @@ public sealed class DeadlineInterceptorTests
         pipe.Writer.Complete();
 
         pipe.Reader.TryRead(out var readResult);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         return decoder.DecodeTimeStamp();
     }
 }

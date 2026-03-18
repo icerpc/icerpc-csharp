@@ -35,10 +35,10 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeVarInt62(duration.Ticks);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
 
         // Act
         var decodedDuration = decoder.DecodeDuration();
@@ -51,12 +51,12 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         // Act
         encoder.EncodeDuration(duration);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
         var decodedDuration = new TimeSpan(decoder.DecodeVarInt62());
         Assert.That(decodedDuration, Is.EqualTo(duration));
     }
@@ -66,10 +66,10 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeInt64(timeStamp.ToUniversalTime().Ticks);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
 
         // Act
         var decodedTimeStamp = decoder.DecodeTimeStamp();
@@ -82,12 +82,12 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         // Act
         encoder.EncodeTimeStamp(timeStamp);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
         var decodedTimeStamp = new DateTime(decoder.DecodeInt64(), DateTimeKind.Utc);
 
         Assert.That(decodedTimeStamp, Is.EqualTo(timeStamp.ToUniversalTime()));
@@ -101,10 +101,10 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeString(uri.ToString());
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
 
         // Act
         Uri decodedUri = decoder.DecodeUri();
@@ -120,12 +120,12 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         // Act
         encoder.EncodeUri(uri);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
         var decodedUri = new Uri(decoder.DecodeString(), UriKind.RelativeOrAbsolute);
 
         Assert.That(decodedUri, Is.EqualTo(uri));
@@ -137,12 +137,12 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         var guid = Guid.Parse(value);
         var span = encoder.GetPlaceholderSpan(16);
         _ = guid.TryWriteBytes(span);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
 
         // Act
         Guid decodedGuid = decoder.DecodeUuid();
@@ -156,13 +156,13 @@ public class WellKnownTypesTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         var guid = Guid.Parse(value);
 
         // Act
         encoder.EncodeUuid(guid);
 
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
 
         Span<byte> data = new byte[16];
         decoder.CopyTo(data);

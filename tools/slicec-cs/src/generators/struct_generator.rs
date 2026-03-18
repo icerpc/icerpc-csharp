@@ -111,7 +111,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let mut encode_body = generate_encoding_blocks(&fields, struct_def.supported_encodings(), encode_fields, "encoder");
 
     if !struct_def.is_compact {
-        writeln!(encode_body, "encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+        writeln!(encode_body, "encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);");
     }
     builder.add_block(
         FunctionBuilder::new(

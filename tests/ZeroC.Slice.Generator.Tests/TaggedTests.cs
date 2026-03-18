@@ -8,48 +8,48 @@ namespace ZeroC.Slice.Generator.Tests;
 
 public class TaggedTests
 {
-    public static IEnumerable<TestCaseData> EncodeSlice2TaggedFieldsSource
+    public static IEnumerable<TestCaseData> EncodeSliceTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_structWithTaggedFields[0]).SetName(
-                "Encode_slice2_tagged_fields(all_fields_set)");
+                "Encode_slice_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
-                "Encode_slice2_tagged_fields(no_fields_set)");
+                "Encode_slice_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
-                "Encode_slice2_tagged_fields(some_fields_set)");
+                "Encode_slice_tagged_fields(some_fields_set)");
         }
     }
 
-    public static IEnumerable<TestCaseData> DecodeSlice2TaggedFieldsSource
+    public static IEnumerable<TestCaseData> DecodeSliceTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_structWithTaggedFields[0]).SetName(
-                "Decode_slice2_tagged_fields(all_fields_set)");
+                "Decode_slice_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
-                "Decode_slice2_tagged_fields(no_fields_set)");
+                "Decode_slice_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
-                "Decode_slice2_tagged_fields(some_fields_set)");
+                "Decode_slice_tagged_fields(some_fields_set)");
         }
     }
 
-    public static IEnumerable<TestCaseData> SkipSlice2TaggedFieldsSource
+    public static IEnumerable<TestCaseData> SkipSliceTaggedFieldsSource
     {
         get
         {
             yield return new TestCaseData(_structWithTaggedFields[0]).SetName(
-                "Skip_slice2_tagged_fields(all_fields_set)");
+                "Skip_slice_tagged_fields(all_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
-                "Skip_slice2_tagged_fields(no_fields_set)");
+                "Skip_slice_tagged_fields(no_fields_set)");
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
-                "Skip_slice2_tagged_fields(some_fields_set)");
+                "Skip_slice_tagged_fields(some_fields_set)");
         }
     }
 
@@ -70,11 +70,11 @@ public class TaggedTests
             "hello world!"),
     };
 
-    [Test, TestCaseSource(nameof(DecodeSlice2TaggedFieldsSource))]
-    public void Decode_slice2_tagged_fields(MyStructWithTaggedFields expected)
+    [Test, TestCaseSource(nameof(DecodeSliceTaggedFieldsSource))]
+    public void Decode_slice_tagged_fields(MyStructWithTaggedFields expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         if (expected.A is byte a)
         {
             encoder.EncodeTagged(1, a, (ref SliceEncoder encoder, byte value) => encoder.EncodeUInt8(value));
@@ -98,8 +98,8 @@ public class TaggedTests
         {
             encoder.EncodeTagged(5, e, (ref SliceEncoder encoder, string value) => encoder.EncodeString(e));
         }
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var decoded = new MyStructWithTaggedFields(ref decoder);
         Assert.That(decoded.A, Is.EqualTo(expected.A));
@@ -110,15 +110,15 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeSlice2TaggedFieldsSource))]
-    public void Encode_slice2_tagged_fields(MyStructWithTaggedFields expected)
+    [Test, TestCaseSource(nameof(EncodeSliceTaggedFieldsSource))]
+    public void Encode_slice_tagged_fields(MyStructWithTaggedFields expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         Assert.That(
             decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeUInt8() as byte?),
@@ -140,19 +140,19 @@ public class TaggedTests
             decoder.DecodeTagged(5, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expected.E));
 
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(SkipSlice2TaggedFieldsSource))]
-    public void Skip_slice2_tagged_fields(MyStructWithTaggedFields value)
+    [Test, TestCaseSource(nameof(SkipSliceTaggedFieldsSource))]
+    public void Skip_slice_tagged_fields(MyStructWithTaggedFields value)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(buffer);
         value.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
         _ = new MyStructWithoutTaggedFields(ref decoder);

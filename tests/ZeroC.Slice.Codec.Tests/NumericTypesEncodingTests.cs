@@ -21,7 +21,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         encoder.EncodeInt64(value);
 
@@ -38,7 +38,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         encoder.EncodeInt8(value);
 
@@ -60,7 +60,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         encoder.EncodeVarInt62(value);
 
@@ -82,7 +82,7 @@ public class NumericTypesEncodingTests
             // Arrange
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
 
             // Act
             encoder.EncodeVarInt62(value);
@@ -100,7 +100,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
 
         encoder.EncodeVarUInt62(value);
 
@@ -157,7 +157,7 @@ public class NumericTypesEncodingTests
         {
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
 
             encoder.EncodeVarUInt62(value);
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
@@ -171,7 +171,7 @@ public class NumericTypesEncodingTests
         Assert.That(
             () =>
             {
-                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+                var encoder = new SliceEncoder(bufferWriter);
                 encoder.EncodeSize(-10);
             },
             Throws.InstanceOf<ArgumentException>());

@@ -22,10 +22,10 @@ public class DecodeStringTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeString(testString);
         byte[] encodedString = buffer[0..bufferWriter.WrittenMemory.Length];
-        var sut = new SliceDecoder(encodedString, SliceEncoding.Slice2);
+        var sut = new SliceDecoder(encodedString);
 
         var r1 = sut.DecodeString();
 
@@ -48,12 +48,12 @@ public class DecodeStringTests
         // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
         // minBufferSize given to Rent
         var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
-        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(pipe.Writer);
         encoder.EncodeString(value);
         pipe.Writer.Complete();
         pipe.Reader.TryRead(out ReadResult readResult);
 
-        var sut = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var sut = new SliceDecoder(readResult.Buffer);
 
         // Act
         var r1 = sut.DecodeString();
@@ -72,7 +72,7 @@ public class DecodeStringTests
         Assert.That(() =>
         {
             var encodedString = new byte[] { 0x08, 0xFD, 0xFF }; // Byte array for unicode char \uD800
-            var sut = new SliceDecoder(encodedString, SliceEncoding.Slice2);
+            var sut = new SliceDecoder(encodedString);
 
             sut.DecodeString();
         }, Throws.InstanceOf<InvalidDataException>());
@@ -100,7 +100,7 @@ public class DecodeStringTests
             pipe.Writer.Complete();
             pipe.Reader.TryRead(out ReadResult readResult);
 
-            var sut = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            var sut = new SliceDecoder(readResult.Buffer);
 
             // Act
             var result = sut.DecodeString();

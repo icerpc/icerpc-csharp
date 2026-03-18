@@ -53,7 +53,7 @@ public class TelemetryMiddleware : IDispatcher
 
     internal static void RestoreActivityContext(ReadOnlySequence<byte> buffer, Activity activity)
     {
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer);
 
         // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace-ID, 8 bytes span-ID,
         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values

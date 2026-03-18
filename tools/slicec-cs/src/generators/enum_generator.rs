@@ -182,7 +182,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     code.writeln(&encode_fields(&enumerator.fields(), Encoding::Slice2));
 
                     if !enum_def.is_compact {
-                        code.writeln("encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+                        code.writeln("encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);");
                     }
 
                     if enum_def.is_unchecked && !enumerator.fields().is_empty() {

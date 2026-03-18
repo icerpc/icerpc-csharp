@@ -13,7 +13,7 @@ namespace IceRpc.Slice.Generator.Tests;
 public class OperationEncodingTests
 {
     [Test]
-    public void Slice2_operation_encode_with_single_parameter()
+    public void Slice_operation_encode_with_single_parameter()
     {
         // Act
         PipeReader payload = MyOperationsBProxy.Request.EncodeOpInt32(10);
@@ -21,15 +21,15 @@ public class OperationEncodingTests
         // Assert
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(5));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_single_parameter()
+    public async Task Slice_operation_decode_with_single_parameter()
     {
         // Arrange
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
@@ -46,17 +46,17 @@ public class OperationEncodingTests
         static PipeReader Encode(int value)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             encoder.EncodeSize(5);
             encoder.EncodeInt32(value);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
 
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_single_return()
+    public void Slice_operation_encode_with_single_return()
     {
         // Act
         PipeReader payload = IMyOperationsBService.Response.EncodeOpInt32(10);
@@ -64,15 +64,15 @@ public class OperationEncodingTests
         // Assert
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(5));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_single_return()
+    public async Task Slice_operation_decode_with_single_return()
     {
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -88,16 +88,16 @@ public class OperationEncodingTests
         static PipeReader Encode(int value)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             encoder.EncodeSize(5);
             encoder.EncodeInt32(value);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_multiple_parameters()
+    public void Slice_operation_encode_with_multiple_parameters()
     {
         var payload = MyOperationsBProxy.Request.EncodeOpInt32AndString(10, "hello world!");
 
@@ -105,16 +105,16 @@ public class OperationEncodingTests
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(18));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_multiple_parameters()
+    public async Task Slice_operation_decode_with_multiple_parameters()
     {
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
         {
@@ -129,18 +129,18 @@ public class OperationEncodingTests
         static PipeReader Encode(int value1, string value2)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
             encoder.EncodeSize(18);
             encoder.EncodeInt32(value1);
             encoder.EncodeString(value2);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_multiple_return()
+    public void Slice_operation_encode_with_multiple_return()
     {
         var payload = IMyOperationsBService.Response.EncodeOpInt32AndString(10, "hello world!");
 
@@ -149,16 +149,16 @@ public class OperationEncodingTests
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(18));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_multiple_return()
+    public async Task Slice_operation_decode_with_multiple_return()
     {
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -178,18 +178,18 @@ public class OperationEncodingTests
         static PipeReader Encode(int value1, string value2)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
             encoder.EncodeSize(18);
             encoder.EncodeInt32(value1);
             encoder.EncodeString(value2);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_optional_parameters(
+    public void Slice_operation_encode_with_optional_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -205,7 +205,7 @@ public class OperationEncodingTests
         int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
@@ -229,12 +229,12 @@ public class OperationEncodingTests
         {
             Assert.That(bitSequence.Read(), Is.False);
         }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_optional_parameters(
+    public async Task Slice_operation_decode_with_optional_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -255,7 +255,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
 
             // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (optional int 0|4 bytes) + (optional string 0|13 bytes) + 1
@@ -274,13 +274,13 @@ public class OperationEncodingTests
             {
                 encoder.EncodeString(p4);
             }
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_optional_return(
+    public void Slice_operation_encode_with_optional_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -295,7 +295,7 @@ public class OperationEncodingTests
         int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
@@ -319,12 +319,12 @@ public class OperationEncodingTests
         {
             Assert.That(bitSequence.Read(), Is.False);
         }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_optional_return(
+    public async Task Slice_operation_decode_with_optional_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -347,7 +347,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (optional int 0|4 bytes) + (optional string 0|13 bytes) + 1 (tag end marker)
             int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13) + 1;
@@ -365,13 +365,13 @@ public class OperationEncodingTests
             {
                 encoder.EncodeString(p4);
             }
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_tagged_parameters(
+    public void Slice_operation_encode_with_tagged_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -389,7 +389,7 @@ public class OperationEncodingTests
         int size = 4 + 13 + (p3 is null ? 0 : 6) + (p4 is null ? 0 : 18) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
@@ -406,12 +406,12 @@ public class OperationEncodingTests
                 decoder.DecodeTagged(2, (ref SliceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(p4));
         }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_tagged_parameters(
+    public async Task Slice_operation_decode_with_tagged_parameters(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -432,7 +432,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
 
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
@@ -458,14 +458,14 @@ public class OperationEncodingTests
                     (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
             }
 
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
 
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
 
     [Test]
-    public void Slice2_operation_encode_with_tagged_return(
+    public void Slice_operation_encode_with_tagged_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -483,7 +483,7 @@ public class OperationEncodingTests
         int size = 4 + 13 + (p3 is null ? 0 : 6) + (p4 is null ? 0 : 18) + 1;
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(readResult.Buffer);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
@@ -499,12 +499,12 @@ public class OperationEncodingTests
                 decoder.DecodeTagged(2, (ref SliceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(p4));
         }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
-    public async Task Slice2_operation_decode_with_tagged_return(
+    public async Task Slice_operation_decode_with_tagged_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -527,7 +527,7 @@ public class OperationEncodingTests
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(bufferWriter);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
             // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
@@ -553,7 +553,7 @@ public class OperationEncodingTests
                     (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
             }
 
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
 
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }

@@ -63,7 +63,7 @@ public class StreamTests
         static List<int> DecodeIntStream(ReadOnlySequence<byte> buffer)
         {
             var data = new List<int>();
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(buffer);
             if (buffer.Length > 0)
             {
                 while (decoder.Consumed < buffer.Length)
@@ -124,7 +124,7 @@ public class StreamTests
         static List<string> DecodeStringStream(ReadOnlySequence<byte> buffer)
         {
             var data = new List<string>();
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var decoder = new SliceDecoder(buffer);
             if (buffer.Length > 0)
             {
                 while (decoder.Consumed < buffer.Length)
@@ -145,7 +145,7 @@ public class StreamTests
         var pipe = new Pipe();
 
         int[] expected = Enumerable.Range(0, size).Select(i => i).ToArray();
-        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(pipe.Writer);
         for (int i = 0; i < size; i++)
         {
             encoder.EncodeInt32(i);
@@ -191,7 +191,7 @@ public class StreamTests
                 Memory<byte> sizePlaceHolder = pipe.Writer.GetMemory(4)[0..4];
                 pipe.Writer.Advance(4);
 
-                var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+                var encoder = new SliceEncoder(pipe.Writer);
                 for (int i = start; i < end; i++)
                 {
                     encoder.EncodeString($"hello-{i}");
@@ -243,7 +243,7 @@ public class StreamTests
 
         static void EncodeData(PipeWriter writer)
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(writer);
             encoder.EncodeInt32(10);
         }
     }
@@ -271,7 +271,7 @@ public class StreamTests
 
         static void EncodeSegment(PipeWriter writer)
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(writer);
             encoder.EncodeSize(4);
             encoder.EncodeInt32(10);
         }
@@ -321,7 +321,7 @@ public class StreamTests
 
         static void EncodeData(PipeWriter writer)
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(writer);
             encoder.EncodeInt32(10);
             encoder.EncodeInt32(20);
             encoder.EncodeInt32(30);
@@ -372,7 +372,7 @@ public class StreamTests
 
         static void EncodeData(PipeWriter writer)
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(writer);
             encoder.EncodeInt32(10);
             encoder.EncodeInt32(20);
             encoder.EncodeInt32(30);
@@ -446,7 +446,7 @@ public class StreamTests
 
         static void EncodeData(PipeWriter writer)
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            var encoder = new SliceEncoder(writer);
             encoder.EncodeInt32(10);
             encoder.EncodeInt32(20);
             encoder.EncodeInt32(30);
