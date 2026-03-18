@@ -156,12 +156,12 @@ internal static class StructGenerator
                 // Non-tagged optional: write bit and encode conditionally.
                 string param = $"this.{field.Name}";
                 string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
-                string encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
+                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
                 body.WriteLine($$"""
-                    bitSequenceWriter.Write({param} != null);
+                    bitSequenceWriter.Write({{param}} != null);
                     if ({{param}} != null)
                     {
-                        {{encodeExpr}};
+                        {{encodeExpr.Indent()}};
                     }
                     """);
             }

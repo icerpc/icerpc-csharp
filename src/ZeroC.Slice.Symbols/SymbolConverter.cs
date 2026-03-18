@@ -82,8 +82,7 @@ public sealed class SymbolConverter
             if (id is not null)
             {
                 // Named type — resolve through cache using its scoped TypeId.
-                string key = string.IsNullOrEmpty(moduleScope) ? id : $"{moduleScope}::{id}";
-                contents.Add(ResolveNamedSymbol(key));
+                contents.Add(ResolveNamedSymbol($"{moduleScope}::{id}"));
             }
             else
             {

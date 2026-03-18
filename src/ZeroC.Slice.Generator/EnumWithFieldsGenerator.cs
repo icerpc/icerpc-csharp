@@ -199,29 +199,25 @@ internal static class EnumWithFieldsGenerator
 
             if (field.IsTagged)
             {
-                string taggedExpr = field.EncodeTaggedField(currentNamespace);
-                // Indent multi-line tagged field expressions.
-                foreach (string line in taggedExpr.Split('\n'))
-                {
-                    code.WriteLine($"    {line}");
-                }
+                CodeBlock taggedExpr = field.EncodeTaggedField(currentNamespace);
+                code.WriteLine($"    {taggedExpr.Indent()}");
             }
             else if (field.DataTypeIsOptional)
             {
                 string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
-                string encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
+                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
                 code.WriteLine($$"""
                         bitSequenceWriter.Write({{param}} != null);
                         if ({{param}} != null)
                         {
-                            {{encodeExpr}};
+                            {{encodeExpr.Indent().Indent()}};
                         }
                     """);
             }
             else
             {
-                string encodeExpr = field.DataType.EncodeExpression(currentNamespace, param);
-                code.WriteLine($"    {encodeExpr};");
+                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, param);
+                code.WriteLine($"    {encodeExpr.Indent()};");
             }
         }
 

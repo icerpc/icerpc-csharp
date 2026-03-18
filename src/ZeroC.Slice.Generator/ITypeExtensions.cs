@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using ZeroC.CodeBuilder;
 using ZeroC.Slice.Symbols;
 
 namespace ZeroC.Slice.Generator;
@@ -8,56 +9,93 @@ namespace ZeroC.Slice.Generator;
 internal static class ITypeExtensions
 {
     /// <summary>Generates decode expression for a type.</summary>
-    internal static string DecodeExpression(this IType type, string currentNamespace)
+    /// <param name="type">The type to decode.</param>
+    /// <param name="currentNamespace">The current C# namespace for resolving type names.</param>
+    /// <param name="concreteType">Optional concrete type override from a cs::type attribute on the TypeRef.
+    /// Used as the factory type for dictionary/sequence decoding instead of the default.</param>
+    internal static string DecodeExpression(this IType type, string currentNamespace, string? concreteType = null)
     {
         return type switch
         {
             Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
             CustomType c => $"{c.DecoderExtensionsClass}.Decode{c.Name}(ref decoder)",
-            DictionaryType dict => DecodeDictionary(dict, currentNamespace),
+            DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
             EnumWithUnderlying e when e.IsUnchecked =>
                 $"({e.ToTypeString(currentNamespace)})decoder.Decode{e.Underlying.Suffix}()",
             EnumWithUnderlying e =>
                 $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
             EnumWithFields e => $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
             ResultType r => DecodeResult(r, currentNamespace),
-            SequenceType seq => DecodeSequence(seq, currentNamespace),
+            SequenceType seq => DecodeSequence(seq, currentNamespace, concreteType),
             _ => $"new {type.ToTypeString(currentNamespace)}(ref decoder)",
         };
 
-        static string DecodeDictionary(DictionaryType dict, string currentNamespace)
+        static string DecodeDictionary(DictionaryType dict, string currentNamespace, string? concreteType)
         {
-            string keyDecodeLambda = dict.KeyType.Type.GetDecodeLambda(false, currentNamespace);
-            string valueDecodeLambda = dict.ValueType.Type.GetDecodeLambda(
+            CodeBlock keyDecodeLambda = dict.KeyType.Type.GetDecodeLambda(false, currentNamespace);
+            CodeBlock valueDecodeLambda = dict.ValueType.Type.GetDecodeLambda(
                 dict.ValueTypeIsOptional,
-                currentNamespace);
-            return $"decoder.DecodeDictionary({keyDecodeLambda}, {valueDecodeLambda})";
+                currentNamespace,
+                withCast: true);
+            string keyType = dict.KeyType.FieldTypeString(false, currentNamespace);
+            string valueType = dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace);
+            string concreteDictType = concreteType
+                ?? $"global::System.Collections.Generic.Dictionary<{keyType}, {valueType}>";
+            string method = dict.ValueTypeIsOptional
+                ? "DecodeDictionaryWithOptionalValueType"
+                : "DecodeDictionary";
+            return $$"""
+                decoder.{{method}}(
+                    size => new {{concreteDictType}}(size),
+                    {{keyDecodeLambda.Indent()}},
+                    {{valueDecodeLambda.Indent()}})
+                """;
         }
 
         static string DecodeResult(ResultType result, string currentNamespace)
         {
-            string decodeLambda = ResultDecodeLambda(
+            CodeBlock decodeLambda = ResultDecodeLambda(
                 result.SuccessType,
                 result.SuccessTypeIsOptional,
                 currentNamespace);
-            string decodeFailureLambda = ResultDecodeLambda(
+            CodeBlock decodeFailureLambda = ResultDecodeLambda(
                 result.FailureType,
                 result.FailureTypeIsOptional,
                 currentNamespace);
-            return $"decoder.DecodeResult({decodeLambda}, {decodeFailureLambda})";
+            return $$"""
+                decoder.DecodeResult(
+                    {{decodeLambda.Indent()}}, 
+                    {{decodeFailureLambda.Indent()}})
+                """;
         }
 
-        static string DecodeSequence(SequenceType seq, string currentNamespace)
+        static string DecodeSequence(SequenceType seq, string currentNamespace, string? concreteType)
         {
             IType elemType = seq.ElementType.Type;
-            if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType || elemType is CustomType))
+            string method = seq.ElementTypeIsOptional
+                ? "decoder.DecodeSequenceOfOptionals"
+                : "decoder.DecodeSequence";
+            CodeBlock decodeLambda = elemType.GetDecodeLambda(seq.ElementTypeIsOptional, currentNamespace);
+
+            if (concreteType is not null)
             {
-                string baseType = elemType.ToTypeString(currentNamespace);
-                string decodeExpr = elemType.DecodeExpression(currentNamespace);
-                return $"decoder.DecodeSequenceOfOptionals((ref SliceDecoder decoder) => ({baseType}?){decodeExpr})";
+                string factory = $"sequenceFactory: (size) => new {concreteType}(size)";
+                return $$"""
+                    {{method}}(
+                        {{factory}},
+                        {{decodeLambda.Indent()}})
+                    """;
             }
-            string elementDecodeLambda = elemType.GetDecodeLambda(seq.ElementTypeIsOptional, currentNamespace);
-            return $"decoder.DecodeSequence({elementDecodeLambda})";
+
+            // For nested sequences, cast the result so C# can convert T[][] to IList<T>[].
+            string nestedCast = elemType is SequenceType
+                ? $"({seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[])"
+                : "";
+
+            return $$"""
+                {{nestedCast}}{{method}}(
+                    {{decodeLambda.Indent()}})
+                """;
         }
 
         // Returns a decode lambda for a result success/failure type, handling optional inner types with an
@@ -68,7 +106,7 @@ internal static class ITypeExtensions
 
             if (!isOptional)
             {
-                return type.GetDecodeLambda(false, currentNamespace);
+                return type.GetDecodeLambda(false, currentNamespace, withCast: true);
             }
             string csType = type.ToTypeString(currentNamespace);
             string decodeExpr = type.DecodeExpression(currentNamespace);
@@ -96,16 +134,30 @@ internal static class ITypeExtensions
 
         static string EncodeDictionary(DictionaryType dict, string currentNamespace, string param)
         {
-            string keyEncodeLambda = dict.KeyType.Type.GetEncodeLambda(false, currentNamespace);
-            string valueEncodeLambda = dict.ValueType.Type.GetEncodeLambda(dict.ValueTypeIsOptional, currentNamespace);
-            return $"encoder.EncodeDictionary({param}, {keyEncodeLambda}, {valueEncodeLambda})";
+            CodeBlock keyEncodeLambda = dict.KeyType.GetEncodeLambda(false, currentNamespace);
+            CodeBlock valueEncodeLambda = dict.ValueType.GetEncodeLambda(dict.ValueTypeIsOptional, currentNamespace);
+            string method = dict.ValueTypeIsOptional
+                ? "EncodeDictionaryWithOptionalValueType"
+                : "EncodeDictionary";
+            return
+                $$"""
+                encoder.{{method}}(
+                    {{param}},
+                    {{keyEncodeLambda.Indent()}},
+                    {{valueEncodeLambda.Indent()}})
+                """;
         }
 
         static string EncodeResult(ResultType result, string currentNamespace, string param)
         {
-            string encodeLambda = ResultEncodeLambda(result.SuccessType, result.SuccessTypeIsOptional, currentNamespace);
-            string encodeFailureLambda = ResultEncodeLambda(result.FailureType, result.FailureTypeIsOptional, currentNamespace);
-            return $"encoder.EncodeResult({param}, {encodeLambda}, {encodeFailureLambda})";
+            CodeBlock encodeLambda = ResultEncodeLambda(result.SuccessType, result.SuccessTypeIsOptional, currentNamespace);
+            CodeBlock encodeFailureLambda = ResultEncodeLambda(result.FailureType, result.FailureTypeIsOptional, currentNamespace);
+            return $$"""
+                encoder.EncodeResult(
+                    {{param}}, 
+                    {{encodeLambda.Indent()}}, 
+                    {{encodeFailureLambda.Indent()}})
+            """;
         }
 
         static string EncodeSequence(SequenceType seq, string currentNamespace, string param)
@@ -115,10 +167,18 @@ internal static class ITypeExtensions
             {
                 string csOptType = seq.ElementType.FieldTypeString(true, currentNamespace);
                 string lambda = EncodeOptionalValueLambda(elemType, csOptType);
-                return $"encoder.EncodeSequenceOfOptionals({param}, {lambda})";
+                return $$"""
+                    encoder.EncodeSequenceOfOptionals(
+                        {{param}}, 
+                        {{lambda}})
+                """;
             }
-            string elementEncodeLambda = elemType.GetEncodeLambda(seq.ElementTypeIsOptional, currentNamespace);
-            return $"encoder.EncodeSequence({param}, {elementEncodeLambda})";
+            CodeBlock elementEncodeLambda = seq.ElementType.GetEncodeLambda(seq.ElementTypeIsOptional, currentNamespace);
+            return $$"""
+                encoder.EncodeSequence(
+                    {{param}}, 
+                    {{elementEncodeLambda.Indent()}})
+            """;
 
             static string EncodeOptionalValueLambda(IType elemType, string csOptType)
             {
@@ -140,33 +200,51 @@ internal static class ITypeExtensions
 
             if (!isOptional)
             {
-                return type.GetEncodeLambda(false, currentNamespace);
+                return typeRef.GetEncodeLambda(false, currentNamespace);
             }
             string csType = typeRef.FieldTypeString(true, currentNamespace);
             string valueParam = typeRef.IsValueType ? "value!.Value" : "value!";
-            string encodeBody = type.EncodeExpression(currentNamespace, valueParam);
+            CodeBlock encodeBody = type.EncodeExpression(currentNamespace, valueParam);
             return $$"""
                 (ref SliceEncoder encoder, {{csType}} value) =>
                 {
                     encoder.EncodeBool(value is not null);
                     if (value is not null)
                     {
-                        {{encodeBody}};
+                        {{encodeBody.Indent().Indent()}};
                     }
                 }
                 """;
         }
     }
 
-    /// <summary>Returns a decode lambda for a type.</summary>
-    internal static string GetDecodeLambda(this IType type, bool isOptional, string currentNamespace)
+    /// <summary>Returns a decode lambda for a type. When <paramref name="withCast"/> is true, a cast to the field
+    /// type is added for sequence and dictionary types. This is needed when decoding in a generic context (e.g.,
+    /// dictionary values, result types) where C# cannot implicitly convert nested generic types.</summary>
+    internal static string GetDecodeLambda(
+        this IType type,
+        bool isOptional,
+        string currentNamespace,
+        bool withCast = false)
     {
         string decodeExpr = type.DecodeExpression(currentNamespace);
-        if (type is not Builtin && isOptional)
+
+        // For dict/seq in generic contexts (withCast), use a single combined cast that includes ? if optional.
+        // Without withCast, dict/seq get no cast here — the caller handles it (e.g., nested sequence cast).
+        if (withCast && type is DictionaryType or SequenceType)
+        {
+            string csType = type.ToTypeString(currentNamespace);
+            string cast = isOptional ? $"({csType}?)" : $"({csType})";
+            return $"(ref SliceDecoder decoder) => {cast}{decodeExpr}";
+        }
+
+        // For non-dict/non-seq optional types, add the nullable cast.
+        if (isOptional && type is not DictionaryType and not SequenceType)
         {
             string csType = type.ToTypeString(currentNamespace);
             return $"(ref SliceDecoder decoder) => ({csType}?){decodeExpr}";
         }
+
         return $"(ref SliceDecoder decoder) => {decodeExpr}";
     }
 

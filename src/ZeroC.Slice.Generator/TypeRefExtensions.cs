@@ -8,9 +8,17 @@ namespace ZeroC.Slice.Generator;
 internal static class TypeRefExtensions
 {
 
-    /// <summary>Generates decode expression for a type reference.</summary>
-    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace) =>
-        typeRef.Type.DecodeExpression(currentNamespace);
+    /// <summary>Generates decode expression for a type reference. When the TypeRef has a cs::type attribute,
+    /// it is passed through as the concrete type for dictionary/sequence factory construction.</summary>
+    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace)
+    {
+        if (typeRef.Type is DictionaryType or SequenceType
+            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } csTypeAttr)
+        {
+            return typeRef.Type.DecodeExpression(currentNamespace, concreteType: csTypeAttr.Args[0]);
+        }
+        return typeRef.Type.DecodeExpression(currentNamespace);
+    }
 
 
     /// <summary>Generates encode expression for a type reference.</summary>
@@ -25,9 +33,22 @@ internal static class TypeRefExtensions
         return isOptional ? $"{baseType}?" : baseType;
     }
 
-    /// <summary>Returns an encode lambda for a type reference.</summary>
-    internal static string GetEncodeLambda(this TypeRef typeRef, bool isOptional, string currentNamespace) =>
-        typeRef.Type.GetEncodeLambda(isOptional, currentNamespace);
+    /// <summary>Returns an encode lambda for a type reference. For optional types, the lambda parameter is nullable
+    /// and the value expression uses the appropriate null-forgiving pattern based on the type.</summary>
+    internal static string GetEncodeLambda(this TypeRef typeRef, bool isOptional, string currentNamespace)
+    {
+        if (!isOptional)
+        {
+            return typeRef.Type.GetEncodeLambda(false, currentNamespace);
+        }
+
+        string csType = typeRef.Type.ToTypeString(currentNamespace) + "?";
+        string param = typeRef.Type is CustomType
+            ? "(value ?? default!)"
+            : typeRef.IsValueType ? "value!.Value" : "value!";
+        string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, param);
+        return $"(ref SliceEncoder encoder, {csType} value) => {encodeExpr}";
+    }
 
     extension(TypeRef value)
     {

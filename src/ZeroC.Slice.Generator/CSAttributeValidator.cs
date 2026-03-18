@@ -164,7 +164,7 @@ internal static class CsAttributeValidator
         // cs::encodedReturn: only valid on operations with non-streamed return values.
         if (op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn))
         {
-            bool hasNonStreamedReturn = op.ReturnType.Count > 0 && !op.HasStreamedReturn;
+            bool hasNonStreamedReturn = op.ReturnType.Count > (op.HasStreamedReturn ? 1 : 0);
             if (!hasNonStreamedReturn)
             {
                 string reason = op.HasStreamedReturn
