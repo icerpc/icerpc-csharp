@@ -12,8 +12,6 @@
 
 using ZeroC.Slice.Codec;
 
-[assembly:Slice("CodeGenerator.slice")]
-
 namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::SliceFile</c>.</remarks>
@@ -67,7 +65,7 @@ public partial record struct SliceFile
         encoder.EncodeSequence(
             this.Contents,
             (ref SliceEncoder encoder, Symbol value) => SymbolSliceEncoderExtensions.EncodeSymbol(ref encoder, value));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -104,7 +102,7 @@ public partial record struct GeneratedFile
     {
         encoder.EncodeString(this.Path);
         encoder.EncodeString(this.Contents);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -122,7 +120,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -136,7 +134,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -150,7 +148,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -164,7 +162,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -178,7 +176,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -192,7 +190,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -206,7 +204,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -220,7 +218,7 @@ public abstract partial record class Symbol
         {
             encoder.EncodeVarInt32(Discriminant);
             this.V.Encode(ref encoder);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -366,7 +364,7 @@ public partial record struct Diagnostic
         {
             encoder.EncodeString(this.Source);
         }
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 

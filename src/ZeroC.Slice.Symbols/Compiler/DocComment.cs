@@ -12,8 +12,6 @@
 
 using ZeroC.Slice.Codec;
 
-[assembly:Slice("DocComment.slice")]
-
 namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::DocComment</c>.</remarks>
@@ -55,7 +53,7 @@ public partial record struct DocComment
         encoder.EncodeSequence(
             this.SeeTags,
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -73,7 +71,7 @@ public abstract partial record class MessageComponent
         {
             encoder.EncodeVarInt32(Discriminant);
             encoder.EncodeString(this.V);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 
@@ -87,7 +85,7 @@ public abstract partial record class MessageComponent
         {
             encoder.EncodeVarInt32(Discriminant);
             encoder.EncodeString(this.V);
-            encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         }
     }
 

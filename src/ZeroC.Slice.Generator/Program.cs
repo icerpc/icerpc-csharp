@@ -29,7 +29,6 @@ while (!readResult.IsCompleted);
 
 var decoder = new SliceDecoder(
     readResult.Buffer,
-    SliceEncoding.Slice2,
     maxCollectionAllocation: (int)readResult.Buffer.Length * 16);
 string op = decoder.DecodeString();
 
@@ -114,7 +113,7 @@ if (!diagnostics.Any(d => d.Level == Compiler.DiagnosticLevel.Error))
 
 // Encode and write the response to stdout.
 var pipe = new Pipe();
-var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+var encoder = new SliceEncoder(pipe.Writer);
 encoder.EncodeSequence(
     generatedFiles,
     (ref encoder, file) =>

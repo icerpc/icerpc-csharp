@@ -12,8 +12,6 @@
 
 using ZeroC.Slice.Codec;
 
-[assembly:Slice("SyntaxElements.slice")]
-
 namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Attribute</c>.</remarks>
@@ -52,7 +50,7 @@ public partial record struct Attribute
         encoder.EncodeSequence(
             this.Args,
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -98,7 +96,7 @@ public partial record struct TypeRef
         encoder.EncodeSequence(
             this.TypeAttributes,
             (ref SliceEncoder encoder, Attribute value) => value.Encode(ref encoder));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -147,7 +145,7 @@ public partial record struct EntityInfo
         {
             encoder.EncodeTagged(1, comment_, (ref SliceEncoder encoder, DocComment value) => value.Encode(ref encoder));
         }
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -187,7 +185,7 @@ public partial record struct Module
         encoder.EncodeSequence(
             this.Attributes,
             (ref SliceEncoder encoder, Attribute value) => value.Encode(ref encoder));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -233,7 +231,7 @@ public partial record struct Struct
         encoder.EncodeSequence(
             this.Fields,
             (ref SliceEncoder encoder, Field value) => value.Encode(ref encoder));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -280,7 +278,7 @@ public partial record struct Field
             encoder.EncodeVarInt32(this.Tag.Value);
         }
         this.DataType.Encode(ref encoder);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -329,7 +327,7 @@ public partial record struct Interface
         encoder.EncodeSequence(
             this.Operations,
             (ref SliceEncoder encoder, Operation value) => value.Encode(ref encoder));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -396,7 +394,7 @@ public partial record struct Operation
             this.ReturnType,
             (ref SliceEncoder encoder, Field value) => value.Encode(ref encoder));
         encoder.EncodeBool(this.HasStreamedReturn);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -460,7 +458,7 @@ public partial record struct Enum
         encoder.EncodeSequence(
             this.Enumerators,
             (ref SliceEncoder encoder, Enumerator value) => value.Encode(ref encoder));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -506,7 +504,7 @@ public partial record struct Enumerator
         encoder.EncodeSequence(
             this.Fields,
             (ref SliceEncoder encoder, Field value) => value.Encode(ref encoder));
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -541,7 +539,7 @@ public partial record struct Discriminant
     {
         encoder.EncodeUInt64(this.AbsoluteValue);
         encoder.EncodeBool(this.IsNegative);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -569,7 +567,7 @@ public partial record struct CustomType
     public readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -604,7 +602,7 @@ public partial record struct TypeAlias
     {
         this.EntityInfo.Encode(ref encoder);
         this.UnderlyingType.Encode(ref encoder);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -632,7 +630,7 @@ public partial record struct SequenceType
     public readonly void Encode(ref SliceEncoder encoder)
     {
         this.ElementType.Encode(ref encoder);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -667,7 +665,7 @@ public partial record struct DictionaryType
     {
         this.KeyType.Encode(ref encoder);
         this.ValueType.Encode(ref encoder);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
@@ -702,6 +700,6 @@ public partial record struct ResultType
     {
         this.SuccessType.Encode(ref encoder);
         this.FailureType.Encode(ref encoder);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
