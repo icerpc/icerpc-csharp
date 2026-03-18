@@ -180,11 +180,4 @@ public static class SliceProxyExtensions
             }
         }
     }
-
-    /// <summary>Converts a proxy into a proxy struct. This conversion always succeeds.</summary>
-    /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
-    /// <param name="proxy">The source proxy.</param>
-    /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    public static TProxy ToProxy<TProxy>(this ISliceProxy proxy) where TProxy : struct, ISliceProxy =>
-        new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }
