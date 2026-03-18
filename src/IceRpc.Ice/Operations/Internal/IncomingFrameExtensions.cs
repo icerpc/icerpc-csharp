@@ -90,8 +90,7 @@ internal static class IncomingFrameExtensions
 
             if (!readResult.Buffer.IsEmpty)
             {
-                // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
-                // do is skip unknown tags
+                // No need to pass maxCollectionAllocation since the only thing this decoding does is skip unknown tags.
                 var decoder = new IceDecoder(readResult.Buffer);
                 decoder.SkipTagged(useTagEndMarker: false); // false because we're decoding parameters, not class/exception fields
                 decoder.CheckEndOfBuffer();
