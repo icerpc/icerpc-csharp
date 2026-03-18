@@ -20,23 +20,18 @@ internal class Activator : IActivator
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
     internal static Activator Merge(IEnumerable<Activator> activators)
     {
-        if (activators.Count() == 1)
+        var dict = new Dictionary<string, Type>();
+        int activatorCount = 0;
+        foreach (Activator activator in activators)
         {
-            return activators.First();
-        }
-        else
-        {
-            var dict = new Dictionary<string, Type>();
-
-            foreach (Activator activator in activators)
+            activatorCount++;
+            foreach ((string typeId, Type factory) in activator._dict)
             {
-                foreach ((string typeId, Type factory) in activator._dict)
-                {
-                    dict[typeId] = factory;
-                }
+                dict[typeId] = factory;
             }
-            return dict.Count == 0 ? Empty : new Activator(dict);
         }
+
+        return activatorCount == 1 ? activators.First() : dict.Count == 0 ? Empty : new Activator(dict);
     }
 
     internal Activator(IReadOnlyDictionary<string, Type> dict) => _dict = dict;

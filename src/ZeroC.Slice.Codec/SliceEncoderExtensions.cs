@@ -25,7 +25,13 @@ public static class SliceEncoderExtensions
         EncodeAction<TValue> valueEncodeAction)
         where TKey : notnull
     {
-        encoder.EncodeSize(v.Count());
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            KeyValuePair<TKey, TValue>[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
+        encoder.EncodeSize(count);
         foreach ((TKey key, TValue value) in v)
         {
             keyEncodeAction(ref encoder, key);
@@ -47,7 +53,12 @@ public static class SliceEncoderExtensions
         EncodeAction<TValue> valueEncodeAction)
         where TKey : notnull
     {
-        int count = v.Count();
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            KeyValuePair<TKey, TValue>[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
         encoder.EncodeSize(count);
         if (count > 0)
         {
@@ -143,7 +154,13 @@ public static class SliceEncoderExtensions
     public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v, EncodeAction<T> encodeAction)
         where T : notnull
     {
-        encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            T[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
+        encoder.EncodeSize(count);
         foreach (T item in v)
         {
             encodeAction(ref encoder, item);
@@ -161,7 +178,12 @@ public static class SliceEncoderExtensions
         IEnumerable<T> v,
         EncodeAction<T> encodeAction)
     {
-        int count = v.Count(); // potentially slow Linq Count()
+        if (!v.TryGetNonEnumeratedCount(out int count))
+        {
+            T[] array = v.ToArray();
+            count = array.Length;
+            v = array;
+        }
         encoder.EncodeSize(count);
         if (count > 0)
         {

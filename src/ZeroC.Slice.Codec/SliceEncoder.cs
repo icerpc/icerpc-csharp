@@ -242,8 +242,8 @@ public ref partial struct SliceEncoder
 
     // Other methods
 
-    /// <summary>Encodes a non-null Slice encoded tagged value. The number of bytes needed to encode the value is
-    /// not known before encoding this value.</summary>
+    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+    /// encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="v">The value to encode.</param>
@@ -257,8 +257,8 @@ public ref partial struct SliceEncoder
         EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
     }
 
-    /// <summary>Encodes a non-null encoded tagged value. The number of bytes needed to encode the value is
-    /// known before encoding the value.</summary>
+    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
+    /// encoding the value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="size">The number of bytes needed to encode the value.</param>
@@ -268,7 +268,7 @@ public ref partial struct SliceEncoder
     {
         if (size <= 0)
         {
-            throw new ArgumentException("Invalid size value, size must be greater than zero.", nameof(size));
+            throw new ArgumentException("Invalid size value, size must be greater than 0.", nameof(size));
         }
 
         EncodeVarInt32(tag);
@@ -286,8 +286,8 @@ public ref partial struct SliceEncoder
         }
     }
 
-    /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit
-    /// sequence.</summary>
+    /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit sequence.
+    /// </summary>
     /// <param name="bitSequenceSize">The minimum number of bits in the bit sequence.</param>
     /// <returns>The bit sequence writer.</returns>
     public BitSequenceWriter GetBitSequenceWriter(int bitSequenceSize)
