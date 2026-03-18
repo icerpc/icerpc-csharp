@@ -19,7 +19,6 @@ internal sealed class FakeLocator : ILocator
         CancellationToken cancellationToken)
     {
         ResolvedCount++;
-        // Null invoker is ok since we're just encoding this proxy.
         return Task.FromResult<IceObjectProxy?>(
             id == "good" && _adapterId ? new IceObjectProxy(invoker: InvalidInvoker.Instance, _serviceAddress) : null);
     }
@@ -30,7 +29,6 @@ internal sealed class FakeLocator : ILocator
         CancellationToken cancellationToken)
     {
         ResolvedCount++;
-        // Null invoker is ok since we're just encoding this proxy.
         return Task.FromResult<IceObjectProxy?>(
             id.Name == "good" && !_adapterId ?
                 new IceObjectProxy(invoker: InvalidInvoker.Instance, _serviceAddress) : null);
