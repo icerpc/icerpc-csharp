@@ -22,8 +22,12 @@ internal static class TypeRefExtensions
 
 
     /// <summary>Generates encode expression for a type reference.</summary>
-    internal static string EncodeExpression(this TypeRef typeRef, string currentNamespace, string param) =>
-        typeRef.Type.EncodeExpression(currentNamespace, param);
+    internal static string EncodeExpression(
+        this TypeRef typeRef,
+        string currentNamespace,
+        string param,
+        string encoderName = "encoder") =>
+        typeRef.Type.EncodeExpression(currentNamespace, param, encoderName);
 
 
     /// <summary>Returns the C# type string for a field type reference.</summary>
@@ -48,6 +52,62 @@ internal static class TypeRefExtensions
             : typeRef.IsValueType ? "value!.Value" : "value!";
         string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, param);
         return $"(ref SliceEncoder encoder, {csType} value) => {encodeExpr}";
+    }
+
+    /// <summary>Returns the C# type string for an incoming parameter (decode target). Sequences map to arrays,
+    /// dictionaries map to Dictionary&lt;K,V&gt;. Respects cs::type attribute.</summary>
+    internal static string IncomingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
+    {
+        string baseType = typeRef.Type switch
+        {
+            SequenceType seq when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } attr =>
+                attr.Args[0],
+            SequenceType seq =>
+                $"{seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[]",
+            DictionaryType dict when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } attr =>
+                attr.Args[0],
+            DictionaryType dict =>
+                $"global::System.Collections.Generic.Dictionary<{dict.KeyType.FieldTypeString(false, currentNamespace)}, {dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace)}>",
+            _ => typeRef.Type.ToTypeString(currentNamespace),
+        };
+        return isOptional ? $"{baseType}?" : baseType;
+    }
+
+    /// <summary>Returns the C# type string for an outgoing parameter (encode source). Sequences of fixed-size
+    /// primitives map to ReadOnlyMemory&lt;T&gt;, other sequences to IEnumerable&lt;T&gt;, dictionaries to
+    /// IEnumerable&lt;KeyValuePair&lt;K,V&gt;&gt;.</summary>
+    internal static string OutgoingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
+    {
+        bool ignoreOptional = false;
+        string baseType;
+
+        if (typeRef.Type is SequenceType seq
+            && !typeRef.Attributes.HasAttribute(CSAttributes.CSType)
+            && seq.ElementType.FixedSize is not null)
+        {
+            // Fixed-size primitive sequences use ReadOnlyMemory; the mapping is the same for
+            // optional and non-optional types.
+            ignoreOptional = true;
+            string elemType = seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace);
+            baseType = $"global::System.ReadOnlyMemory<{elemType}>";
+        }
+        else if (typeRef.Type is SequenceType seq2)
+        {
+            string elemType = seq2.ElementType.FieldTypeString(seq2.ElementTypeIsOptional, currentNamespace);
+            baseType = $"global::System.Collections.Generic.IEnumerable<{elemType}>";
+        }
+        else if (typeRef.Type is DictionaryType dict)
+        {
+            string keyType = dict.KeyType.FieldTypeString(false, currentNamespace);
+            string valueType = dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace);
+            baseType = $"global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{keyType}, {valueType}>>";
+        }
+        else
+        {
+            baseType = typeRef.Type.ToTypeString(currentNamespace);
+        }
+
+        return (isOptional && !ignoreOptional) ? $"{baseType}?" : baseType;
     }
 
     extension(TypeRef value)

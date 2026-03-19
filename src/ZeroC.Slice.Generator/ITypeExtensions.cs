@@ -18,13 +18,11 @@ internal static class ITypeExtensions
         return type switch
         {
             Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
-            CustomType c => $"{c.DecoderExtensionsClass}.Decode{c.Name}(ref decoder)",
             DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
             EnumWithUnderlying e when e.IsUnchecked =>
                 $"({e.ToTypeString(currentNamespace)})decoder.Decode{e.Underlying.Suffix}()",
-            EnumWithUnderlying e =>
+            Entity e when e.UsesExtensionsClass =>
                 $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
-            EnumWithFields e => $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
             ResultType r => DecodeResult(r, currentNamespace),
             SequenceType seq => DecodeSequence(seq, currentNamespace, concreteType),
             _ => $"new {type.ToTypeString(currentNamespace)}(ref decoder)",
@@ -115,52 +113,65 @@ internal static class ITypeExtensions
     }
 
     /// <summary>Generates encode expression for a type (without trailing semicolon).</summary>
-    internal static string EncodeExpression(this IType type, string currentNamespace, string param)
+    internal static string EncodeExpression(
+        this IType type,
+        string currentNamespace,
+        string param,
+        string encoderName = "encoder")
     {
         return type switch
         {
-            Builtin builtin => $"encoder.Encode{builtin.Suffix}({param})",
-            CustomType c => $"{c.EncoderExtensionsClass}.Encode{c.Name}(ref encoder, {param})",
-            DictionaryType dict => EncodeDictionary(dict, currentNamespace, param),
-            EnumWithFields e => $"{e.EncoderExtensionsClass}.Encode{e.Name}(ref encoder, {param})",
+            Builtin builtin => $"{encoderName}.Encode{builtin.Suffix}({param})",
+            DictionaryType dict => EncodeDictionary(dict, currentNamespace, param, encoderName),
             EnumWithUnderlying e when e.IsUnchecked =>
-                $"encoder.Encode{e.Underlying.Suffix}(({e.Underlying.CSType}){param})",
-            EnumWithUnderlying e =>
-                $"{e.EncoderExtensionsClass}.Encode{e.Name}(ref encoder, {param})",
-            SequenceType seq => EncodeSequence(seq, currentNamespace, param),
-            ResultType result => EncodeResult(result, currentNamespace, param),
-            _ => $"{param}.Encode(ref encoder)",
+                $"{encoderName}.Encode{e.Underlying.Suffix}(({e.Underlying.CSType}){param})",
+            Entity e when e.UsesExtensionsClass =>
+                $"{e.EncoderExtensionsClass}.Encode{e.Name}(ref {encoderName}, {param})",
+            SequenceType seq => EncodeSequence(seq, currentNamespace, param, encoderName),
+            ResultType result => EncodeResult(result, currentNamespace, param, encoderName),
+            _ => $"{param}.Encode(ref {encoderName})",
         };
 
-        static string EncodeDictionary(DictionaryType dict, string currentNamespace, string param)
+        static string EncodeDictionary(
+            DictionaryType dict,
+            string currentNamespace,
+            string param,
+            string encoderName)
         {
             CodeBlock keyEncodeLambda = dict.KeyType.GetEncodeLambda(false, currentNamespace);
             CodeBlock valueEncodeLambda = dict.ValueType.GetEncodeLambda(dict.ValueTypeIsOptional, currentNamespace);
             string method = dict.ValueTypeIsOptional
                 ? "EncodeDictionaryWithOptionalValueType"
                 : "EncodeDictionary";
-            return
-                $$"""
-                encoder.{{method}}(
+            return $$"""
+                {{encoderName}}.{{method}}(
                     {{param}},
                     {{keyEncodeLambda.Indent()}},
                     {{valueEncodeLambda.Indent()}})
                 """;
         }
 
-        static string EncodeResult(ResultType result, string currentNamespace, string param)
+        static string EncodeResult(
+            ResultType result,
+            string currentNamespace,
+            string param,
+            string encoderName)
         {
             CodeBlock encodeLambda = ResultEncodeLambda(result.SuccessType, result.SuccessTypeIsOptional, currentNamespace);
             CodeBlock encodeFailureLambda = ResultEncodeLambda(result.FailureType, result.FailureTypeIsOptional, currentNamespace);
             return $$"""
-                encoder.EncodeResult(
-                    {{param}}, 
-                    {{encodeLambda.Indent()}}, 
+                {{encoderName}}.EncodeResult(
+                    {{param}},
+                    {{encodeLambda.Indent()}},
                     {{encodeFailureLambda.Indent()}})
-            """;
+                """;
         }
 
-        static string EncodeSequence(SequenceType seq, string currentNamespace, string param)
+        static string EncodeSequence(
+            SequenceType seq,
+            string currentNamespace,
+            string param,
+            string encoderName)
         {
             IType elemType = seq.ElementType.Type;
             if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType || elemType is CustomType))
@@ -168,27 +179,31 @@ internal static class ITypeExtensions
                 string csOptType = seq.ElementType.FieldTypeString(true, currentNamespace);
                 string lambda = EncodeOptionalValueLambda(elemType, csOptType);
                 return $$"""
-                    encoder.EncodeSequenceOfOptionals(
-                        {{param}}, 
+                    {{encoderName}}.EncodeSequenceOfOptionals(
+                        {{param}},
                         {{lambda}})
-                """;
+                    """;
             }
             CodeBlock elementEncodeLambda = seq.ElementType.GetEncodeLambda(seq.ElementTypeIsOptional, currentNamespace);
             return $$"""
-                encoder.EncodeSequence(
-                    {{param}}, 
+                {{encoderName}}.EncodeSequence(
+                    {{param}},
                     {{elementEncodeLambda.Indent()}})
-            """;
+                """;
 
             static string EncodeOptionalValueLambda(IType elemType, string csOptType)
             {
-                if (elemType is Entity entity and (EnumWithUnderlying or EnumWithFields or CustomType))
+                // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
+                string valueExpr = elemType is CustomType
+                    ? "(value ?? default!)"
+                    : elemType is Struct or EnumWithUnderlying ? "value!.Value" : "value!";
+                if (elemType is Entity entity && entity.UsesExtensionsClass)
                 {
                     string extClass = entity.EncoderExtensionsClass;
                     string name = entity.Name;
-                    return $"(ref SliceEncoder encoder, {csOptType} value) => {extClass}.Encode{name}(ref encoder, (value ?? default!))";
+                    return $"(ref SliceEncoder encoder, {csOptType} value) => {extClass}.Encode{name}(ref encoder, {valueExpr})";
                 }
-                return $"(ref SliceEncoder encoder, {csOptType} value) => (value ?? default!).Encode(ref encoder)";
+                return $"(ref SliceEncoder encoder, {csOptType} value) => {valueExpr}.Encode(ref encoder)";
             }
         }
 

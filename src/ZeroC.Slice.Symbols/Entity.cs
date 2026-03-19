@@ -17,7 +17,5 @@ public class Entity
     public required Module Module { get; init; }
 
     /// <summary>Gets the fully scoped Slice identifier (e.g. "MyModule::MyType").</summary>
-    public string ScopedIdentifier => string.IsNullOrEmpty(Module.Identifier)
-        ? Identifier
-        : $"{Module.Identifier}::{Identifier}";
+    public string ScopedIdentifier => $"{Module.Identifier}::{Identifier}";
 }

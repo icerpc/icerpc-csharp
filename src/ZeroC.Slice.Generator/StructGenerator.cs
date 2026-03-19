@@ -130,51 +130,14 @@ internal static class StructGenerator
 
     private static CodeBlock GenerateEncodeMethod(Struct structDef, string currentNamespace, string accessModifier)
     {
-        IReadOnlyList<Field> sortedFields = structDef.Fields.GetSortedFields();
-
         var method = new FunctionBuilder($"{accessModifier} readonly", "void", "Encode", FunctionType.BlockBody);
         method.AddComment("summary", "Encodes the fields of this struct with a Slice encoder.");
         method.AddComment("param", "name", "encoder", "The Slice encoder.");
         method.AddParameter("ref SliceEncoder", "encoder");
 
-        var body = new CodeBlock();
-
-        int bitSequenceSize = structDef.Fields.GetBitSequenceSize();
-        if (bitSequenceSize > 0)
-        {
-            body.WriteLine($"var bitSequenceWriter = encoder.GetBitSequenceWriter({bitSequenceSize});");
-        }
-
-        foreach (Field field in sortedFields)
-        {
-            if (field.IsTagged)
-            {
-                body.WriteLine(field.EncodeTaggedField(currentNamespace));
-            }
-            else if (field.DataTypeIsOptional)
-            {
-                // Non-tagged optional: write bit and encode conditionally.
-                string param = $"this.{field.Name}";
-                string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
-                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
-                body.WriteLine($$"""
-                    bitSequenceWriter.Write({{param}} != null);
-                    if ({{param}} != null)
-                    {
-                        {{encodeExpr.Indent()}};
-                    }
-                    """);
-            }
-            else
-            {
-                body.WriteLine(field.EncodeField(currentNamespace));
-            }
-        }
-
-        if (!structDef.IsCompact)
-        {
-            body.WriteLine("encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
-        }
+        CodeBlock body = structDef.Fields.GenerateEncodeBody(
+            currentNamespace,
+            includeTagEndMarker: !structDef.IsCompact);
 
         method.SetBody(body);
         return method.Build();

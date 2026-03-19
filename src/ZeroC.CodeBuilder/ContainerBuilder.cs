@@ -97,12 +97,12 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
     {
         var code = new CodeBlock();
 
-        foreach (var comment in _comments)
+        foreach (CommentTag comment in _comments)
         {
             code.WriteLine(comment.ToString());
         }
 
-        foreach (var attribute in _attributes)
+        foreach (string attribute in _attributes)
         {
             code.WriteLine($"[{attribute}]");
         }

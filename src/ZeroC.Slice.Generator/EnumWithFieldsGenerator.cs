@@ -166,8 +166,6 @@ internal static class EnumWithFieldsGenerator
         EnumWithFields enumDef,
         string currentNamespace)
     {
-        IReadOnlyList<Field> sortedFields = enumerator.Fields.GetSortedFields();
-
         var code = new CodeBlock();
         code.WriteLine("""
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
@@ -185,47 +183,11 @@ internal static class EnumWithFieldsGenerator
                 """);
         }
 
-        // Bit sequence for non-tagged optional fields.
-        int bitSequenceSize = enumerator.Fields.GetBitSequenceSize();
-        if (bitSequenceSize > 0)
-        {
-            code.WriteLine($"    var bitSequenceWriter = encoder.GetBitSequenceWriter({bitSequenceSize});");
-        }
-
-        // Encode each field.
-        foreach (Field field in sortedFields)
-        {
-            string param = $"this.{field.Name}";
-
-            if (field.IsTagged)
-            {
-                CodeBlock taggedExpr = field.EncodeTaggedField(currentNamespace);
-                code.WriteLine($"    {taggedExpr.Indent()}");
-            }
-            else if (field.DataTypeIsOptional)
-            {
-                string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
-                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam);
-                code.WriteLine($$"""
-                        bitSequenceWriter.Write({{param}} != null);
-                        if ({{param}} != null)
-                        {
-                            {{encodeExpr.Indent().Indent()}};
-                        }
-                    """);
-            }
-            else
-            {
-                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, param);
-                code.WriteLine($"    {encodeExpr.Indent()};");
-            }
-        }
-
-        // Tag end marker for non-compact enums.
-        if (!enumDef.IsCompact)
-        {
-            code.WriteLine("    encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
-        }
+        // Encode fields (bit sequence, tagged, optional, regular, and tag end marker).
+        CodeBlock encodeBody = enumerator.Fields.GenerateEncodeBody(
+            currentNamespace,
+            includeTagEndMarker: !enumDef.IsCompact);
+        code.WriteLine($"    {encodeBody.Indent()}");
 
         // Close size for unchecked enums.
         if (enumDef.IsUnchecked)
