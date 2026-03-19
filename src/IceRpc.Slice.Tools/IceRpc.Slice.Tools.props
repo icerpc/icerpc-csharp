@@ -43,7 +43,7 @@
   <ItemDefinitionGroup>
     <SliceFile>
       <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
-      <GenerateIceRpc>false</GenerateIceRpc>
+      <GenerateIceRpc>true</GenerateIceRpc>
       <Pack>false</Pack>
       <PackagePath>slice</PackagePath>
     </SliceFile>
