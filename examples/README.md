@@ -38,10 +38,10 @@ dotnet build /p:IceRpcVersion=0.6.0-preview.1
 
 |                         |                                                                                                          |
 |-------------------------|----------------------------------------------------------------------------------------------------------|
-| [ice](./ice/)           | Contains examples that use the IceRPC + Ice integration (primarily for interop with [ZeroC Ice]).        |
-| [json](./json/)         | Contains examples that use the IceRPC core APIs to send and receive JSON-encoded requests and responses. |
 | [slice](./slice/)       | Contains examples that use the IceRPC + Slice integration.                                               |
 | [protobuf](./protobuf/) | Contains examples that use the IceRPC + Protobuf integration.                                            |
+| [ice](./ice/)           | Contains examples that use the IceRPC + Ice integration (primarily for interop with [ZeroC Ice]).        |
+| [json](./json/)         | Contains examples that use the IceRPC core APIs to send and receive JSON-encoded requests and responses. |
 
 [BUILDING]: ../BUILDING.md
 [ZeroC Ice]: https://github.com/zeroc-ice/ice
