@@ -5,13 +5,20 @@
 
 [source.ice]
 repo    = "https://github.com/zeroc-ice/ice"
-rev     = "4e7c327a184ca5330854d16b88976b46ddb24f30"
+rev     = "32d11c5b7d6cdc58dcf7b7cfd85ea655a5ad5913"
 source  = "slice"
 dest    = "slice"
 include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ice/OperationMode.ice", "Ice/Process.ice", "Ice/ReplyStatus.ice"]
 
 [source.icerpc]
 repo    = "https://github.com/icerpc/icerpc-slice"
-rev     = "b2360da0b3d48c5a7f90529bfbb65e61afcf61a6"
+rev     = "5eb3c8a7f878fc0ecf1f0a658faa84b2c57bcfe9"
 dest    = "slice"
 include = ["**/*.slice", "**/*.ice"]
+
+[source.compiler]
+repo    = "https://github.com/icerpc/slicec"
+rev     = "a1edd7995fa1e7e8f0aa8332136fd0aba2a31e38"
+source  = "slice"
+dest    = "slice"
+include = ["**/*.slice"]
