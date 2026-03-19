@@ -8,6 +8,16 @@ namespace IceRpc.Ice.Codec;
 /// <summary>Provides extension methods for <see cref="IceDecoder" /> to decode sequences or dictionaries.</summary>
 public static class IceDecoderExtensions
 {
+    /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
+    /// <param name="decoder">The Ice decoder.</param>
+    public static void CheckEndOfBuffer(this ref IceDecoder decoder)
+    {
+        if (!decoder.End)
+        {
+            throw new InvalidDataException($"There are {decoder.Remaining} bytes remaining in the buffer.");
+        }
+    }
+
     /// <summary>Decodes a dictionary.</summary>
     /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
     /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
