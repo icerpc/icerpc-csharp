@@ -31,8 +31,10 @@ public interface IIceFeature
     /// <value>The maximum depth.</value>
     int MaxDepth { get; }
 
-    /// <summary>Gets the maximum size of a payload segment, in bytes. A payload segment corresponds to the encoded
-    /// arguments of an operation, or the encoded return values of an operation.</summary>
-    /// <value>The maximum size of a payload segment, in bytes.</value>
-    int MaxSegmentSize { get; }
+    /// <summary>Gets the maximum size of an Ice-encoded payload, in bytes. An Ice-encoded payload corresponds to the
+    /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
+    /// <value>The maximum size of an Ice-encoded payload, in bytes.</value>
+    /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
+    /// header with the ice protocol.</remarks>
+    int MaxPayloadSize { get; }
 }

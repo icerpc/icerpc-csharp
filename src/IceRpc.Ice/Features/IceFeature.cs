@@ -27,19 +27,22 @@ public sealed class IceFeature : IIceFeature
     /// <value>The maximum depth. Defaults to <c>100</c>.</value>
     public int MaxDepth { get; }
 
-    /// <summary>Gets the maximum size of an Ice payload segment, in bytes. An Ice payload segment corresponds to the
+    /// <summary>Gets the maximum size of an Ice-encoded payload, in bytes. An Ice-encoded payload corresponds to the
     /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
-    /// <value>The maximum segment size. Defaults to <c>1</c> MB.</value>
-    public int MaxSegmentSize { get; }
+    /// <value>The maximum size of an Ice-encoded payload, in bytes. Defaults to <c>1</c> MB.</value>
+    /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
+    /// header with the ice protocol.</remarks>
+    public int MaxPayloadSize { get; }
 
     /// <summary>Constructs an Ice feature.</summary>
     /// <param name="activator">The activator.</param>
     /// <param name="encodeOptions">The encode options.</param>
     /// <param name="maxCollectionAllocation">The maximum collection allocation. Use <c>-1</c> to get the default value:
-    /// 8 times <paramref name="maxSegmentSize" /> if set, otherwise the value provided by <paramref
-    /// name="defaultFeature" />.</param>
+    /// 8 times <paramref name="maxPayloadSize" /> if set, otherwise the value provided by
+    /// <paramref name="defaultFeature" />.</param>
     /// <param name="maxDepth">The maximum depth. Use <c>-1</c> to get the default value.</param>
-    /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
+    /// <param name="maxPayloadSize">The maximum size of an Ice-encoded payload, in bytes. Use <c>-1</c> to get the
+    /// default value.</param>
     /// <param name="baseProxy">The base proxy, used when decoding service addresses into proxies.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
     /// is equivalent to <see cref="Default" />.</param>
@@ -48,7 +51,7 @@ public sealed class IceFeature : IIceFeature
         IceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
         int maxDepth = -1,
-        int maxSegmentSize = -1,
+        int maxPayloadSize = -1,
         IIceProxy? baseProxy = null,
         IIceFeature? defaultFeature = null)
     {
@@ -58,11 +61,11 @@ public sealed class IceFeature : IIceFeature
         EncodeOptions = encodeOptions ?? defaultFeature.EncodeOptions;
 
         MaxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
-            (maxSegmentSize >= 0 ? 8 * maxSegmentSize : defaultFeature.MaxCollectionAllocation);
+            (maxPayloadSize >= 0 ? 8 * maxPayloadSize : defaultFeature.MaxCollectionAllocation);
 
         MaxDepth = maxDepth >= 0 ? maxDepth : defaultFeature.MaxDepth;
 
-        MaxSegmentSize = maxSegmentSize >= 0 ? maxSegmentSize : defaultFeature.MaxSegmentSize;
+        MaxPayloadSize = maxPayloadSize >= 0 ? maxPayloadSize : defaultFeature.MaxPayloadSize;
 
         BaseProxy = baseProxy ?? defaultFeature.BaseProxy;
     }
@@ -75,10 +78,10 @@ public sealed class IceFeature : IIceFeature
 
         public IceEncodeOptions? EncodeOptions => null;
 
-        public int MaxCollectionAllocation => 8 * MaxSegmentSize;
+        public int MaxCollectionAllocation => 8 * MaxPayloadSize;
 
         public int MaxDepth => 100;
 
-        public int MaxSegmentSize => 1024 * 1024;
+        public int MaxPayloadSize => 1024 * 1024;
     }
 }

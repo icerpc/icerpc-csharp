@@ -12,7 +12,7 @@ public static class SliceProxySliceDecoderExtensions
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded proxy struct.</returns>
     public static TProxy DecodeProxy<TProxy>(this ref SliceDecoder decoder) where TProxy : struct, ISliceProxy =>
-           CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.DecodingContext);
+        CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.DecodingContext);
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
         where TProxy : struct, ISliceProxy
