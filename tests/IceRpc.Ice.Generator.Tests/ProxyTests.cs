@@ -12,7 +12,7 @@ namespace IceRpc.Ice.Generator.Tests;
 public partial class ProxyTests
 {
     [Test]
-    public async Task Create_proxy_with_null_protocol_fails()
+    public void Create_proxy_with_null_protocol_fails()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
@@ -23,7 +23,7 @@ public partial class ProxyTests
     }
 
     [Test]
-    public async Task Initialize_proxy_with_null_protocol_fails()
+    public void Initialize_proxy_with_null_protocol_fails()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
@@ -35,7 +35,7 @@ public partial class ProxyTests
     }
 
     [Test]
-    public async Task Proxy_has_default_service_path_with_ice_protocol()
+    public void Proxy_has_default_service_path_with_ice_protocol()
     {
         // Arrange
         var proxy = new PingableProxy{ Invoker = InvalidInvoker.Instance };
