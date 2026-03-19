@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
 using GreeterServer;
+using IceRpc;
 
 // Use the ice protocol for compatibility with ZeroC Ice.
 await using var server = new Server(new Chatbot(), new Uri("ice://[::0]"));
