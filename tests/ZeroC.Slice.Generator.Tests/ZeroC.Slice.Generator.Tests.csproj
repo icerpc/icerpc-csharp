@@ -8,7 +8,7 @@
 
   <ItemDefinitionGroup>
     <SliceFile>
-      <GenerateIceRpc>false</GenerateIceRpc>
+      <IceRpc>false</IceRpc>
     </SliceFile>
   </ItemDefinitionGroup>
 

@@ -24,7 +24,7 @@
   <!-- Set the default Rpc framework for .ice file compilation to icerpc -->
   <ItemDefinitionGroup>
     <SliceCompile>
-      <GenerateIceRpc>true</GenerateIceRpc>
+      <IceRpc>true</IceRpc>
     </SliceCompile>
   </ItemDefinitionGroup>
 
