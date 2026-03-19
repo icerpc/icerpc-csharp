@@ -15,7 +15,7 @@
     <Compile Include="../ZeroC.Slice.Generator/CSAttribute.cs" />
     <Compile Include="../ZeroC.Slice.Generator/CSAttributeValidator.cs" />
     <Compile Include="../ZeroC.Slice.Generator/GeneratorDriver.cs" />
-    <Compile Include="../ZeroC.CodeBuilder/*.cs" />
+    <Compile Include="../ZeroC.CodeBuilder/*.cs" LinkBase="CodeBuilder" />
     <PackageReference Include="dunet" Version="1.11.3" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj" />
