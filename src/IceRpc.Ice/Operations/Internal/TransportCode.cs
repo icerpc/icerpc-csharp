@@ -2,7 +2,7 @@
 
 namespace IceRpc.Ice.Operations.Internal;
 
-/// <summary>TransportCode is used by the Ice encoding to encode a transport name (such as "tcp") as an int16 value.
+/// <summary>TransportCode is used by the Ice encoding to encode a transport name (such as "tcp") as a short value.
 /// </summary>
 internal enum TransportCode
 {

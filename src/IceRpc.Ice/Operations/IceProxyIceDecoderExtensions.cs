@@ -62,9 +62,9 @@ public static class IceProxyIceDecoderExtensions
         // With the Ice encoding, the ice server addresses are transport-specific, with a transport-specific encoding.
 
         ServerAddress? serverAddress = null;
-        var transportCode = (TransportCode)decoder.DecodeInt16();
+        var transportCode = (TransportCode)decoder.DecodeShort();
 
-        int size = decoder.DecodeInt32();
+        int size = decoder.DecodeInt();
         if (size < 6)
         {
             throw new InvalidDataException($"The Ice encapsulation's size ({size}) is too small.");
@@ -73,8 +73,8 @@ public static class IceProxyIceDecoderExtensions
         // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
         size -= 6;
 
-        byte encodingMajor = decoder.DecodeUInt8();
-        byte encodingMinor = decoder.DecodeUInt8();
+        byte encodingMajor = decoder.DecodeByte();
+        byte encodingMinor = decoder.DecodeByte();
 
         if (decoder.Remaining < size)
         {
@@ -183,8 +183,8 @@ public static class IceProxyIceDecoderExtensions
         string fragment = decoder.DecodeFacet().ToFragment();
         _ = decoder.DecodeInvocationMode();
         _ = decoder.DecodeBool();
-        byte protocolMajor = decoder.DecodeUInt8();
-        byte protocolMinor = decoder.DecodeUInt8();
+        byte protocolMajor = decoder.DecodeByte();
+        byte protocolMinor = decoder.DecodeByte();
         decoder.Skip(2); // skip encoding major and minor
 
         if (protocolMajor == 0)

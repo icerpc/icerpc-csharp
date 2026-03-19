@@ -23,7 +23,7 @@ public class NumericTypesEncodingTests
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new IceEncoder(bufferWriter);
 
-        encoder.EncodeInt64(value);
+        encoder.EncodeLong(value);
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(long)));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
@@ -34,13 +34,13 @@ public class NumericTypesEncodingTests
     /// <param name="expected">The expected byte array produced from encoding value.</param>
     [TestCase(42, new byte[] { 42 })]
     [TestCase(byte.MaxValue, new byte[] { 0xFF })]
-    public void Encode_uint8_value(byte value, byte[] expected)
+    public void Encode_byte_value(byte value, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new IceEncoder(bufferWriter);
 
-        encoder.EncodeUInt8(value);
+        encoder.EncodeByte(value);
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(byte)));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));

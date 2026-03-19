@@ -145,48 +145,53 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Decodes an Ice float32 into a float.</summary>
-    /// <returns>The float decoded by this decoder.</returns>
-    public float DecodeFloat32() =>
-        SequenceMarshal.TryRead(ref _reader, out float value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+    /// <summary>Decodes an Ice byte into a byte.</summary>
+    /// <returns>The byte decoded by this decoder.</returns>
+    public byte DecodeByte() =>
+        _reader.TryRead(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes an Ice float64 into a double.</summary>
+    /// <summary>Decodes an Ice double into a double.</summary>
     /// <returns>The double decoded by this decoder.</returns>
-    public double DecodeFloat64() =>
+    public double DecodeDouble() =>
         SequenceMarshal.TryRead(ref _reader, out double value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes an Ice int16 into a short.</summary>
-    /// <returns>The short decoded by this decoder.</returns>
-    public short DecodeInt16() =>
-        SequenceMarshal.TryRead(ref _reader, out short value) ?
+    /// <summary>Decodes an Ice float into a float.</summary>
+    /// <returns>The float decoded by this decoder.</returns>
+    public float DecodeFloat() =>
+        SequenceMarshal.TryRead(ref _reader, out float value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes an Ice int32 into an int.</summary>
+    /// <summary>Decodes an Ice int into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
-    public int DecodeInt32() =>
+    public int DecodeInt() =>
         SequenceMarshal.TryRead(ref _reader, out int value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Decodes an Ice int64 into a long.</summary>
+    /// <summary>Decodes an Ice long into a long.</summary>
     /// <returns>The long decoded by this decoder.</returns>
-    public long DecodeInt64() =>
+    public long DecodeLong() =>
         SequenceMarshal.TryRead(ref _reader, out long value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
+
+    /// <summary>Decodes an Ice short into a short.</summary>
+    /// <returns>The short decoded by this decoder.</returns>
+    public short DecodeShort() =>
+        SequenceMarshal.TryRead(ref _reader, out short value) ?
             value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
     /// <returns>The size decoded by this decoder.</returns>
     public int DecodeSize()
     {
-        byte firstByte = DecodeUInt8();
+        byte firstByte = DecodeByte();
         if (firstByte < 255)
         {
             return firstByte;
         }
         else
         {
-            int size = DecodeInt32();
+            int size = DecodeInt();
             if (size < 0)
             {
                 throw new InvalidDataException($"Decoded invalid size: {size}.");
@@ -249,11 +254,6 @@ public ref partial struct IceDecoder
             return result;
         }
     }
-
-    /// <summary>Decodes an Ice uint8 into a byte.</summary>
-    /// <returns>The byte decoded by this decoder.</returns>
-    public byte DecodeUInt8() =>
-        _reader.TryRead(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     // Other methods
 
@@ -357,7 +357,7 @@ public ref partial struct IceDecoder
                 break;
             }
 
-            int v = DecodeUInt8();
+            int v = DecodeByte();
             if (useTagEndMarker && v == TagEndMarker)
             {
                 // When we use an end marker, the end marker (and only the end marker) indicates the end of the
@@ -377,7 +377,7 @@ public ref partial struct IceDecoder
     /// <summary>Skip Ice size.</summary>
     public void SkipSize()
     {
-        byte b = DecodeUInt8();
+        byte b = DecodeByte();
         if (b == 255)
         {
             Skip(4);
@@ -420,7 +420,7 @@ public ref partial struct IceDecoder
 
             long savedPos = _reader.Consumed;
 
-            int v = DecodeUInt8();
+            int v = DecodeByte();
             if (useTagEndMarker && v == TagEndMarker)
             {
                 _reader.Rewind(_reader.Consumed - savedPos);
@@ -482,7 +482,7 @@ public ref partial struct IceDecoder
                 Skip(DecodeSize());
                 break;
             case TagFormat.FSize:
-                int size = DecodeInt32();
+                int size = DecodeInt();
                 if (size < 0)
                 {
                     throw new InvalidDataException($"Decoded invalid size: {size}.");
