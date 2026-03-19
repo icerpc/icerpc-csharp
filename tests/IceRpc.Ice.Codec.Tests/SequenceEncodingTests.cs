@@ -45,7 +45,7 @@ public class SequenceEncodingTests
         var decoded = new List<int>();
         for (int i = 0; i < size; ++i)
         {
-            decoded.Add(decoder.DecodeInt32());
+            decoded.Add(decoder.DecodeInt());
         }
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

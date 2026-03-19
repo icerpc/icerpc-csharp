@@ -684,7 +684,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     {
         var decoder = new IceDecoder(buffer);
 
-        int requestId = decoder.DecodeInt32();
+        int requestId = decoder.DecodeInt();
 
         var requestHeader = new IceRequestHeader(ref decoder);
         requestHeader.Facet.CheckFacetCount();
@@ -808,11 +808,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // Write the request header.
         encoder.WriteByteSpan(IceDefinitions.FramePrologue);
         encoder.EncodeIceFrameType(IceFrameType.Request);
-        encoder.EncodeUInt8(0); // compression status
+        encoder.EncodeByte(0); // compression status
 
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
-        encoder.EncodeInt32(requestId);
+        encoder.EncodeInt(requestId);
 
         byte encodingMajor = 1;
         byte encodingMinor = 1;
@@ -852,7 +852,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             encodingMinor).Encode(ref encoder);
 
         int frameSize = checked(encoder.EncodedByteCount + directWriteSize + payloadSize);
-        IceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+        IceEncoder.EncodeInt(frameSize, sizePlaceholder);
     }
 
     private static void EncodeResponseHeader(
@@ -868,10 +868,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         encoder.WriteByteSpan(IceDefinitions.FramePrologue);
         encoder.EncodeIceFrameType(IceFrameType.Reply);
-        encoder.EncodeUInt8(0); // compression status
+        encoder.EncodeByte(0); // compression status
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
-        encoder.EncodeInt32(requestId);
+        encoder.EncodeInt(requestId);
 
         if (response.StatusCode > StatusCode.ApplicationError ||
             (response.StatusCode == StatusCode.ApplicationError && payloadSize == 0))
@@ -923,7 +923,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         int frameSize = encoder.EncodedByteCount + payloadSize;
-        IceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+        IceEncoder.EncodeInt(frameSize, sizePlaceholder);
     }
 
     /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
@@ -1358,7 +1358,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
-            int requestId = requestIdBuffer.DecodeIceBuffer((ref IceDecoder decoder) => decoder.DecodeInt32());
+            int requestId = requestIdBuffer.DecodeIceBuffer((ref IceDecoder decoder) => decoder.DecodeInt());
             replyFrameReader.AdvanceTo(requestIdBuffer.End);
 
             lock (_mutex)

@@ -61,11 +61,11 @@ public static class IceProxyIceEncoderExtensions
 
         encoder.EncodeFragmentAsFacet(value.Fragment);
         encoder.EncodeInvocationMode(InvocationMode.Twoway);
-        encoder.EncodeBool(false);               // Secure
-        encoder.EncodeUInt8(protocol.ByteValue); // Protocol Major
-        encoder.EncodeUInt8(0);                  // Protocol Minor
-        encoder.EncodeUInt8(1);                  // Encoding Major
-        encoder.EncodeUInt8(1);                  // Encoding Minor
+        encoder.EncodeBool(false);              // Secure
+        encoder.EncodeByte(protocol.ByteValue); // Protocol Major
+        encoder.EncodeByte(0);                  // Protocol Minor
+        encoder.EncodeByte(1);                  // Encoding Major
+        encoder.EncodeByte(1);                  // Encoding Minor
 
         if (value.ServerAddress is ServerAddress serverAddress)
         {
@@ -107,12 +107,12 @@ public static class IceProxyIceEncoderExtensions
             (short transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
                 serverAddress.ParseOpaqueParams();
 
-            encoder.EncodeInt16(transportCode);
+            encoder.EncodeShort(transportCode);
 
             // encapsulation size includes size-length and 2 bytes for encoding
-            encoder.EncodeInt32(4 + 2 + bytes.Length);
-            encoder.EncodeUInt8(encodingMajor);
-            encoder.EncodeUInt8(encodingMinor);
+            encoder.EncodeInt(4 + 2 + bytes.Length);
+            encoder.EncodeByte(encodingMajor);
+            encoder.EncodeByte(encodingMinor);
             encoder.WriteByteSpan(bytes.Span);
         }
         else
@@ -126,12 +126,12 @@ public static class IceProxyIceEncoderExtensions
                 } :
                 TransportCode.Uri;
 
-            encoder.EncodeInt16((short)transportCode);
+            encoder.EncodeShort((short)transportCode);
 
             int startPos = encoder.EncodedByteCount; // size includes size-length
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4); // encapsulation size
-            encoder.EncodeUInt8(1); // encoding version major
-            encoder.EncodeUInt8(1); // encoding version minor
+            encoder.EncodeByte(1); // encoding version major
+            encoder.EncodeByte(1); // encoding version minor
 
             switch (transportCode)
             {
@@ -146,7 +146,7 @@ public static class IceProxyIceEncoderExtensions
                     break;
             }
 
-            IceEncoder.EncodeInt32(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            IceEncoder.EncodeInt(encoder.EncodedByteCount - startPos, sizePlaceholder);
         }
     }
 

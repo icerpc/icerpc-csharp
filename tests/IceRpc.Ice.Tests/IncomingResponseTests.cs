@@ -47,7 +47,7 @@ public class IncomingResponseTests
             async () => await response.DecodeReturnValueAsync(
                 request,
                 InvalidProxy.Instance,
-                (ref IceDecoder decoder) => decoder.DecodeInt32(),
+                (ref IceDecoder decoder) => decoder.DecodeInt(),
                 _defaultActivator));
         Assert.That(decodedException, Is.Not.Null);
         Assert.That(decodedException!.ConvertToInternalError, Is.True);
