@@ -16,7 +16,7 @@ public ref partial struct IceDecoder
     /// <summary>Decodes a class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
     /// <returns>The class instance, or <see langword="null" />.</returns>
-    public T? DecodeClass<T>() where T : class
+    public T? DecodeClass<T>() where T : IceClass
     {
         IceClass? obj = DecodeClass();
 

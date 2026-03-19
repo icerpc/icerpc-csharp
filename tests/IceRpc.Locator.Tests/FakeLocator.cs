@@ -20,7 +20,7 @@ internal sealed class FakeLocator : ILocator
     {
         ResolvedCount++;
         return Task.FromResult<IceObjectProxy?>(
-            id == "good" && _adapterId ? new IceObjectProxy(invoker: InvalidInvoker.Instance, _serviceAddress) : null);
+            id == "good" && _adapterId ? new IceObjectProxy(InvalidInvoker.Instance, _serviceAddress) : null);
     }
 
     public Task<IceObjectProxy?> FindObjectByIdAsync(
@@ -30,8 +30,7 @@ internal sealed class FakeLocator : ILocator
     {
         ResolvedCount++;
         return Task.FromResult<IceObjectProxy?>(
-            id.Name == "good" && !_adapterId ?
-                new IceObjectProxy(invoker: InvalidInvoker.Instance, _serviceAddress) : null);
+            id.Name == "good" && !_adapterId ? new IceObjectProxy(InvalidInvoker.Instance, _serviceAddress) : null);
     }
 
     Task<LocatorRegistryProxy?> ILocator.GetRegistryAsync(
