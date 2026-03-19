@@ -7,13 +7,13 @@ namespace IceRpc.Locator.Tests;
 
 internal sealed class NotFoundLocator : ILocator
 {
-    public Task<ServiceAddress?> FindAdapterByIdAsync(
+    public Task<IceObjectProxy?> FindAdapterByIdAsync(
         string id,
         IFeatureCollection? features,
         CancellationToken cancellationToken) =>
         throw new AdapterNotFoundException();
 
-    public Task<ServiceAddress?> FindObjectByIdAsync(
+    public Task<IceObjectProxy?> FindObjectByIdAsync(
         Identity id,
         IFeatureCollection? features,
         CancellationToken cancellationToken) =>

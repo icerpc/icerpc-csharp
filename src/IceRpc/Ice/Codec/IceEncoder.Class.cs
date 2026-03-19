@@ -11,13 +11,9 @@ namespace IceRpc.Ice.Codec;
 /// <summary>Provides methods to encode data with Ice.</summary>
 public ref partial struct IceEncoder
 {
-    /// <summary>Encodes a class instance.</summary>
-    /// <param name="v">The class instance to encode.</param>
-    public void EncodeClass(IceClass v) => EncodeNullableClass(v);
-
     /// <summary>Encodes a class instance, or <see langword="null" />.</summary>
     /// <param name="v">The class instance to encode, or <see langword="null" />.</param>
-    public void EncodeNullableClass(IceClass? v)
+    public void EncodeClass(IceClass? v)
     {
         if (v is null)
         {

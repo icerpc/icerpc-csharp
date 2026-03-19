@@ -15,10 +15,22 @@ public ref partial struct IceDecoder
 {
     /// <summary>Decodes a class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
-    /// <returns>The decoded class instance.</returns>
-    public T DecodeClass<T>() where T : IceClass =>
-        DecodeNullableClass<T>() ??
-           throw new InvalidDataException("Decoded a null class instance, but expected a non-null instance.");
+    /// <returns>The class instance, or <see langword="null" />.</returns>
+    public T? DecodeClass<T>() where T : IceClass
+    {
+        IceClass? obj = DecodeClass();
+
+        if (obj is T result)
+        {
+            return result;
+        }
+        else if (obj is null)
+        {
+            return null;
+        }
+        throw new InvalidDataException(
+            $"Decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'.");
+    }
 
     /// <summary>Decodes an Ice exception.</summary>
     /// <param name="message">The error message. It's used only when this method fails to find an exception class to
@@ -63,25 +75,6 @@ public ref partial struct IceDecoder
         iceException.Decode(ref this);
         _classContext.Current = default;
         return iceException;
-    }
-
-    /// <summary>Decodes a nullable class instance.</summary>
-    /// <typeparam name="T">The class type.</typeparam>
-    /// <returns>The class instance, or <see langword="null" />.</returns>
-    public T? DecodeNullableClass<T>() where T : class
-    {
-        IceClass? obj = DecodeClass();
-
-        if (obj is T result)
-        {
-            return result;
-        }
-        else if (obj is null)
-        {
-            return null;
-        }
-        throw new InvalidDataException(
-            $"Decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'.");
     }
 
     /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
