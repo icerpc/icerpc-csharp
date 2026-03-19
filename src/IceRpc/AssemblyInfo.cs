@@ -2,9 +2,12 @@
 
 using System.Runtime.CompilerServices;
 
-// Make internals visible to IceRpc.Ice and IceRpc.Slice
+// Make internals visible to IceRpc.Ice for IceIdentity and more.
 [assembly: InternalsVisibleTo("IceRpc.Ice")]
+
+// Make internals visible to IceRpc.Slice for ReadSliceSegmentAsync and more.
 [assembly: InternalsVisibleTo("IceRpc.Slice")]
+
 // Make internals visible to coloc assembly
 [assembly: InternalsVisibleTo("IceRpc.Transports.Coloc")] // necessary to use IceRpc.Transports.Internal utility classes
 

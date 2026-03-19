@@ -11,7 +11,7 @@ namespace IceRpc.Ice.Generator.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
-    /// <summary>Verifies that calling DecodeNullableProxy correctly decodes a proxy. </summary>
+    /// <summary>Verifies that calling DecodeProxy correctly decodes a proxy.</summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     // cSpell:disable
@@ -33,36 +33,37 @@ public partial class ProxyTests
     [TestCase("ice:/cat/name?adapter-id=foo", null)]
     [TestCase("ice:/cat/name", null)]
     // cSpell:enable
-    public void Decode_nullable_proxy(ServiceAddress value, ServiceAddress? expected)
+    public void Decode_proxy(ServiceAddress value, ServiceAddress? expected)
     {
         // Arrange
         expected ??= value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new IceEncoder(bufferWriter);
-        encoder.EncodeServiceAddress(value);
+        encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, value));
         var sut = new IceDecoder(bufferWriter.WrittenMemory);
 
         // Act
-        var decoded = sut.DecodeNullablePingableProxy();
+        var decoded = sut.DecodePingableProxy();
 
         // Assert
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that nullable proxies are correctly encoded.</summary>
-    /// <param name="expected">The nullable proxy to test with.</param>
+    /// <summary>Verifies that proxies are correctly encoded.</summary>
+    /// <param name="expected">The proxy to test with.</param>
     [TestCase("icerpc://host.zeroc.com/hello")]
     [TestCase(null)]
-    public void Decode_nullable_proxy(ServiceAddress? expected)
+    public void Decode_proxy(ServiceAddress? expected)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new IceEncoder(buffer);
-        encoder.EncodeNullableServiceAddress(expected);
+        encoder.EncodeIceObjectProxy(
+            expected is not null ? new IceObjectProxy(InvalidInvoker.Instance, expected) : null);
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
         // Act
-        AnotherPingableProxy? decoded = decoder.DecodeNullableAnotherPingableProxy();
+        AnotherPingableProxy? decoded = decoder.DecodeAnotherPingableProxy();
 
         // Assert
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
@@ -75,24 +76,24 @@ public partial class ProxyTests
     [TestCase("ice://host/path?transport=opaque&t=1")] // no v
     [TestCase("ice://host/path?transport=opaque&t=1&v=1234&foo=bar")] // unknown param
     [TestCase("ice://host/path?transport=opaque&e=2.0&t=1&v=1234")] // bad e
-    public void Encode_invalid_opaque_service_address_fails(ServiceAddress serviceAddress) =>
+    public void Encode_invalid_opaque_proxy_fails(ServiceAddress serviceAddress) =>
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new IceEncoder(bufferWriter);
-            encoder.EncodeServiceAddress(serviceAddress);
+            encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
         },
         Throws.TypeOf<FormatException>());
 
     // we have to use icerpc since these paths are not valid for ice
     [TestCase("icerpc://host:10000")]
     [TestCase("icerpc://host:10000/foo/")]
-    public void Encode_service_address_with_null_identity_fails(ServiceAddress serviceAddress) =>
+    public void Encode_proxy_with_null_identity_fails(ServiceAddress serviceAddress) =>
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new IceEncoder(bufferWriter);
-            encoder.EncodeServiceAddress(serviceAddress);
+            encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
         },
         Throws.TypeOf<ArgumentException>());
 

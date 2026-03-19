@@ -46,7 +46,7 @@ public class SlicingTests
             buffer.WrittenMemory,
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
 
-        SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>();
+        SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>()!;
 
         // Assert
         Assert.That(decoder.End, Is.True);
@@ -106,7 +106,7 @@ public class SlicingTests
             buffer.WrittenMemory,
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
 
-        SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>();
+        SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>()!;
 
         // Assert
         Assert.That(decoder.End, Is.True);
@@ -160,7 +160,7 @@ public class SlicingTests
             buffer.WrittenMemory,
             activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));
 
-        SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
+        SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>()!;
 
         // Assert
         Assert.That(decoder.End, Is.True);

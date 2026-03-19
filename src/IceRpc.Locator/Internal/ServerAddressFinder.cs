@@ -52,16 +52,16 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
         {
             try
             {
-                ServiceAddress? serviceAddress = await _locator.FindAdapterByIdAsync(
+                IceObjectProxy? proxy = await _locator.FindAdapterByIdAsync(
                     location.Value,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (serviceAddress is not null)
+                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
                     return serviceAddress.Protocol == Protocol.Ice && serviceAddress.ServerAddress is not null ?
                         serviceAddress :
                         throw new InvalidDataException(
-                            $"The locator returned invalid service address '{serviceAddress}' when looking up an adapter by ID.");
+                            $"The locator returned invalid proxy '{proxy}' when looking up an adapter by ID.");
                 }
                 else
                 {
@@ -78,18 +78,18 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
         {
             try
             {
-                ServiceAddress? serviceAddress = await _locator.FindObjectByIdAsync(
+                IceObjectProxy? proxy = await _locator.FindObjectByIdAsync(
                     Identity.Parse(location.Value),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (serviceAddress is not null)
+                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
                     // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress.Protocol == Protocol.Ice &&
                         (serviceAddress.ServerAddress is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
                             serviceAddress :
                             throw new InvalidDataException(
-                                $"The locator returned invalid service address '{serviceAddress}' when looking up an object by ID.");
+                                $"The locator returned invalid proxy '{proxy}' when looking up an object by ID.");
                 }
                 else
                 {

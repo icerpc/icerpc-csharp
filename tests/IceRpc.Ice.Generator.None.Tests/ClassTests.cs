@@ -57,10 +57,10 @@ public sealed class ClassTests
                     activator: IActivator.FromAssemblies(typeof(MyInternalClass).Assembly),
                     maxDepth: 100);
         // Act
-        MyInternalClass decoded = decoder.DecodeClass<MyInternalClass>();
+        MyInternalClass? decoded = decoder.DecodeClass<MyInternalClass>();
 
-        Assert.That(decoded.M1, Is.EqualTo("m1"));
-        Assert.That(decoded.M2, Is.EqualTo("m2"));
+        Assert.That(decoded?.M1, Is.EqualTo("m1"));
+        Assert.That(decoded?.M2, Is.EqualTo("m2"));
     }
 
     [Test]
@@ -519,7 +519,7 @@ public sealed class ClassTests
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
-        MyClassA theA = decoder.DecodeClass<MyClassA>();
+        MyClassA theA = decoder.DecodeClass<MyClassA>()!;
 
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
@@ -598,7 +598,7 @@ public sealed class ClassTests
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
-        MyClassA theA = decoder.DecodeClass<MyClassA>();
+        MyClassA theA = decoder.DecodeClass<MyClassA>()!;
 
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
@@ -660,7 +660,7 @@ public sealed class ClassTests
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
-        MyClassA theA = decoder.DecodeClass<MyClassA>();
+        MyClassA theA = decoder.DecodeClass<MyClassA>()!;
 
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
@@ -751,7 +751,7 @@ public sealed class ClassTests
             activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
-        MyClassA theA = decoder.DecodeClass<MyClassA>();
+        MyClassA theA = decoder.DecodeClass<MyClassA>()!;
 
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
@@ -789,8 +789,8 @@ public sealed class ClassTests
             activator: IActivator.FromAssembly(typeof(Person).Assembly));
 
         // Act
-        Person newJohn = decoder.DecodeClass<Person>();
-        Person newYoko = decoder.DecodeClass<Person>();
+        Person newJohn = decoder.DecodeClass<Person>()!;
+        Person newYoko = decoder.DecodeClass<Person>()!;
 
         // Verify we get the same graph.
         Assert.That(newJohn.Spouse, Is.SameAs(newYoko));
@@ -925,8 +925,8 @@ public sealed class ClassTests
         var classWithTaggedFields = decoder.DecodeClass<MyDerivedClassWithTaggedFields>();
 
         // Assert
-        Assert.That(classWithTaggedFields.A, Is.EqualTo(a));
-        Assert.That(classWithTaggedFields.B, Is.EqualTo(b));
+        Assert.That(classWithTaggedFields?.A, Is.EqualTo(a));
+        Assert.That(classWithTaggedFields?.B, Is.EqualTo(b));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }

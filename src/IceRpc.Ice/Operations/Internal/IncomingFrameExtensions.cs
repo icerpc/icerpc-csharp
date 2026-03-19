@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Ice.Codec;
-using IceRpc.Internal;
 using System.IO.Pipelines;
 
 namespace IceRpc.Ice.Operations.Internal;
@@ -27,12 +26,12 @@ internal static class IncomingFrameExtensions
         IActivator activator,
         CancellationToken cancellationToken)
     {
-        return frame.Payload.TryReadIceSegment(feature.MaxSegmentSize, out ReadResult readResult) ?
-                new(DecodeSegment(readResult)) :
+        return frame.Payload.TryReadFullPayload(feature.MaxPayloadSize, out ReadResult readResult) ?
+                new(DecodePayload(readResult)) :
                 PerformDecodeAsync();
 
         // All the logic is in this local function.
-        T DecodeSegment(ReadResult readResult)
+        T DecodePayload(ReadResult readResult)
         {
             // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
             if (readResult.IsCanceled)
@@ -57,8 +56,8 @@ internal static class IncomingFrameExtensions
         }
 
         async ValueTask<T> PerformDecodeAsync() =>
-            DecodeSegment(await frame.Payload.ReadIceSegmentAsync(
-                feature.MaxSegmentSize,
+            DecodePayload(await frame.Payload.ReadFullPayloadAsync(
+                feature.MaxPayloadSize,
                 cancellationToken).ConfigureAwait(false));
     }
 
@@ -71,16 +70,16 @@ internal static class IncomingFrameExtensions
         IIceFeature feature,
         CancellationToken cancellationToken)
     {
-        if (frame.Payload.TryReadIceSegment(feature.MaxSegmentSize, out ReadResult readResult))
+        if (frame.Payload.TryReadFullPayload(feature.MaxPayloadSize, out ReadResult readResult))
         {
-            DecodeSegment(readResult);
+            DecodePayload(readResult);
             return default;
         }
 
         return PerformDecodeAsync();
 
         // All the logic is in this local function.
-        void DecodeSegment(ReadResult readResult)
+        void DecodePayload(ReadResult readResult)
         {
             // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
             if (readResult.IsCanceled)
@@ -99,8 +98,8 @@ internal static class IncomingFrameExtensions
         }
 
         async ValueTask PerformDecodeAsync() =>
-            DecodeSegment(await frame.Payload.ReadIceSegmentAsync(
-                feature.MaxSegmentSize,
+            DecodePayload(await frame.Payload.ReadFullPayloadAsync(
+                feature.MaxPayloadSize,
                 cancellationToken).ConfigureAwait(false));
     }
 }

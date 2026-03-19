@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Internal;
 using System.Buffers;
 using ZeroC.Slice.Codec;
 

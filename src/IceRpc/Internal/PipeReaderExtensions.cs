@@ -6,45 +6,9 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides extension methods for <see cref="PipeReader" /> to decode payloads.</summary>
+/// <summary>Provides extension methods for <see cref="PipeReader" /> to read Slice segments.</summary>
 internal static class PipeReaderExtensions
 {
-    /// <summary>Reads an Ice segment from a pipe reader.</summary>
-    /// <param name="reader">The pipe reader.</param>
-    /// <param name="maxSize">The maximum size of this segment.</param>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled" /> is
-    /// <see langword="true" />.</returns>
-    /// <exception cref="InvalidDataException">Thrown when the segment size exceeds <paramref name="maxSize" />.
-    /// </exception>
-    /// <remarks>The caller must call AdvanceTo on the reader, as usual. This method reads all the remaining bytes in
-    /// the reader.</remarks>
-    internal static async ValueTask<ReadResult> ReadIceSegmentAsync(
-        this PipeReader reader,
-        int maxSize,
-        CancellationToken cancellationToken)
-    {
-        Debug.Assert(maxSize is > 0 and < int.MaxValue);
-
-        // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
-        // call TryReadIceSegment.
-
-        // We read everything up to the maxSize + 1.
-        // It's maxSize + 1 and not maxSize because if the segment's size is maxSize, we could get
-        // readResult.IsCompleted == false even though the full segment was read.
-        ReadResult readResult = await reader.ReadAtLeastAsync(maxSize + 1, cancellationToken).ConfigureAwait(false);
-
-        if (readResult.IsCompleted && readResult.Buffer.Length <= maxSize)
-        {
-            return readResult;
-        }
-        else
-        {
-            reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-            throw new InvalidDataException("The segment size exceeds the maximum value.");
-        }
-    }
-
     /// <summary>Reads a Slice segment from a pipe reader.</summary>
     /// <param name="reader">The pipe reader.</param>
     /// <param name="maxSize">The maximum size of this segment.</param>
@@ -120,51 +84,6 @@ internal static class PipeReaderExtensions
 
         return readResult.Buffer.Length == segmentSize ? readResult :
             new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
-    }
-
-    /// <summary>Attempts to read an Ice segment from a pipe reader.</summary>
-    /// <param name="reader">The pipe reader.</param>
-    /// <param name="maxSize">The maximum size of this segment.</param>
-    /// <param name="readResult">The read result.</param>
-    /// <returns><see langword="true" /> when <paramref name="readResult" /> contains the segment read synchronously, or
-    /// the call was cancelled; otherwise, <see langword="false" />.</returns>
-    /// <exception cref="InvalidDataException">Thrown when the segment size exceeds the max segment size.</exception>
-    /// <remarks>When this method returns <see langword="true" />, the caller must call AdvanceTo on the reader, as
-    /// usual. When this method returns <see langword="false" />, the caller must call
-    /// <see cref="ReadIceSegmentAsync" />.</remarks>
-    internal static bool TryReadIceSegment(
-        this PipeReader reader,
-        int maxSize,
-        out ReadResult readResult)
-    {
-        Debug.Assert(maxSize is > 0 and < int.MaxValue);
-
-        if (reader.TryRead(out readResult))
-        {
-            if (readResult.IsCanceled)
-            {
-                return true; // and the buffer does not matter
-            }
-
-            if (readResult.Buffer.Length > maxSize)
-            {
-                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                throw new InvalidDataException("The segment size exceeds the maximum value.");
-            }
-
-            if (readResult.IsCompleted)
-            {
-                return true;
-            }
-            else
-            {
-                // don't consume anything but mark the whole buffer as examined - we need more.
-                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-            }
-        }
-
-        readResult = default;
-        return false;
     }
 
     /// <summary>Attempts to read a Slice segment from a pipe reader.</summary>

@@ -2,14 +2,15 @@
 
 using IceRpc.Ice.Codec;
 using IceRpc.Ice.Internal;
+using IceRpc.Ice.Operations.Internal;
 using IceRpc.Internal;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace IceRpc.Ice;
+namespace IceRpc.Ice.Operations;
 
-/// <summary>Provides extension methods for <see cref="IceEncoder" /> to encode service addresses.</summary>
-public static class ServiceAddressIceEncoderExtensions
+/// <summary>Provides extension methods for <see cref="IceEncoder" /> to encode proxies.</summary>
+public static class IceProxyIceEncoderExtensions
 {
     /// <summary>The default timeout value for tcp/ssl server addresses encoded with the Ice encoding.</summary>
     internal const int DefaultTcpTimeout = 60_000; // 60s
@@ -18,10 +19,26 @@ public static class ServiceAddressIceEncoderExtensions
     internal const string SslName = "ssl";
     internal const string TcpName = "tcp";
 
+    /// <summary>Encodes a proxy.</summary>
+    /// <typeparam name="T">The type of the proxy to encode.</typeparam>
+    /// <param name="encoder">The Ice encoder.</param>
+    /// <param name="value">The proxy to encode.</param>
+    public static void EncodeProxy<T>(this ref IceEncoder encoder, T? value) where T : struct, IIceProxy
+    {
+        if (value is not null)
+        {
+            encoder.EncodeServiceAddress(value.Value.ServiceAddress);
+        }
+        else
+        {
+            Identity.Empty.Encode(ref encoder);
+        }
+    }
+
     /// <summary>Encodes a service address.</summary>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The value to encode.</param>
-    public static void EncodeServiceAddress(this ref IceEncoder encoder, ServiceAddress value)
+    private static void EncodeServiceAddress(this ref IceEncoder encoder, ServiceAddress value)
     {
         if (value.Protocol is not Protocol protocol)
         {
@@ -70,21 +87,6 @@ public static class ServiceAddressIceEncoderExtensions
                     "Cannot encode a service address with a parameter other than adapter-id using the Ice encoding.");
             }
             encoder.EncodeString(adapterId ?? "");
-        }
-    }
-
-    /// <summary>Encodes a nullable service address.</summary>
-    /// <param name="encoder">The Ice encoder.</param>
-    /// <param name="value">The service address to encode, or <see langword="null" />.</param>
-    public static void EncodeNullableServiceAddress(this ref IceEncoder encoder, ServiceAddress? value)
-    {
-        if (value is not null)
-        {
-            encoder.EncodeServiceAddress(value);
-        }
-        else
-        {
-            Identity.Empty.Encode(ref encoder);
         }
     }
 

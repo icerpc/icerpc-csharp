@@ -9,6 +9,16 @@ namespace ZeroC.Slice.Codec;
 /// </summary>
 public static class SliceDecoderExtensions
 {
+    /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
+    /// <param name="decoder">The Slice decoder.</param>
+    public static void CheckEndOfBuffer(this ref SliceDecoder decoder)
+    {
+        if (!decoder.End)
+        {
+            throw new InvalidDataException($"There are {decoder.Remaining} bytes remaining in the buffer.");
+        }
+    }
+
     /// <summary>Decodes a dictionary.</summary>
     /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
     /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>

@@ -215,7 +215,7 @@ public class TaggedTests
             activator: IActivator.FromAssembly(typeof(ClassWithTaggedFields).Assembly));
 
         // Act
-        var c = decoder.DecodeClass<ClassWithTaggedFields>();
+        var c = decoder.DecodeClass<ClassWithTaggedFields>()!;
 
         // Assert
         Assert.That(c.A, Is.EqualTo(expected.A));

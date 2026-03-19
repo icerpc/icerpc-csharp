@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.Compiler")]
+[cs::namespace("ZeroC.Slice.Symbols.Compiler")]
 module Compiler
 
 interface CodeGenerator {

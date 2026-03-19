@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations.Internal;
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -107,8 +106,8 @@ public static class IncomingResponseExtensions
     {
         Debug.Assert(response.StatusCode == StatusCode.ApplicationError);
 
-        ReadResult readResult = await response.Payload.ReadIceSegmentAsync(
-            feature.MaxSegmentSize,
+        ReadResult readResult = await response.Payload.ReadFullPayloadAsync(
+            feature.MaxPayloadSize,
             cancellationToken).ConfigureAwait(false);
 
         // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
