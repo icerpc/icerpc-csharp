@@ -65,14 +65,14 @@ public ref partial struct IceEncoder
         // the indirection table and are included in the slice size.
         if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0)
         {
-            EncodeUInt8(TagEndMarker);
+            EncodeByte(TagEndMarker);
         }
 
         // Encodes the slice size if necessary.
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
         {
             // Size includes the size length.
-            EncodeInt32(
+            EncodeInt(
                 EncodedByteCount - _classContext.Current.SliceSizeStartPos,
                 _classContext.Current.SliceSizePlaceholder.Span);
         }

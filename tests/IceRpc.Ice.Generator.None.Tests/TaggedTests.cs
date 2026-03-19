@@ -113,7 +113,7 @@ public class TaggedTests
         {
             flags |= (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields;
         }
-        encoder.EncodeUInt8(flags);
+        encoder.EncodeByte(flags);
         encoder.EncodeString(typeof(ClassWithTaggedFields).GetIceTypeId()!);
 
         if (expected.A is not null)
@@ -122,7 +122,7 @@ public class TaggedTests
                 1,
                 TagFormat.F1,
                 expected.A.Value,
-                (ref IceEncoder encoder, byte value) => encoder.EncodeUInt8(value));
+                (ref IceEncoder encoder, byte value) => encoder.EncodeByte(value));
         }
 
         if (expected.B is not null)
@@ -131,7 +131,7 @@ public class TaggedTests
                 2,
                 TagFormat.F2,
                 expected.B.Value,
-                (ref IceEncoder encoder, short value) => encoder.EncodeInt16(value));
+                (ref IceEncoder encoder, short value) => encoder.EncodeShort(value));
         }
 
         if (expected.C is not null)
@@ -140,7 +140,7 @@ public class TaggedTests
                 3,
                 TagFormat.F4,
                 expected.C.Value,
-                (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value));
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
         }
 
         if (expected.D is not null)
@@ -149,7 +149,7 @@ public class TaggedTests
                 4,
                 TagFormat.F8,
                 expected.D.Value,
-                (ref IceEncoder encoder, long value) => encoder.EncodeInt64(value));
+                (ref IceEncoder encoder, long value) => encoder.EncodeLong(value));
         }
 
         if (expected.E is not null)
@@ -208,7 +208,7 @@ public class TaggedTests
 
         if (hasTaggedFields)
         {
-            encoder.EncodeUInt8(IceEncodingDefinitions.TagEndMarker);
+            encoder.EncodeByte(IceEncodingDefinitions.TagEndMarker);
         }
         var decoder = new IceDecoder(
             buffer.WrittenMemory,
@@ -261,7 +261,7 @@ public class TaggedTests
         {
             flags |= (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields;
         }
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo(flags));
+        Assert.That(decoder.DecodeByte(), Is.EqualTo(flags));
 
         Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(ClassWithTaggedFields).GetIceTypeId()));
 
@@ -269,7 +269,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 1,
                 TagFormat.F1,
-                (ref IceDecoder decoder) => decoder.DecodeUInt8() as byte?,
+                (ref IceDecoder decoder) => decoder.DecodeByte() as byte?,
                 useTagEndMarker: false),
             Is.EqualTo(c.A));
 
@@ -277,7 +277,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 2,
                 TagFormat.F2,
-                (ref IceDecoder decoder) => decoder.DecodeInt16() as short?,
+                (ref IceDecoder decoder) => decoder.DecodeShort() as short?,
                 useTagEndMarker: false),
             Is.EqualTo(c.B));
 
@@ -285,7 +285,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 3,
                 TagFormat.F4,
-                (ref IceDecoder decoder) => decoder.DecodeInt32() as int?,
+                (ref IceDecoder decoder) => decoder.DecodeInt() as int?,
                 useTagEndMarker: false),
             Is.EqualTo(c.C));
 
@@ -293,7 +293,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 4,
                 TagFormat.F8,
-                (ref IceDecoder decoder) => decoder.DecodeInt64() as long?,
+                (ref IceDecoder decoder) => decoder.DecodeLong() as long?,
                 useTagEndMarker: false),
             Is.EqualTo(c.D));
 
@@ -348,7 +348,7 @@ public class TaggedTests
 
         if (hasTaggedFields)
         {
-            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(IceEncodingDefinitions.TagEndMarker));
+            Assert.That(decoder.DecodeByte(), Is.EqualTo(IceEncodingDefinitions.TagEndMarker));
         }
 
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

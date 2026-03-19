@@ -16,13 +16,13 @@ public sealed class ExceptionTests
         var encoder = new IceEncoder(buffer);
 
         encoder.StartSlice(typeof(MyDerivedException).GetIceTypeId()!);
-        encoder.EncodeInt32(30);
-        encoder.EncodeInt32(40);
+        encoder.EncodeInt(30);
+        encoder.EncodeInt(40);
         encoder.EndSlice(lastSlice: false);
 
         encoder.StartSlice(typeof(MyException).GetIceTypeId()!);
-        encoder.EncodeInt32(10);
-        encoder.EncodeInt32(20);
+        encoder.EncodeInt(10);
+        encoder.EncodeInt(20);
         encoder.EndSlice(lastSlice: true);
 
         var decoder = new IceDecoder(
@@ -45,8 +45,8 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new IceEncoder(buffer);
         encoder.StartSlice(typeof(MyException).GetIceTypeId()!);
-        encoder.EncodeInt32(10);
-        encoder.EncodeInt32(20);
+        encoder.EncodeInt(10);
+        encoder.EncodeInt(20);
         if (taggedValue is not null)
         {
             // Ensure that a tagged value not declared in the Slice definition is correctly skipped
@@ -54,7 +54,7 @@ public sealed class ExceptionTests
                 10,
                 TagFormat.F4,
                 taggedValue.Value,
-                (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value));
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
         }
         encoder.EndSlice(lastSlice: true);
         var decoder = new IceDecoder(
@@ -77,15 +77,15 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new IceEncoder(buffer);
         encoder.StartSlice(typeof(MyExceptionWithTaggedFields).GetIceTypeId()!);
-        encoder.EncodeInt32(10);
-        encoder.EncodeInt32(20);
+        encoder.EncodeInt(10);
+        encoder.EncodeInt(20);
         if (k is not null)
         {
             encoder.EncodeTagged(
                 1,
                 TagFormat.F4,
                 k.Value,
-                (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value));
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
         }
         if (l is not null)
         {
@@ -93,7 +93,7 @@ public sealed class ExceptionTests
                 255,
                 TagFormat.F4,
                 l.Value,
-                (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value));
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
         }
         encoder.EndSlice(lastSlice: true);
         var decoder = new IceDecoder(
