@@ -23,10 +23,22 @@ public partial class ProxyTests
     }
 
     [Test]
+    public async Task Initialize_proxy_with_null_protocol_fails()
+    {
+        // Arrange
+        var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
+
+        // Act & Assert
+        Assert.That(
+            () => new PingableProxy{ Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress },
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
     public async Task Proxy_has_default_service_path_with_ice_protocol()
     {
         // Arrange
-        var proxy = new PingableProxy() { Invoker = InvalidInvoker.Instance };
+        var proxy = new PingableProxy{ Invoker = InvalidInvoker.Instance };
 
         // Assert
         Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(PingableProxy.DefaultServicePath));
