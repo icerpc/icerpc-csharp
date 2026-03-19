@@ -15,3 +15,10 @@ repo    = "https://github.com/icerpc/icerpc-slice"
 rev     = "b2360da0b3d48c5a7f90529bfbb65e61afcf61a6"
 dest    = "slice"
 include = ["**/*.slice", "**/*.ice"]
+
+[source.compiler]
+repo    = "https://github.com/icerpc/slicec"
+rev     = "a1edd7995fa1e7e8f0aa8332136fd0aba2a31e38"
+source  = "slice"
+dest    = "slice"
+include = ["**/*.slice"]
