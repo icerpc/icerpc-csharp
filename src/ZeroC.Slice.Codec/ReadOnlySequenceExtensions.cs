@@ -12,7 +12,8 @@ public static class ReadOnlySequenceExtensions
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="decodeFunc">The decode function for buffer.</param>
     /// <returns>The decoded value.</returns>
-    /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc" /> finds invalid data.
+    /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc" /> finds invalid data
+    /// or when the buffer contains trailing bytes that are not consumed by <paramref name="decodeFunc" />.
     /// </exception>
     public static T DecodeSliceBuffer<T>(this ReadOnlySequence<byte> buffer, DecodeFunc<T> decodeFunc)
     {
