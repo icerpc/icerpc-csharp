@@ -11,7 +11,7 @@ using Compiler = ZeroC.Slice.Symbols.Compiler;
 
 namespace ZeroC.Slice.Generator;
 
-/// <summary>Shared pipeline for Slice code generators. Handles the stdin/stdout Slice2-encoded protocol,
+/// <summary>Shared pipeline for Slice code generators. Handles the stdin/stdout Slice-encoded protocol,
 /// symbol conversion, attribute validation, preamble generation, and response encoding.</summary>
 internal static class GeneratorDriver
 {
@@ -28,7 +28,7 @@ internal static class GeneratorDriver
         IList<string> usings,
         bool emitSliceAttribute = true)
     {
-        // Read the Slice2-encoded request from stdin.
+        // Read the Slice-encoded request from stdin.
         using Stream stdin = Console.OpenStandardInput();
         var reader = PipeReader.Create(stdin);
 
@@ -43,9 +43,7 @@ internal static class GeneratorDriver
         }
         while (!readResult.IsCompleted);
 
-        var decoder = new SliceDecoder(
-            readResult.Buffer,
-            maxCollectionAllocation: (int)readResult.Buffer.Length * 16);
+        var decoder = new SliceDecoder(readResult.Buffer);
         string op = decoder.DecodeString();
 
         // Decode source files and reference files.

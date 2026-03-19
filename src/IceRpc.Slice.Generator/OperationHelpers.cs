@@ -28,28 +28,39 @@ internal static class OperationHelpers
     /// <summary>Returns the ValueTask return type for a service request decode method.</summary>
     internal static string GetServiceRequestReturnType(Operation op, string currentNamespace)
     {
-        var parts = op.NonStreamedParameters
-            .Select(p => $"{p.DataType.IncomingParameterTypeString(p.DataTypeIsOptional, currentNamespace)} {p.Name}")
-            .ToList();
-
-        if (op.StreamedParameter is Field streamParam)
+        string taskType = "global::System.Threading.Tasks.ValueTask";
+        int count = op.NonStreamedParameters.Count + (op.StreamedParameter is not null ? 1 : 0);
+        if (count == 0)
         {
-            parts.Add($"{GetStreamTypeString(streamParam, currentNamespace)} {streamParam.Name}");
+            return taskType;
         }
+        else
+        {
+            bool includeNames = count > 1;
+            var parts = op.NonStreamedParameters
+                .Select(p =>
+                {
+                    string type = p.DataType.IncomingParameterTypeString(p.DataTypeIsOptional, currentNamespace);
+                    return includeNames ? $"{type} {p.Name}" : type;
+                })
+                .ToList();
 
-        return WrapInTaskType("global::System.Threading.Tasks.ValueTask", parts);
+            if (op.StreamedParameter is Field streamParam)
+            {
+                string streamType = GetStreamTypeString(streamParam, currentNamespace);
+                parts.Add(includeNames ? $"{streamType} {streamParam.Name}" : streamType);
+            }
+
+            return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
+        }
     }
 
     /// <summary>Generates the encode body for operation parameters (used in proxy Request.Encode and service
     /// Response.Encode). Returns null for operations with no non-streamed fields to encode.</summary>
-    internal static CodeBlock? GenerateEncodeBody(ImmutableList<Field> fields, string currentNamespace)
-    {
-        if (fields.Count == 0)
-        {
-            return null;
-        }
-        return fields.GenerateEncodeBody(currentNamespace, paramPrefix: "", encoderName: "encoder_");
-    }
+    internal static CodeBlock? GenerateEncodeBody(ImmutableList<Field> fields, string currentNamespace) =>
+        fields.Count == 0 ?
+            null :
+            fields.GenerateEncodeBody(currentNamespace, paramPrefix: "", encoderName: "encoder_");
 
     /// <summary>Generates a decode lambda expression for decoding operation fields (parameters or return values).
     /// For a single field, returns a simple lambda. For multiple fields, returns a lambda with a block body
@@ -83,29 +94,32 @@ internal static class OperationHelpers
 
     private static string BuildReturnType(string taskType, Operation op, string currentNamespace, bool fieldType)
     {
-        var parts = op.NonStreamedReturns
-            .Select(r =>
-            {
-                string type = fieldType
-                    ? r.DataType.FieldTypeString(r.DataTypeIsOptional, currentNamespace)
-                    : r.DataType.IncomingParameterTypeString(r.DataTypeIsOptional, currentNamespace);
-                return $"{type} {r.Name}";
-            })
-            .ToList();
-
-        if (op.StreamedReturn is Field streamReturn)
+        int count = op.NonStreamedReturns.Count + (op.StreamedReturn is not null ? 1 : 0);
+        if (count == 0)
         {
-            parts.Add($"{GetStreamTypeString(streamReturn, currentNamespace)} {streamReturn.Name}");
+            return taskType;
         }
-
-        return WrapInTaskType(taskType, parts);
-    }
-
-    private static string WrapInTaskType(string taskType, List<string> parts) =>
-        parts.Count switch
+        else
         {
-            0 => taskType,
-            1 => $"{taskType}<{parts[0].Split(' ')[0]}>",
-            _ => $"{taskType}<({string.Join(", ", parts)})>",
-        };
+            bool includeNames = count > 1;
+
+            var parts = op.NonStreamedReturns
+                .Select(r =>
+                {
+                    string type = fieldType
+                        ? r.DataType.FieldTypeString(r.DataTypeIsOptional, currentNamespace)
+                        : r.DataType.IncomingParameterTypeString(r.DataTypeIsOptional, currentNamespace);
+                    return includeNames ? $"{type} {r.Name}" : type;
+                })
+                .ToList();
+
+            if (op.StreamedReturn is Field streamReturn)
+            {
+                string streamType = GetStreamTypeString(streamReturn, currentNamespace);
+                parts.Add(includeNames ? $"{streamType} {streamReturn.Name}" : streamType);
+            }
+
+            return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
+        }
+    }
 }
