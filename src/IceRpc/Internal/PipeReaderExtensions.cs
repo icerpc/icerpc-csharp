@@ -6,7 +6,7 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides extension methods for <see cref="PipeReader" /> to read Slice segments/payloads.</summary>
+/// <summary>Provides extension methods for <see cref="PipeReader" /> to read Slice segments.</summary>
 internal static class PipeReaderExtensions
 {
     /// <summary>Reads a Slice segment from a pipe reader.</summary>
