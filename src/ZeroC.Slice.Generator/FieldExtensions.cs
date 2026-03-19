@@ -75,7 +75,7 @@ internal static class FieldExtensions
         _ => null,
     };
 
-    /// <summary>Counts non-tagged optional fields (for Slice2 bit sequence sizing).</summary>
+    /// <summary>Counts non-tagged optional fields (for Slice bit sequence sizing).</summary>
     internal static int GetBitSequenceSize(this ImmutableList<Field> fields) =>
         fields.Count(f => !f.IsTagged && f.DataTypeIsOptional);
 
@@ -115,7 +115,7 @@ internal static class FieldExtensions
     /// <param name="fields">The fields to encode.</param>
     /// <param name="currentNamespace">The current C# namespace.</param>
     /// <param name="paramPrefix">Prefix for field access ("this." for struct/enum fields, "" for operation params).</param>
-    /// <param name="includeTagEndMarker">Whether to append the Slice2 tag end marker.</param>
+    /// <param name="includeTagEndMarker">Whether to append the Slice tag end marker.</param>
     /// <param name="encoderName">The name of the encoder variable in the generated code.</param>
     internal static CodeBlock GenerateEncodeBody(
         this ImmutableList<Field> fields,
@@ -162,7 +162,7 @@ internal static class FieldExtensions
 
         if (includeTagEndMarker)
         {
-            body.WriteLine($"{encoderName}.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+            body.WriteLine($"{encoderName}.EncodeVarInt32(SliceDefinitions.TagEndMarker);");
         }
 
         return body;

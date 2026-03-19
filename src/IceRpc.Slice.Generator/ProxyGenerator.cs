@@ -147,7 +147,7 @@ internal static class ProxyGenerator
             builder.AddBlock(implicitOp.Build());
         }
 
-        builder.AddBlock(BuildProxyConstructors(proxyName, defaultServicePath));
+        builder.AddBlock(BuildProxyConstructors(proxyName));
 
         foreach (Operation op in interfaceDef.Operations)
         {
@@ -555,7 +555,7 @@ internal static class ProxyGenerator
             new(IceRpc.Protocol.IceRpc) { Path = DefaultServicePath };
         """;
 
-    private static CodeBlock BuildProxyConstructors(string proxyName, string defaultServicePath)
+    private static CodeBlock BuildProxyConstructors(string proxyName)
     {
         var fromPath = new FunctionBuilder("public static", proxyName, "FromPath", FunctionType.ExpressionBody);
         fromPath.AddComment("summary", "Creates a relative proxy from a path.");
