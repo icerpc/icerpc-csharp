@@ -1,4 +1,4 @@
-# Interop Greeter
+# Greeter
 
 This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol.
 
