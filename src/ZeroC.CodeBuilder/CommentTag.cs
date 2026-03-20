@@ -50,10 +50,10 @@ public sealed class CommentTag
             ? $" {AttributeName}=\"{AttributeValue}\""
             : string.Empty;
 
-        #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
+#pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
         if (Content.Contains('\n'))
         {
-        #pragma warning restore CA1307
+#pragma warning restore CA1307
             sb.Append("/// <").Append(Tag).Append(attribute).AppendLine(">");
             foreach (string line in Content.Split('\n'))
             {

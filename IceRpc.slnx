@@ -21,10 +21,13 @@
     <Project Path="src/IceRpc.Ice/IceRpc.Ice.csproj" />
     <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
     <Project Path="src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" />
+    <Project Path="src/IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" />
     <Project Path="src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" />
     <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />
     <Project Path="src/IceRpc.Transports.Coloc/IceRpc.Transports.Coloc.csproj" />
     <Project Path="src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
+    <Project Path="src/ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" />
+    <Project Path="src/ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/IceRpc.Compressor.Tests/IceRpc.Compressor.Tests.csproj" />

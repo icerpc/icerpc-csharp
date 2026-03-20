@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+using ZeroC.Slice.Generator;
+using ZeroC.Slice.Symbols;
+
+await GeneratorDriver.RunAsync(
+    generateCode: (symbol, currentNamespace) => symbol switch
+    {
+        Struct s => StructGenerator.Generate(s),
+        EnumWithUnderlying e => EnumWithUnderlyingGenerator.Generate(e),
+        EnumWithFields e => EnumWithFieldsGenerator.Generate(e),
+        _ => null,
+    },
+    mapOutputPath: path => Path.ChangeExtension(path, ".cs"),
+    usings: ["ZeroC.Slice.Codec"]).ConfigureAwait(false);

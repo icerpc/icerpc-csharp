@@ -54,9 +54,9 @@ public sealed class CodeBlock
     /// allowing the caller to control the initial indentation level.</remarks>
     public CodeBlock Indent()
     {
-        #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
+#pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
         string indented = _content.ToString().Replace("\n", "\n    ");
-        #pragma warning restore CA1307
+#pragma warning restore CA1307
         return new CodeBlock(indented);
     }
 
