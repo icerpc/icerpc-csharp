@@ -8,12 +8,6 @@
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />
-  <UsingTask
-    TaskName="IceRpc.Slice.Tools.BuildTelemetryTask"
-    TaskFactory="$(SliceToolsTaskFactory)"
-    AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
-    Runtime="NET"
-  />
   <ItemGroup Condition="'$(SliceToolsSourceBuild)' == 'true'">
     <!-- Add a reference to the Tools project to ensure it's built before we use its tasks-->
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
@@ -69,21 +63,8 @@
       Rpc="%(SliceFile.Rpc)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
-    >
-      <Output PropertyName="CompilationHash" TaskParameter="CompilationHash" />
-      <Output PropertyName="ContainsSlice1" TaskParameter="ContainsSlice1" />
-      <Output PropertyName="ContainsSlice2" TaskParameter="ContainsSlice2" />
-      <Output PropertyName="SourceFileCount" TaskParameter="SourceFileCount" />
-      <Output PropertyName="ReferenceFileCount" TaskParameter="ReferenceFileCount" />
-    </SliceCCSharpTask>
-
-    <!-- Run build telemetry -->
-    <Exec
-      WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
-      Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --ref-file-count $(ReferenceFileCount) --src-file-count $(SourceFileCount)"
-      Condition="$(IceRpcBuildTelemetry)"
-      ContinueOnError="true"
     />
+
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
       running the SliceC target so that default includes are already processed.
