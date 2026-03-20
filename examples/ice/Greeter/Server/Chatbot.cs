@@ -4,7 +4,7 @@ using IceRpc;
 using IceRpc.Features;
 using VisitorCenter;
 
-namespace InteropGreeterServer;
+namespace GreeterServer;
 
 /// <summary>A Chatbot is a service that implements interface 'Greeter' (defined in Greeter.ice).</summary>
 [Service]
