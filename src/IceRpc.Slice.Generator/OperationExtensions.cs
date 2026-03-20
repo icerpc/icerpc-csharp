@@ -42,15 +42,13 @@ internal static class OperationExtensions
         /// Non-optional stream uint8 maps to PipeReader, all others to IAsyncEnumerable&lt;T&gt;.</summary>
         internal static string GetStreamTypeString(Field streamField, string currentNamespace)
         {
+            if (streamField.IsByteStream)
+            {
+                return "global::System.IO.Pipelines.PipeReader";
+            }
             string elemType = streamField.DataType.FieldTypeString(streamField.DataTypeIsOptional, currentNamespace);
-            return elemType == "byte"
-                ? "global::System.IO.Pipelines.PipeReader"
-                : $"global::System.Collections.Generic.IAsyncEnumerable<{elemType}>";
+            return $"global::System.Collections.Generic.IAsyncEnumerable<{elemType}>";
         }
-
-        /// <summary>Returns true if the streamed field is a raw byte stream (non-optional uint8).</summary>
-        internal static bool IsByteStream(Field streamField) =>
-            streamField.DataType.Type is Builtin b && b.Kind == BuiltinKind.UInt8 && !streamField.DataTypeIsOptional;
 
         /// <summary>Builds the EncodeStreamOf{Op} method for a streamed field (parameter or return value).</summary>
         internal CodeBlock BuildEncodeStreamMethod(Field streamParam, string currentNamespace)
@@ -70,7 +68,7 @@ internal static class OperationExtensions
                 .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                 .AddComment("returns", "A new request payload continuation.");
 
-            if (IsByteStream(streamParam))
+            if (streamParam.IsByteStream)
             {
                 // Non-optional byte stream: pass-through PipeReader
                 fn.SetBody(streamParam.ParameterName);
@@ -200,8 +198,6 @@ internal static class OperationExtensions
             }
         }
     }
-
-    // --- Private helpers ---
 
     private static string BuildReturnType(string taskType, Operation op, string currentNamespace, bool fieldType)
     {

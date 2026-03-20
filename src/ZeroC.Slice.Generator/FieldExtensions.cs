@@ -179,6 +179,10 @@ internal static class FieldExtensions
 
     extension(Field value)
     {
+        /// <summary>Returns true if the streamed field is a raw byte stream (non-optional uint8).</summary>
+        internal bool IsByteStream =>
+            value.DataType.Type is Builtin b && b.Kind == BuiltinKind.UInt8 && !value.DataTypeIsOptional;
+
         /// <summary>Gets a value indicating whether this field has the cs::readonly attribute.</summary>
         internal bool IsReadonly => value.Attributes.HasAttribute(CSAttributes.CSReadonly);
 

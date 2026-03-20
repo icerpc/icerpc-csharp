@@ -134,7 +134,7 @@ internal static class DispatchGenerator
                 }
 
                 // Decode stream param
-                if (OperationExtensions.IsByteStream(streamParam))
+                if (streamParam.IsByteStream)
                 {
                     body.WriteLine("var sliceP_stream = IceRpc.IncomingFrameExtensions.DetachPayload(request);");
                 }

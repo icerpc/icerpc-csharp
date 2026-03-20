@@ -325,7 +325,7 @@ internal static class ProxyGenerator
 
                 // Decode stream return
                 body.WriteLine("");
-                if (OperationExtensions.IsByteStream(streamReturn))
+                if (streamReturn.IsByteStream)
                 {
                     body.WriteLine("var sliceP_returnValue = IceRpc.IncomingFrameExtensions.DetachPayload(response);");
                 }
