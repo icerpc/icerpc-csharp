@@ -150,7 +150,7 @@ internal static class ProxyGenerator
 
         foreach (Operation op in interfaceDef.Operations)
         {
-            builder.AddBlock(BuildProxyOperationImpl(op, currentNamespace));
+            builder.AddBlock(BuildProxyOperationCore(op, currentNamespace));
         }
 
         return builder.Build();
@@ -247,7 +247,7 @@ internal static class ProxyGenerator
             if (streamReturn is null)
             {
                 // Non-streaming: expression body
-                FunctionBuilder fn = new FunctionBuilder(
+                FunctionBuilder decodeBuilder = new FunctionBuilder(
                     "public static",
                     returnType,
                     $"Decode{opName}Async",
@@ -260,7 +260,7 @@ internal static class ProxyGenerator
 
                 if (nonStreamedReturns.Count == 0)
                 {
-                    fn.SetBody(
+                    decodeBuilder.SetBody(
                         """
                         response.DecodeVoidReturnValueAsync(
                             request,
@@ -270,7 +270,7 @@ internal static class ProxyGenerator
                 else
                 {
                     string decodeLambda = nonStreamedReturns.GenerateDecodeLambda(currentNamespace);
-                    fn.SetBody(
+                    decodeBuilder.SetBody(
                         $$"""
                         response.DecodeReturnValueAsync(
                             request,
@@ -280,12 +280,12 @@ internal static class ProxyGenerator
                         """);
                 }
 
-                response.AddBlock(fn.Build());
+                response.AddBlock(decodeBuilder.Build());
             }
             else
             {
                 // Streaming: async block body
-                FunctionBuilder fn = new FunctionBuilder(
+                FunctionBuilder decodeBuilder = new FunctionBuilder(
                     "public static async",
                     returnType,
                     $"Decode{opName}Async",
@@ -324,7 +324,7 @@ internal static class ProxyGenerator
                 }
 
                 // Decode stream return
-                body.Write("\n");
+                body.WriteLine("");
                 if (OperationExtensions.IsByteStream(streamReturn))
                 {
                     body.WriteLine("var sliceP_returnValue = IceRpc.IncomingFrameExtensions.DetachPayload(response);");
@@ -332,8 +332,12 @@ internal static class ProxyGenerator
                 else
                 {
                     body.WriteLine("var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(response);");
-                    string streamElemType = streamReturn.DataType.FieldTypeString(streamReturn.DataTypeIsOptional, currentNamespace);
-                    string decodeLambda = streamReturn.DataType.Type.GetDecodeLambda(streamReturn.DataTypeIsOptional, currentNamespace);
+                    string streamElemType = streamReturn.DataType.FieldTypeString(
+                        streamReturn.DataTypeIsOptional,
+                        currentNamespace);
+                    string decodeLambda = streamReturn.DataType.Type.GetDecodeLambda(
+                        streamReturn.DataTypeIsOptional,
+                        currentNamespace);
 
                     if (streamReturn.DataType.FixedSize is int fixedSize && !streamReturn.DataTypeIsOptional)
                     {
@@ -357,24 +361,24 @@ internal static class ProxyGenerator
                 // Build return statement
                 if (nonStreamedReturns.Count == 0)
                 {
-                    body.Write("\nreturn sliceP_returnValue;");
+                    body.WriteLine("return sliceP_returnValue;");
                 }
                 else
                 {
                     var returnParts = nonStreamedReturns.Select(r => $"sliceP_{r.ParameterName}").ToList();
                     returnParts.Add("sliceP_returnValue");
-                    body.Write($"\nreturn ({string.Join(", ", returnParts)});");
+                    body.WriteLine($"return ({string.Join(", ", returnParts)});");
                 }
 
-                fn.SetBody(body);
-                response.AddBlock(fn.Build());
+                decodeBuilder.SetBody(body);
+                response.AddBlock(decodeBuilder.Build());
             }
         }
 
         return response.Build();
     }
 
-    private static CodeBlock BuildProxyOperationImpl(Operation op, string currentNamespace)
+    private static CodeBlock BuildProxyOperationCore(Operation op, string currentNamespace)
     {
         string opName = op.Name;
         string returnType = op.GetClientReturnType(currentNamespace);
@@ -479,7 +483,9 @@ internal static class ProxyGenerator
                 $"""Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cref="{proxyName}" />.""")
             .AddBlock(
                 new FunctionBuilder("public static", proxyName, $"Decode{proxyName}", FunctionType.ExpressionBody)
-                    .AddComment("summary", $"""Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxyName}" />.""")
+                    .AddComment(
+                        "summary",
+                        $"""Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxyName}" />.""")
                     .AddParameter("this ref SliceDecoder", "decoder", docComment: "The Slice decoder.")
                     .AddComment("returns", "The proxy created from the decoded service address.")
                     .SetBody($"decoder.DecodeProxy<{proxyName}>()")

@@ -35,12 +35,15 @@ internal static class DispatchGenerator
             builder.AddBase($"I{baseInterface.Name}Service");
         }
 
-        builder.AddBlock(BuildServiceRequestClass(interfaceDef, scopedId, currentNamespace));
-        builder.AddBlock(BuildServiceResponseClass(interfaceDef, scopedId, currentNamespace));
-
-        foreach (Operation op in interfaceDef.Operations)
+        if (interfaceDef.Operations.Count > 0)
         {
-            builder.AddBlock(BuildServiceOperationDeclaration(op, currentNamespace));
+            builder.AddBlock(BuildServiceRequestClass(interfaceDef, scopedId, currentNamespace));
+            builder.AddBlock(BuildServiceResponseClass(interfaceDef, scopedId, currentNamespace));
+
+            foreach (Operation op in interfaceDef.Operations)
+            {
+                builder.AddBlock(BuildServiceOperationDeclaration(op, currentNamespace));
+            }
         }
 
         return builder.Build();
@@ -49,7 +52,7 @@ internal static class DispatchGenerator
     private static CodeBlock BuildServiceRequestClass(Interface interfaceDef, string scopedId, string currentNamespace)
     {
         // Use "new" keyword when the interface inherits operations from a base (to hide base's Request class)
-        bool hasInheritedOps = interfaceDef.Bases.Any(b => b.Operations.Count > 0 || b.AllBases.Any(bb => bb.Operations.Count > 0));
+        bool hasInheritedOps = interfaceDef.AllBases.Any(b => b.Operations.Count > 0);
         string classModifier = hasInheritedOps ? "public static new class" : "public static class";
         ContainerBuilder request = new ContainerBuilder(classModifier, "Request")
             .AddComment("summary", "Provides static methods that decode request payloads.")
@@ -67,7 +70,7 @@ internal static class DispatchGenerator
             if (streamParam is null)
             {
                 // Non-streaming: expression body
-                FunctionBuilder fn = new FunctionBuilder(
+                var decodeBuilder = new FunctionBuilder(
                     "public static",
                     returnType,
                     $"Decode{opName}Async",
@@ -81,24 +84,24 @@ internal static class DispatchGenerator
 
                 if (nonStreamedParams.Count == 0)
                 {
-                    fn.SetBody("request.DecodeEmptyArgsAsync(cancellationToken)");
+                    decodeBuilder.SetBody("request.DecodeEmptyArgsAsync(cancellationToken)");
                 }
                 else
                 {
                     string decodeLambda = nonStreamedParams.GenerateDecodeLambda(currentNamespace);
-                    fn.SetBody(new CodeBlock($$"""
+                    decodeBuilder.SetBody(new CodeBlock($$"""
                         request.DecodeArgsAsync(
                             {{decodeLambda}},
                             cancellationToken)
                         """));
                 }
 
-                request.AddBlock(fn.Build());
+                request.AddBlock(decodeBuilder.Build());
             }
             else
             {
                 // Streaming: async block body
-                FunctionBuilder fn = new FunctionBuilder(
+                FunctionBuilder decodeBuilder = new FunctionBuilder(
                     "public static async",
                     returnType,
                     $"Decode{opName}Async",
@@ -162,17 +165,17 @@ internal static class DispatchGenerator
                 // Build return
                 if (nonStreamedParams.Count == 0)
                 {
-                    body.Write("\nreturn sliceP_stream;");
+                    body.WriteLine("return sliceP_stream;");
                 }
                 else
                 {
                     var returnParts = nonStreamedParams.Select(p => $"sliceP_{p.ParameterName}").ToList();
                     returnParts.Add("sliceP_stream");
-                    body.Write($"\nreturn ({string.Join(", ", returnParts)});");
+                    body.WriteLine($"return ({string.Join(", ", returnParts)});");
                 }
 
-                fn.SetBody(body);
-                request.AddBlock(fn.Build());
+                decodeBuilder.SetBody(body);
+                request.AddBlock(decodeBuilder.Build());
             }
         }
 
@@ -181,7 +184,7 @@ internal static class DispatchGenerator
 
     private static CodeBlock BuildServiceResponseClass(Interface interfaceDef, string scopedId, string currentNamespace)
     {
-        bool hasInheritedOps = interfaceDef.Bases.Any(b => b.Operations.Count > 0 || b.AllBases.Any(bb => bb.Operations.Count > 0));
+        bool hasInheritedOps = interfaceDef.AllBases.Any(b => b.Operations.Count > 0);
         string classModifier = hasInheritedOps ? "public static new class" : "public static class";
         ContainerBuilder response = new ContainerBuilder(classModifier, "Response")
             .AddComment("summary", "Provides static methods that encode return values into response payloads.")
@@ -216,7 +219,7 @@ internal static class DispatchGenerator
             }
             else
             {
-                FunctionBuilder fn = new FunctionBuilder(
+                FunctionBuilder encodeBuilder = new FunctionBuilder(
                     "public static",
                     "global::System.IO.Pipelines.PipeReader",
                     $"Encode{opName}",
@@ -225,13 +228,13 @@ internal static class DispatchGenerator
 
                 foreach (Field ret in nonStreamedReturns)
                 {
-                    fn.AddParameter(
+                    encodeBuilder.AddParameter(
                         ret.DataType.FieldTypeString(ret.DataTypeIsOptional, currentNamespace),
                         ret.ParameterName);
                 }
 
                 response.AddBlock(
-                    fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                    encodeBuilder.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
                         .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
                         .Build());
@@ -253,30 +256,35 @@ internal static class DispatchGenerator
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
         string returnType = op.GetServiceReturnType(currentNamespace);
 
-        var fn = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration);
+        var operationBuilder = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration);
 
         foreach (Field param in nonStreamedParams)
         {
-            fn.AddParameter(
+            operationBuilder.AddParameter(
                 param.DataType.FieldTypeString(param.DataTypeIsOptional, currentNamespace),
                 param.ParameterName);
         }
 
         if (op.StreamedParameter is Field streamParam)
         {
-            fn.AddParameter(OperationExtensions.GetStreamTypeString(streamParam, currentNamespace), streamParam.ParameterName);
+            operationBuilder.AddParameter(
+                OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
+                streamParam.ParameterName);
         }
 
         string featuresParam = op.FeaturesParamName;
-        fn.AddParameter("IceRpc.Features.IFeatureCollection", featuresParam, docComment: "The dispatch features.");
-        fn.AddParameter(
+        operationBuilder.AddParameter(
+            "IceRpc.Features.IFeatureCollection",
+            featuresParam,
+            docComment: "The dispatch features.");
+        operationBuilder.AddParameter(
             "global::System.Threading.CancellationToken",
             "cancellationToken",
             docComment: "A cancellation token that receives the cancellation requests.");
 
         if (op.NonStreamedReturns.Count == 0 && !op.HasStreamedReturn)
         {
-            fn.AddComment("returns", "A value task that completes when this implementation completes.");
+            operationBuilder.AddComment("returns", "A value task that completes when this implementation completes.");
         }
 
         // Build SliceOperation attribute with optional named parameters
@@ -295,7 +303,7 @@ internal static class DispatchGenerator
         {
             attrParts.Add("CompressReturn = true");
         }
-        fn.AddAttribute($"SliceOperation({string.Join(", ", attrParts)})");
-        return fn.Build();
+        operationBuilder.AddAttribute($"SliceOperation({string.Join(", ", attrParts)})");
+        return operationBuilder.Build();
     }
 }

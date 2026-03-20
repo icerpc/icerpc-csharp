@@ -137,15 +137,14 @@ internal static class EnumWithFieldsGenerator
             ? $"{enumeratorName}({BuildParameterList(enumerator.Fields, "")})"
             : enumeratorName;
 
-        // Discriminant constant.
-        var discriminantBlock = new CodeBlock();
-        discriminantBlock.WriteLine("/// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>");
-        discriminantBlock.WriteLine($"public const int Discriminant = {discriminant};");
-
         return new ContainerBuilder($"{accessModifier} partial record class", nameWithParams)
             .AddBase(parentIdentifier)
             .AddCSAttributes(enumerator.Attributes)
-            .AddBlock(discriminantBlock)
+            .AddBlock(
+                $"""
+                /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
+                public const int Discriminant = {discriminant};
+                """)
             .AddBlock(GenerateEncodeMethod(enumerator, enumDef, currentNamespace))
             .Build();
     }
@@ -156,7 +155,8 @@ internal static class EnumWithFieldsGenerator
         string currentNamespace)
     {
         var code = new CodeBlock();
-        code.WriteLine("""
+        code.WriteLine(
+            """
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             internal override void Encode(ref SliceEncoder encoder)
             {
@@ -166,7 +166,8 @@ internal static class EnumWithFieldsGenerator
         // For unchecked (non-compact) enums, add size placeholder.
         if (enumDef.IsUnchecked)
         {
-            code.WriteLine("""
+            code.WriteLine(
+                """
                     var sizePlaceholder = encoder.GetPlaceholderSpan(4);
                     int startPos = encoder.EncodedByteCount;
                 """);
@@ -220,16 +221,13 @@ internal static class EnumWithFieldsGenerator
         }
 
         // Fallback case.
-        if (enumDef.IsUnchecked)
-        {
-            body.WriteLine(
-                $"    int value => new {identifier}.Unknown(value, decoder.DecodeSequence<byte>())");
-        }
-        else
-        {
-            body.WriteLine(
-                @$"    int value => throw new global::System.IO.InvalidDataException($""Received invalid discriminant value '{{value}}' for {identifier}."")");
-        }
+        body.AddBlock(
+            enumDef.IsUnchecked ?
+                $"    int value => new {identifier}.Unknown(value, decoder.DecodeSequence<byte>())" :
+                $$"""
+                    int value => throw new global::System.IO.InvalidDataException(
+                        $"Received invalid discriminant value '{value}' for {{identifier}}.")
+                """);
         body.WriteLine("};");
 
         // Local static decode functions for each enumerator.
@@ -295,20 +293,13 @@ internal static class EnumWithFieldsGenerator
         else
         {
             // Multi-field: build with named args.
-            // Separate tagged and non-tagged for proper ordering.
-            var nonTaggedFields = sortedFields.Where(f => !f.IsTagged).ToList();
-            var taggedFields = sortedFields.Where(f => f.IsTagged).ToList();
-
-            // For tagged fields, decode them into the constructor.
-            // For non-tagged optional fields, use bitSequenceReader.
             code.WriteLine($"    var result = new {parentIdentifier}.{enumeratorName}(");
-            var allFields = nonTaggedFields.Concat(taggedFields).ToList();
-            for (int i = 0; i < allFields.Count; i++)
+            for (int i = 0; i < sortedFields.Count; i++)
             {
-                Field field = allFields[i];
+                Field field = sortedFields[i];
                 string paramName = field.Name;
                 string decodeExpr = field.GetFieldDecodeExpression(currentNamespace);
-                string separator = i < allFields.Count - 1 ? "," : ");";
+                string separator = i < sortedFields.Count - 1 ? "," : ");";
                 code.WriteLine($"        {paramName}: {decodeExpr}{separator}");
             }
         }

@@ -20,13 +20,10 @@ internal static class GeneratorDriver
     /// null for symbols this generator does not handle.</param>
     /// <param name="mapOutputPath">Maps a Slice file path to the generated output file path.</param>
     /// <param name="usings">The using directives to include in the preamble of each generated file.</param>
-    /// <param name="emitSliceAttribute">When true, emits a <c>[assembly:Slice("...")]</c> attribute in the
-    /// preamble.</param>
     internal static async Task RunAsync(
         Func<ISymbol, string, CodeBlock?> generateCode,
         Func<string, string> mapOutputPath,
-        IList<string> usings,
-        bool emitSliceAttribute = true)
+        IList<string> usings)
     {
         // Read the Slice-encoded request from stdin.
         using Stream stdin = Console.OpenStandardInput();
@@ -109,12 +106,10 @@ internal static class GeneratorDriver
 
                         {{usingDirectives}}
 
-                        {{(emitSliceAttribute ? $"""[assembly:Slice("{fileName}")]""" : "")}}
-
                         namespace {{currentNamespace}};
                         """;
 
-                    var fileCode = new CodeBlock(preamble + "\n");
+                    var fileCode = new CodeBlock(preamble);
                     fileCode.AddBlock(CodeBlock.FromBlocks(codeBlocks));
                     generatedFiles.Add(new Compiler.GeneratedFile(
                         mapOutputPath(file.Path), fileCode.ToString()));

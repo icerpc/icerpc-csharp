@@ -11,7 +11,7 @@ internal static class CodeBlockExtensions
 {
     extension(CodeBlock code)
     {
-        /// <summary>Writes all cs::attribute attributes as C# attribute lines.</summary>
+        /// <summary>Writes all <c>cs::attribute</c> attributes as C# attribute lines.</summary>
         internal void WriteCSAttributes(IList<Attribute> attributes)
         {
             foreach (Attribute attr in attributes.CSAttributes())

@@ -201,12 +201,12 @@ internal static class CsAttributeValidator
         {
             if (attr.Directive.StartsWith("cs::", StringComparison.Ordinal))
             {
-                ValidateCsAttribute(attr, target, diagnostics);
+                ValidateCSAttribute(attr, target, diagnostics);
             }
         }
     }
 
-    private static void ValidateCsAttribute(
+    private static void ValidateCSAttribute(
         Attribute attr,
         Target target,
         List<Compiler.Diagnostic> diagnostics)

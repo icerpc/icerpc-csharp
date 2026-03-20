@@ -41,26 +41,35 @@ internal static class FieldExtensions
             string encodeCall = (field.DataType.FixedSize is int fixedSizeValue)
                 ? $"{encoderName}.EncodeTagged({tag}, size: {fixedSizeValue}, {varName}, {encodeLambda});"
                 : $"{encoderName}.EncodeTagged({tag}, {varName}, {encodeLambda});";
-            return @$"if ({param} is {csType} {varName})
-{{
-    {encodeCall}
-}}";
+            return new CodeBlock(
+                $$"""
+                if ({{param}} is {{csType}} {{varName}})
+                {
+                    {{encodeCall}}
+                }
+                """).ToString();
         }
         else if (GetCollectionElementSize(field.DataType.Type) is int elemSize)
         {
             string sizeExpr = $"{encoderName}.GetSizeLength(count_) + {elemSize} * count_";
-            return @$"if ({param} is {csType} {varName})
-{{
-    int count_ = {param}.Count();
-    {encoderName}.EncodeTagged({tag}, size: {sizeExpr}, {varName}, {encodeLambda});
-}}";
+            return new CodeBlock(
+                $$"""
+                if ({{param}} is {{csType}} {{varName}})
+                {
+                    int count_ = {{param}}.Count();
+                    {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{varName}}, {{encodeLambda}});
+                }
+                """).ToString();
         }
         else
         {
-            return @$"if ({param} is {csType} {varName})
-{{
-    {encoderName}.EncodeTagged({tag}, {varName}, {encodeLambda});
-}}";
+            return new CodeBlock(
+                $$"""
+                if ({{param}} is {{csType}} {{varName}})
+                {
+                    {{encoderName}}.EncodeTagged({{tag}}, {{varName}}, {{encodeLambda}});
+                }
+                """).ToString();
         }
     }
 

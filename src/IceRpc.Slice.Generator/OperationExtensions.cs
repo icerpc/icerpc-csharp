@@ -43,11 +43,9 @@ internal static class OperationExtensions
         internal static string GetStreamTypeString(Field streamField, string currentNamespace)
         {
             string elemType = streamField.DataType.FieldTypeString(streamField.DataTypeIsOptional, currentNamespace);
-            if (elemType == "byte" && !streamField.DataTypeIsOptional)
-            {
-                return "global::System.IO.Pipelines.PipeReader";
-            }
-            return $"global::System.Collections.Generic.IAsyncEnumerable<{elemType}>";
+            return elemType == "byte"
+                ? "global::System.IO.Pipelines.PipeReader"
+                : $"global::System.Collections.Generic.IAsyncEnumerable<{elemType}>";
         }
 
         /// <summary>Returns true if the streamed field is a raw byte stream (non-optional uint8).</summary>
@@ -228,7 +226,7 @@ internal static class OperationExtensions
 
             if (op.StreamedReturn is Field streamReturn)
             {
-                string streamType = OperationExtensions.GetStreamTypeString(streamReturn, currentNamespace);
+                string streamType = GetStreamTypeString(streamReturn, currentNamespace);
                 parts.Add(includeNames ? $"{streamType} {streamReturn.Name}" : streamType);
             }
 

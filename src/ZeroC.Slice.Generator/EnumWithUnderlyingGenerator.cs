@@ -121,9 +121,11 @@ internal static class EnumWithUnderlyingGenerator
             }
 
             method.SetBody(
-                @$"{checkExpr} ?
-({identifier})value :
-throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{value}}' for {identifier}."")");
+                $$"""
+                {{checkExpr}} ?
+                ({{identifier}})value :
+                throw new global::System.IO.InvalidDataException($"Invalid enumerator value '{value}' for {{identifier}}.")
+                """);
 
             method.AddComment(
                 "exception",
@@ -226,9 +228,9 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
             _ => null, // int32 and larger: count (an int) can never cover the full range
         };
 
-        if (enumDef.IsUnchecked
-            || enumDef.Enumerators.Count == 0
-            || (bitSize is int bits && enumDef.Enumerators.Count >= (1 << bits)))
+        if (enumDef.IsUnchecked ||
+            enumDef.Enumerators.Count == 0 ||
+            (bitSize is int bits && enumDef.Enumerators.Count >= (1 << bits)))
         {
             return false;
         }
