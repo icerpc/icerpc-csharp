@@ -93,7 +93,7 @@ public partial class CustomTransportTests
             },
             multiplexedClientTransport: new CustomClientTransport());
 
-        var proxy = new PingableProxy(connection);
+        var proxy = new PingableProxy(connection, new Uri($"icerpc:{PingableProxy.DefaultServicePath}"));
         await proxy.PingAsync();
     }
 
@@ -127,7 +127,7 @@ public partial class CustomTransportTests
                 },
                 multiplexedClientTransport: new CustomClientTransport());
 
-            var proxy = new PingableProxy(connection1);
+            var proxy = new PingableProxy(connection1, new Uri($"icerpc:{PingableProxy.DefaultServicePath}"));
             await proxy.PingAsync();
         }
     }
