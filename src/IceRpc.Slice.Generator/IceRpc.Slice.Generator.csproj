@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!--Because an application's API isn't typically referenced from outside the assembly, types can be made internal -->
+    <NoWarn>CA1515</NoWarn>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>major</RollForward>
+    <AssemblyName>IceRpc.Slice.Generator</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reuse shared code from ZeroC.Slice.Generator -->
+    <Compile Include="../ZeroC.Slice.Generator/*Extensions.cs" />
+    <Compile Include="../ZeroC.Slice.Generator/CSAttribute.cs" />
+    <Compile Include="../ZeroC.Slice.Generator/CSAttributeValidator.cs" />
+    <Compile Include="../ZeroC.Slice.Generator/GeneratorDriver.cs" />
+    <Compile Include="../ZeroC.CodeBuilder/*.cs" LinkBase="CodeBuilder" />
+    <PackageReference Include="dunet" Version="1.11.3" />
+    <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj" />
+  </ItemGroup>
+</Project>

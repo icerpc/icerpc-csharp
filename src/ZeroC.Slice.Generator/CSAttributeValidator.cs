@@ -1,0 +1,312 @@
+// Copyright (c) ZeroC, Inc.
+
+using System.Collections.Immutable;
+using ZeroC.Slice.Symbols;
+
+using Attribute = ZeroC.Slice.Symbols.Attribute;
+using Compiler = ZeroC.Slice.Symbols.Compiler;
+
+namespace ZeroC.Slice.Generator;
+
+/// <summary>Validates that all CS-specific attributes are correctly used.</summary>
+internal static class CsAttributeValidator
+{
+    private enum Target
+    {
+        File,
+        Module,
+        Struct,
+        Interface,
+        Enum,
+        Enumerator,
+        Field,
+        FieldInStruct,
+        Operation,
+        CustomType,
+        TypeAlias,
+        TypeRef,
+        TypeRefSequence,
+        TypeRefDictionary,
+    }
+
+    /// <summary>Validates all CS attributes across the given files and returns any diagnostics.</summary>
+    internal static List<Compiler.Diagnostic> Validate(ImmutableList<SliceFile> files)
+    {
+        var diagnostics = new List<Compiler.Diagnostic>();
+
+        foreach (SliceFile file in files)
+        {
+            ValidateAttributes(file.Attributes, Target.File, diagnostics);
+            ValidateAttributes(file.Module.Attributes, Target.Module, diagnostics);
+
+            foreach (ISymbol symbol in file.Contents)
+            {
+                ValidateSymbol(symbol, diagnostics);
+            }
+        }
+
+        return diagnostics;
+    }
+
+    private static void ValidateSymbol(ISymbol symbol, List<Compiler.Diagnostic> diagnostics)
+    {
+        switch (symbol)
+        {
+            case Struct s:
+                ValidateAttributes(s.Attributes, Target.Struct, diagnostics);
+                foreach (Field field in s.Fields)
+                {
+                    ValidateField(field, Target.FieldInStruct, diagnostics);
+                }
+                break;
+
+            case EnumWithFields e:
+                ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
+                foreach (EnumWithFields.Enumerator en in e.Enumerators)
+                {
+                    ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+                    foreach (Field field in en.Fields)
+                    {
+                        ValidateField(field, Target.Field, diagnostics);
+                    }
+                }
+                break;
+
+            case EnumWithUnderlying e:
+                ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
+                ValidateEnumWithUnderlyingEnumerators(e, diagnostics);
+                break;
+
+            case Interface i:
+                ValidateAttributes(i.Attributes, Target.Interface, diagnostics);
+                foreach (Operation op in i.Operations)
+                {
+                    ValidateOperation(op, diagnostics);
+                }
+                break;
+
+            case CustomType c:
+                ValidateAttributes(c.Attributes, Target.CustomType, diagnostics);
+                if (!c.Attributes.HasAttribute(CSAttributes.CSType))
+                {
+                    diagnostics.Add(Error(
+                        $"Custom type '{c.Identifier}' is missing required attribute '{CSAttributes.CSType}'."));
+                }
+                break;
+
+            case TypeAlias t:
+                ValidateAttributes(t.Attributes, Target.TypeAlias, diagnostics);
+                ValidateTypeRef(t.UnderlyingType, diagnostics);
+                break;
+        }
+    }
+
+    private static void ValidateEnumWithUnderlyingEnumerators(
+        EnumWithUnderlying e,
+        List<Compiler.Diagnostic> diagnostics)
+    {
+        // TODO will be better to refactor EnumWithUnderlying to avoid the need for this switch,
+        // We can have Enumerators and TypedEnumerators and only used the typed one to access the value.
+        switch (e)
+        {
+            case EnumWithUnderlying<sbyte> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<byte> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<short> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<ushort> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<int> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<uint> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<long> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+            case EnumWithUnderlying<ulong> enumWithUnderlying:
+                ValidateEnumerators(enumWithUnderlying, diagnostics);
+                break;
+        }
+
+        static void ValidateEnumerators<T>(
+            EnumWithUnderlying<T> e,
+            List<Compiler.Diagnostic> diagnostics)
+            where T : struct, System.Numerics.INumber<T>
+        {
+            foreach (EnumWithUnderlying<T>.Enumerator en in e.Enumerators)
+            {
+                ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+            }
+        }
+    }
+
+    private static void ValidateOperation(Operation op, List<Compiler.Diagnostic> diagnostics)
+    {
+        ValidateAttributes(op.Attributes, Target.Operation, diagnostics);
+
+        foreach (Field param in op.Parameters)
+        {
+            ValidateField(param, Target.Field, diagnostics);
+        }
+
+        foreach (Field ret in op.ReturnType)
+        {
+            ValidateField(ret, Target.Field, diagnostics);
+        }
+
+        // cs::encodedReturn: only valid on operations with non-streamed return values.
+        if (op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn))
+        {
+            bool hasNonStreamedReturn = op.ReturnType.Count > (op.HasStreamedReturn ? 1 : 0);
+            if (!hasNonStreamedReturn)
+            {
+                string reason = op.HasStreamedReturn
+                    ? "an operation that only returns a stream"
+                    : "an operation that does not return anything";
+                diagnostics.Add(Error(
+                    $"The '{CSAttributes.CSEncodedReturn}' attribute is not applicable to {reason}."));
+            }
+        }
+    }
+
+    private static void ValidateField(Field field, Target target, List<Compiler.Diagnostic> diagnostics)
+    {
+        ValidateAttributes(field.Attributes, target, diagnostics);
+        ValidateTypeRef(field.DataType, diagnostics);
+    }
+
+    private static void ValidateTypeRef(TypeRef typeRef, List<Compiler.Diagnostic> diagnostics)
+    {
+        Target target = typeRef.Type switch
+        {
+            SequenceType => Target.TypeRefSequence,
+            DictionaryType => Target.TypeRefDictionary,
+            _ => Target.TypeRef,
+        };
+        ValidateAttributes(typeRef.Attributes, target, diagnostics);
+    }
+
+    private static void ValidateAttributes(
+        ImmutableList<Attribute> attributes,
+        Target target,
+        List<Compiler.Diagnostic> diagnostics)
+    {
+        foreach (Attribute attr in attributes)
+        {
+            if (attr.Directive.StartsWith("cs::", StringComparison.Ordinal))
+            {
+                ValidateCSAttribute(attr, target, diagnostics);
+            }
+        }
+    }
+
+    private static void ValidateCSAttribute(
+        Attribute attr,
+        Target target,
+        List<Compiler.Diagnostic> diagnostics)
+    {
+        switch (attr.Directive)
+        {
+            case CSAttributes.CSAttribute:
+                RequireArgs(attr, 1, diagnostics);
+                if (target is not (Target.Enum or Target.Enumerator or Target.Field or Target.FieldInStruct))
+                {
+                    ReportUnexpected(attr, diagnostics);
+                }
+                break;
+
+            case CSAttributes.CSEncodedReturn:
+                RequireArgs(attr, 0, diagnostics);
+                if (target is not Target.Operation)
+                {
+                    ReportUnexpected(attr, diagnostics);
+                }
+                // Additional semantic validation (non-streamed returns) is in ValidateOperation.
+                break;
+
+            case CSAttributes.CSIdentifier:
+                RequireArgs(attr, 1, diagnostics);
+                if (target is Target.Module)
+                {
+                    diagnostics.Add(Error(
+                        $"Unexpected attribute '{attr.Directive}' on module. " +
+                        $"To map a module to a different C# namespace, use '{CSAttributes.CSNamespace}' instead."));
+                }
+                else if (target is Target.File or Target.TypeAlias or Target.TypeRef
+                    or Target.TypeRefSequence or Target.TypeRefDictionary)
+                {
+                    ReportUnexpected(attr, diagnostics);
+                }
+                break;
+
+            case CSAttributes.CSInternal:
+                RequireArgs(attr, 0, diagnostics);
+                if (target is not (Target.Struct or Target.Interface or Target.Enum))
+                {
+                    ReportUnexpected(attr, diagnostics);
+                }
+                break;
+
+            case CSAttributes.CSNamespace:
+                RequireArgs(attr, 1, diagnostics);
+                if (target is not Target.Module)
+                {
+                    ReportUnexpected(attr, diagnostics);
+                }
+                break;
+
+            case CSAttributes.CSReadonly:
+                RequireArgs(attr, 0, diagnostics);
+                if (target is not (Target.Struct or Target.FieldInStruct))
+                {
+                    if (target is Target.Field)
+                    {
+                        diagnostics.Add(Error(
+                            $"Unexpected attribute '{attr.Directive}'. " +
+                            "'cs::readonly' can only be applied to structs, or fields inside structs."));
+                    }
+                    else
+                    {
+                        ReportUnexpected(attr, diagnostics);
+                    }
+                }
+                break;
+
+            case CSAttributes.CSType:
+                RequireArgs(attr, 1, diagnostics);
+                if (target is not (Target.CustomType or Target.TypeRefSequence or Target.TypeRefDictionary))
+                {
+                    diagnostics.Add(Error(
+                        $"Unexpected attribute '{attr.Directive}'. " +
+                        "The cs::type attribute can only be applied to sequences, dictionaries, and custom types."));
+                }
+                break;
+
+            default:
+                diagnostics.Add(Error($"Unknown CS attribute '{attr.Directive}'."));
+                break;
+        }
+    }
+
+    private static void RequireArgs(Attribute attr, int expected, List<Compiler.Diagnostic> diagnostics)
+    {
+        if (attr.Args.Count != expected)
+        {
+            diagnostics.Add(Error(
+                $"Attribute '{attr.Directive}' requires {expected} argument(s) but got {attr.Args.Count}."));
+        }
+    }
+
+    private static void ReportUnexpected(Attribute attr, List<Compiler.Diagnostic> diagnostics) =>
+        diagnostics.Add(Error($"Unexpected attribute '{attr.Directive}' on this target."));
+
+    private static Compiler.Diagnostic Error(string message) =>
+        new(Compiler.DiagnosticLevel.Error, message, null);
+}
