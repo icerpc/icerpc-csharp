@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Slice.Generator;
 using ZeroC.CodeBuilder;
 using ZeroC.Slice.Generator;
-using IceRpc.Slice.Generator;
 using ZeroC.Slice.Symbols;
 
 await GeneratorDriver.RunAsync(

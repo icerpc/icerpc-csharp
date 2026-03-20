@@ -23,7 +23,8 @@ internal static class EnumWithUnderlyingGenerator
         _ => throw new InvalidOperationException($"Unsupported enum underlying type: {enumDef.Underlying.Kind}"),
     };
 
-    private static CodeBlock GenerateCore<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>    {
+    private static CodeBlock GenerateCore<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>
+    {
         string identifier = enumDef.Name;
         string accessModifier = enumDef.AccessModifier;
 
@@ -217,7 +218,8 @@ internal static class EnumWithUnderlyingGenerator
         // cspell:disable-next-line
         word.Length > 0 && "aeiouAEIOU".Contains(word[0], StringComparison.Ordinal) ? "an" : "a";
 
-    private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>    {
+    private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>
+    {
         // If the enumerator count covers the full range of the underlying type, every value is valid
         // and no validation is needed. This also prevents overflow when computing max - min below
         // for small types like sbyte where MaxValue - MinValue (127 - (-128) = 255) overflows.
