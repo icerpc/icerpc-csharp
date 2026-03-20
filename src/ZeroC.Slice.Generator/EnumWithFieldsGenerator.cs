@@ -29,59 +29,54 @@ internal static class EnumWithFieldsGenerator
         string accessModifier)
     {
         string enumName = enumDef.Name;
-        var builder = new ContainerBuilder(
-            $"{accessModifier} partial record class",
-            $"Unknown(int Discriminant, global::System.ReadOnlyMemory<byte> Fields)");
-        builder.AddBase(parentIdentifier);
-        builder.AddComment(
-            "summary",
-            @$"Represents an enumerator not defined in the local Slice definition of unchecked enum '{enumName}'.");
-        builder.AddComment("param", "name", "Discriminant", "The discriminant of this unknown enumerator.");
-        builder.AddComment("param", "name", "Fields", "The encoded fields of this unknown enumerator.");
-
-        builder.AddBlock("""
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            internal override void Encode(ref SliceEncoder encoder)
-            {
-                encoder.EncodeVarInt32(Discriminant);
-                encoder.EncodeSize(Fields.Length);
-                encoder.WriteByteSpan(Fields.Span);
-            }
-            """);
-
-        return builder.Build();
+        return new ContainerBuilder(
+                $"{accessModifier} partial record class",
+                $"Unknown(int Discriminant, global::System.ReadOnlyMemory<byte> Fields)")
+            .AddBase(parentIdentifier)
+            .AddComment(
+                "summary",
+                @$"Represents an enumerator not defined in the local Slice definition of unchecked enum '{enumName}'.")
+            .AddComment("param", "name", "Discriminant", "The discriminant of this unknown enumerator.")
+            .AddComment("param", "name", "Fields", "The encoded fields of this unknown enumerator.")
+            .AddBlock("""
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+                internal override void Encode(ref SliceEncoder encoder)
+                {
+                    encoder.EncodeVarInt32(Discriminant);
+                    encoder.EncodeSize(Fields.Length);
+                    encoder.WriteByteSpan(Fields.Span);
+                }
+                """)
+            .Build();
     }
 
     private static CodeBlock GenerateEncoderExtensions(EnumWithFields enumDef, string identifier, string accessModifier)
     {
         string scopedId = enumDef.ScopedIdentifier;
 
-        var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions");
-
-        builder.AddComment(
-            "summary",
-            @$"Provides an extension method for encoding a <see cref=""{identifier}"" /> using a <see cref=""SliceEncoder"" />.");
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice enum <c>{scopedId}</c>.");
-
-        var method = new FunctionBuilder(
-            $"{accessModifier} static",
-            "void",
-            $"Encode{identifier}",
-            FunctionType.ExpressionBody);
-
-        method.AddComment("summary", @$"Encodes a <see cref=""{identifier}"" /> enum.");
-        method.AddParameter("this ref SliceEncoder", "encoder", null, "The Slice encoder.");
-        method.AddParameter(
-            identifier,
-            "value",
-            null,
-            @$"The <see cref=""{identifier}"" /> enumerator value to encode.");
-        method.SetBody("value.Encode(ref encoder)");
-
-        builder.AddBlock(method.Build());
-        return builder.Build();
+        return new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions")
+            .AddComment(
+                "summary",
+                @$"Provides an extension method for encoding a <see cref=""{identifier}"" /> using a <see cref=""SliceEncoder"" />.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice enum <c>{scopedId}</c>.")
+            .AddBlock(
+                new FunctionBuilder(
+                        $"{accessModifier} static",
+                        "void",
+                        $"Encode{identifier}",
+                        FunctionType.ExpressionBody)
+                    .AddComment("summary", @$"Encodes a <see cref=""{identifier}"" /> enum.")
+                    .AddParameter("this ref SliceEncoder", "encoder", null, "The Slice encoder.")
+                    .AddParameter(
+                        identifier,
+                        "value",
+                        null,
+                        @$"The <see cref=""{identifier}"" /> enumerator value to encode.")
+                    .SetBody("value.Encode(ref encoder)")
+                    .Build())
+            .Build();
     }
 
     private static CodeBlock GenerateUnionDeclaration(
@@ -92,12 +87,11 @@ internal static class EnumWithFieldsGenerator
     {
         string scopedId = enumDef.ScopedIdentifier;
 
-        var builder = new ContainerBuilder($"{accessModifier} abstract partial record class", identifier);
-
-        builder.AddComment(
-            "remarks",
-            @$"The Slice compiler generated this discriminated union from the Slice enum <c>{scopedId}</c>.");
-        builder.AddAttribute("Dunet.Union");
+        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} abstract partial record class", identifier)
+            .AddComment(
+                "remarks",
+                @$"The Slice compiler generated this discriminated union from the Slice enum <c>{scopedId}</c>.")
+            .AddAttribute("Dunet.Union");
 
         // Generate nested record classes for each enumerator.
         foreach (EnumWithFields.Enumerator enumerator in enumDef.Enumerators)
@@ -143,22 +137,17 @@ internal static class EnumWithFieldsGenerator
             ? $"{enumeratorName}({BuildParameterList(enumerator.Fields, "")})"
             : enumeratorName;
 
-        var builder = new ContainerBuilder($"{accessModifier} partial record class", nameWithParams);
-        builder.AddBase(parentIdentifier);
-
-        // cs::attribute on the enumerator.
-        builder.AddCSAttributes(enumerator.Attributes);
-
         // Discriminant constant.
         var discriminantBlock = new CodeBlock();
         discriminantBlock.WriteLine("/// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>");
         discriminantBlock.WriteLine($"public const int Discriminant = {discriminant};");
-        builder.AddBlock(discriminantBlock);
 
-        // Encode method override.
-        builder.AddBlock(GenerateEncodeMethod(enumerator, enumDef, currentNamespace));
-
-        return builder.Build();
+        return new ContainerBuilder($"{accessModifier} partial record class", nameWithParams)
+            .AddBase(parentIdentifier)
+            .AddCSAttributes(enumerator.Attributes)
+            .AddBlock(discriminantBlock)
+            .AddBlock(GenerateEncodeMethod(enumerator, enumDef, currentNamespace))
+            .Build();
     }
 
     private static CodeBlock GenerateEncodeMethod(
@@ -207,28 +196,16 @@ internal static class EnumWithFieldsGenerator
     {
         string scopedId = enumDef.ScopedIdentifier;
 
-        var builder = new ContainerBuilder(
-            $"{accessModifier} static class",
-            $"{identifier}SliceDecoderExtensions");
-
-        builder.AddComment(
-            "summary",
-            @$"Provides an extension method for decoding a <see cref=""{identifier}"" /> using a <see cref=""SliceDecoder"" />.");
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice enum <c>{scopedId}</c>.");
-
-        var method = new FunctionBuilder(
-            $"{accessModifier} static",
-            identifier,
-            $"Decode{identifier}",
-            FunctionType.BlockBody);
-
-        method.AddComment("summary", @$"Decodes a <see cref=""{identifier}"" /> enum.");
-        method.AddParameter("this ref SliceDecoder", "decoder", null, "The Slice decoder.");
-        method.AddComment(
-            "returns",
-            @$"The decoded <see cref=""{identifier}"" /> enumerator value.");
+        FunctionBuilder method = new FunctionBuilder(
+                $"{accessModifier} static",
+                identifier,
+                $"Decode{identifier}",
+                FunctionType.BlockBody)
+            .AddComment("summary", @$"Decodes a <see cref=""{identifier}"" /> enum.")
+            .AddParameter("this ref SliceDecoder", "decoder", null, "The Slice decoder.")
+            .AddComment(
+                "returns",
+                @$"The decoded <see cref=""{identifier}"" /> enumerator value.");
 
         var body = new CodeBlock();
 
@@ -262,8 +239,18 @@ internal static class EnumWithFieldsGenerator
         }
 
         method.SetBody(body);
-        builder.AddBlock(method.Build());
-        return builder.Build();
+
+        return new ContainerBuilder(
+                $"{accessModifier} static class",
+                $"{identifier}SliceDecoderExtensions")
+            .AddComment(
+                "summary",
+                @$"Provides an extension method for decoding a <see cref=""{identifier}"" /> using a <see cref=""SliceDecoder"" />.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice enum <c>{scopedId}</c>.")
+            .AddBlock(method.Build())
+            .Build();
     }
 
     private static CodeBlock GenerateDecodeLocalFunction(

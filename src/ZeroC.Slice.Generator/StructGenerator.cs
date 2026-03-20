@@ -20,32 +20,20 @@ internal static class StructGenerator
             ? $"{accessModifier} readonly partial record struct"
             : $"{accessModifier} partial record struct";
 
-        var builder = new ContainerBuilder(declaration, identifier);
-
-        // Add doc comments.
-        // TODO: format doc comment from structDef.Comment
-
         string scopedId = structDef.ScopedIdentifier;
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this record struct from the Slice struct <c>{scopedId}</c>.");
 
-        // Add property declarations (in original order).
-        var fieldDeclarations = CodeBlock.FromBlocks(
-            structDef.Fields.Select(
-                f => FieldDeclaration(f, currentNamespace, accessModifier, isReadonly)));
-        builder.AddBlock(fieldDeclarations);
-
-        // Add main constructor.
-        builder.AddBlock(GenerateMainConstructor(structDef, currentNamespace, identifier, accessModifier));
-
-        // Add decode constructor.
-        builder.AddBlock(GenerateDecodeConstructor(structDef, currentNamespace, identifier, accessModifier));
-
-        // Add encode method.
-        builder.AddBlock(GenerateEncodeMethod(structDef, currentNamespace, accessModifier));
-
-        return builder.Build();
+        // TODO: format doc comment from structDef.Comment
+        return new ContainerBuilder(declaration, identifier)
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this record struct from the Slice struct <c>{scopedId}</c>.")
+            .AddBlock(CodeBlock.FromBlocks(
+                structDef.Fields.Select(
+                    f => FieldDeclaration(f, currentNamespace, accessModifier, isReadonly))))
+            .AddBlock(GenerateMainConstructor(structDef, currentNamespace, identifier, accessModifier))
+            .AddBlock(GenerateDecodeConstructor(structDef, currentNamespace, identifier, accessModifier))
+            .AddBlock(GenerateEncodeMethod(structDef, currentNamespace, accessModifier))
+            .Build();
     }
 
     private static CodeBlock GenerateMainConstructor(
@@ -56,14 +44,13 @@ internal static class StructGenerator
     {
         bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired);
 
-        var ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody);
+        FunctionBuilder ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody)
+            .AddComment("summary", @$"Constructs a new instance of <see cref=""{identifier}"" />.");
 
         if (hasRequiredField)
         {
             ctor.AddSetsRequiredMembersAttribute();
         }
-
-        ctor.AddComment("summary", @$"Constructs a new instance of <see cref=""{identifier}"" />.");
 
         foreach (Field field in structDef.Fields)
         {
@@ -91,18 +78,17 @@ internal static class StructGenerator
         IReadOnlyList<Field> sortedFields = structDef.Fields.GetSortedFields();
         bool hasRequiredField = structDef.Fields.Any(f => f.IsRequired);
 
-        var ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody);
+        FunctionBuilder ctor = new FunctionBuilder(accessModifier, "", identifier, FunctionType.BlockBody)
+            .AddComment(
+                "summary",
+                @$"Constructs a new instance of <see cref=""{identifier}"" /> and decodes its fields from a Slice decoder.")
+            .AddComment("param", "name", "decoder", "The Slice decoder.")
+            .AddParameter("ref SliceDecoder", "decoder");
 
         if (hasRequiredField)
         {
             ctor.AddSetsRequiredMembersAttribute();
         }
-
-        ctor.AddComment(
-            "summary",
-            @$"Constructs a new instance of <see cref=""{identifier}"" /> and decodes its fields from a Slice decoder.");
-        ctor.AddComment("param", "name", "decoder", "The Slice decoder.");
-        ctor.AddParameter("ref SliceDecoder", "decoder");
 
         var body = new CodeBlock();
 
@@ -128,20 +114,16 @@ internal static class StructGenerator
         return ctor.Build();
     }
 
-    private static CodeBlock GenerateEncodeMethod(Struct structDef, string currentNamespace, string accessModifier)
-    {
-        var method = new FunctionBuilder($"{accessModifier} readonly", "void", "Encode", FunctionType.BlockBody);
-        method.AddComment("summary", "Encodes the fields of this struct with a Slice encoder.");
-        method.AddComment("param", "name", "encoder", "The Slice encoder.");
-        method.AddParameter("ref SliceEncoder", "encoder");
+    private static CodeBlock GenerateEncodeMethod(Struct structDef, string currentNamespace, string accessModifier) =>
+        new FunctionBuilder($"{accessModifier} readonly", "void", "Encode", FunctionType.BlockBody)
+            .AddComment("summary", "Encodes the fields of this struct with a Slice encoder.")
+            .AddComment("param", "name", "encoder", "The Slice encoder.")
+            .AddParameter("ref SliceEncoder", "encoder")
+            .SetBody(structDef.Fields.GenerateEncodeBody(
+                currentNamespace,
+                includeTagEndMarker: !structDef.IsCompact))
+            .Build();
 
-        CodeBlock body = structDef.Fields.GenerateEncodeBody(
-            currentNamespace,
-            includeTagEndMarker: !structDef.IsCompact);
-
-        method.SetBody(body);
-        return method.Build();
-    }
 
     private static CodeBlock FieldDeclaration(
         Field field,

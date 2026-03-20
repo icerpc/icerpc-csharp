@@ -2,11 +2,10 @@
 
 using System.Collections.Immutable;
 using ZeroC.CodeBuilder;
+using ZeroC.Slice.Generator;
 using ZeroC.Slice.Symbols;
 
-using static ZeroC.Slice.Generator.OperationHelpers;
-
-namespace ZeroC.Slice.Generator;
+namespace IceRpc.Slice.Generator;
 
 /// <summary>Generates C# client-side code from a Slice interface: client interface, proxy struct, and
 /// encoder/decoder extensions.</summary>
@@ -39,13 +38,13 @@ internal static class ProxyGenerator
         string accessModifier,
         string currentNamespace)
     {
-        var builder = new ContainerBuilder($"{accessModifier} partial interface", $"I{name}");
-        builder.AddComment(
-            "remarks",
-            $"""
-            The Slice compiler generated this client-side interface from Slice interface <c>{scopedId}</c>.
-            It's implemented by <see cref="{name}Proxy" />.
-            """);
+        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} partial interface", $"I{name}")
+            .AddComment(
+                "remarks",
+                $"""
+                The Slice compiler generated this client-side interface from Slice interface <c>{scopedId}</c>.
+                It's implemented by <see cref="{name}Proxy" />.
+                """);
 
         // Inherit from base client interfaces
         foreach (Interface baseInterface in interfaceDef.Bases)
@@ -64,7 +63,7 @@ internal static class ProxyGenerator
     private static CodeBlock BuildClientOperationDeclaration(Operation op, string currentNamespace)
     {
         string opName = op.Name;
-        string returnType = GetClientReturnType(op, currentNamespace);
+        string returnType = op.GetClientReturnType(currentNamespace);
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
 
         var fn = new FunctionBuilder("", returnType, $"{opName}Async", FunctionType.Declaration);
@@ -112,39 +111,39 @@ internal static class ProxyGenerator
     {
         string proxyName = $"{name}Proxy";
 
-        var builder = new ContainerBuilder($"{accessModifier} readonly partial record struct", proxyName);
-        builder.AddComment(
-            "summary",
-            $"""
-            Implements <see cref="I{name}" /> by making invocations on a remote IceRPC service.
-            This remote service must implement Slice interface {scopedId}.
-            """);
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this record struct from the Slice interface <c>{scopedId}</c>.");
-        builder.AddBase($"I{name}");
-        builder.AddBase("ISliceProxy");
-
-        builder.AddBlock(BuildProxyRequestClass(interfaceDef, scopedId, currentNamespace));
-        builder.AddBlock(BuildProxyResponseClass(interfaceDef, scopedId, currentNamespace));
-        builder.AddBlock(BuildProxyProperties(scopedId, defaultServicePath));
+        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} readonly partial record struct", proxyName)
+            .AddComment(
+                "summary",
+                $"""
+                Implements <see cref="I{name}" /> by making invocations on a remote IceRPC service.
+                This remote service must implement Slice interface {scopedId}.
+                """)
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this record struct from the Slice interface <c>{scopedId}</c>.")
+            .AddBase($"I{name}")
+            .AddBase("ISliceProxy")
+            .AddBlock(BuildProxyRequestClass(interfaceDef, scopedId, currentNamespace))
+            .AddBlock(BuildProxyResponseClass(interfaceDef, scopedId, currentNamespace))
+            .AddBlock(BuildProxyProperties(scopedId, defaultServicePath));
 
         // Implicit conversion operators for base interfaces
         foreach (Interface baseInterface in interfaceDef.AllBases)
         {
             string baseProxyName = $"{baseInterface.Name}Proxy";
-            var implicitOp = new FunctionBuilder(
-                "public static implicit",
-                "",
-                $"operator {baseProxyName}",
-                FunctionType.ExpressionBody);
-            implicitOp.AddComment(
-                "summary",
-                $"""Provides an implicit conversion to <see cref="{baseProxyName}" />.""");
-            implicitOp.AddParameter(proxyName, "proxy");
-            implicitOp.SetBody(
-                "new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }");
-            builder.AddBlock(implicitOp.Build());
+            builder.AddBlock(
+                new FunctionBuilder(
+                    "public static implicit",
+                    "",
+                    $"operator {baseProxyName}",
+                    FunctionType.ExpressionBody)
+                    .AddComment(
+                        "summary",
+                        $"""Provides an implicit conversion to <see cref="{baseProxyName}" />.""")
+                    .AddParameter(proxyName, "proxy")
+                    .SetBody(
+                        "new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }")
+                    .Build());
         }
 
         builder.AddBlock(BuildProxyConstructors(proxyName));
@@ -159,11 +158,11 @@ internal static class ProxyGenerator
 
     private static CodeBlock BuildProxyRequestClass(Interface interfaceDef, string scopedId, string currentNamespace)
     {
-        var request = new ContainerBuilder("public static class", "Request");
-        request.AddComment("summary", "Provides static methods that encode operation arguments into request payloads.");
-        request.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
+        ContainerBuilder request = new ContainerBuilder("public static class", "Request")
+            .AddComment("summary", "Provides static methods that encode operation arguments into request payloads.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
 
         foreach (Operation op in interfaceDef.Operations)
         {
@@ -171,7 +170,7 @@ internal static class ProxyGenerator
             ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
             string opName = op.Name;
 
-            CodeBlock? encodeBody = GenerateEncodeBody(nonStreamedParams, currentNamespace);
+            CodeBlock? encodeBody = nonStreamedParams.GenerateEncodeBody(currentNamespace);
 
             if (encodeBody is null)
             {
@@ -181,27 +180,28 @@ internal static class ProxyGenerator
                     ? "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()"
                     : "IceRpc.EmptyPipeReader.Instance";
 
-                var fn = new FunctionBuilder(
-                    "public static",
-                    "global::System.IO.Pipelines.PipeReader",
-                    $"Encode{opName}",
-                    FunctionType.ExpressionBody);
-                fn.AddComment("summary", $"Encodes the arguments of operation <c>{op.Identifier}</c> into a request payload.");
-                fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.");
-                fn.AddComment("returns", "The Slice-encoded payload.");
-                fn.SetBody(emptyPayload);
-                request.AddBlock(fn.Build());
+                request.AddBlock(
+                    new FunctionBuilder(
+                        "public static",
+                        "global::System.IO.Pipelines.PipeReader",
+                        $"Encode{opName}",
+                        FunctionType.ExpressionBody)
+                        .AddComment("summary", $"Encodes the arguments of operation <c>{op.Identifier}</c> into a request payload.")
+                        .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddComment("returns", "The Slice-encoded payload.")
+                        .SetBody(emptyPayload)
+                        .Build());
             }
             else
             {
-                var fn = new FunctionBuilder(
+                FunctionBuilder fn = new FunctionBuilder(
                     "public static",
                     "global::System.IO.Pipelines.PipeReader",
                     $"Encode{opName}",
-                    FunctionType.BlockBody);
-                fn.AddComment(
-                    "summary",
-                    $"Encodes the argument{(nonStreamedParams.Count > 1 ? "s" : "")} of operation <c>{op.Identifier}</c> into a request payload.");
+                    FunctionType.BlockBody)
+                    .AddComment(
+                        "summary",
+                        $"Encodes the argument{(nonStreamedParams.Count > 1 ? "s" : "")} of operation <c>{op.Identifier}</c> into a request payload.");
 
                 foreach (Field param in nonStreamedParams)
                 {
@@ -210,93 +210,53 @@ internal static class ProxyGenerator
                         param.ParameterName);
                 }
 
-                fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.");
-                fn.AddComment("returns", "The Slice-encoded payload.");
-                fn.SetBody(BuildPipeEncodeBody(encodeBody));
-                request.AddBlock(fn.Build());
+                request.AddBlock(
+                    fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddComment("returns", "The Slice-encoded payload.")
+                        .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
+                        .Build());
             }
 
             // Add EncodeStreamOf{Op} method for streamed parameters
             if (op.StreamedParameter is Field streamParam)
             {
-                request.AddBlock(BuildEncodeStreamMethod(op, streamParam, currentNamespace));
+                request.AddBlock(op.BuildEncodeStreamMethod(streamParam, currentNamespace));
             }
         }
 
         return request.Build();
     }
 
-    /// <summary>Builds the EncodeStreamOf{Op} method for a streamed field (parameter or return value).</summary>
-    internal static CodeBlock BuildEncodeStreamMethod(Operation op, Field streamParam, string currentNamespace)
-    {
-        string opName = op.Name;
-        string streamType = OperationExtensions.GetStreamTypeString(streamParam, currentNamespace);
-
-        var fn = new FunctionBuilder(
-            "public static",
-            "global::System.IO.Pipelines.PipeReader",
-            $"EncodeStreamOf{opName}",
-            FunctionType.ExpressionBody);
-        fn.AddComment(
-            "summary",
-            $"Encodes the stream argument of operation <c>{op.Name}</c> into a request payload continuation.");
-        fn.AddParameter(streamType, streamParam.ParameterName);
-        fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.");
-        fn.AddComment("returns", "A new request payload continuation.");
-
-        if (OperationExtensions.IsByteStream(streamParam))
-        {
-            // Non-optional byte stream: pass-through PipeReader
-            fn.SetBody(streamParam.ParameterName);
-        }
-        else
-        {
-            // Other streams: use ToPipeReader with encode lambda
-            string encodeLambda = streamParam.DataType.GetEncodeLambda(
-                streamParam.DataTypeIsOptional,
-                currentNamespace);
-            bool useSegments = streamParam.DataType.FixedSize is null;
-            fn.SetBody(new CodeBlock($$"""
-                {{streamParam.ParameterName}}.ToPipeReader(
-                    {{encodeLambda}},
-                    {{(useSegments ? "true" : "false")}},
-                    encodeOptions)
-                """));
-        }
-
-        return fn.Build();
-    }
-
     private static CodeBlock BuildProxyResponseClass(Interface interfaceDef, string scopedId, string currentNamespace)
     {
-        var response = new ContainerBuilder("public static class", "Response");
-        response.AddComment(
-            "summary",
-            $"Provides a <see cref=\"ResponseDecodeFunc{{T}}\" /> for each operation defined in Slice interface {scopedId}.");
-        response.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
+        ContainerBuilder response = new ContainerBuilder("public static class", "Response")
+            .AddComment(
+                "summary",
+                $"Provides a <see cref=\"ResponseDecodeFunc{{T}}\" /> for each operation defined in Slice interface {scopedId}.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
 
         foreach (Operation op in interfaceDef.Operations)
         {
             string opName = op.Name;
             ImmutableList<Field> nonStreamedReturns = op.NonStreamedReturns;
             Field? streamReturn = op.StreamedReturn;
-            string returnType = GetProxyResponseReturnType(op, currentNamespace);
+            string returnType = op.GetProxyResponseReturnType(currentNamespace);
 
             if (streamReturn is null)
             {
                 // Non-streaming: expression body
-                var fn = new FunctionBuilder(
+                FunctionBuilder fn = new FunctionBuilder(
                     "public static",
                     returnType,
                     $"Decode{opName}Async",
-                    FunctionType.ExpressionBody);
-                fn.AddComment("summary", $"Decodes an incoming response for operation <c>{op.Identifier}</c>.");
-                fn.AddParameter("IceRpc.IncomingResponse", "response");
-                fn.AddParameter("IceRpc.OutgoingRequest", "request");
-                fn.AddParameter("ISliceProxy", "sender");
-                fn.AddParameter("global::System.Threading.CancellationToken", "cancellationToken");
+                    FunctionType.ExpressionBody)
+                    .AddComment("summary", $"Decodes an incoming response for operation <c>{op.Identifier}</c>.")
+                    .AddParameter("IceRpc.IncomingResponse", "response")
+                    .AddParameter("IceRpc.OutgoingRequest", "request")
+                    .AddParameter("ISliceProxy", "sender")
+                    .AddParameter("global::System.Threading.CancellationToken", "cancellationToken");
 
                 if (nonStreamedReturns.Count == 0)
                 {
@@ -309,7 +269,7 @@ internal static class ProxyGenerator
                 }
                 else
                 {
-                    string decodeLambda = GenerateDecodeLambda(nonStreamedReturns, currentNamespace);
+                    string decodeLambda = nonStreamedReturns.GenerateDecodeLambda(currentNamespace);
                     fn.SetBody(
                         $$"""
                         response.DecodeReturnValueAsync(
@@ -325,16 +285,16 @@ internal static class ProxyGenerator
             else
             {
                 // Streaming: async block body
-                var fn = new FunctionBuilder(
+                FunctionBuilder fn = new FunctionBuilder(
                     "public static async",
                     returnType,
                     $"Decode{opName}Async",
-                    FunctionType.BlockBody);
-                fn.AddComment("summary", $"Decodes an incoming response for operation <c>{op.Identifier}</c>.");
-                fn.AddParameter("IceRpc.IncomingResponse", "response");
-                fn.AddParameter("IceRpc.OutgoingRequest", "request");
-                fn.AddParameter("ISliceProxy", "sender");
-                fn.AddParameter("global::System.Threading.CancellationToken", "cancellationToken");
+                    FunctionType.BlockBody)
+                    .AddComment("summary", $"Decodes an incoming response for operation <c>{op.Identifier}</c>.")
+                    .AddParameter("IceRpc.IncomingResponse", "response")
+                    .AddParameter("IceRpc.OutgoingRequest", "request")
+                    .AddParameter("ISliceProxy", "sender")
+                    .AddParameter("global::System.Threading.CancellationToken", "cancellationToken");
 
                 var body = new CodeBlock();
 
@@ -350,7 +310,7 @@ internal static class ProxyGenerator
                 }
                 else
                 {
-                    string decodeLambda = GenerateDecodeLambda(nonStreamedReturns, currentNamespace);
+                    string decodeLambda = nonStreamedReturns.GenerateDecodeLambda(currentNamespace);
                     string varName = nonStreamedReturns.Count == 1
                         ? $"sliceP_{nonStreamedReturns[0].ParameterName}"
                         : $"({string.Join(", ", nonStreamedReturns.Select(r => $"sliceP_{r.ParameterName}"))})";
@@ -417,19 +377,19 @@ internal static class ProxyGenerator
     private static CodeBlock BuildProxyOperationImpl(Operation op, string currentNamespace)
     {
         string opName = op.Name;
-        string returnType = GetClientReturnType(op, currentNamespace);
+        string returnType = op.GetClientReturnType(currentNamespace);
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
         Field? streamParam = op.StreamedParameter;
 
         bool compressArgs = op.Attributes.FindAttribute("compress") is { } compressAttr
             && compressAttr.Args.Any(a => a == "Args");
 
-        var fn = new FunctionBuilder(
+        FunctionBuilder fn = new FunctionBuilder(
             "public",
             returnType,
             $"{opName}Async",
-            compressArgs ? FunctionType.BlockBody : FunctionType.ExpressionBody);
-        fn.SetInheritDoc(true);
+            compressArgs ? FunctionType.BlockBody : FunctionType.ExpressionBody)
+            .SetInheritDoc(true);
 
         foreach (Field param in nonStreamedParams)
         {
@@ -456,19 +416,16 @@ internal static class ProxyGenerator
             ? $"Request.EncodeStreamOf{opName}({streamParam.ParameterName}, encodeOptions: EncodeOptions)"
             : "null";
 
-        var bodyBuilder = new FunctionCallBuilder("this.InvokeOperationAsync");
-        bodyBuilder.ArgumentsOnNewLine(true);
-        bodyBuilder.UseSemicolon(false);
-        bodyBuilder.AddArgument($"\"{op.Identifier}\"");
-        bodyBuilder.AddArgument($"payload: Request.Encode{opName}({encodeArgs})");
-        bodyBuilder.AddArgument($"payloadContinuation: {payloadContinuation}");
-        bodyBuilder.AddArgument($"Response.Decode{opName}Async");
-        bodyBuilder.AddArgument(featuresParam);
-        if (op.IsIdempotent)
-        {
-            bodyBuilder.AddArgument("isIdempotent: true");
-        }
-        bodyBuilder.AddArgument("cancellationToken: cancellationToken");
+        FunctionCallBuilder bodyBuilder = new FunctionCallBuilder("this.InvokeOperationAsync")
+            .ArgumentsOnNewLine(true)
+            .UseSemicolon(false)
+            .AddArgument($"\"{op.Identifier}\"")
+            .AddArgument($"payload: Request.Encode{opName}({encodeArgs})")
+            .AddArgument($"payloadContinuation: {payloadContinuation}")
+            .AddArgument($"Response.Decode{opName}Async")
+            .AddArgument(featuresParam)
+            .AddArgumentIf(op.IsIdempotent, "isIdempotent: true")
+            .AddArgument("cancellationToken: cancellationToken");
 
         if (compressArgs)
         {
@@ -481,10 +438,8 @@ internal static class ProxyGenerator
                         {{featuresParam}},
                         IceRpc.Features.CompressFeature.Compress);
                 }
+                return {{bodyBuilder.Build()}};
                 """);
-            body.Write("\nreturn ");
-            body.AddBlock(bodyBuilder.Build());
-            body.Write(";");
             fn.SetBody(body);
         }
         else
@@ -500,38 +455,36 @@ internal static class ProxyGenerator
     {
         string proxyName = $"{name}Proxy";
 
-        var container = new ContainerBuilder($"{accessModifier} static class", $"{proxyName}SliceEncoderExtensions");
-        container.AddComment(
-            "summary",
-            $"""Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cref="{proxyName}" />.""");
-
-        var fn = new FunctionBuilder("public static", "void", $"Encode{proxyName}", FunctionType.ExpressionBody);
-        fn.AddComment("summary", $"""Encodes a <see cref="{proxyName}" /> as an <see cref="IceRpc.ServiceAddress" />.""");
-        fn.AddParameter("this ref SliceEncoder", "encoder", docComment: "The Slice encoder.");
-        fn.AddParameter(proxyName, "proxy", docComment: "The proxy to encode as a service address.");
-        fn.SetBody("encoder.EncodeServiceAddress(proxy.ServiceAddress)");
-
-        container.AddBlock(fn.Build());
-        return container.Build();
+        return new ContainerBuilder($"{accessModifier} static class", $"{proxyName}SliceEncoderExtensions")
+            .AddComment(
+                "summary",
+                $"""Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cref="{proxyName}" />.""")
+            .AddBlock(
+                new FunctionBuilder("public static", "void", $"Encode{proxyName}", FunctionType.ExpressionBody)
+                    .AddComment("summary", $"""Encodes a <see cref="{proxyName}" /> as an <see cref="IceRpc.ServiceAddress" />.""")
+                    .AddParameter("this ref SliceEncoder", "encoder", docComment: "The Slice encoder.")
+                    .AddParameter(proxyName, "proxy", docComment: "The proxy to encode as a service address.")
+                    .SetBody("encoder.EncodeServiceAddress(proxy.ServiceAddress)")
+                    .Build())
+            .Build();
     }
 
     private static CodeBlock GenerateProxyDecoderExtensions(string name, string accessModifier)
     {
         string proxyName = $"{name}Proxy";
 
-        var container = new ContainerBuilder($"{accessModifier} static class", $"{proxyName}SliceDecoderExtensions");
-        container.AddComment(
-            "summary",
-            $"""Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cref="{proxyName}" />.""");
-
-        var fn = new FunctionBuilder("public static", proxyName, $"Decode{proxyName}", FunctionType.ExpressionBody);
-        fn.AddComment("summary", $"""Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxyName}" />.""");
-        fn.AddParameter("this ref SliceDecoder", "decoder", docComment: "The Slice decoder.");
-        fn.AddComment("returns", "The proxy created from the decoded service address.");
-        fn.SetBody($"decoder.DecodeProxy<{proxyName}>()");
-
-        container.AddBlock(fn.Build());
-        return container.Build();
+        return new ContainerBuilder($"{accessModifier} static class", $"{proxyName}SliceDecoderExtensions")
+            .AddComment(
+                "summary",
+                $"""Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cref="{proxyName}" />.""")
+            .AddBlock(
+                new FunctionBuilder("public static", proxyName, $"Decode{proxyName}", FunctionType.ExpressionBody)
+                    .AddComment("summary", $"""Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxyName}" />.""")
+                    .AddParameter("this ref SliceDecoder", "decoder", docComment: "The Slice decoder.")
+                    .AddComment("returns", "The proxy created from the decoded service address.")
+                    .SetBody($"decoder.DecodeProxy<{proxyName}>()")
+                    .Build())
+            .Build();
     }
 
     // --- Properties and Constructors ---
@@ -557,72 +510,57 @@ internal static class ProxyGenerator
 
     private static CodeBlock BuildProxyConstructors(string proxyName)
     {
-        var fromPath = new FunctionBuilder("public static", proxyName, "FromPath", FunctionType.ExpressionBody);
-        fromPath.AddComment("summary", "Creates a relative proxy from a path.");
-        fromPath.AddParameter("string", "path", docComment: "The path.");
-        fromPath.AddComment("returns", "The new relative proxy.");
-        fromPath.SetBody("new(IceRpc.InvalidInvoker.Instance, new IceRpc.ServiceAddress { Path = path })");
+        CodeBlock fromPath = new FunctionBuilder("public static", proxyName, "FromPath", FunctionType.ExpressionBody)
+            .AddComment("summary", "Creates a relative proxy from a path.")
+            .AddParameter("string", "path", docComment: "The path.")
+            .AddComment("returns", "The new relative proxy.")
+            .SetBody("new(IceRpc.InvalidInvoker.Instance, new IceRpc.ServiceAddress { Path = path })")
+            .Build();
 
-        var mainCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody);
-        mainCtor.AddComment("summary", "Constructs a proxy from an invoker, a service address and encode options.");
-        mainCtor.AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.");
-        mainCtor.AddParameter(
-            "IceRpc.ServiceAddress?",
-            "serviceAddress",
-            "null",
-            """
-            The service address. <see langword="null" /> is equivalent to an icerpc service address
-            with path <see cref="DefaultServicePath" />.
-            """);
-        mainCtor.AddParameter(
-            "SliceEncodeOptions?",
-            "encodeOptions",
-            "null",
-            "The encode options, used to customize the encoding of request payloads.");
-        mainCtor.AddSetsRequiredMembersAttribute();
-        mainCtor.SetBody(new CodeBlock("""
-            Invoker = invoker;
-            ServiceAddress = serviceAddress ?? _defaultServiceAddress;
-            EncodeOptions = encodeOptions;
-            """));
+        CodeBlock mainCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
+            .AddComment("summary", "Constructs a proxy from an invoker, a service address and encode options.")
+            .AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.")
+            .AddParameter(
+                "IceRpc.ServiceAddress?",
+                "serviceAddress",
+                "null",
+                """
+                The service address. <see langword="null" /> is equivalent to an icerpc service address
+                with path <see cref="DefaultServicePath" />.
+                """)
+            .AddParameter(
+                "SliceEncodeOptions?",
+                "encodeOptions",
+                "null",
+                "The encode options, used to customize the encoding of request payloads.")
+            .AddSetsRequiredMembersAttribute()
+            .SetBody(new CodeBlock("""
+                Invoker = invoker;
+                ServiceAddress = serviceAddress ?? _defaultServiceAddress;
+                EncodeOptions = encodeOptions;
+                """))
+            .Build();
 
-        var uriCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody);
-        uriCtor.AddComment("summary", "Constructs a proxy from an invoker, a service address URI and encode options.");
-        uriCtor.AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.");
-        uriCtor.AddParameter("System.Uri", "serviceAddressUri", docComment: "A URI that represents a service address.");
-        uriCtor.AddParameter(
-            "SliceEncodeOptions?",
-            "encodeOptions",
-            "null",
-            "The encode options, used to customize the encoding of request payloads.");
-        uriCtor.AddSetsRequiredMembersAttribute();
-        uriCtor.AddBaseParameters(["invoker", "new IceRpc.ServiceAddress(serviceAddressUri)", "encodeOptions"]);
+        CodeBlock uriCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
+            .AddComment("summary", "Constructs a proxy from an invoker, a service address URI and encode options.")
+            .AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.")
+            .AddParameter("System.Uri", "serviceAddressUri", docComment: "A URI that represents a service address.")
+            .AddParameter(
+                "SliceEncodeOptions?",
+                "encodeOptions",
+                "null",
+                "The encode options, used to customize the encoding of request payloads.")
+            .AddSetsRequiredMembersAttribute()
+            .AddBaseParameters(["invoker", "new IceRpc.ServiceAddress(serviceAddressUri)", "encodeOptions"])
+            .Build();
 
-        var defaultCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody);
-        defaultCtor.AddComment(
-            "summary",
-            @"Constructs a proxy with an icerpc service address with path <see cref=""DefaultServicePath"" />.");
+        CodeBlock defaultCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
+            .AddComment(
+                "summary",
+                @"Constructs a proxy with an icerpc service address with path <see cref=""DefaultServicePath"" />.")
+            .Build();
 
-        return CodeBlock.FromBlocks([fromPath.Build(), mainCtor.Build(), uriCtor.Build(), defaultCtor.Build()]);
+        return CodeBlock.FromBlocks([fromPath, mainCtor, uriCtor, defaultCtor]);
     }
 
-    /// <summary>Wraps an encode body in the standard pipe creation/size-placeholder boilerplate.</summary>
-    internal static CodeBlock BuildPipeEncodeBody(CodeBlock encodeBody)
-    {
-        return new CodeBlock($$"""
-            var pipe_ = new global::System.IO.Pipelines.Pipe(
-                encodeOptions?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
-            var encoder_ = new SliceEncoder(pipe_.Writer);
-
-            Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
-            int startPos_ = encoder_.EncodedByteCount;
-
-            {{encodeBody}}
-
-            SliceEncoder.EncodeVarUInt62((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
-
-            pipe_.Writer.Complete();
-            return pipe_.Reader;
-            """);
-    }
 }

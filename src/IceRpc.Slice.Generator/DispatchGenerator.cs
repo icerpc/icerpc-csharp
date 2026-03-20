@@ -2,11 +2,10 @@
 
 using System.Collections.Immutable;
 using ZeroC.CodeBuilder;
+using ZeroC.Slice.Generator;
 using ZeroC.Slice.Symbols;
 
-using static ZeroC.Slice.Generator.OperationHelpers;
-
-namespace ZeroC.Slice.Generator;
+namespace IceRpc.Slice.Generator;
 
 /// <summary>Generates C# server-side code from a Slice interface: the service interface with nested Request/Response
 /// classes and operation declarations.</summary>
@@ -21,14 +20,14 @@ internal static class DispatchGenerator
         string currentNamespace = interfaceDef.Namespace;
         string defaultServicePath = $"/{scopedId.Replace("::", ".", StringComparison.Ordinal)}";
 
-        var builder = new ContainerBuilder($"{accessModifier} partial interface", $"I{name}Service");
-        builder.AddComment(
-            "remarks",
-            $"""
-            The Slice compiler generated this server-side interface from Slice interface <c>{scopedId}</c>.
-            Your service implementation must implement this interface.
-            """);
-        builder.AddAttribute($"""IceRpc.DefaultServicePath("{defaultServicePath}")""");
+        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} partial interface", $"I{name}Service")
+            .AddComment(
+                "remarks",
+                $"""
+                The Slice compiler generated this server-side interface from Slice interface <c>{scopedId}</c>.
+                Your service implementation must implement this interface.
+                """)
+            .AddAttribute($"""IceRpc.DefaultServicePath("{defaultServicePath}")""");
 
         // Inherit from base service interfaces
         foreach (Interface baseInterface in interfaceDef.Bases)
@@ -52,33 +51,33 @@ internal static class DispatchGenerator
         // Use "new" keyword when the interface inherits operations from a base (to hide base's Request class)
         bool hasInheritedOps = interfaceDef.Bases.Any(b => b.Operations.Count > 0 || b.AllBases.Any(bb => bb.Operations.Count > 0));
         string classModifier = hasInheritedOps ? "public static new class" : "public static class";
-        var request = new ContainerBuilder(classModifier, "Request");
-        request.AddComment("summary", "Provides static methods that decode request payloads.");
-        request.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
+        ContainerBuilder request = new ContainerBuilder(classModifier, "Request")
+            .AddComment("summary", "Provides static methods that decode request payloads.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
 
         foreach (Operation op in interfaceDef.Operations)
         {
             string opName = op.Name;
             ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
             Field? streamParam = op.StreamedParameter;
-            string returnType = GetServiceRequestReturnType(op, currentNamespace);
+            string returnType = op.GetServiceRequestReturnType(currentNamespace);
 
             if (streamParam is null)
             {
                 // Non-streaming: expression body
-                var fn = new FunctionBuilder(
+                FunctionBuilder fn = new FunctionBuilder(
                     "public static",
                     returnType,
                     $"Decode{opName}Async",
-                    FunctionType.ExpressionBody);
-                fn.AddComment("summary", $"Decodes the request payload of operation <c>{op.Identifier}</c>.");
-                fn.AddParameter("IceRpc.IncomingRequest", "request", docComment: "The incoming request.");
-                fn.AddParameter(
-                    "global::System.Threading.CancellationToken",
-                    "cancellationToken",
-                    docComment: "A cancellation token that receives the cancellation requests.");
+                    FunctionType.ExpressionBody)
+                    .AddComment("summary", $"Decodes the request payload of operation <c>{op.Identifier}</c>.")
+                    .AddParameter("IceRpc.IncomingRequest", "request", docComment: "The incoming request.")
+                    .AddParameter(
+                        "global::System.Threading.CancellationToken",
+                        "cancellationToken",
+                        docComment: "A cancellation token that receives the cancellation requests.");
 
                 if (nonStreamedParams.Count == 0)
                 {
@@ -86,7 +85,7 @@ internal static class DispatchGenerator
                 }
                 else
                 {
-                    string decodeLambda = GenerateDecodeLambda(nonStreamedParams, currentNamespace);
+                    string decodeLambda = nonStreamedParams.GenerateDecodeLambda(currentNamespace);
                     fn.SetBody(new CodeBlock($$"""
                         request.DecodeArgsAsync(
                             {{decodeLambda}},
@@ -99,17 +98,17 @@ internal static class DispatchGenerator
             else
             {
                 // Streaming: async block body
-                var fn = new FunctionBuilder(
+                FunctionBuilder fn = new FunctionBuilder(
                     "public static async",
                     returnType,
                     $"Decode{opName}Async",
-                    FunctionType.BlockBody);
-                fn.AddComment("summary", $"Decodes the request payload of operation <c>{op.Identifier}</c>.");
-                fn.AddParameter("IceRpc.IncomingRequest", "request", docComment: "The incoming request.");
-                fn.AddParameter(
-                    "global::System.Threading.CancellationToken",
-                    "cancellationToken",
-                    docComment: "A cancellation token that receives the cancellation requests.");
+                    FunctionType.BlockBody)
+                    .AddComment("summary", $"Decodes the request payload of operation <c>{op.Identifier}</c>.")
+                    .AddParameter("IceRpc.IncomingRequest", "request", docComment: "The incoming request.")
+                    .AddParameter(
+                        "global::System.Threading.CancellationToken",
+                        "cancellationToken",
+                        docComment: "A cancellation token that receives the cancellation requests.");
 
                 var body = new CodeBlock();
 
@@ -120,7 +119,7 @@ internal static class DispatchGenerator
                 }
                 else
                 {
-                    string decodeLambda = GenerateDecodeLambda(nonStreamedParams, currentNamespace);
+                    string decodeLambda = nonStreamedParams.GenerateDecodeLambda(currentNamespace);
                     string varName = nonStreamedParams.Count == 1
                         ? $"sliceP_{nonStreamedParams[0].ParameterName}"
                         : $"({string.Join(", ", nonStreamedParams.Select(p => $"sliceP_{p.ParameterName}"))})";
@@ -184,18 +183,18 @@ internal static class DispatchGenerator
     {
         bool hasInheritedOps = interfaceDef.Bases.Any(b => b.Operations.Count > 0 || b.AllBases.Any(bb => bb.Operations.Count > 0));
         string classModifier = hasInheritedOps ? "public static new class" : "public static class";
-        var response = new ContainerBuilder(classModifier, "Response");
-        response.AddComment("summary", "Provides static methods that encode return values into response payloads.");
-        response.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
+        ContainerBuilder response = new ContainerBuilder(classModifier, "Response")
+            .AddComment("summary", "Provides static methods that encode return values into response payloads.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice interface <c>{scopedId}</c>.");
 
         foreach (Operation op in interfaceDef.Operations)
         {
 
             string opName = op.Name;
             ImmutableList<Field> nonStreamedReturns = op.NonStreamedReturns;
-            CodeBlock? encodeBody = GenerateEncodeBody(nonStreamedReturns, currentNamespace);
+            CodeBlock? encodeBody = nonStreamedReturns.GenerateEncodeBody(currentNamespace);
 
             if (encodeBody is null)
             {
@@ -203,25 +202,26 @@ internal static class DispatchGenerator
                     ? "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()"
                     : "IceRpc.EmptyPipeReader.Instance";
 
-                var fn = new FunctionBuilder(
-                    "public static",
-                    "global::System.IO.Pipelines.PipeReader",
-                    $"Encode{opName}",
-                    FunctionType.ExpressionBody);
-                fn.AddComment("summary", $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.");
-                fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.");
-                fn.AddComment("returns", "A new response payload.");
-                fn.SetBody(emptyPayload);
-                response.AddBlock(fn.Build());
+                response.AddBlock(
+                    new FunctionBuilder(
+                        "public static",
+                        "global::System.IO.Pipelines.PipeReader",
+                        $"Encode{opName}",
+                        FunctionType.ExpressionBody)
+                        .AddComment("summary", $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.")
+                        .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddComment("returns", "A new response payload.")
+                        .SetBody(emptyPayload)
+                        .Build());
             }
             else
             {
-                var fn = new FunctionBuilder(
+                FunctionBuilder fn = new FunctionBuilder(
                     "public static",
                     "global::System.IO.Pipelines.PipeReader",
                     $"Encode{opName}",
-                    FunctionType.BlockBody);
-                fn.AddComment("summary", $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.");
+                    FunctionType.BlockBody)
+                    .AddComment("summary", $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.");
 
                 foreach (Field ret in nonStreamedReturns)
                 {
@@ -230,16 +230,17 @@ internal static class DispatchGenerator
                         ret.ParameterName);
                 }
 
-                fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.");
-                fn.AddComment("returns", "A new response payload.");
-                fn.SetBody(ProxyGenerator.BuildPipeEncodeBody(encodeBody));
-                response.AddBlock(fn.Build());
+                response.AddBlock(
+                    fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddComment("returns", "A new response payload.")
+                        .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
+                        .Build());
             }
 
             // Add EncodeStreamOf method for streamed returns
             if (op.StreamedReturn is Field streamReturn)
             {
-                response.AddBlock(ProxyGenerator.BuildEncodeStreamMethod(op, streamReturn, currentNamespace));
+                response.AddBlock(op.BuildEncodeStreamMethod(streamReturn, currentNamespace));
             }
         }
 
@@ -250,7 +251,7 @@ internal static class DispatchGenerator
     {
         string opName = op.Name;
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
-        string returnType = GetServiceReturnType(op, currentNamespace);
+        string returnType = op.GetServiceReturnType(currentNamespace);
 
         var fn = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration);
 

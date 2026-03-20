@@ -39,17 +39,14 @@ internal static class EnumWithUnderlyingGenerator
     private static CodeBlock GenerateEnumDeclaration<T>(
         EnumWithUnderlying<T> enumDef,
         string identifier,
-        string accessModifier) where T : struct, INumber<T>    {
-        var builder = new ContainerBuilder($"{accessModifier} enum", identifier);
-
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.ScopedIdentifier}</c>.");
-
-        // cs::attribute
-        builder.AddCSAttributes(enumDef.Attributes);
-
-        builder.AddBase(enumDef.Underlying.CSType);
+        string accessModifier) where T : struct, INumber<T>
+    {
+        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} enum", identifier)
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.ScopedIdentifier}</c>.")
+            .AddCSAttributes(enumDef.Attributes)
+            .AddBase(enumDef.Underlying.CSType);
 
         // Add enumerator declarations.
         foreach (EnumWithUnderlying<T>.Enumerator enumerator in enumDef.Enumerators)
@@ -65,19 +62,21 @@ internal static class EnumWithUnderlyingGenerator
     private static CodeBlock GenerateEnumUnderlyingExtensions<T>(
         EnumWithUnderlying<T> enumDef,
         string identifier,
-        string accessModifier) where T : struct, INumber<T>    {
+        string accessModifier) where T : struct, INumber<T>
+    {
         string csType = enumDef.Underlying.CSType;
         string csTypePascal = csType.ToPascalCase();
         string scopedId = enumDef.ScopedIdentifier;
 
-        var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}{csTypePascal}Extensions");
-
-        builder.AddComment(
-            "summary",
-            @$"Provides an extension method for creating {GetArticle(identifier)} <see cref=""{identifier}"" /> from {GetArticle(csType)} <see langword=""{csType}"" />.");
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice enum <c>{scopedId}</c>.");
+        ContainerBuilder builder = new ContainerBuilder(
+                $"{accessModifier} static class",
+                $"{identifier}{csTypePascal}Extensions")
+            .AddComment(
+                "summary",
+                @$"Provides an extension method for creating {GetArticle(identifier)} <see cref=""{identifier}"" /> from {GetArticle(csType)} <see langword=""{csType}"" />.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice enum <c>{scopedId}</c>.");
 
         bool useSet = NeedsHashSetValidation(enumDef);
 
@@ -92,17 +91,16 @@ internal static class EnumWithUnderlyingGenerator
         }
 
         // As{EnumName} method.
-        var method = new FunctionBuilder(
-            $"{accessModifier} static",
-            identifier,
-            $"As{identifier}",
-            FunctionType.ExpressionBody);
-
-        method.AddParameter($"this {csType}", "value", null, "The value being converted.");
-        method.AddComment(
-            "summary",
-            @$"Converts a <see langword=""{csType}"" /> into the corresponding <see cref=""{identifier}"" /> enumerator.");
-        method.AddComment("returns", "The enumerator.");
+        FunctionBuilder method = new FunctionBuilder(
+                $"{accessModifier} static",
+                identifier,
+                $"As{identifier}",
+                FunctionType.ExpressionBody)
+            .AddParameter($"this {csType}", "value", null, "The value being converted.")
+            .AddComment(
+                "summary",
+                @$"Converts a <see langword=""{csType}"" /> into the corresponding <see cref=""{identifier}"" /> enumerator.")
+            .AddComment("returns", "The enumerator.");
 
         if (enumDef.IsUnchecked || enumDef.Enumerators.Count == 0)
         {
@@ -147,34 +145,30 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         string suffix = enumDef.Underlying.Suffix;
         string scopedId = enumDef.ScopedIdentifier;
 
-        var builder = new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions");
-
-        builder.AddComment(
-            "summary",
-            @$"Provides an extension method for encoding a <see cref=""{identifier}"" /> using a <see cref=""SliceEncoder"" />.");
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice enum " +
-            $"<c>{scopedId}</c>.");
-
-        var method = new FunctionBuilder(
-            $"{accessModifier} static",
-            "void",
-            $"Encode{identifier}",
-            FunctionType.ExpressionBody);
-
-        method.AddComment("summary", @$"Encodes a <see cref=""{identifier}"" /> enum.");
-        method.AddParameter("this ref SliceEncoder", "encoder", null, "The Slice encoder.");
-        method.AddParameter(
-            identifier,
-            "value",
-            null,
-            @$"The <see cref=""{identifier}"" /> enumerator value to encode.");
-
-        method.SetBody($"encoder.Encode{suffix}(({csType})value)");
-
-        builder.AddBlock(method.Build());
-        return builder.Build();
+        return new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions")
+            .AddComment(
+                "summary",
+                @$"Provides an extension method for encoding a <see cref=""{identifier}"" /> using a <see cref=""SliceEncoder"" />.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice enum " +
+                $"<c>{scopedId}</c>.")
+            .AddBlock(
+                new FunctionBuilder(
+                        $"{accessModifier} static",
+                        "void",
+                        $"Encode{identifier}",
+                        FunctionType.ExpressionBody)
+                    .AddComment("summary", @$"Encodes a <see cref=""{identifier}"" /> enum.")
+                    .AddParameter("this ref SliceEncoder", "encoder", null, "The Slice encoder.")
+                    .AddParameter(
+                        identifier,
+                        "value",
+                        null,
+                        @$"The <see cref=""{identifier}"" /> enumerator value to encode.")
+                    .SetBody($"encoder.Encode{suffix}(({csType})value)")
+                    .Build())
+            .Build();
     }
 
     private static CodeBlock GenerateEnumDecoderExtensions(
@@ -187,35 +181,31 @@ throw new global::System.IO.InvalidDataException($""Invalid enumerator value '{{
         string csTypePascal = csType.ToPascalCase();
         string scopedId = enumDef.ScopedIdentifier;
 
-        var builder = new ContainerBuilder(
-            $"{accessModifier} static class",
-            $"{identifier}SliceDecoderExtensions");
-
-        builder.AddComment(
-            "summary",
-            @$"Provides an extension method for decoding a <see cref=""{identifier}"" /> using a <see cref=""SliceDecoder"" />.");
-        builder.AddComment(
-            "remarks",
-            $"The Slice compiler generated this static class from the Slice enum " +
-            $"<c>{scopedId}</c>.");
-
-        var method = new FunctionBuilder(
-            $"{accessModifier} static",
-            identifier,
-            $"Decode{identifier}",
-            FunctionType.ExpressionBody);
-
-        method.AddComment("summary", @$"Decodes a <see cref=""{identifier}"" /> enum.");
-        method.AddParameter("this ref SliceDecoder", "decoder", null, "The Slice decoder.");
-        method.AddComment(
-            "returns",
-            @$"The decoded <see cref=""{identifier}"" /> enumerator value.");
-
-        method.SetBody(
-            $"{identifier}{csTypePascal}Extensions.As{identifier}(decoder.Decode{suffix}())");
-
-        builder.AddBlock(method.Build());
-        return builder.Build();
+        return new ContainerBuilder(
+                $"{accessModifier} static class",
+                $"{identifier}SliceDecoderExtensions")
+            .AddComment(
+                "summary",
+                @$"Provides an extension method for decoding a <see cref=""{identifier}"" /> using a <see cref=""SliceDecoder"" />.")
+            .AddComment(
+                "remarks",
+                $"The Slice compiler generated this static class from the Slice enum " +
+                $"<c>{scopedId}</c>.")
+            .AddBlock(
+                new FunctionBuilder(
+                        $"{accessModifier} static",
+                        identifier,
+                        $"Decode{identifier}",
+                        FunctionType.ExpressionBody)
+                    .AddComment("summary", @$"Decodes a <see cref=""{identifier}"" /> enum.")
+                    .AddParameter("this ref SliceDecoder", "decoder", null, "The Slice decoder.")
+                    .AddComment(
+                        "returns",
+                        @$"The decoded <see cref=""{identifier}"" /> enumerator value.")
+                    .SetBody(
+                        $"{identifier}{csTypePascal}Extensions.As{identifier}(decoder.Decode{suffix}())")
+                    .Build())
+            .Build();
     }
 
     private static string FormatValue<T>(EnumWithUnderlying<T>.Enumerator e) where T : struct, INumber<T> =>
