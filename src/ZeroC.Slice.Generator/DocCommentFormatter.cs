@@ -26,7 +26,7 @@ internal static class DocCommentFormatter
     }
 
     /// <summary>Formats the @see tags of a <see cref="Comment"/> as a sequence of
-    /// <c>&lt;seealso cref="..." /&gt;</c> comment tags.</summary>
+    /// <c>&lt;seealso cref="..." /&gt;</c> comment tags. Unresolved links are skipped.</summary>
     internal static IEnumerable<CommentTag> FormatSeeAlso(Comment? comment, string currentNamespace)
     {
         if (comment?.SeeTags is not { Count: > 0 } seeTags)
@@ -56,11 +56,16 @@ internal static class DocCommentFormatter
         {
             Interface => $"I{entity.Name}",
             CustomType ct => ct.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] ?? entity.Name,
+            Operation op when op.Parent is Interface => $"I{op.Parent.Name}.{entity.Name}Async",
+            Field f when f.Parent is not null => $"{f.Parent.Name}.{entity.Name}",
+            EnumWithFields.Enumerator e when e.Parent is not null => $"{e.Parent.Name}.{entity.Name}",
+            EnumWithUnderlying => entity.Name,
+            EnumWithFields => entity.Name,
+            Struct => entity.Name,
             _ => entity.Name
         };
 
         string entityNamespace = entity.Namespace;
-
         if (entityNamespace == currentNamespace)
         {
             return name;
