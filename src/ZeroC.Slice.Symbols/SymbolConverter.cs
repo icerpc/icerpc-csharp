@@ -534,9 +534,9 @@ public sealed class SymbolConverter
         Entity? parent = ResolveEntityById(parentId);
         return parent switch
         {
-            Interface iface => iface.Operations.FirstOrDefault(o => o.Identifier == childName),
+            Interface i => i.Operations.FirstOrDefault(o => o.Identifier == childName),
             EnumWithFields ewf => ewf.Enumerators.FirstOrDefault(e => e.Identifier == childName),
-            EnumWithUnderlying eu => eu.FindEnumeratorByIdentifier(childName),
+            EnumWithUnderlying ewu => ewu.FindEnumeratorByIdentifier(childName),
             Struct s => s.Fields.FirstOrDefault(f => f.Identifier == childName),
             EnumWithFields.Enumerator e => e.Fields.FirstOrDefault(f => f.Identifier == childName),
             Operation op => op.Parameters.Concat(op.ReturnType).FirstOrDefault(f => f.Identifier == childName),
