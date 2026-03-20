@@ -11,6 +11,40 @@ namespace IceRpc.Ice.Generator.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
+    [Test]
+    public void Create_proxy_with_null_protocol_fails()
+    {
+        // Arrange
+        var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
+
+        // Act & Assert
+        Assert.That(() => new PingableProxy(InvalidInvoker.Instance, serviceAddress),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void Initialize_proxy_with_null_protocol_fails()
+    {
+        // Arrange
+        var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
+
+        // Act & Assert
+        Assert.That(
+            () => new PingableProxy{ Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress },
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void Proxy_has_default_service_path_with_ice_protocol()
+    {
+        // Arrange
+        var proxy = new PingableProxy{ Invoker = InvalidInvoker.Instance };
+
+        // Assert
+        Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(PingableProxy.DefaultServicePath));
+        Assert.That(proxy.ServiceAddress.Protocol, Is.EqualTo(Protocol.Ice));
+    }
+
     /// <summary>Verifies that calling DecodeProxy correctly decodes a proxy.</summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
