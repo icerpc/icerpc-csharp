@@ -55,7 +55,7 @@ internal class ActivatorFactory
         {
             return activator;
         }
-        else if (assembly.GetCustomAttributes<IceAttribute>().Any())
+        else if (assembly.GetCustomAttributes<IceGeneratedCodeAttribute>().Any())
         {
             return _cache.GetOrAdd(
                 assembly,
