@@ -43,9 +43,11 @@ internal static class EnumWithUnderlyingGenerator
         string accessModifier) where T : struct, INumber<T>
     {
         ContainerBuilder builder = new ContainerBuilder($"{accessModifier} enum", identifier)
+            .AddDocCommentSummary(enumDef.Comment, enumDef.Namespace)
             .AddComment(
                 "remarks",
                 $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.ScopedIdentifier}</c>.")
+            .AddDocCommentSeeAlso(enumDef.Comment, enumDef.Namespace)
             .AddCSAttributes(enumDef.Attributes)
             .AddBase(enumDef.Underlying.CSType);
 
@@ -53,6 +55,7 @@ internal static class EnumWithUnderlyingGenerator
         foreach (EnumWithUnderlying<T>.Enumerator enumerator in enumDef.Enumerators)
         {
             var code = new CodeBlock();
+            code.WriteDocCommentSummary(enumerator.Comment, enumDef.Namespace);
             code.WriteCSAttributes(enumerator.Attributes);
             code.WriteLine($"{enumerator.Name} = {FormatValue(enumerator)},");
             builder.AddBlock(code);
@@ -97,10 +100,10 @@ internal static class EnumWithUnderlyingGenerator
                 identifier,
                 $"As{identifier}",
                 FunctionType.ExpressionBody)
-            .AddParameter($"this {csType}", "value", null, "The value being converted.")
             .AddComment(
                 "summary",
                 @$"Converts a <see langword=""{csType}"" /> into the corresponding <see cref=""{identifier}"" /> enumerator.")
+            .AddParameter($"this {csType}", "value", null, "The value being converted.")
             .AddComment("returns", "The enumerator.");
 
         if (enumDef.IsUnchecked || enumDef.Enumerators.Count == 0)

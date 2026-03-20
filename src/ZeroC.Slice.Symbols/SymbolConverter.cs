@@ -258,12 +258,14 @@ public sealed class SymbolConverter
             {
                 Identifier = c.V.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(c.V.EntityInfo.Attributes),
+                Comment = ConvertComment(c.V.EntityInfo.Comment),
                 Module = module,
             },
             Compiler.Symbol.TypeAlias t => new TypeAlias
             {
                 Identifier = t.V.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(t.V.EntityInfo.Attributes),
+                Comment = ConvertComment(t.V.EntityInfo.Comment),
                 Module = module,
                 UnderlyingType = ConvertTypeRef(t.V.UnderlyingType, file),
             },
@@ -292,6 +294,7 @@ public sealed class SymbolConverter
     {
         Identifier = raw.EntityInfo.Identifier,
         Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+        Comment = ConvertComment(raw.EntityInfo.Comment),
         Module = module,
         IsCompact = raw.IsCompact,
         Fields = raw.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
@@ -353,6 +356,7 @@ public sealed class SymbolConverter
             {
                 Identifier = raw.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+                Comment = ConvertComment(raw.EntityInfo.Comment),
                 Module = module,
                 IsCompact = raw.IsCompact,
                 IsUnchecked = raw.IsUnchecked,
@@ -360,6 +364,7 @@ public sealed class SymbolConverter
                 {
                     Identifier = e.EntityInfo.Identifier,
                     Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                    Comment = ConvertComment(e.EntityInfo.Comment),
                     Module = module,
                     Discriminant = (int)e.Value.AbsoluteValue,
                     Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
@@ -373,6 +378,7 @@ public sealed class SymbolConverter
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             Bases = raw.Bases
             .Select(baseId => ResolveNamedSymbol(baseId))
@@ -388,6 +394,7 @@ public sealed class SymbolConverter
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             IsIdempotent = raw.IsIdempotent,
             Parameters = raw.Parameters.Select(f => ConvertField(f, file, module)).ToImmutableList(),
@@ -396,7 +403,7 @@ public sealed class SymbolConverter
             HasStreamedReturn = raw.HasStreamedReturn,
         };
 
-    private static EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
+    private EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
         Compiler.Enum raw,
         Module module,
         Builtin builtin,
@@ -404,6 +411,7 @@ public sealed class SymbolConverter
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             IsUnchecked = raw.IsUnchecked,
             Underlying = builtin,
@@ -411,6 +419,7 @@ public sealed class SymbolConverter
             {
                 Identifier = e.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                Comment = ConvertComment(e.EntityInfo.Comment),
                 Module = module,
                 Value = toValue(e.Value.AbsoluteValue, e.Value.IsNegative),
             }).ToImmutableList(),
@@ -420,6 +429,7 @@ public sealed class SymbolConverter
     {
         Identifier = raw.EntityInfo.Identifier,
         Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+        Comment = ConvertComment(raw.EntityInfo.Comment),
         Module = module,
         Tag = raw.Tag,
         DataType = ConvertTypeRef(raw.DataType, file),
@@ -444,6 +454,59 @@ public sealed class SymbolConverter
             Directive = a.Directive,
             Args = [.. a.Args],
         }).ToImmutableList();
+
+    private Comment? ConvertComment(Compiler.DocComment? raw)
+    {
+        if (raw is null)
+        {
+            return null;
+        }
+
+        var overview = raw.Value.Overview.Select<Compiler.MessageComponent, CommentMessageComponent>(c => c switch
+        {
+            Compiler.MessageComponent.Text t => new CommentMessageComponent.Text(t.V),
+            Compiler.MessageComponent.Link l => new CommentMessageComponent.Link(ResolveLink(l.V)),
+            _ => new CommentMessageComponent.Text("")
+        }).ToImmutableList();
+
+        var seeTags = raw.Value.SeeTags.Select(ResolveLink).ToImmutableList();
+
+        return new Comment { Overview = overview, SeeTags = seeTags };
+
+        CommentLink ResolveLink(string entityId) =>
+            ResolveEntityById(entityId) is Entity entity
+                ? new CommentLink.Resolved(entity)
+                : new CommentLink.Unresolved(entityId);
+    }
+
+    private Entity? ResolveEntityById(string entityId)
+    {
+        // Try as top-level type first.
+        if (_cache.TryGetValue(entityId, out ISymbol? symbol) && symbol is Entity entity)
+        {
+            return entity;
+        }
+
+        // Try as sub-entity: split off last segment, resolve parent, then find child.
+        int lastSep = entityId.LastIndexOf("::", StringComparison.Ordinal);
+        if (lastSep < 0)
+        {
+            return null;
+        }
+
+        string parentId = entityId[..lastSep];
+        string childName = entityId[(lastSep + 2)..];
+
+        Entity? parent = ResolveEntityById(parentId);
+        return parent switch
+        {
+            Interface iface => iface.Operations.FirstOrDefault(o => o.Identifier == childName),
+            EnumWithFields ewf => ewf.Enumerators.FirstOrDefault(e => e.Identifier == childName),
+            EnumWithUnderlying eu => eu.FindEnumeratorByIdentifier(childName),
+            Operation op => op.Parameters.Concat(op.ReturnType).FirstOrDefault(f => f.Identifier == childName),
+            _ => null,
+        };
+    }
 
     private static string? GetNamedIdentifier(Compiler.Symbol symbol) => symbol switch
     {

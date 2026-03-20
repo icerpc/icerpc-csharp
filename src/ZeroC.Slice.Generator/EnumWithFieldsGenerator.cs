@@ -88,9 +88,11 @@ internal static class EnumWithFieldsGenerator
         string scopedId = enumDef.ScopedIdentifier;
 
         ContainerBuilder builder = new ContainerBuilder($"{accessModifier} abstract partial record class", identifier)
+            .AddDocCommentSummary(enumDef.Comment, currentNamespace)
             .AddComment(
                 "remarks",
                 @$"The Slice compiler generated this discriminated union from the Slice enum <c>{scopedId}</c>.")
+            .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
             .AddAttribute("Dunet.Union");
 
         // Generate nested record classes for each enumerator.
@@ -138,6 +140,8 @@ internal static class EnumWithFieldsGenerator
             : enumeratorName;
 
         return new ContainerBuilder($"{accessModifier} partial record class", nameWithParams)
+            .AddDocCommentSummary(enumerator.Comment, currentNamespace)
+            .AddDocCommentSeeAlso(enumerator.Comment, currentNamespace)
             .AddBase(parentIdentifier)
             .AddCSAttributes(enumerator.Attributes)
             .AddBlock(

@@ -39,12 +39,14 @@ internal static class ProxyGenerator
         string currentNamespace)
     {
         ContainerBuilder builder = new ContainerBuilder($"{accessModifier} partial interface", $"I{name}")
+            .AddDocCommentSummary(interfaceDef.Comment, currentNamespace)
             .AddComment(
                 "remarks",
                 $"""
                 The Slice compiler generated this client-side interface from Slice interface <c>{scopedId}</c>.
                 It's implemented by <see cref="{name}Proxy" />.
-                """);
+                """)
+            .AddDocCommentSeeAlso(interfaceDef.Comment, currentNamespace);
 
         // Inherit from base client interfaces
         foreach (Interface baseInterface in interfaceDef.Bases)
@@ -66,26 +68,29 @@ internal static class ProxyGenerator
         string returnType = op.GetClientReturnType(currentNamespace);
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
 
-        var fn = new FunctionBuilder("", returnType, $"{opName}Async", FunctionType.Declaration);
+        var builder = new FunctionBuilder("", returnType, $"{opName}Async", FunctionType.Declaration)
+            .AddDocCommentSummary(op.Comment, currentNamespace);
 
         foreach (Field param in nonStreamedParams)
         {
-            fn.AddParameter(
+            builder.AddParameter(
                 param.DataType.OutgoingParameterTypeString(param.DataTypeIsOptional, currentNamespace),
-                param.ParameterName);
+                param.ParameterName,
+                docComment: DocCommentFormatter.FormatSummary(param.Comment, currentNamespace));
         }
 
         // Streamed parameter (if any) goes after non-streamed params
         if (op.StreamedParameter is Field streamParam)
         {
-            fn.AddParameter(
+            builder.AddParameter(
                 OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
-                streamParam.ParameterName);
+                streamParam.ParameterName,
+                docComment: DocCommentFormatter.FormatSummary(streamParam.Comment, currentNamespace));
         }
 
         string featuresParam = op.FeaturesParamName;
-        fn.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null", "The invocation features.");
-        fn.AddParameter(
+        builder.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null", "The invocation features.");
+        builder.AddParameter(
             "global::System.Threading.CancellationToken",
             "cancellationToken",
             "default",
@@ -93,10 +98,11 @@ internal static class ProxyGenerator
 
         if (op.NonStreamedReturns.Count == 0 && !op.HasStreamedReturn)
         {
-            fn.AddComment("returns", "A task that completes when the response is received.");
+            builder.AddComment("returns", "A task that completes when the response is received.");
         }
 
-        return fn.Build();
+        builder.AddDocCommentSeeAlso(op.Comment, currentNamespace);
+        return builder.Build();
     }
 
     // --- Proxy Struct ---
@@ -388,7 +394,7 @@ internal static class ProxyGenerator
         bool compressArgs = op.Attributes.FindAttribute("compress") is { } compressAttr
             && compressAttr.Args.Any(a => a == "Args");
 
-        FunctionBuilder fn = new FunctionBuilder(
+        FunctionBuilder builder = new FunctionBuilder(
             "public",
             returnType,
             $"{opName}Async",
@@ -397,19 +403,19 @@ internal static class ProxyGenerator
 
         foreach (Field param in nonStreamedParams)
         {
-            fn.AddParameter(
+            builder.AddParameter(
                 param.DataType.OutgoingParameterTypeString(param.DataTypeIsOptional, currentNamespace),
                 param.ParameterName);
         }
 
         if (streamParam is not null)
         {
-            fn.AddParameter(OperationExtensions.GetStreamTypeString(streamParam, currentNamespace), streamParam.ParameterName);
+            builder.AddParameter(OperationExtensions.GetStreamTypeString(streamParam, currentNamespace), streamParam.ParameterName);
         }
 
         string featuresParam = op.FeaturesParamName;
-        fn.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null");
-        fn.AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default");
+        builder.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null");
+        builder.AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default");
 
         string encodeArgs = nonStreamedParams.Count > 0
             ? string.Join(", ", nonStreamedParams.Select(p => p.ParameterName)) + ", encodeOptions: EncodeOptions"
@@ -444,13 +450,13 @@ internal static class ProxyGenerator
                 }
                 return {{bodyBuilder.Build()}};
                 """);
-            fn.SetBody(body);
+            builder.SetBody(body);
         }
         else
         {
-            fn.SetBody(bodyBuilder.Build());
+            builder.SetBody(bodyBuilder.Build());
         }
-        return fn.Build();
+        return builder.Build();
     }
 
     // --- Encoder/Decoder Extensions ---
