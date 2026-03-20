@@ -26,13 +26,12 @@ public class InvokeOperationAsyncTests
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
-        IActivator activator = IActivator.FromAssembly(typeof(InvokeOperationAsyncTests).Assembly);
+        var activator = IActivator.FromAssembly(typeof(InvokeOperationAsyncTests).Assembly);
 
         // Act
         await sut.InvokeOperationAsync(
             "",
             payload: requestPayload,
-            payloadContinuation: null,
             responseDecodeFunc: (response, request, sender, cancellationToken) =>
                 response.DecodeVoidReturnValueAsync(request, sender, activator, cancellationToken),
             features: null);
@@ -44,10 +43,10 @@ public class InvokeOperationAsyncTests
         Assert.That(await responsePayload.Completed, Is.Null);
     }
 
-    /// <summary>Verifies that InvokeOperationAsync completes the request payload and payload continuation when an
-    /// exception is thrown "on the way out".</summary>
+    /// <summary>Verifies that InvokeOperationAsync completes the request payload when an exception is thrown
+    /// "on the way out".</summary>
     [Test]
-    public void InvokeOperationAsync_completes_all_payloads_on_outgoing_exception()
+    public void InvokeOperationAsync_completes_payload_on_outgoing_exception()
     {
         var sut = new PingableProxy
         {
@@ -56,22 +55,19 @@ public class InvokeOperationAsyncTests
         };
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var requestPayloadContinuation = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
-        IActivator activator = IActivator.FromAssembly(typeof(InvokeOperationAsyncTests).Assembly);
+        var activator = IActivator.FromAssembly(typeof(InvokeOperationAsyncTests).Assembly);
 
         // Act/Assert
         Assert.That(
             async () => await sut.InvokeOperationAsync(
                 "",
                 payload: requestPayload,
-                payloadContinuation: requestPayloadContinuation,
                 responseDecodeFunc: (response, request, sender, cancellationToken) =>
                     response.DecodeVoidReturnValueAsync(request, sender, activator, cancellationToken),
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
 
         Assert.That(requestPayload.Completed.IsCompletedSuccessfully, Is.True);
-        Assert.That(requestPayloadContinuation.Completed.IsCompletedSuccessfully, Is.True);
     }
 }

@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Ice.Generator.Tests.Identifiers;
 
-/// <summary>These tests verify that the cs::identifier attribute will cause the Ice Slice compiler to generate C#
+/// <summary>These tests verify that the cs:identifier metadata will cause the Ice Slice compiler to generate C#
 /// with the specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure
 /// that the code generation worked correctly.</summary>
 [Parallelizable(scope: ParallelScope.All)]
