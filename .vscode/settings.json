@@ -17,7 +17,7 @@
     },
     // Tools
     {
-      "paths": ["tools/IceRpc.BuildTelemetry.Reporter/slice"]
+      "paths": ["src/IceRpc.Protobuf.BuildTelemetry/slice"]
     },
     // Slice Tests
     {

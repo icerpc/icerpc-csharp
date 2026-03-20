@@ -47,26 +47,6 @@ public class SliceCCSharpTask : ToolTask
     protected override string ToolName =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
 
-    /// <summary>The computed SHA-256 hash of the Slice files.</summary>
-    [Output]
-    public string? CompilationHash { get; set; }
-
-    /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
-    [Output]
-    public bool ContainsSlice1 { get; set; }
-
-    /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
-    [Output]
-    public bool ContainsSlice2 { get; set; }
-
-    /// <summary>The number of source files in the Slice compilation.</summary>
-    [Output]
-    public int SourceFileCount { get; set; }
-
-    /// <summary>The number of reference files in the Slice compilation.</summary>
-    [Output]
-    public int ReferenceFileCount { get; set; }
-
     private readonly JsonSerializerOptions _jsonSerializeOptions = new() { PropertyNameCaseInsensitive = true };
 
     protected override bool ValidateParameters()
@@ -108,7 +88,6 @@ public class SliceCCSharpTask : ToolTask
             builder.AppendTextUnquoted(option);
         }
         builder.AppendSwitch("--diagnostic-format=json");
-        builder.AppendSwitch("--telemetry");
         builder.AppendSwitch($"--rpc={Rpc}");
         builder.AppendFileNamesIfNotNull(
             Sources.Select(item => item.GetMetadata("FullPath").ToString()).ToArray(),
@@ -135,21 +114,7 @@ public class SliceCCSharpTask : ToolTask
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {
-        if (messageImportance == MessageImportance.Low)
-        {
-            // Messages from stdout
-            if (JsonSerializer.Deserialize<BuildTelemetry>(
-                singleLine,
-                _jsonSerializeOptions) is BuildTelemetry buildTelemetry)
-            {
-                CompilationHash = buildTelemetry.CompilationHash;
-                ContainsSlice1 = buildTelemetry.ContainsSlice1;
-                ContainsSlice2 = buildTelemetry.ContainsSlice2;
-                SourceFileCount = buildTelemetry.SourceFileCount;
-                ReferenceFileCount = buildTelemetry.ReferenceFileCount;
-            }
-        }
-        else if (JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions) is Diagnostic diagnostic)
+        if (JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions) is Diagnostic diagnostic)
         {
             diagnostic.SourceSpan ??= new SourceSpan();
             LogSliceCompilerDiagnostic(

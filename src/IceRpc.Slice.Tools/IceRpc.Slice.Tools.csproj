@@ -11,6 +11,7 @@
     <PackageTags>IceRPC;RPC;MSBuild;Slice</PackageTags>
     <PackageType>Dependency</PackageType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>NU5100</NoWarn>
     <RustConfiguration Condition="'$(Configuration)' == 'Release'">release</RustConfiguration>
@@ -28,13 +29,6 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <None
-      Include="../../src/IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
-      Exclude="../../src/IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
-      Visible="false">
-      <PackagePath>tools/</PackagePath>
-      <Pack>true</Pack>
-    </None>
     <Content Include="../../LICENSE">
       <PackagePath />
       <Pack>true</Pack>
