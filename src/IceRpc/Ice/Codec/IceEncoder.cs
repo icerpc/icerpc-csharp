@@ -24,10 +24,10 @@ public ref partial struct IceEncoder
 
     private Encoder? _utf8Encoder; // initialized lazily
 
-    /// <summary>Encodes an int as an Ice int32 into a span of 4 bytes.</summary>
+    /// <summary>Encodes an int as an Ice int into a span of 4 bytes.</summary>
     /// <param name="value">The value to encode.</param>
     /// <param name="into">The destination byte buffer, which must be 4 bytes long.</param>
-    public static void EncodeInt32(int value, Span<byte> into)
+    public static void EncodeInt(int value, Span<byte> into)
     {
         Debug.Assert(into.Length == 4);
         MemoryMarshal.Write(into, in value);
@@ -55,27 +55,36 @@ public ref partial struct IceEncoder
 
     /// <summary>Encodes a bool into an Ice bool.</summary>
     /// <param name="v">The boolean to encode.</param>
-    public void EncodeBool(bool v) => EncodeUInt8(v ? (byte)1 : (byte)0);
+    public void EncodeBool(bool v) => EncodeByte(v ? (byte)1 : (byte)0);
 
-    /// <summary>Encodes a float into an Ice float32.</summary>
-    /// <param name="v">The float to encode.</param>
-    public void EncodeFloat32(float v) => EncodeFixedSizeNumeric(v);
+    /// <summary>Encodes a byte into an Ice byte.</summary>
+    /// <param name="v">The byte to encode.</param>
+    public void EncodeByte(byte v)
+    {
+        Span<byte> span = _bufferWriter.GetSpan();
+        span[0] = v;
+        Advance(1);
+    }
 
-    /// <summary>Encodes a double into an Ice float64.</summary>
+    /// <summary>Encodes a double into an Ice double.</summary>
     /// <param name="v">The double to encode.</param>
-    public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
+    public void EncodeDouble(double v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes a short into an Ice int16.</summary>
-    /// <param name="v">The short to encode.</param>
-    public void EncodeInt16(short v) => EncodeFixedSizeNumeric(v);
+    /// <summary>Encodes a float into an Ice float.</summary>
+    /// <param name="v">The float to encode.</param>
+    public void EncodeFloat(float v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes an int into an Ice int32.</summary>
+    /// <summary>Encodes an int into an Ice int.</summary>
     /// <param name="v">The int to encode.</param>
-    public void EncodeInt32(int v) => EncodeFixedSizeNumeric(v);
+    public void EncodeInt(int v) => EncodeFixedSizeNumeric(v);
 
-    /// <summary>Encodes a long into an Ice int64.</summary>
+    /// <summary>Encodes a long into an Ice long.</summary>
     /// <param name="v">The long to encode.</param>
-    public void EncodeInt64(long v) => EncodeFixedSizeNumeric(v);
+    public void EncodeLong(long v) => EncodeFixedSizeNumeric(v);
+
+    /// <summary>Encodes a short into an Ice short.</summary>
+    /// <param name="v">The short to encode.</param>
+    public void EncodeShort(short v) => EncodeFixedSizeNumeric(v);
 
     /// <summary>Encodes a size on variable number of bytes.</summary>
     /// <param name="value">The size to encode.</param>
@@ -90,12 +99,12 @@ public ref partial struct IceEncoder
 
         if (value < 255)
         {
-            EncodeUInt8((byte)value);
+            EncodeByte((byte)value);
         }
         else
         {
-            EncodeUInt8(255);
-            EncodeInt32(value);
+            EncodeByte(255);
+            EncodeInt(value);
         }
     }
 
@@ -154,18 +163,9 @@ public ref partial struct IceEncoder
             {
                 Debug.Assert(into.Length == 5);
                 into[0] = 255;
-                EncodeInt32(size, into[1..]);
+                EncodeInt(size, into[1..]);
             }
         }
-    }
-
-    /// <summary>Encodes a byte into an Ice uint8.</summary>
-    /// <param name="v">The byte to encode.</param>
-    public void EncodeUInt8(byte v)
-    {
-        Span<byte> span = _bufferWriter.GetSpan();
-        span[0] = v;
-        Advance(1);
     }
 
     // Other methods
@@ -229,7 +229,7 @@ public ref partial struct IceEncoder
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
                 // We don't include the size-length in the size we encode.
-                EncodeInt32(EncodedByteCount - startPos, placeholder);
+                EncodeInt(EncodedByteCount - startPos, placeholder);
                 break;
 
             case TagFormat.OptimizedVSize:
@@ -305,12 +305,12 @@ public ref partial struct IceEncoder
         if (tag < 30)
         {
             v |= tag << 3;
-            EncodeUInt8((byte)v);
+            EncodeByte((byte)v);
         }
         else
         {
             v |= 0x0F0; // tag = 30
-            EncodeUInt8((byte)v);
+            EncodeByte((byte)v);
             EncodeSize(tag);
         }
 

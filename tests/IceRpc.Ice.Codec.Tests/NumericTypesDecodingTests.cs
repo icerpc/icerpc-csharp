@@ -45,22 +45,22 @@ public class NumericTypesDecodingTests
     {
         var sut = new IceDecoder(encodedBytes);
 
-        long r1 = sut.DecodeInt64();
+        long r1 = sut.DecodeLong();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Tests the decoding of an uint8.</summary>
+    /// <summary>Tests the decoding of a byte.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected byte to be decoded.</param>
     [TestCase(new byte[] { 42 }, 42)]
     [TestCase(new byte[] { 0xFF }, byte.MaxValue)]
-    public void Decode_uint8_value(byte[] encodedBytes, byte expected)
+    public void Decode_byte_value(byte[] encodedBytes, byte expected)
     {
         var sut = new IceDecoder(encodedBytes);
 
-        byte r1 = sut.DecodeUInt8();
+        byte r1 = sut.DecodeByte();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));

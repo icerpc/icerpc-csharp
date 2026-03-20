@@ -300,7 +300,7 @@ public ref partial struct IceDecoder
     /// <returns>The type ID or the compact ID of the current slice.</returns>
     private string? DecodeSliceHeaderIntoCurrent()
     {
-        _classContext.Current.SliceFlags = (SliceFlags)DecodeUInt8();
+        _classContext.Current.SliceFlags = (SliceFlags)DecodeByte();
 
         string? typeId;
         // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact
@@ -345,7 +345,7 @@ public ref partial struct IceDecoder
     /// <returns>The slice of the current slice, not including the size length.</returns>
     private int DecodeSliceSize()
     {
-        int size = DecodeInt32();
+        int size = DecodeInt();
         if (size < 4)
         {
             throw new InvalidDataException($"Invalid Ice size: {size}.");
@@ -423,7 +423,7 @@ public ref partial struct IceDecoder
                 SliceFlags sliceFlags;
                 do
                 {
-                    sliceFlags = (SliceFlags)DecodeUInt8();
+                    sliceFlags = (SliceFlags)DecodeByte();
 
                     // Skip type ID - can update _typeIdMap
                     _ = DecodeTypeId(sliceFlags.GetTypeIdKind());

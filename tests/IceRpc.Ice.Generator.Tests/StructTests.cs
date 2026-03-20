@@ -19,7 +19,7 @@ public sealed class StructTests
             serviceAddress is null ? null : new AnotherPingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new IceEncoder(buffer);
-        encoder.EncodeInt32(expected.A);
+        encoder.EncodeInt(expected.A);
         encoder.EncodeAnotherPingableProxy(expected.I);
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
@@ -68,7 +68,7 @@ public sealed class StructTests
         var encoder = new IceEncoder(buffer);
         encoder.EncodeDictionary(
             expected.I,
-            (ref IceEncoder encoder, int value) => encoder.EncodeInt32(value),
+            (ref IceEncoder encoder, int value) => encoder.EncodeInt(value),
             (ref IceEncoder encoder, AnotherPingableProxy? value) => encoder.EncodeAnotherPingableProxy(value));
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
@@ -90,7 +90,7 @@ public sealed class StructTests
         expected.Encode(ref encoder);
 
         var decoder = new IceDecoder(buffer.WrittenMemory);
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.A));
+        Assert.That(decoder.DecodeInt(), Is.EqualTo(expected.A));
         Assert.That(decoder.DecodeProxy<AnotherPingableProxy>(), Is.EqualTo(expected.I));
 
     }
@@ -139,7 +139,7 @@ public sealed class StructTests
         Assert.That(
             decoder.DecodeDictionary(
                 count => new Dictionary<int, AnotherPingableProxy?>(count),
-                (ref IceDecoder decoder) => decoder.DecodeInt32(),
+                (ref IceDecoder decoder) => decoder.DecodeInt(),
                 (ref IceDecoder decoder) => decoder.DecodeProxy<AnotherPingableProxy>()),
             Is.EqualTo(expected.I));
     }
