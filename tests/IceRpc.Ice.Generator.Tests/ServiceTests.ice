@@ -2,17 +2,17 @@
 
 module IceRpc::Ice::Generator::Tests
 {
-    interface MyBase
+    interface Base
     {
         void op1();
     }
 
-    interface MyDerived : MyBase
+    interface Derived : Base
     {
         void op2();
     }
 
-    interface MyMoreDerived : MyDerived
+    interface MoreDerived : Derived
     {
         void op3();
     }
