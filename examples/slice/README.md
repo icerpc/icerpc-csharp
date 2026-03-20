@@ -11,7 +11,7 @@ This folder contains example applications that showcase the IceRPC + Slice integ
 | [Download](./Download/)                    | Shows how to download a file from a server by streaming this file.                                                                  |
 | [GenericHost](./GenericHost/)              | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
 | [Greeter](./Greeter/)                      | Shows how to call and implement a canonical Greeter service using the IceRPC + Slice integration.                                   |
-| [Logger](./Loggger/)                       | Shows how to enable logging.                                                                                                        |
+| [Logger](./Logger/)                        | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)                      | Shows how to use the metrics interceptor and middleware.                                                                            |
 | [MultipleInterfaces](./MultipleInterfaces) | Shows how a service can implement multiple interfaces.                                                                              |
 | [RequestContext](./RequestContext/)        | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
