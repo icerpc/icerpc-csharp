@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <SliceFile>
-      <IceRpc>false</IceRpc>
+      <Rpc>none</Rpc>
     </SliceFile>
   </ItemDefinitionGroup>
   <ItemGroup>
