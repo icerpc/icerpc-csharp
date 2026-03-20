@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Buffers;
 using System.IO.Pipelines;
 using ZeroC.Tests.Common;
 
@@ -65,4 +66,45 @@ public class DecodeStringTests
         pipe.Reader.Complete();
     }
 
+    [Test]
+    public void Decode_single_segment_non_utf8_string_fails()
+    {
+        Assert.That(() =>
+        {
+            var encodedString = new byte[] { 0x02, 0xFD, 0xFF }; // Ice size 2 + invalid UTF-8 bytes
+            var sut = new IceDecoder(encodedString);
+
+            sut.DecodeString();
+        }, Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Decode_multi_segment_non_utf8_string_fails()
+    {
+        Assert.That(() =>
+        {
+            // Arrange
+            // A custom memory pool with a tiny max buffer size
+            using var customPool = new TestMemoryPool(7);
+
+            // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
+            // minBufferSize given to Rent
+            var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
+            var p1 = System.Text.Encoding.UTF8.GetBytes("This is a bad string with unicode characters");
+            var badBytes = new byte[] { 0xFE, 0xFF };
+            var size = p1.Length + badBytes.Length;
+
+            pipe.Writer.Write(new byte[] { (byte)size });
+            pipe.Writer.Write(p1);
+            pipe.Writer.Write(badBytes);
+            pipe.Writer.Complete();
+            pipe.Reader.TryRead(out ReadResult readResult);
+
+            var sut = new IceDecoder(readResult.Buffer);
+
+            // Act
+            var result = sut.DecodeString();
+
+        }, Throws.InstanceOf<InvalidDataException>());
+    }
 }
