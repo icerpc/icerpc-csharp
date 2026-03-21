@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace IceRpc.Slice.Generator.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public partial class ServiceTests
+public class ServiceTests
 {
     [Test]
     public void Operation_without_parameters_and_void_return()

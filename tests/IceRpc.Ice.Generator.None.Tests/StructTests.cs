@@ -41,7 +41,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Cs_attribute_on_field()
+    public void CS_attribute_on_field()
     {
         // Arrange / Act
         var memberInfos = typeof(MyStructWithFieldAttributes).GetMember("I");

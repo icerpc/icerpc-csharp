@@ -107,7 +107,7 @@ public class SequenceDecodingTests
 
     // This test is unique to the Slice encoding where enums can use a fixed number of bytes.
     [Test]
-    public void Decode_sequence_with_enum_range_action()
+    public void Decode_sequence_with_element_action()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);

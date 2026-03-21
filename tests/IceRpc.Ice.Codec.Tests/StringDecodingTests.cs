@@ -74,7 +74,7 @@ public class DecodeStringTests
             var encodedString = new byte[] { 0x02, 0xFD, 0xFF }; // Ice size 2 + invalid UTF-8 bytes
             var sut = new IceDecoder(encodedString);
 
-            sut.DecodeString();
+            _ = sut.DecodeString();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
