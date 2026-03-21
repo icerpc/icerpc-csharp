@@ -42,7 +42,7 @@ public class SequenceDecodingTests
             () =>
             {
                 var decoder = new SliceDecoder(buffer.WrittenMemory);
-                var sut = new BoolS(ref decoder);
+                _ = new BoolS(ref decoder);
             });
     }
 }

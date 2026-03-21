@@ -103,7 +103,7 @@ public class DecodeStringTests
             var sut = new IceDecoder(readResult.Buffer);
 
             // Act
-            var result = sut.DecodeString();
+            _ = sut.DecodeString();
 
         }, Throws.InstanceOf<InvalidDataException>());
     }
