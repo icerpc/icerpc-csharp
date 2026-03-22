@@ -105,7 +105,6 @@ public class SequenceDecodingTests
         D = 4,
     };
 
-    // This test is unique to the Slice encoding where enums can use a fixed number of bytes.
     [Test]
     public void Decode_sequence_with_element_action()
     {

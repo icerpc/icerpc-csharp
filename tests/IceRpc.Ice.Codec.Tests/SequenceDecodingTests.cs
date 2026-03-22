@@ -49,4 +49,28 @@ public class SequenceDecodingTests
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
+
+    [Test]
+    public void Decode_sequence_with_element_action()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new IceEncoder(buffer);
+        var expected = new bool[] { true, false, true, false, false, true, true, false };
+
+        // Encode the enumerators to a buffer
+        encoder.EncodeSequence(
+            expected,
+            (ref IceEncoder encoder, bool value) => encoder.EncodeBool(value));
+
+        var checkedValues = new List<bool>();
+        var sut = new IceDecoder(buffer.WrittenMemory);
+
+        // Act
+        bool[]? decoded = sut.DecodeSequence<bool>(value => checkedValues.Add(value));
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(checkedValues, Is.EqualTo(expected));
+    }
 }
