@@ -48,7 +48,6 @@ public static class IceProxyExtensions
     /// <param name="proxy">A proxy to the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Ice Slice.</param>
     /// <param name="payload">The payload of the request.</param>
-    /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="features">The invocation features.</param>
@@ -60,7 +59,6 @@ public static class IceProxyExtensions
         this TProxy proxy,
         string operation,
         PipeReader payload,
-        PipeReader? payloadContinuation,
         ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features = null,
         bool idempotent = false,
@@ -76,8 +74,7 @@ public static class IceProxyExtensions
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ? _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
-            Payload = payload,
-            PayloadContinuation = payloadContinuation
+            Payload = payload
         };
 
         Task<IncomingResponse> responseTask;
@@ -117,7 +114,6 @@ public static class IceProxyExtensions
     /// <param name="proxy">A proxy for the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Ice Slice.</param>
     /// <param name="payload">The payload of the request.</param>
-    /// <param name="payloadContinuation">The payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="features">The invocation features.</param>
@@ -131,7 +127,6 @@ public static class IceProxyExtensions
         this TProxy proxy,
         string operation,
         PipeReader payload,
-        PipeReader? payloadContinuation,
         ResponseDecodeFunc responseDecodeFunc,
         IFeatureCollection? features = null,
         bool idempotent = false,
@@ -150,7 +145,6 @@ public static class IceProxyExtensions
             IsOneway = oneway,
             Operation = operation,
             Payload = payload,
-            PayloadContinuation = payloadContinuation
         };
 
         Task<IncomingResponse> responseTask;

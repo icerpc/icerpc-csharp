@@ -74,7 +74,7 @@ public class DecodeStringTests
             var encodedString = new byte[] { 0x08, 0xFD, 0xFF }; // Byte array for unicode char \uD800
             var sut = new SliceDecoder(encodedString);
 
-            sut.DecodeString();
+            _ = sut.DecodeString();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
@@ -103,7 +103,7 @@ public class DecodeStringTests
             var sut = new SliceDecoder(readResult.Buffer);
 
             // Act
-            var result = sut.DecodeString();
+            _ = sut.DecodeString();
 
         }, Throws.InstanceOf<InvalidDataException>());
     }

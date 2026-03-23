@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice.Codec;
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
-namespace ZeroC.Slice.Generator.Tests;
+namespace IceRpc.Ice.Generator.None.Tests;
 
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceDecodingTests
 {
@@ -15,10 +16,10 @@ public class SequenceDecodingTests
         // Arrange
         bool[] expected = [false, true, false];
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer);
+        var encoder = new IceEncoder(buffer);
         encoder.EncodeSize(3);
         encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x00 });
-        var decoder = new SliceDecoder(buffer.WrittenMemory);
+        var decoder = new IceDecoder(buffer.WrittenMemory);
 
         // Act
         var sut = new BoolS(ref decoder);
@@ -33,7 +34,7 @@ public class SequenceDecodingTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer);
+        var encoder = new IceEncoder(buffer);
         encoder.EncodeSize(3);
         encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x02 });
 
@@ -41,7 +42,7 @@ public class SequenceDecodingTests
         Assert.Throws<InvalidDataException>(
             () =>
             {
-                var decoder = new SliceDecoder(buffer.WrittenMemory);
+                var decoder = new IceDecoder(buffer.WrittenMemory);
                 _ = new BoolS(ref decoder);
             });
     }

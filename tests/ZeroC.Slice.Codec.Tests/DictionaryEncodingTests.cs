@@ -1,39 +1,34 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
-namespace ZeroC.Slice.Generator.Tests;
+namespace ZeroC.Slice.Codec.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class DictionaryEncodingTests
 {
     [Test]
-    public void Encode_dictionary_with_optional_value_type()
+    public void Encode_dictionary()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
         var encoder = new SliceEncoder(buffer);
-        var expected = Enumerable.Range(0, 1024).ToDictionary(
-            key => key,
-            value => value % 2 == 0 ? $"value-{value}" : null);
+        var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
         // Act
-        encoder.EncodeDictionaryWithOptionalValueType(
+        encoder.EncodeDictionary(
             expected,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, string? value) => encoder.EncodeString(value!));
+            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Count));
-
-        var value = new Dictionary<int, string?>();
+        var value = new Dictionary<int, string>();
         while (decoder.Consumed != buffer.WrittenMemory.Length)
         {
-            var keyValuePair = new KeyValuePair(ref decoder);
-            value.Add(keyValuePair.Key, keyValuePair.Value);
+            value.Add(decoder.DecodeInt32(), decoder.DecodeString());
         }
         Assert.That(value, Is.EqualTo(expected));
     }

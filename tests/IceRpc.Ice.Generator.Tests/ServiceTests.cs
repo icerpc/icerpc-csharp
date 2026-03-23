@@ -4,7 +4,7 @@ using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Generator.Tests;
+namespace IceRpc.Ice.Generator.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class ServiceTests

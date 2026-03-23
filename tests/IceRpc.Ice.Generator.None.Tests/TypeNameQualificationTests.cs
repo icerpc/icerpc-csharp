@@ -2,7 +2,7 @@
 
 using NUnit.Framework;
 
-namespace ZeroC.Slice.Generator.Tests;
+namespace IceRpc.Ice.Generator.None.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class TypeNameQualificationTests
