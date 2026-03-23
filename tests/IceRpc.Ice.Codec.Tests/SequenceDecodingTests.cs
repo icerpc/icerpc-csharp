@@ -13,6 +13,7 @@ public class SequenceDecodingTests
     [Test]
     public void Decode_fixed_sized_numeric_sequence()
     {
+        // Arrange
         int[] expected = Enumerable.Range(0, 256).Select(i => i).ToArray();
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new IceEncoder(buffer);
@@ -23,8 +24,10 @@ public class SequenceDecodingTests
         }
         var sut = new IceDecoder(buffer.WrittenMemory);
 
+        // Act
         int[] result = sut.DecodeSequence((ref IceDecoder decoder) => decoder.DecodeInt());
 
+        // Assert
         Assert.That(result, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -34,6 +37,7 @@ public class SequenceDecodingTests
     [Test]
     public void Decode_string_sequence()
     {
+        // Arrange
         string[] expected = Enumerable.Range(0, 256).Select(i => $"string-{i}").ToArray();
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new IceEncoder(buffer);
@@ -44,8 +48,10 @@ public class SequenceDecodingTests
         }
         var sut = new IceDecoder(buffer.WrittenMemory);
 
+        // Act
         string[] decoded = sut.DecodeSequence((ref IceDecoder decoder) => decoder.DecodeString());
 
+        // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }

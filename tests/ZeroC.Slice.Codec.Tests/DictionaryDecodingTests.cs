@@ -16,7 +16,7 @@ public class DictionaryDecodingTests
         var encoder = new SliceEncoder(buffer);
         var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
-        // A dictionary is encoded like a sequence.
+        // A dictionary is encoded like a sequence of key-value pairs.
         encoder.EncodeSequence(expected, (ref SliceEncoder encoder, KeyValuePair<int, string> pair) =>
         {
             encoder.EncodeInt32(pair.Key);

@@ -20,7 +20,7 @@ public class DictionaryDecodingTests
             key => key,
             value => value % 2 == 0 ? null : $"value-{value}");
 
-        // A dictionary is encoded like a sequence.
+        // A dictionary is encoded like a sequence of key-value pairs.
         encoder.EncodeSequence(expected, (ref SliceEncoder encoder, KeyValuePair<int, string?> pair) =>
             new KeyValuePair(pair.Key, pair.Value).Encode(ref encoder));
 
