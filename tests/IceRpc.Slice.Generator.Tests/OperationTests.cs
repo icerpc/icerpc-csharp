@@ -114,6 +114,42 @@ public partial class OperationTests
     }
 
     [Test]
+    public async Task Operation_with_oneway_attribute()
+    {
+        // Arrange
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
+                {
+                    Assert.That(request.IsOneway, Is.True);
+                    return next.InvokeAsync(request, cancellationToken);
+                }))
+            .Into(new ColocInvoker(new MyOperationsAService()));
+
+        var proxy = new MyOperationsAProxy(pipeline);
+
+        // Act & Assert
+        await proxy.OpWithOnewayAttributeAsync(42);
+    }
+
+    [Test]
+    public async Task Operation_without_oneway_attribute()
+    {
+        // Arrange
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
+                {
+                    Assert.That(request.IsOneway, Is.False);
+                    return next.InvokeAsync(request, cancellationToken);
+                }))
+            .Into(new ColocInvoker(new MyOperationsAService()));
+
+        var proxy = new MyOperationsAProxy(pipeline);
+
+        // Act & Assert
+        await proxy.OpWithoutParametersAndVoidReturnAsync();
+    }
+
+    [Test]
     public async Task Operation_with_byte_stream_argument_and_return()
     {
         // Arrange
@@ -687,6 +723,11 @@ public partial class OperationTests
             int p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
+
+        public ValueTask OpWithOnewayAttributeAsync(
+            int p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => default;
 
         public ValueTask<PipeReader> OpWithByteStreamArgumentAndReturnAsync(
             PipeReader p,

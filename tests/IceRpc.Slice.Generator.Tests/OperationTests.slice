@@ -19,6 +19,9 @@ interface MyOperationsA {
     // Compress attribute
     [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32
 
+    // Oneway attribute
+    [oneway] opWithOnewayAttribute(p: int32)
+
     // Stream parameters and return alone
     opWithByteStreamArgumentAndReturn(p: stream uint8) -> stream uint8
     opWithOptionalByteStreamArgumentAndReturn(p: stream uint8?) -> stream uint8?
