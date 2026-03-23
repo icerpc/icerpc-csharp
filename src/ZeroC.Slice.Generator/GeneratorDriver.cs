@@ -123,12 +123,7 @@ internal static class GeneratorDriver
         var encoder = new SliceEncoder(writer);
         encoder.EncodeSequence(
             generatedFiles,
-            (ref encoder, file) =>
-            {
-                encoder.EncodeString(file.Path);
-                encoder.EncodeString(file.Contents);
-            });
-
+            (ref encoder, file) => file.Encode(ref encoder));
         encoder.EncodeSequence(
             diagnostics,
             (ref encoder, diagnostic) => diagnostic.Encode(ref encoder));
