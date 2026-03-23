@@ -59,6 +59,8 @@ internal static class DocCommentFormatter
             Operation op when op.Parent is Interface => $"I{op.Parent.Name}.{entity.Name}Async",
             Field f when f.Parent is not null => $"{f.Parent.Name}.{entity.Name}",
             EnumWithFields.Enumerator e when e.Parent is not null => $"{e.Parent.Name}.{entity.Name}",
+            // EnumWithUnderlying<T>.Enumerator
+            Entity e when e.Parent is EnumWithUnderlying => $"{e.Parent.Name}.{entity.Name}",
             EnumWithUnderlying => entity.Name,
             EnumWithFields => entity.Name,
             Struct => entity.Name,

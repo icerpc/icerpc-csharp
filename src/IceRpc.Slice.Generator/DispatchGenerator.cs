@@ -29,7 +29,7 @@ internal static class DispatchGenerator
                 Your service implementation must implement this interface.
                 """)
             .AddDocCommentSeeAlso(interfaceDef.Comment, currentNamespace)
-            .AddAttribute($"""IceRpc.DefaultServicePath("{defaultServicePath}")""");
+            .AddAttribute($"IceRpc.DefaultServicePath(\"{defaultServicePath}\")");
 
         // Inherit from base service interfaces
         foreach (Interface baseInterface in interfaceDef.Bases)
