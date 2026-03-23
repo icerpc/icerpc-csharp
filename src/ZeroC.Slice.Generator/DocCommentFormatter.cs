@@ -8,9 +8,9 @@ namespace ZeroC.Slice.Generator;
 /// <summary>Formats Slice doc comments into C# XML doc comment strings.</summary>
 internal static class DocCommentFormatter
 {
-    /// <summary>Formats the overview of a <see cref="Comment"/> as XML doc comment summary text.
-    /// Returns null if the comment has no overview.</summary>
-    internal static string? FormatSummary(Comment? comment, string currentNamespace)
+    /// <summary>Formats the overview of a <see cref="Comment"/> as XML doc comment text. Returns null if the
+    /// comment has no overview.</summary>
+    internal static string? FormatOverview(Comment? comment, string currentNamespace)
     {
         if (comment?.Overview is not { Count: > 0 } overview)
         {
@@ -19,15 +19,15 @@ internal static class DocCommentFormatter
 
         return string.Concat(overview.Select(c => c switch
         {
-            CommentMessageComponent.Text t => XmlEscape(t.Value),
-            CommentMessageComponent.Link l => FormatInlineLink(l.Target, currentNamespace),
+            CommentText t => XmlEscape(t.Value),
+            CommentInlineLink l => FormatInlineLink(l.Target, currentNamespace),
             _ => ""
         })).TrimEnd();
     }
 
     /// <summary>Formats the @see tags of a <see cref="Comment"/> as a sequence of
     /// <c>&lt;seealso cref="..." /&gt;</c> comment tags. Unresolved links are skipped.</summary>
-    internal static IEnumerable<CommentTag> FormatSeeAlso(Comment? comment, string currentNamespace)
+    internal static IEnumerable<CommentTag> FormatSeeAlsoTags(Comment? comment, string currentNamespace)
     {
         if (comment?.SeeTags is not { Count: > 0 } seeTags)
         {
@@ -36,7 +36,7 @@ internal static class DocCommentFormatter
 
         foreach (CommentLink link in seeTags)
         {
-            if (link is CommentLink.Resolved r)
+            if (link is ResolvedCommentLink r)
             {
                 yield return new CommentTag("seealso", "cref", FormatEntityCref(r.Entity, currentNamespace), "");
             }
@@ -45,8 +45,8 @@ internal static class DocCommentFormatter
 
     private static string FormatInlineLink(CommentLink link, string currentNamespace) => link switch
     {
-        CommentLink.Resolved r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
-        CommentLink.Unresolved u => $"<c>{XmlEscape(u.Identifier)}</c>",
+        ResolvedCommentLink r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
+        UnresolvedCommentLink u => $"<c>{XmlEscape(u.Identifier)}</c>",
         _ => ""
     };
 

@@ -15,21 +15,19 @@ public sealed class Comment
 }
 
 /// <summary>A component of a doc comment overview message.</summary>
-public abstract record class CommentMessageComponent
-{
-    /// <summary>Plain text.</summary>
-    public sealed record class Text(string Value) : CommentMessageComponent;
+public abstract record class CommentMessageComponent;
 
-    /// <summary>A link to another entity.</summary>
-    public sealed record class Link(CommentLink Target) : CommentMessageComponent;
-}
+/// <summary>Plain text.</summary>
+public sealed record class CommentText(string Value) : CommentMessageComponent;
+
+/// <summary>A link to another entity.</summary>
+public sealed record class CommentInlineLink(CommentLink Target) : CommentMessageComponent;
 
 /// <summary>A link to a Slice entity in a doc comment.</summary>
-public abstract record class CommentLink
-{
-    /// <summary>A resolved link to a known entity.</summary>
-    public sealed record class Resolved(Entity Entity) : CommentLink;
+public abstract record class CommentLink;
 
-    /// <summary>An unresolved link where only the raw identifier is available.</summary>
-    public sealed record class Unresolved(string Identifier) : CommentLink;
-}
+/// <summary>A resolved link to a known entity.</summary>
+public sealed record class ResolvedCommentLink(Entity Entity) : CommentLink;
+
+/// <summary>An unresolved link where only the raw identifier is available.</summary>
+public sealed record class UnresolvedCommentLink(string Identifier) : CommentLink;

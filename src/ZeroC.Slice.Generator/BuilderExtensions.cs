@@ -14,7 +14,7 @@ internal static class BuilderExtensions
     internal static T AddDocCommentSummary<T>(this T builder, Comment? comment, string currentNamespace)
         where T : ICommentBuilder<T>
     {
-        if (DocCommentFormatter.FormatSummary(comment, currentNamespace) is string summary)
+        if (DocCommentFormatter.FormatOverview(comment, currentNamespace) is string summary)
         {
             builder.AddComment("summary", summary);
         }
@@ -25,7 +25,7 @@ internal static class BuilderExtensions
     internal static T AddDocCommentSeeAlso<T>(this T builder, Comment? comment, string currentNamespace)
         where T : ICommentBuilder<T>
     {
-        builder.AddComments(DocCommentFormatter.FormatSeeAlso(comment, currentNamespace));
+        builder.AddComments(DocCommentFormatter.FormatSeeAlsoTags(comment, currentNamespace));
         return builder;
     }
 

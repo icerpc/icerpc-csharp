@@ -15,7 +15,7 @@ internal static class CodeBlockExtensions
         /// <summary>Writes a <c>&lt;summary&gt;</c> XML doc comment line if the comment has an overview.</summary>
         internal void WriteDocCommentSummary(Comment? comment, string currentNamespace)
         {
-            if (DocCommentFormatter.FormatSummary(comment, currentNamespace) is string summary)
+            if (DocCommentFormatter.FormatOverview(comment, currentNamespace) is string summary)
             {
                 code.WriteLine(new CommentTag("summary", summary).ToString());
             }

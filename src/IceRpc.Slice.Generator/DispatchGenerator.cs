@@ -266,7 +266,7 @@ internal static class DispatchGenerator
             operationBuilder.AddParameter(
                 param.DataType.FieldTypeString(param.DataTypeIsOptional, currentNamespace),
                 param.ParameterName,
-                docComment: DocCommentFormatter.FormatSummary(param.Comment, currentNamespace));
+                docComment: DocCommentFormatter.FormatOverview(param.Comment, currentNamespace));
         }
 
         if (op.StreamedParameter is Field streamParam)
@@ -274,7 +274,7 @@ internal static class DispatchGenerator
             operationBuilder.AddParameter(
                 OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
                 streamParam.ParameterName,
-                docComment: DocCommentFormatter.FormatSummary(streamParam.Comment, currentNamespace));
+                docComment: DocCommentFormatter.FormatOverview(streamParam.Comment, currentNamespace));
         }
 
         string featuresParam = op.FeaturesParamName;

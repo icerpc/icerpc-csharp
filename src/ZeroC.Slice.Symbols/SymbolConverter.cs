@@ -498,8 +498,8 @@ public sealed class SymbolConverter
 
         var overview = raw.Value.Overview.Select<Compiler.MessageComponent, CommentMessageComponent>(c => c switch
         {
-            Compiler.MessageComponent.Text t => new CommentMessageComponent.Text(t.V),
-            Compiler.MessageComponent.Link l => new CommentMessageComponent.Link(ResolveLink(l.V)),
+            Compiler.MessageComponent.Text t => new CommentText(t.V),
+            Compiler.MessageComponent.Link l => new CommentInlineLink(ResolveLink(l.V)),
             _ => throw new InvalidOperationException($"Unknown MessageComponent kind: {c.GetType().FullName}")
         }).ToImmutableList();
 
@@ -509,8 +509,8 @@ public sealed class SymbolConverter
 
         CommentLink ResolveLink(string entityId) =>
             ResolveEntityById(entityId) is Entity entity
-                ? new CommentLink.Resolved(entity)
-                : new CommentLink.Unresolved(entityId);
+                ? new ResolvedCommentLink(entity)
+                : new UnresolvedCommentLink(entityId);
     }
 
     private Entity? ResolveEntityById(string entityId)

@@ -76,7 +76,7 @@ internal static class ProxyGenerator
             builder.AddParameter(
                 param.DataType.OutgoingParameterTypeString(param.DataTypeIsOptional, currentNamespace),
                 param.ParameterName,
-                docComment: DocCommentFormatter.FormatSummary(param.Comment, currentNamespace));
+                docComment: DocCommentFormatter.FormatOverview(param.Comment, currentNamespace));
         }
 
         // Streamed parameter (if any) goes after non-streamed params
@@ -85,7 +85,7 @@ internal static class ProxyGenerator
             builder.AddParameter(
                 OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
                 streamParam.ParameterName,
-                docComment: DocCommentFormatter.FormatSummary(streamParam.Comment, currentNamespace));
+                docComment: DocCommentFormatter.FormatOverview(streamParam.Comment, currentNamespace));
         }
 
         string featuresParam = op.FeaturesParamName;
