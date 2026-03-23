@@ -117,36 +117,44 @@ public partial class OperationTests
     public async Task Operation_with_oneway_attribute()
     {
         // Arrange
+        bool isOneway = false;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
-                    Assert.That(request.IsOneway, Is.True);
+                    isOneway = request.IsOneway;
                     return next.InvokeAsync(request, cancellationToken);
                 }))
             .Into(new ColocInvoker(new MyOperationsAService()));
 
         var proxy = new MyOperationsAProxy(pipeline);
 
-        // Act & Assert
+        // Act
         await proxy.OpWithOnewayAttributeAsync(42);
+
+        // Assert
+        Assert.That(isOneway, Is.True);
     }
 
     [Test]
     public async Task Operation_without_oneway_attribute()
     {
         // Arrange
+        bool isOneway = true; // Initialize to true to verify that it gets set to false by the interceptor.
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
-                    Assert.That(request.IsOneway, Is.False);
+                    isOneway = request.IsOneway;
                     return next.InvokeAsync(request, cancellationToken);
                 }))
             .Into(new ColocInvoker(new MyOperationsAService()));
 
         var proxy = new MyOperationsAProxy(pipeline);
 
-        // Act & Assert
+        // Act
         await proxy.OpWithoutParametersAndVoidReturnAsync();
+
+        // Assert
+        Assert.That(isOneway, Is.False);
     }
 
     [Test]
