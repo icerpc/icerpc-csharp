@@ -17,6 +17,6 @@ module IceRpc::Ice::Generator::Tests
 
     interface TypeNameQualificationOperations
     {
-        S opWithTypeNamesDefinedInMultipleModules(Inner::S s);
+        S opWithTypeDefinedInOtherModule(Inner::S s);
     }
 }
