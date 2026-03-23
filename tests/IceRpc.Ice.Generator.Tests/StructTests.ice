@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+#pragma once
+
 module IceRpc::Ice::Generator::Tests
 {
     interface AnotherPingable
@@ -9,6 +11,12 @@ module IceRpc::Ice::Generator::Tests
 
     sequence<AnotherPingable*> AnotherPingableSeq;
     dictionary<int, AnotherPingable*> AnotherPingableDict;
+
+    struct MyStruct
+    {
+        int i;
+        int j;
+    }
 
     struct MyStructWithProxy
     {

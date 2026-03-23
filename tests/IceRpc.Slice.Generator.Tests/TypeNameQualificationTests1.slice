@@ -7,5 +7,5 @@ struct S {
 }
 
 interface TypeNameQualificationOperations {
-    opWithTypeNamesDefinedInMultipleModules(s: Inner::S) -> S
+    opWithTypeDefinedInOtherModule(s: Inner::S) -> S
 }
