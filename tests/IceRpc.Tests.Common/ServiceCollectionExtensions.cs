@@ -92,22 +92,33 @@ public static class ServiceCollectionExtensions
     /// specified server address.</summary>
     public static IServiceCollection AddMultiplexedTransportTest(
         this IServiceCollection services,
-        Uri? serverAddressUri = null) => services
+        Uri? serverAddressUri = null)
+    {
+        var serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
+
+        return services
             .AddSingleton(provider =>
-                provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
-                    new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost")),
-                    provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
-                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()))
+            {
+                var options = provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new();
+                options.ApplicationProtocol ??= serverAddress.Protocol.Name;
+                return provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
+                    serverAddress,
+                    options,
+                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>());
+            })
             .AddSingleton(provider =>
             {
                 var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
                 var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+                var options = provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new();
+                options.ApplicationProtocol ??= serverAddress.Protocol.Name;
                 var connection = clientTransport.CreateConnection(
                     listener.ServerAddress,
-                    provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
+                    options,
                     provider.GetService<SslClientAuthenticationOptions>());
                 return new ClientServerMultiplexedConnection(connection, listener);
             });
+    }
 
     /// <summary>Installs a transport decorator for the last registered transport.</summary>
     internal static void AddSingletonTransportDecorator<TTransportService, TTransportDecoratorService>(

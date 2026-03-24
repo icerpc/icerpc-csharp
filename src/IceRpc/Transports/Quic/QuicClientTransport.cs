@@ -48,6 +48,13 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(serverAddress));
         }
 
+        if (options.ApplicationProtocol is null)
+        {
+            throw new ArgumentException(
+                "The QUIC client transport requires the multiplexed connection options to have ApplicationProtocol set.",
+                nameof(options));
+        }
+
         if (serverAddress.Transport is null)
         {
             serverAddress = serverAddress with { Transport = Name };
@@ -57,8 +64,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
         clientAuthenticationOptions.TargetHost ??= serverAddress.Host;
         clientAuthenticationOptions.ApplicationProtocols ??=
         [
-            // Mandatory with Quic
-            new(serverAddress.Protocol.Name)
+            new(options.ApplicationProtocol!)
         ];
 
         EndPoint endpoint = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?

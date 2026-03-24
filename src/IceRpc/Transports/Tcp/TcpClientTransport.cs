@@ -59,19 +59,14 @@ public class TcpClientTransport : IDuplexClientTransport
 
             authenticationOptions.TargetHost ??= serverAddress.Host;
 
-            // Set ApplicationProtocols to "ice" or "icerpc" in the common situation where the application does not
-            // specify any application protocol. This way, a proxy server listening on a port shared by multiple
-            // application protocols can use this ALPN protocol ID to forward all ice/icerpc traffic to an ice/icerpc
-            // back-end server.
-            // We do this only when the port is not the default port for ice or icerpc; when we use the IANA-registered
-            // default port, the server can and should use this port number to identify the application protocol when no
-            // ALPN protocol ID is provided.
+            // Set ApplicationProtocols when the application does not specify any application protocol and the
+            // connection options provide one.
             if (authenticationOptions.ApplicationProtocols is null &&
-                serverAddress.Port != serverAddress.Protocol.DefaultPort)
+                options.ApplicationProtocol is string applicationProtocol)
             {
                 authenticationOptions.ApplicationProtocols = new List<SslApplicationProtocol>
                 {
-                    new SslApplicationProtocol(serverAddress.Protocol.Name)
+                    new SslApplicationProtocol(applicationProtocol)
                 };
             }
         }

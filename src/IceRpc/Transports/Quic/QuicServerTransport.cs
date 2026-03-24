@@ -54,6 +54,13 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 "The QUIC server transport requires the SSL server authentication options to be set.");
         }
 
+        if (options.ApplicationProtocol is null)
+        {
+            throw new ArgumentException(
+                "The QUIC server transport requires the multiplexed connection options to have ApplicationProtocol set.",
+                nameof(options));
+        }
+
         if (serverAddress.Transport is null)
         {
             serverAddress = serverAddress with { Transport = Name };

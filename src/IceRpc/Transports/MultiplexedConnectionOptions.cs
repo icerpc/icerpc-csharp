@@ -7,6 +7,11 @@ namespace IceRpc.Transports;
 /// <summary>A property bag used to configure a <see cref="IMultiplexedConnection" />.</summary>
 public record class MultiplexedConnectionOptions
 {
+    /// <summary>Gets or sets the application protocol for ALPN (Application-Layer Protocol Negotiation).</summary>
+    /// <value>The application protocol name, or <see langword="null" /> if no application protocol is configured.
+    /// Defaults to <see langword="null" />.</value>
+    public string? ApplicationProtocol { get; set; }
+
     /// <summary>Gets or sets the minimum amount of time the multiplexed transport must allow for a connection
     /// establishment handshake to complete.</summary>
     /// <value>The handshake timeout. The default is 10 seconds.</value>

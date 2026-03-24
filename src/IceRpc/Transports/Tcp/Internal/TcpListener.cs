@@ -69,14 +69,16 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
 
-        if (_authenticationOptions is not null && _authenticationOptions.ApplicationProtocols is null)
+        if (_authenticationOptions is not null &&
+            _authenticationOptions.ApplicationProtocols is null &&
+            options.ApplicationProtocol is string applicationProtocol)
         {
-            // Set ApplicationProtocols to "ice" or "icerpc" in the common situation where the application does not
-            // specify any application protocol. This way, a connection request that carries an ALPN protocol ID can
-            // only succeed if this protocol ID is a match.
+            // Set ApplicationProtocols in the common situation where the application does not specify any application
+            // protocol. This way, a connection request that carries an ALPN protocol ID can only succeed if this
+            // protocol ID is a match.
             _authenticationOptions.ApplicationProtocols = new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(serverAddress.Protocol.Name)
+                new SslApplicationProtocol(applicationProtocol)
             };
         }
 

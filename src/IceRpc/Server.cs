@@ -101,6 +101,7 @@ public sealed class Server : IAsyncDisposable
                     _serverAddress,
                     new DuplexConnectionOptions
                     {
+                        ApplicationProtocol = _serverAddress.Protocol.Name,
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
                     },
@@ -116,6 +117,7 @@ public sealed class Server : IAsyncDisposable
                     _serverAddress,
                     new MultiplexedConnectionOptions
                     {
+                        ApplicationProtocol = _serverAddress.Protocol.Name,
                         HandshakeTimeout = options.ConnectTimeout,
                         MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.

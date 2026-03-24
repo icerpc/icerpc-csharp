@@ -55,9 +55,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         _options = options;
 
         authenticationOptions = authenticationOptions.Clone();
-        authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> // Mandatory with Quic
+        authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
         {
-            new SslApplicationProtocol(serverAddress.Protocol.Name)
+            new SslApplicationProtocol(options.ApplicationProtocol!)
         };
 
         _quicServerOptions = new QuicServerConnectionOptions
@@ -81,7 +81,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 {
                     ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
-                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                    ApplicationProtocols = authenticationOptions.ApplicationProtocols!,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);

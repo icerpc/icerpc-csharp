@@ -182,7 +182,10 @@ public abstract class MultiplexedListenerConformanceTests
         IceRpcException? exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(
                 listener.ServerAddress,
-                new MultiplexedConnectionOptions(),
+                new MultiplexedConnectionOptions
+                {
+                    ApplicationProtocol = listener.ServerAddress.Protocol.Name
+                },
                 provider.GetService<SslServerAuthenticationOptions>()));
         Assert.That(
             exception!.IceRpcError,

@@ -43,6 +43,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         _duplexClientTransport = duplexClientTransport ?? IDuplexClientTransport.Default;
         _duplexConnectionOptions = new DuplexConnectionOptions
         {
+            ApplicationProtocol = Protocol.Ice.Name,
             Pool = connectionOptions.Pool,
             MinSegmentSize = connectionOptions.MinSegmentSize,
         };
@@ -53,6 +54,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         // which is accepted locally is the control stream created by the peer.
         _multiplexedConnectionOptions = new MultiplexedConnectionOptions
         {
+            ApplicationProtocol = Protocol.IceRpc.Name,
             HandshakeTimeout = connectTimeout,
 
             MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? 0 :
