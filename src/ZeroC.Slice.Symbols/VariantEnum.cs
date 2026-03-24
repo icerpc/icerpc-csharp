@@ -17,7 +17,7 @@ public class VariantEnum : Entity, ISymbol, IType
     /// <summary>Gets the list of variants for this variant enumeration.</summary>
     public required ImmutableList<Variant> Variants { get; init; }
 
-    /// <summary>Represents an variant in a Slice variant enumeration.</summary>
+    /// <summary>Represents a variant in a Slice variant enumeration.</summary>
     public class Variant : Entity
     {
         /// <summary>Gets the discriminant value used for encoding/decoding this variant.</summary>

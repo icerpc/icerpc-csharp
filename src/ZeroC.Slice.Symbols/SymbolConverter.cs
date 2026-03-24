@@ -311,42 +311,42 @@ public sealed class SymbolConverter
         {
             return builtin.Kind switch
             {
-                BuiltinKind.Int8 => CreateEnumWithUnderlying(
+                BuiltinKind.Int8 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
-                BuiltinKind.UInt8 => CreateEnumWithUnderlying(
+                BuiltinKind.UInt8 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, _) => (byte)abs),
-                BuiltinKind.Int16 => CreateEnumWithUnderlying(
+                BuiltinKind.Int16 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
-                BuiltinKind.UInt16 => CreateEnumWithUnderlying(
+                BuiltinKind.UInt16 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, _) => (ushort)abs),
-                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateEnumWithUnderlying(
+                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
-                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateEnumWithUnderlying(
+                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, _) => (uint)abs),
-                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateEnumWithUnderlying(
+                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
                     (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
-                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateEnumWithUnderlying(
+                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateBasicEnum(
                     raw,
                     module,
                     builtin,
@@ -376,9 +376,9 @@ public sealed class SymbolConverter
                 }).ToImmutableList(),
             };
             SetParent(result, result.Variants);
-            foreach (VariantEnum.Variant enumerator in result.Variants)
+            foreach (VariantEnum.Variant variant in result.Variants)
             {
-                SetParent(enumerator, enumerator.Fields);
+                SetParent(variant, variant.Fields);
             }
             return result;
         }
@@ -424,7 +424,7 @@ public sealed class SymbolConverter
         return result;
     }
 
-    private BasicEnum<T> CreateEnumWithUnderlying<T>(
+    private BasicEnum<T> CreateBasicEnum<T>(
         Compiler.Enum raw,
         Module module,
         Builtin builtin,

@@ -74,7 +74,7 @@ internal static class CsAttributeValidator
 
             case BasicEnum e:
                 ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
-                ValidateEnumWithUnderlyingEnumerators(e, diagnostics);
+                ValidateBasicEnumEnumerators(e, diagnostics);
                 break;
 
             case Interface i:
@@ -101,7 +101,7 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateEnumWithUnderlyingEnumerators(
+    private static void ValidateBasicEnumEnumerators(
         BasicEnum e,
         List<Compiler.Diagnostic> diagnostics)
     {
