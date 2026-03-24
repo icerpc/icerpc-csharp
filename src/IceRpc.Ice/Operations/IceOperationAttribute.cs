@@ -20,10 +20,6 @@ public sealed class IceOperationAttribute : Attribute
     /// <value>The operation name.</value>
     public string Name { get; }
 
-    /// <summary>Gets a value indicating whether the return value is pre-encoded by the application.</summary>
-    /// <value><see langword="true"/> if the return value is pre-encoded; otherwise, <see langword="false"/>.</value>
-    public bool EncodedReturn { get; init; }
-
     /// <summary>Gets the exception specification of the operation.</summary>
     /// <value>An array of Ice exception types that the operation may throw.</value>
     /// <seealso cref="IceException"/>
