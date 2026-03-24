@@ -71,12 +71,12 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
 
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
         var connection = new TestDuplexConnectionDecorator(
-            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
+            _decoratee.CreateConnection(transportAddress, options, clientAuthenticationOptions),
             ConnectionOperationsOptions);
         _lastConnection = connection;
         return connection;
@@ -136,7 +136,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 
     /// <inheritdoc/>
     public IListener<IDuplexConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
@@ -146,7 +146,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         }
 
         _listener = new TestDuplexListenerDecorator(
-            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
+            _decoratee.Listen(transportAddress, options, serverAuthenticationOptions),
             ListenerOperations,
             _connectionOperationsOptions);
 
@@ -157,7 +157,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     {
         public DuplexTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         internal TestDuplexConnectionDecorator LastAcceptedConnection
         {

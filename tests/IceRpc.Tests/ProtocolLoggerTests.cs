@@ -320,12 +320,12 @@ public sealed class ProtocolLoggerTests
             _decoratee = decoratee;
 
         public IListener<IDuplexConnection> Listen(
-            ServerAddress serverAddress,
+            TransportAddress transportAddress,
             DuplexConnectionOptions options,
             SslServerAuthenticationOptions? serverAuthenticationOptions)
         {
             IListener<IDuplexConnection> listener =
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+                _decoratee.Listen(transportAddress, options, serverAuthenticationOptions);
             return new ConnectFailDuplexConnectionListenerDecorator(listener);
         }
     }
@@ -334,7 +334,7 @@ public sealed class ProtocolLoggerTests
     // that will fail to connect
     private sealed class ConnectFailDuplexConnectionListenerDecorator : IListener<IDuplexConnection>
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         private readonly IListener<IDuplexConnection> _decoratee;
 
@@ -386,12 +386,12 @@ public sealed class ProtocolLoggerTests
             _decoratee = decoratee;
 
         public IListener<IMultiplexedConnection> Listen(
-            ServerAddress serverAddress,
+            TransportAddress transportAddress,
             MultiplexedConnectionOptions options,
             SslServerAuthenticationOptions? serverAuthenticationOptions)
         {
             IListener<IMultiplexedConnection> listener =
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+                _decoratee.Listen(transportAddress, options, serverAuthenticationOptions);
             return new ConnectFailMultiplexedConnectionListenerDecorator(listener);
         }
     }
@@ -400,7 +400,7 @@ public sealed class ProtocolLoggerTests
     // that will fail to connect
     private sealed class ConnectFailMultiplexedConnectionListenerDecorator : IListener<IMultiplexedConnection>
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         private readonly IListener<IMultiplexedConnection> _decoratee;
 

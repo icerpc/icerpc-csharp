@@ -81,13 +81,13 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
         LastCreatedConnectionOptions = options;
         var connection = new TestMultiplexedConnectionDecorator(
-            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
+            _decoratee.CreateConnection(transportAddress, options, clientAuthenticationOptions),
             ConnectionOperationsOptions);
         _lastConnection = connection;
         return connection;
@@ -150,7 +150,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     /// <inheritdoc/>
     public IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
@@ -160,7 +160,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         }
         LastListenOptions = options;
         _listener = new TestMultiplexedListenerDecorator(
-            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
+            _decoratee.Listen(transportAddress, options, serverAuthenticationOptions),
             ListenerOperations,
             _connectionOperationsOptions);
         return _listener;
@@ -168,7 +168,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     private class TestMultiplexedListenerDecorator : IListener<IMultiplexedConnection>
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         internal MultiplexedTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 

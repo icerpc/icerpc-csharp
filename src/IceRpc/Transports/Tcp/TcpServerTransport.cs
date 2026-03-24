@@ -9,10 +9,10 @@ namespace IceRpc.Transports.Tcp;
 public class TcpServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
-    public string Name => TcpName;
+    public bool IsSslRequired(string? transportName) => transportName == "ssl";
 
-    private const string SslName = "ssl";
-    private const string TcpName = "tcp";
+    /// <inheritdoc/>
+    public string Name => "tcp";
 
     private readonly TcpServerTransportOptions _options;
 
@@ -28,37 +28,23 @@ public class TcpServerTransport : IDuplexServerTransport
 
     /// <inheritdoc/>
     public IListener<IDuplexConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAddress.Transport is string transport && !IsValidTransportName(transport, serverAddress.Protocol))
+        if (transportAddress.Name is string name && name is not "tcp" and not "ssl")
         {
             throw new NotSupportedException(
-                $"The Tcp server transport does not support server addresses with transport '{transport}'.");
+                $"The TCP server transport does not support transport '{name}'.");
         }
 
-        if (serverAddress.Params.Count > 0)
+        if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp server transport.",
-                nameof(serverAddress));
+                "The transport address contains parameters that are not valid for the TCP server transport.",
+                nameof(transportAddress));
         }
 
-        if (serverAddress.Transport is null)
-        {
-            serverAddress = serverAddress with { Transport = Name };
-        }
-        else if (serverAddress.Transport == SslName && serverAuthenticationOptions is null)
-        {
-            throw new ArgumentNullException(
-                nameof(serverAuthenticationOptions),
-                "The SSL server transport requires the SSL server authentication options to be set.");
-        }
-
-        return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);
-
-        static bool IsValidTransportName(string transportName, Protocol protocol) =>
-            protocol == Protocol.Ice ? transportName is TcpName or SslName : transportName is TcpName;
+        return new TcpListener(transportAddress, options, serverAuthenticationOptions, _options);
     }
 }

@@ -52,7 +52,7 @@ public class TcpTransportTests
     {
         // Act
         using TcpClientConnection connection = CreateTcpClientConnection(
-            new ServerAddress(Protocol.IceRpc),
+            new TransportAddress { Host = "127.0.0.1" },
             options: new TcpClientTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
@@ -86,7 +86,7 @@ public class TcpTransportTests
     public void Configure_client_connection_local_network_address()
     {
         using TcpClientConnection connection = CreateTcpClientConnection(
-            new ServerAddress(Protocol.IceRpc),
+            new TransportAddress { Host = "127.0.0.1" },
             options: new TcpClientTransportOptions
             {
                 LocalNetworkAddress = new IPEndPoint(IPAddress.Loopback, 10000),
@@ -122,7 +122,7 @@ public class TcpTransportTests
         IDuplexClientTransport clientTransport = new TcpClientTransport(
             new TcpClientTransportOptions());
 
-        using TcpClientConnection clientConnection = CreateTcpClientConnection(listener.ServerAddress);
+        using TcpClientConnection clientConnection = CreateTcpClientConnection(listener.TransportAddress);
         await clientConnection.ConnectAsync(default);
 
         // Act
@@ -190,7 +190,7 @@ public class TcpTransportTests
             try
             {
                 IDuplexConnection clientConnection = clientTransport.CreateConnection(
-                    listener.ServerAddress,
+                    listener.TransportAddress,
                     new DuplexConnectionOptions(),
                     null);
                 await clientConnection.ConnectAsync(source.Token);
@@ -221,10 +221,10 @@ public class TcpTransportTests
     public void DNS_name_cannot_be_used_in_a_tcp_listener_server_address()
     {
         // Arrange
-        var address = new ServerAddress(Protocol.IceRpc) { Host = "foo" };
+        var transportAddress = new TransportAddress { Host = "foo" };
 
         // Act/Assert
-        Assert.Throws<ArgumentException>(() => CreateTcpListener(address));
+        Assert.Throws<ArgumentException>(() => CreateTcpListener(transportAddress));
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with
@@ -239,7 +239,7 @@ public class TcpTransportTests
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             authenticationOptions:
                 new SslClientAuthenticationOptions
                 {
@@ -267,7 +267,7 @@ public class TcpTransportTests
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             authenticationOptions: tls ? DefaultSslClientAuthenticationOptions : null);
 
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
@@ -298,12 +298,10 @@ public class TcpTransportTests
     public async Task Ssl_client_fails_to_connect_to_tcp_server()
     {
         // Arrange
-        await using IListener<IDuplexConnection> listener = CreateTcpListener(
-            new ServerAddress(new Uri("ice://127.0.0.1:0")));
+        await using IListener<IDuplexConnection> listener = CreateTcpListener();
 
-        ServerAddress sslAddress = listener.ServerAddress with { Transport = "ssl" };
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            sslAddress,
+            listener.TransportAddress,
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
@@ -314,78 +312,28 @@ public class TcpTransportTests
             Throws.Exception.InstanceOf<OperationCanceledException>().Or.TypeOf<IceRpcException>());
     }
 
-    [TestCase("ice://127.0.0.1:0")]
-    [TestCase("ice://127.0.0.1:0?transport=tcp")]
-    [TestCase("ice://127.0.0.1:0?transport=ssl")]
-    [TestCase("ice://127.0.0.1:0?transport=tcp&t=60000&z")]
-    [TestCase("ice://127.0.0.1:0?transport=tcp&z=foo,z=bar")] // z can have any value
-    [TestCase("ice://127.0.0.1:0?transport=tcp&t=abcd")] // t can have any value
-    [TestCase("icerpc://127.0.0.1:0")]
-    [TestCase("icerpc://127.0.0.1:0?transport=tcp")]
-    public void Create_connection_to_valid_tcp_server_address(ServerAddress serverAddress) =>
+    [Test]
+    public void Create_connection_to_valid_tcp_endpoint() =>
         Assert.That(
             () =>
                 new TcpClientTransport().CreateConnection(
-                    serverAddress,
+                    new TransportAddress { Host = "127.0.0.1", Port = 0 },
                     new DuplexConnectionOptions(),
                     clientAuthenticationOptions: null).Dispose(),
            Throws.Nothing);
 
-    [TestCase("ice://127.0.0.1:0")]
-    [TestCase("ice://127.0.0.1:0?transport=tcp")]
-    [TestCase("ice://127.0.0.1:0?transport=ssl")]
-    [TestCase("icerpc://127.0.0.1:0")]
-    [TestCase("icerpc://127.0.0.1:0?transport=tcp")]
-    public void Listen_on_valid_tcp_server_address(ServerAddress serverAddress) =>
+    [Test]
+    public void Listen_on_valid_tcp_endpoint() =>
         Assert.That(
             async () =>
                 await new TcpServerTransport().Listen(
-                    serverAddress,
+                    new TransportAddress { Host = "127.0.0.1", Port = 0 },
                     new DuplexConnectionOptions(),
                     serverAuthenticationOptions: DefaultSslServerAuthenticationOptions).DisposeAsync(),
            Throws.Nothing);
 
-    [TestCase("ice://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("ice://127.0.0.1:0?transport=tcp&x", typeof(ArgumentException))]
-    [TestCase("icerpc://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("icerpc://127.0.0.1:0?transport=ssl", typeof(NotSupportedException))]
-    [TestCase("icerpc://127.0.0.1:0?transport=tcp&z", typeof(ArgumentException))]
-    public void Create_connection_to_invalid_tcp_server_address_fails(ServerAddress serverAddress, Type exceptionType)
-    {
-        Assert.That(
-            () =>
-                new TcpClientTransport().CreateConnection(
-                    serverAddress,
-                    new DuplexConnectionOptions(),
-                    clientAuthenticationOptions: null),
-            Throws.InstanceOf(exceptionType));
-    }
-
-    [TestCase("ice://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("ice://127.0.0.1:0?transport=tcp&z&t=30000", typeof(ArgumentException))]
-    [TestCase("ice://localhost:0?transport=tcp", typeof(ArgumentException))]
-    [TestCase("icerpc://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("icerpc://127.0.0.1:0?transport=ssl", typeof(NotSupportedException))]
-    [TestCase("icerpc://127.0.0.1:0?transport=tcp&z", typeof(ArgumentException))]
-    [TestCase("icerpc://localhost:0?transport=tcp", typeof(ArgumentException))]
-    public void Listen_on_invalid_tcp_server_address_fails(ServerAddress serverAddress, Type exceptionType) =>
-         Assert.That(
-            () =>
-                new TcpServerTransport().Listen(
-                    serverAddress,
-                    new DuplexConnectionOptions(),
-                    serverAuthenticationOptions: DefaultSslServerAuthenticationOptions),
-            Throws.InstanceOf(exceptionType));
-
-    [Test]
-    public void Listen_on_ssl_server_address_without_cert_fails() =>
-         Assert.That(
-            () =>
-                new TcpServerTransport().Listen(
-                    new ServerAddress(new Uri("ice://127.0.0.1:0?transport=ssl")),
-                    new DuplexConnectionOptions(),
-                    serverAuthenticationOptions: null),
-            Throws.InstanceOf<ArgumentNullException>());
+    // Tests for invalid transport names and protocol-specific params were removed because that validation
+    // has moved from the transport layer to the protocol layer.
 
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its
     /// connection. For tcp connections the server connect call is non-op.</summary>
@@ -397,14 +345,14 @@ public class TcpTransportTests
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
         using TcpClientConnection clientConnection =
             CreateTcpClientConnection(
-                listener.ServerAddress,
+                listener.TransportAddress,
                 authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
         await clientConnection.Socket.ConnectAsync(new DnsEndPoint(
-            listener.ServerAddress.Host,
-            listener.ServerAddress.Port));
+            listener.TransportAddress.Host,
+            listener.TransportAddress.Port));
         IDuplexConnection serverConnection = (await acceptTask).Connection;
         clientConnection.Dispose();
 
@@ -434,7 +382,7 @@ public class TcpTransportTests
             });
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
@@ -449,25 +397,25 @@ public class TcpTransportTests
     }
 
     private static IListener<IDuplexConnection> CreateTcpListener(
-        ServerAddress? serverAddress = null,
+        TransportAddress? transportAddress = null,
         TcpServerTransportOptions? options = null,
         SslServerAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
-            serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
+            transportAddress ?? new TransportAddress { Host = "127.0.0.1", Port = 0 },
             new DuplexConnectionOptions(),
             authenticationOptions);
     }
 
     private static TcpClientConnection CreateTcpClientConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexClientTransport transport = new TcpClientTransport(options ?? new());
         return (TcpClientConnection)transport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             authenticationOptions);
     }

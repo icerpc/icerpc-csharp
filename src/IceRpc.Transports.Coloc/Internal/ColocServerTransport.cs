@@ -11,12 +11,12 @@ internal class ColocServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
 
-    private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
+    private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
     private readonly ColocTransportOptions _options;
 
     /// <inheritdoc/>
     public IListener<IDuplexConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
@@ -25,20 +25,25 @@ internal class ColocServerTransport : IDuplexServerTransport
             throw new NotSupportedException("The Coloc server transport does not support SSL.");
         }
 
-        if ((serverAddress.Transport is string transport && transport != Name) ||
-            !ColocTransport.CheckParams(serverAddress))
+        if (transportAddress.Name is string name && name != Name)
+        {
+            throw new NotSupportedException(
+                $"The Coloc server transport does not support transport '{name}'.");
+        }
+
+        if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc server transport.",
-                nameof(serverAddress));
+                "The transport address contains parameters that are not valid for the Coloc server transport.",
+                nameof(transportAddress));
         }
 
         var listener = new ColocListener(
-            serverAddress with { Transport = Name },
+            transportAddress,
             colocTransportOptions: _options,
             duplexConnectionOptions: options);
 
-        if (!_listeners.TryAdd(listener.ServerAddress, listener))
+        if (!_listeners.TryAdd((transportAddress.Host, transportAddress.Port), listener))
         {
             throw new IceRpcException(IceRpcError.AddressInUse);
         }
@@ -46,7 +51,7 @@ internal class ColocServerTransport : IDuplexServerTransport
     }
 
     internal ColocServerTransport(
-        ConcurrentDictionary<ServerAddress, ColocListener> listeners,
+        ConcurrentDictionary<(string Host, ushort Port), ColocListener> listeners,
         ColocTransportOptions options)
     {
         _listeners = listeners;

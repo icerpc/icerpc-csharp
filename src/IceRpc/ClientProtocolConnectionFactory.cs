@@ -11,6 +11,8 @@ namespace IceRpc;
 /// <summary>Default implementation of <see cref="IClientProtocolConnectionFactory" />.</summary>
 public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
 {
+    private static readonly string[] _iceParams = ["t", "z"];
+
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
     private readonly ConnectionOptions _connectionOptions;
     private readonly IDuplexClientTransport _duplexClientTransport;
@@ -77,24 +79,55 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <see cref="IInvoker.InvokeAsync" />.</remarks>
     public IProtocolConnection CreateConnection(ServerAddress serverAddress)
     {
-        IProtocolConnection connection =
-            serverAddress.Protocol == Protocol.Ice ?
-                new IceProtocolConnection(
-                    _duplexClientTransport.CreateConnection(
-                        serverAddress,
-                        _duplexConnectionOptions,
-                        _clientAuthenticationOptions),
-                    transportConnectionInformation: null,
-                    _connectionOptions) :
-                new IceRpcProtocolConnection(
-                    _multiplexedClientTransport.CreateConnection(
-                        serverAddress,
-                        _multiplexedConnectionOptions,
-                        _clientAuthenticationOptions),
-                    transportConnectionInformation: null,
-                    _connectionOptions,
-                    taskExceptionObserver: _logger == NullLogger.Instance ? null :
-                        new LogTaskExceptionObserver(_logger));
+        var transportAddress = serverAddress.ToTransportAddress();
+
+        // Validate user-provided ALPN.
+        if (_clientAuthenticationOptions?.ApplicationProtocols is { } applicationProtocols)
+        {
+            if (applicationProtocols.Count != 1 || applicationProtocols[0] != serverAddress.Protocol.AlpnProtocol)
+            {
+                throw new ArgumentException(
+                    $"The ApplicationProtocols must contain exactly '{serverAddress.Protocol.Name}'.");
+            }
+        }
+
+        IProtocolConnection connection;
+        if (serverAddress.Protocol == Protocol.Ice)
+        {
+            SslClientAuthenticationOptions? authOptions = _clientAuthenticationOptions?.Clone();
+            if (authOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
+            {
+                authOptions = new SslClientAuthenticationOptions();
+            }
+            authOptions?.ApplicationProtocols ??= [Protocol.Ice.AlpnProtocol];
+
+            // Strip Ice-specific params ("t", "z") before passing to transport.
+            transportAddress = transportAddress with
+            {
+                Params = transportAddress.Params.RemoveRange(_iceParams)
+            };
+
+            connection = new IceProtocolConnection(
+                _duplexClientTransport.CreateConnection(transportAddress, _duplexConnectionOptions, authOptions),
+                transportConnectionInformation: null,
+                _connectionOptions);
+        }
+        else
+        {
+            SslClientAuthenticationOptions? authOptions = _clientAuthenticationOptions?.Clone();
+            if (authOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
+            {
+                authOptions = new SslClientAuthenticationOptions();
+            }
+            authOptions?.ApplicationProtocols ??= [Protocol.IceRpc.AlpnProtocol];
+
+            connection = new IceRpcProtocolConnection(
+                _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, authOptions),
+                transportConnectionInformation: null,
+                _connectionOptions,
+                taskExceptionObserver: _logger == NullLogger.Instance ? null :
+                    new LogTaskExceptionObserver(_logger));
+        }
 
         connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, connectStarted: false);
 

@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Security;
 
 namespace IceRpc;
 
@@ -31,6 +32,9 @@ public class Protocol
     /// <summary>Gets the name of this protocol.</summary>
     /// <value>The protocol name.</value>
     public string Name { get; }
+
+    /// <summary>Gets the ALPN protocol identifier for this protocol.</summary>
+    internal SslApplicationProtocol AlpnProtocol { get; }
 
     /// <summary>Gets the byte value for this protocol.</summary>
     /// <value>The protocol byte value. It's used as the "protocol major" with the Ice encoding.</value>
@@ -109,6 +113,7 @@ public class Protocol
         byte byteValue)
     {
         Name = name;
+        AlpnProtocol = new SslApplicationProtocol(name);
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;

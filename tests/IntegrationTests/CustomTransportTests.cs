@@ -17,27 +17,18 @@ public class CustomClientTransport : IMultiplexedClientTransport
         new SlicClientTransport(new TcpClientTransport());
 
     public IMultiplexedConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if (serverAddress.Transport is string transport)
+        // Remap custom transport name to tcp and strip custom params before delegating.
+        transportAddress = transportAddress with
         {
-            if (transport != "tcp" && transport != "custom")
-            {
-                throw new ArgumentException(
-                    $"cannot use custom transport with server address '{serverAddress}'",
-                    nameof(serverAddress));
-            }
-        }
-
-        serverAddress = serverAddress with
-        {
-            Params = serverAddress.Params.Remove("custom-p"),
-            Transport = "tcp"
+            Name = "tcp",
+            Params = transportAddress.Params.Remove("custom-p")
         };
 
-        return _transport.CreateConnection(serverAddress, options, clientAuthenticationOptions);
+        return _transport.CreateConnection(transportAddress, options, clientAuthenticationOptions);
     }
 }
 
@@ -49,22 +40,18 @@ public class CustomServerTransport : IMultiplexedServerTransport
         new SlicServerTransport(new TcpServerTransport());
 
     public IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAddress.Transport is string transport && transport != "tcp" && transport != "custom")
+        // Remap custom transport name to tcp and strip custom params before delegating.
+        transportAddress = transportAddress with
         {
-            throw new ArgumentException($"cannot use custom transport with server address '{serverAddress}'", nameof(serverAddress));
-        }
-
-        serverAddress = serverAddress with
-        {
-            Params = serverAddress.Params.Remove("custom-p"),
-            Transport = "tcp"
+            Name = "tcp",
+            Params = transportAddress.Params.Remove("custom-p")
         };
 
-        return _transport.Listen(serverAddress, options, serverAuthenticationOptions);
+        return _transport.Listen(transportAddress, options, serverAuthenticationOptions);
     }
 }
 

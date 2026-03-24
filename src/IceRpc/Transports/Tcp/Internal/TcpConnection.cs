@@ -281,16 +281,16 @@ internal class TcpClientConnection : TcpConnection
     private SslStream? _sslStream;
 
     internal TcpClientConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         SslClientAuthenticationOptions? authenticationOptions,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         TcpClientTransportOptions options)
         : base(authenticationOptions is not null ? pool.Rent(minimumSegmentSize) : null)
     {
-        _addr = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, serverAddress.Port) :
-            new DnsEndPoint(serverAddress.Host, serverAddress.Port);
+        _addr = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
+            new IPEndPoint(ipAddress, transportAddress.Port) :
+            new DnsEndPoint(transportAddress.Host, transportAddress.Port);
 
         _authenticationOptions = authenticationOptions;
 
@@ -354,7 +354,7 @@ internal class TcpClientConnection : TcpConnection
         catch (SocketException exception) when (isConnected)
         {
             // This can happen if the peer closes the connection immediately after accepting it, which can
-            // cause the endpoint information to be unavailable. Any SocketException at this point means the
+            // cause the transportAddress information to be unavailable. Any SocketException at this point means the
             // connection is no longer usable.
             throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }

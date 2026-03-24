@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Quic.Internal;
 [SupportedOSPlatform("windows")]
 internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 {
-    public ServerAddress ServerAddress { get; }
+    public TransportAddress TransportAddress { get; }
 
     private readonly QuicListener _listener;
     private readonly MultiplexedConnectionOptions _options;
@@ -40,25 +40,19 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     public ValueTask DisposeAsync() => _listener.DisposeAsync();
 
     internal QuicMultiplexedListener(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         QuicServerTransportOptions quicTransportOptions,
         SslServerAuthenticationOptions authenticationOptions)
     {
-        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
         {
             throw new ArgumentException(
-                $"Listening on the DNS name '{serverAddress.Host}' is not allowed; an IP address is required.",
-                nameof(serverAddress));
+                $"Listening on the DNS name '{transportAddress.Host}' is not allowed; an IP address is required.",
+                nameof(transportAddress));
         }
 
         _options = options;
-
-        authenticationOptions = authenticationOptions.Clone();
-        authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> // Mandatory with Quic
-        {
-            new SslApplicationProtocol(serverAddress.Protocol.Name)
-        };
 
         _quicServerOptions = new QuicServerConnectionOptions
         {
@@ -79,16 +73,16 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             ValueTask<QuicListener> task = QuicListener.ListenAsync(
                 new QuicListenerOptions
                 {
-                    ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
+                    ListenEndPoint = new IPEndPoint(ipAddress, transportAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
-                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                    ApplicationProtocols = authenticationOptions.ApplicationProtocols!,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);
             Debug.Assert(task.IsCompleted);
             _listener = task.Result;
 
-            ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
+            TransportAddress = transportAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
         }
         catch (QuicException exception)
         {

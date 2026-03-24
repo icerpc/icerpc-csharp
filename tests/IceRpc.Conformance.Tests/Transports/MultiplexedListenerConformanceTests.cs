@@ -33,7 +33,7 @@ public abstract class MultiplexedListenerConformanceTests
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         await using var clientConnection = clientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
             provider.GetService<SslClientAuthenticationOptions>());
 
@@ -154,7 +154,7 @@ public abstract class MultiplexedListenerConformanceTests
         await sut.AcceptAndConnectAsync();
 
         await using IMultiplexedConnection connection = clientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
             provider.GetService<SslClientAuthenticationOptions>());
 
@@ -181,25 +181,13 @@ public abstract class MultiplexedListenerConformanceTests
         // Act/Assert
         IceRpcException? exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(
-                listener.ServerAddress,
+                listener.TransportAddress,
                 new MultiplexedConnectionOptions(),
                 provider.GetService<SslServerAuthenticationOptions>()));
         Assert.That(
             exception!.IceRpcError,
             Is.EqualTo(IceRpcError.AddressInUse),
             $"The test failed with an unexpected IceRpcError {exception}");
-    }
-
-    [Test]
-    public async Task Listener_server_address_transport_property_is_set()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var transport = provider.GetRequiredService<IMultiplexedClientTransport>().Name;
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        // Act/Assert
-        Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
     /// <summary>Creates the service collection used for multiplexed listener conformance tests.</summary>

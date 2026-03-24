@@ -5,8 +5,8 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.IO.Pipelines;
-using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -14,6 +14,46 @@ namespace IceRpc.Conformance.Tests;
 public abstract class MultiplexedConnectionConformanceTests
 {
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
+
+    [Test]
+    public async Task Create_client_connection_with_unknown_endpoint_parameter_fails()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+
+        var transportAddress = new TransportAddress
+        {
+            Host = "foo",
+            Params = new Dictionary<string, string> { ["unknown-parameter"] = "foo" }.ToImmutableDictionary()
+        };
+
+        Assert.That(
+            () => clientTransport.CreateConnection(
+                transportAddress,
+                new MultiplexedConnectionOptions(),
+                clientAuthenticationOptions: null),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public async Task Create_listener_with_unknown_endpoint_parameter_fails()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
+
+        var transportAddress = new TransportAddress
+        {
+            Host = "127.0.0.1",
+            Params = new Dictionary<string, string> { ["unknown-parameter"] = "foo" }.ToImmutableDictionary()
+        };
+
+        Assert.That(
+            () => serverTransport.Listen(
+                transportAddress,
+                new MultiplexedConnectionOptions(),
+                serverAuthenticationOptions: null),
+            Throws.TypeOf<ArgumentException>());
+    }
 
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>
     /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
@@ -331,36 +371,6 @@ public abstract class MultiplexedConnectionConformanceTests
         // Assert
         Assert.That(() => clientCloseTask, Throws.Nothing);
         Assert.That(() => serverCloseTask, Throws.Nothing);
-    }
-
-    [Test]
-    public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
-    {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-
-        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
-
-        // Act/Asserts
-        Assert.Throws<ArgumentException>(() => clientTransport.CreateConnection(
-            serverAddress,
-            new MultiplexedConnectionOptions(),
-            provider.GetService<SslClientAuthenticationOptions>()));
-    }
-
-    [Test]
-    public async Task Create_server_connection_with_unknown_server_address_parameter_fails_with_format_exception()
-    {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
-
-        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
-
-        // Act/Asserts
-        Assert.Throws<ArgumentException>(() => serverTransport.Listen(
-            serverAddress,
-            new MultiplexedConnectionOptions(),
-            provider.GetService<SslServerAuthenticationOptions>()));
     }
 
     [Test]

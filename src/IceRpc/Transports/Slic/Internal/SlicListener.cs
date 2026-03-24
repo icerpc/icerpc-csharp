@@ -6,7 +6,7 @@ namespace IceRpc.Transports.Slic.Internal;
 
 internal class SlicListener : IListener<IMultiplexedConnection>
 {
-    public ServerAddress ServerAddress => _duplexListener.ServerAddress;
+    public TransportAddress TransportAddress => _duplexListener.TransportAddress;
 
     private readonly IListener<IDuplexConnection> _duplexListener;
     private readonly MultiplexedConnectionOptions _options;

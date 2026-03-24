@@ -9,6 +9,9 @@ namespace IceRpc.Transports.Slic;
 public class SlicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => _duplexClientTransport.IsSslRequired(transportName);
+
+    /// <inheritdoc/>
     public string Name => _duplexClientTransport.Name;
 
     private readonly IDuplexClientTransport _duplexClientTransport;
@@ -32,12 +35,12 @@ public class SlicClientTransport : IMultiplexedClientTransport
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions) =>
         new SlicConnection(
             _duplexClientTransport.CreateConnection(
-                serverAddress,
+                transportAddress,
                 new DuplexConnectionOptions
                 {
                     MinSegmentSize = options.MinSegmentSize,
