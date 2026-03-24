@@ -8,22 +8,22 @@ using ZeroC.Slice.Symbols;
 namespace ZeroC.Slice.Generator;
 
 /// <summary>Generates C# enums and extension classes from Slice enum definitions.</summary>
-internal static class EnumWithUnderlyingGenerator
+internal static class BasicEnumGenerator
 {
-    internal static CodeBlock Generate(EnumWithUnderlying enumDef) => enumDef.Underlying.Kind switch
+    internal static CodeBlock Generate(BasicEnum enumDef) => enumDef.Underlying.Kind switch
     {
-        BuiltinKind.Int8 => GenerateCore((EnumWithUnderlying<sbyte>)enumDef),
-        BuiltinKind.UInt8 => GenerateCore((EnumWithUnderlying<byte>)enumDef),
-        BuiltinKind.Int16 => GenerateCore((EnumWithUnderlying<short>)enumDef),
-        BuiltinKind.UInt16 => GenerateCore((EnumWithUnderlying<ushort>)enumDef),
-        BuiltinKind.Int32 or BuiltinKind.VarInt32 => GenerateCore((EnumWithUnderlying<int>)enumDef),
-        BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => GenerateCore((EnumWithUnderlying<uint>)enumDef),
-        BuiltinKind.Int64 or BuiltinKind.VarInt62 => GenerateCore((EnumWithUnderlying<long>)enumDef),
-        BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => GenerateCore((EnumWithUnderlying<ulong>)enumDef),
+        BuiltinKind.Int8 => GenerateCore((BasicEnum<sbyte>)enumDef),
+        BuiltinKind.UInt8 => GenerateCore((BasicEnum<byte>)enumDef),
+        BuiltinKind.Int16 => GenerateCore((BasicEnum<short>)enumDef),
+        BuiltinKind.UInt16 => GenerateCore((BasicEnum<ushort>)enumDef),
+        BuiltinKind.Int32 or BuiltinKind.VarInt32 => GenerateCore((BasicEnum<int>)enumDef),
+        BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => GenerateCore((BasicEnum<uint>)enumDef),
+        BuiltinKind.Int64 or BuiltinKind.VarInt62 => GenerateCore((BasicEnum<long>)enumDef),
+        BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => GenerateCore((BasicEnum<ulong>)enumDef),
         _ => throw new InvalidOperationException($"Unsupported enum underlying type: {enumDef.Underlying.Kind}"),
     };
 
-    private static CodeBlock GenerateCore<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>
+    private static CodeBlock GenerateCore<T>(BasicEnum<T> enumDef) where T : struct, INumber<T>
     {
         string identifier = enumDef.Name;
         string accessModifier = enumDef.AccessModifier;
@@ -38,7 +38,7 @@ internal static class EnumWithUnderlyingGenerator
     }
 
     private static CodeBlock GenerateEnumDeclaration<T>(
-        EnumWithUnderlying<T> enumDef,
+        BasicEnum<T> enumDef,
         string identifier,
         string accessModifier) where T : struct, INumber<T>
     {
@@ -52,7 +52,7 @@ internal static class EnumWithUnderlyingGenerator
             .AddBase(enumDef.Underlying.CSType);
 
         // Add enumerator declarations.
-        foreach (EnumWithUnderlying<T>.Enumerator enumerator in enumDef.Enumerators)
+        foreach (BasicEnum<T>.Enumerator enumerator in enumDef.Enumerators)
         {
             var code = new CodeBlock();
             code.WriteDocCommentSummary(enumerator.Comment, enumDef.Namespace);
@@ -64,7 +64,7 @@ internal static class EnumWithUnderlyingGenerator
     }
 
     private static CodeBlock GenerateEnumUnderlyingExtensions<T>(
-        EnumWithUnderlying<T> enumDef,
+        BasicEnum<T> enumDef,
         string identifier,
         string accessModifier) where T : struct, INumber<T>
     {
@@ -143,7 +143,7 @@ internal static class EnumWithUnderlyingGenerator
     }
 
     private static CodeBlock GenerateEnumEncoderExtensions(
-        EnumWithUnderlying enumDef,
+        BasicEnum enumDef,
         string identifier,
         string accessModifier)
     {
@@ -178,7 +178,7 @@ internal static class EnumWithUnderlyingGenerator
     }
 
     private static CodeBlock GenerateEnumDecoderExtensions(
-        EnumWithUnderlying enumDef,
+        BasicEnum enumDef,
         string identifier,
         string accessModifier)
     {
@@ -214,14 +214,14 @@ internal static class EnumWithUnderlyingGenerator
             .Build();
     }
 
-    private static string FormatValue<T>(EnumWithUnderlying<T>.Enumerator e) where T : struct, INumber<T> =>
+    private static string FormatValue<T>(BasicEnum<T>.Enumerator e) where T : struct, INumber<T> =>
         e.Value.ToString(null, CultureInfo.InvariantCulture);
 
     private static string GetArticle(string word) =>
         // cspell:disable-next-line
         word.Length > 0 && "aeiouAEIOU".Contains(word[0], StringComparison.Ordinal) ? "an" : "a";
 
-    private static bool NeedsHashSetValidation<T>(EnumWithUnderlying<T> enumDef) where T : struct, INumber<T>
+    private static bool NeedsHashSetValidation<T>(BasicEnum<T> enumDef) where T : struct, INumber<T>
     {
         // If the enumerator count covers the full range of the underlying type, every value is valid
         // and no validation is needed. This also prevents overflow when computing max - min below

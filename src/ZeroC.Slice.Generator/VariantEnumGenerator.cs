@@ -6,10 +6,10 @@ using ZeroC.Slice.Symbols;
 
 namespace ZeroC.Slice.Generator;
 
-/// <summary>Generates Dunet discriminated unions from Slice enums with fields.</summary>
-internal static class EnumWithFieldsGenerator
+/// <summary>Generates Dunet discriminated unions from Slice variant enums.</summary>
+internal static class VariantEnumGenerator
 {
-    internal static CodeBlock Generate(EnumWithFields enumDef)
+    internal static CodeBlock Generate(VariantEnum enumDef)
     {
         string identifier = enumDef.Name;
         string accessModifier = enumDef.AccessModifier;
@@ -24,7 +24,7 @@ internal static class EnumWithFieldsGenerator
     }
 
     private static CodeBlock GenerateUnknownRecord(
-        EnumWithFields enumDef,
+        VariantEnum enumDef,
         string parentIdentifier,
         string accessModifier)
     {
@@ -35,9 +35,9 @@ internal static class EnumWithFieldsGenerator
             .AddBase(parentIdentifier)
             .AddComment(
                 "summary",
-                @$"Represents an enumerator not defined in the local Slice definition of unchecked enum '{enumName}'.")
-            .AddComment("param", "name", "Discriminant", "The discriminant of this unknown enumerator.")
-            .AddComment("param", "name", "Fields", "The encoded fields of this unknown enumerator.")
+                @$"Represents a variant not defined in the local Slice definition of unchecked enum '{enumName}'.")
+            .AddComment("param", "name", "Discriminant", "The discriminant of this unknown variant.")
+            .AddComment("param", "name", "Fields", "The encoded fields of this unknown variant.")
             .AddBlock("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal override void Encode(ref SliceEncoder encoder)
@@ -50,7 +50,7 @@ internal static class EnumWithFieldsGenerator
             .Build();
     }
 
-    private static CodeBlock GenerateEncoderExtensions(EnumWithFields enumDef, string identifier, string accessModifier)
+    private static CodeBlock GenerateEncoderExtensions(VariantEnum enumDef, string identifier, string accessModifier)
     {
         string scopedId = enumDef.ScopedIdentifier;
 
@@ -73,14 +73,14 @@ internal static class EnumWithFieldsGenerator
                         identifier,
                         "value",
                         null,
-                        @$"The <see cref=""{identifier}"" /> enumerator value to encode.")
+                        @$"The <see cref=""{identifier}"" /> variant value to encode.")
                     .SetBody("value.Encode(ref encoder)")
                     .Build())
             .Build();
     }
 
     private static CodeBlock GenerateUnionDeclaration(
-        EnumWithFields enumDef,
+        VariantEnum enumDef,
         string identifier,
         string accessModifier,
         string currentNamespace)
@@ -95,20 +95,20 @@ internal static class EnumWithFieldsGenerator
             .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
             .AddAttribute("Dunet.Union");
 
-        // Generate nested record classes for each enumerator.
-        foreach (EnumWithFields.Enumerator enumerator in enumDef.Enumerators)
+        // Generate nested record classes for each variant.
+        foreach (VariantEnum.Variant variant in enumDef.Variants)
         {
             builder.AddBlock(
-                GenerateEnumeratorRecord(
-                    enumerator,
+                GenerateVariantRecord(
+                    variant,
                     enumDef,
                     identifier,
                     accessModifier,
                     currentNamespace,
-                    enumerator.Discriminant));
+                    variant.Discriminant));
         }
 
-        // For unchecked enums, add the Unknown variant.
+        // For unchecked variant enums, add the Unknown variant.
         if (enumDef.IsUnchecked)
         {
             builder.AddBlock(GenerateUnknownRecord(enumDef, identifier, accessModifier));
@@ -124,38 +124,38 @@ internal static class EnumWithFieldsGenerator
         return builder.Build();
     }
 
-    private static CodeBlock GenerateEnumeratorRecord(
-        EnumWithFields.Enumerator enumerator,
-        EnumWithFields enumDef,
+    private static CodeBlock GenerateVariantRecord(
+        VariantEnum.Variant variant,
+        VariantEnum enumDef,
         string parentIdentifier,
         string accessModifier,
         string currentNamespace,
         int discriminant)
     {
-        string enumeratorName = enumerator.Name;
+        string variantName = variant.Name;
 
         // Build parameter list for the record constructor.
-        string nameWithParams = enumerator.Fields.Count > 0
-            ? $"{enumeratorName}({BuildParameterList(enumerator.Fields, "")})"
-            : enumeratorName;
+        string nameWithParams = variant.Fields.Count > 0
+            ? $"{variantName}({BuildParameterList(variant.Fields, "")})"
+            : variantName;
 
         return new ContainerBuilder($"{accessModifier} partial record class", nameWithParams)
-            .AddDocCommentSummary(enumerator.Comment, currentNamespace)
-            .AddDocCommentSeeAlso(enumerator.Comment, currentNamespace)
+            .AddDocCommentSummary(variant.Comment, currentNamespace)
+            .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
             .AddBase(parentIdentifier)
-            .AddCSAttributes(enumerator.Attributes)
+            .AddCSAttributes(variant.Attributes)
             .AddBlock(
                 $"""
-                /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
+                /// <summary>The discriminant of this variant, used for encoding/decoding.</summary>
                 public const int Discriminant = {discriminant};
                 """)
-            .AddBlock(GenerateEncodeMethod(enumerator, enumDef, currentNamespace))
+            .AddBlock(GenerateEncodeMethod(variant, enumDef, currentNamespace))
             .Build();
     }
 
     private static CodeBlock GenerateEncodeMethod(
-        EnumWithFields.Enumerator enumerator,
-        EnumWithFields enumDef,
+        VariantEnum.Variant variant,
+        VariantEnum enumDef,
         string currentNamespace)
     {
         var code = new CodeBlock();
@@ -178,7 +178,7 @@ internal static class EnumWithFieldsGenerator
         }
 
         // Encode fields (bit sequence, tagged, optional, regular, and tag end marker).
-        CodeBlock encodeBody = enumerator.Fields.GenerateEncodeBody(
+        CodeBlock encodeBody = variant.Fields.GenerateEncodeBody(
             currentNamespace,
             includeTagEndMarker: !enumDef.IsCompact);
         code.WriteLine($"    {encodeBody.Indent()}");
@@ -194,7 +194,7 @@ internal static class EnumWithFieldsGenerator
     }
 
     private static CodeBlock GenerateDecoderExtensions(
-        EnumWithFields enumDef,
+        VariantEnum enumDef,
         string identifier,
         string accessModifier,
         string currentNamespace)
@@ -210,18 +210,18 @@ internal static class EnumWithFieldsGenerator
             .AddParameter("this ref SliceDecoder", "decoder", null, "The Slice decoder.")
             .AddComment(
                 "returns",
-                @$"The decoded <see cref=""{identifier}"" /> enumerator value.");
+                @$"The decoded <see cref=""{identifier}"" /> variant value.");
 
         var body = new CodeBlock();
 
         // Build the switch expression.
         body.WriteLine("return decoder.DecodeVarInt32() switch");
         body.WriteLine("{");
-        foreach (EnumWithFields.Enumerator enumerator in enumDef.Enumerators)
+        foreach (VariantEnum.Variant variant in enumDef.Variants)
         {
-            string enumeratorName = enumerator.Name;
+            string variantName = variant.Name;
             body.WriteLine(
-                $"    {identifier}.{enumeratorName}.Discriminant => Decode{enumeratorName}(ref decoder),");
+                $"    {identifier}.{variantName}.Discriminant => Decode{variantName}(ref decoder),");
         }
 
         // Fallback case.
@@ -234,10 +234,10 @@ internal static class EnumWithFieldsGenerator
                 """);
         body.WriteLine("};");
 
-        // Local static decode functions for each enumerator.
-        foreach (EnumWithFields.Enumerator enumerator in enumDef.Enumerators)
+        // Local static decode functions for each variant.
+        foreach (VariantEnum.Variant variant in enumDef.Variants)
         {
-            body.AddBlock(GenerateDecodeLocalFunction(enumerator, enumDef, identifier, currentNamespace));
+            body.AddBlock(GenerateDecodeLocalFunction(variant, enumDef, identifier, currentNamespace));
         }
 
         method.SetBody(body);
@@ -256,16 +256,16 @@ internal static class EnumWithFieldsGenerator
     }
 
     private static CodeBlock GenerateDecodeLocalFunction(
-        EnumWithFields.Enumerator enumerator,
-        EnumWithFields enumDef,
+        VariantEnum.Variant variant,
+        VariantEnum enumDef,
         string parentIdentifier,
         string currentNamespace)
     {
-        string enumeratorName = enumerator.Name;
-        IReadOnlyList<Field> sortedFields = enumerator.Fields.GetSortedFields();
+        string variantName = variant.Name;
+        IReadOnlyList<Field> sortedFields = variant.Fields.GetSortedFields();
 
         var code = new CodeBlock();
-        code.WriteLine($"static {parentIdentifier}.{enumeratorName} Decode{enumeratorName}(ref SliceDecoder decoder)");
+        code.WriteLine($"static {parentIdentifier}.{variantName} Decode{variantName}(ref SliceDecoder decoder)");
         code.WriteLine("{");
 
         // For unchecked enums, skip the size prefix.
@@ -275,16 +275,16 @@ internal static class EnumWithFieldsGenerator
         }
 
         // Bit sequence for non-tagged optional fields.
-        int bitSequenceSize = enumerator.Fields.GetBitSequenceSize();
+        int bitSequenceSize = variant.Fields.GetBitSequenceSize();
         if (bitSequenceSize > 0)
         {
             code.WriteLine($"    var bitSequenceReader = decoder.GetBitSequenceReader({bitSequenceSize});");
         }
 
         // Build the constructor call with named parameters.
-        if (enumerator.Fields.Count == 0)
+        if (variant.Fields.Count == 0)
         {
-            code.WriteLine($"    var result = new {parentIdentifier}.{enumeratorName}();");
+            code.WriteLine($"    var result = new {parentIdentifier}.{variantName}();");
         }
         else if (sortedFields.Count == 1 && !sortedFields[0].IsTagged)
         {
@@ -292,12 +292,12 @@ internal static class EnumWithFieldsGenerator
             Field field = sortedFields[0];
             string paramName = field.Name;
             string decodeExpr = field.GetFieldDecodeExpression(currentNamespace);
-            code.WriteLine($"    var result = new {parentIdentifier}.{enumeratorName}({paramName}: {decodeExpr});");
+            code.WriteLine($"    var result = new {parentIdentifier}.{variantName}({paramName}: {decodeExpr});");
         }
         else
         {
             // Multi-field: build with named args.
-            code.WriteLine($"    var result = new {parentIdentifier}.{enumeratorName}(");
+            code.WriteLine($"    var result = new {parentIdentifier}.{variantName}(");
             for (int i = 0; i < sortedFields.Count; i++)
             {
                 Field field = sortedFields[i];

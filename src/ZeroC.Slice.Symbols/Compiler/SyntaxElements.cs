@@ -465,7 +465,7 @@ public partial record struct Enum
     }
 }
 
-/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Enumerator</c>.</remarks>
+/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Variant</c>.</remarks>
 public partial record struct Enumerator
 {
     public EntityInfo EntityInfo { get; set; }

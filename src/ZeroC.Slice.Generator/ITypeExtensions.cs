@@ -19,7 +19,7 @@ internal static class ITypeExtensions
         {
             Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
             DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
-            EnumWithUnderlying e when e.IsUnchecked =>
+            BasicEnum e when e.IsUnchecked =>
                 $"({e.ToTypeString(currentNamespace)})decoder.Decode{e.Underlying.Suffix}()",
             Entity e when e.UsesExtensionsClass =>
                 $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
@@ -123,7 +123,7 @@ internal static class ITypeExtensions
         {
             Builtin builtin => $"{encoderName}.Encode{builtin.Suffix}({param})",
             DictionaryType dict => EncodeDictionary(dict, currentNamespace, param, encoderName),
-            EnumWithUnderlying e when e.IsUnchecked =>
+            BasicEnum e when e.IsUnchecked =>
                 $"{encoderName}.Encode{e.Underlying.Suffix}(({e.Underlying.CSType}){param})",
             Entity e when e.UsesExtensionsClass =>
                 $"{e.EncoderExtensionsClass}.Encode{e.Name}(ref {encoderName}, {param})",
@@ -196,7 +196,7 @@ internal static class ITypeExtensions
                 // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
                 string valueExpr = elemType is CustomType
                     ? "(value ?? default!)"
-                    : elemType is Struct or EnumWithUnderlying ? "value!.Value" : "value!";
+                    : elemType is Struct or BasicEnum ? "value!.Value" : "value!";
                 if (elemType is Entity entity && entity.UsesExtensionsClass)
                 {
                     string extClass = entity.EncoderExtensionsClass;

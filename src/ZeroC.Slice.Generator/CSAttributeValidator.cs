@@ -60,9 +60,9 @@ internal static class CsAttributeValidator
                 }
                 break;
 
-            case EnumWithFields e:
+            case VariantEnum e:
                 ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
-                foreach (EnumWithFields.Enumerator en in e.Enumerators)
+                foreach (VariantEnum.Variant en in e.Variants)
                 {
                     ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
                     foreach (Field field in en.Fields)
@@ -72,7 +72,7 @@ internal static class CsAttributeValidator
                 }
                 break;
 
-            case EnumWithUnderlying e:
+            case BasicEnum e:
                 ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
                 ValidateEnumWithUnderlyingEnumerators(e, diagnostics);
                 break;
@@ -102,45 +102,45 @@ internal static class CsAttributeValidator
     }
 
     private static void ValidateEnumWithUnderlyingEnumerators(
-        EnumWithUnderlying e,
+        BasicEnum e,
         List<Compiler.Diagnostic> diagnostics)
     {
-        // TODO will be better to refactor EnumWithUnderlying to avoid the need for this switch,
-        // We can have Enumerators and TypedEnumerators and only used the typed one to access the value.
+        // TODO will be better to refactor BasicEnum to avoid the need for this switch,
+        // We can have Variants and TypedEnumerators and only used the typed one to access the value.
         switch (e)
         {
-            case EnumWithUnderlying<sbyte> enumWithUnderlying:
+            case BasicEnum<sbyte> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<byte> enumWithUnderlying:
+            case BasicEnum<byte> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<short> enumWithUnderlying:
+            case BasicEnum<short> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<ushort> enumWithUnderlying:
+            case BasicEnum<ushort> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<int> enumWithUnderlying:
+            case BasicEnum<int> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<uint> enumWithUnderlying:
+            case BasicEnum<uint> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<long> enumWithUnderlying:
+            case BasicEnum<long> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
-            case EnumWithUnderlying<ulong> enumWithUnderlying:
+            case BasicEnum<ulong> enumWithUnderlying:
                 ValidateEnumerators(enumWithUnderlying, diagnostics);
                 break;
         }
 
         static void ValidateEnumerators<T>(
-            EnumWithUnderlying<T> e,
+            BasicEnum<T> e,
             List<Compiler.Diagnostic> diagnostics)
             where T : struct, System.Numerics.INumber<T>
         {
-            foreach (EnumWithUnderlying<T>.Enumerator en in e.Enumerators)
+            foreach (BasicEnum<T>.Enumerator en in e.Enumerators)
             {
                 ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
             }

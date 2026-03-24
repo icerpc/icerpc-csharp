@@ -357,7 +357,7 @@ public sealed class SymbolConverter
         }
         else
         {
-            var result = new EnumWithFields
+            var result = new VariantEnum
             {
                 Identifier = raw.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
@@ -365,7 +365,7 @@ public sealed class SymbolConverter
                 Module = module,
                 IsCompact = raw.IsCompact,
                 IsUnchecked = raw.IsUnchecked,
-                Enumerators = raw.Enumerators.Select(e => new EnumWithFields.Enumerator
+                Variants = raw.Enumerators.Select(e => new VariantEnum.Variant
                 {
                     Identifier = e.EntityInfo.Identifier,
                     Attributes = ConvertAttributes(e.EntityInfo.Attributes),
@@ -375,8 +375,8 @@ public sealed class SymbolConverter
                     Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
                 }).ToImmutableList(),
             };
-            SetParent(result, result.Enumerators);
-            foreach (EnumWithFields.Enumerator enumerator in result.Enumerators)
+            SetParent(result, result.Variants);
+            foreach (VariantEnum.Variant enumerator in result.Variants)
             {
                 SetParent(enumerator, enumerator.Fields);
             }
@@ -424,13 +424,13 @@ public sealed class SymbolConverter
         return result;
     }
 
-    private EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
+    private BasicEnum<T> CreateEnumWithUnderlying<T>(
         Compiler.Enum raw,
         Module module,
         Builtin builtin,
         Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T>
     {
-        var result = new EnumWithUnderlying<T>
+        var result = new BasicEnum<T>
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
@@ -438,7 +438,7 @@ public sealed class SymbolConverter
             Module = module,
             IsUnchecked = raw.IsUnchecked,
             Underlying = builtin,
-            Enumerators = raw.Enumerators.Select(e => new EnumWithUnderlying<T>.Enumerator
+            Enumerators = raw.Enumerators.Select(e => new BasicEnum<T>.Enumerator
             {
                 Identifier = e.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(e.EntityInfo.Attributes),
@@ -535,10 +535,10 @@ public sealed class SymbolConverter
         return parent switch
         {
             Interface i => i.Operations.FirstOrDefault(o => o.Identifier == childName),
-            EnumWithFields ewf => ewf.Enumerators.FirstOrDefault(e => e.Identifier == childName),
-            EnumWithUnderlying ewu => ewu.FindEnumeratorByIdentifier(childName),
+            VariantEnum ewf => ewf.Variants.FirstOrDefault(e => e.Identifier == childName),
+            BasicEnum ewu => ewu.FindEnumeratorByIdentifier(childName),
             Struct s => s.Fields.FirstOrDefault(f => f.Identifier == childName),
-            EnumWithFields.Enumerator e => e.Fields.FirstOrDefault(f => f.Identifier == childName),
+            VariantEnum.Variant e => e.Fields.FirstOrDefault(f => f.Identifier == childName),
             Operation op => op.Parameters.Concat(op.ReturnType).FirstOrDefault(f => f.Identifier == childName),
             _ => null,
         };

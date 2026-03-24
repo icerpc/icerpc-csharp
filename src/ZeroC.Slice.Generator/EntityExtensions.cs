@@ -46,6 +46,6 @@ internal static class EntityExtensions
 
         /// <summary>Gets a value indicating whether this entity type uses a generated extensions class
         /// for encoding/decoding (as opposed to instance Encode/Decode methods).</summary>
-        internal bool UsesExtensionsClass => entity is EnumWithUnderlying or EnumWithFields or CustomType;
+        internal bool UsesExtensionsClass => entity is BasicEnum or VariantEnum or CustomType;
     }
 }
