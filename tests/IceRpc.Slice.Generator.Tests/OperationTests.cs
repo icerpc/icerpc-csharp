@@ -53,8 +53,10 @@ public partial class OperationTests
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
 
+        // Act
         int r = await proxy.OpWithSingleParameterAndReturnValueAsync(10);
 
+        // Assert
         Assert.That(r, Is.EqualTo(10));
     }
 
@@ -65,8 +67,10 @@ public partial class OperationTests
         var invoker = new ColocInvoker(new MyDerivedOperationsAService());
         var proxy = new MyDerivedOperationsAProxy(invoker);
 
+        // Act
         int r = await proxy.OpDerivedWithSingleParameterAndReturnValueAsync(10);
 
+        // Assert
         Assert.That(r, Is.EqualTo(10));
     }
 
@@ -77,8 +81,10 @@ public partial class OperationTests
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
 
+        // Act
         (int r1, int r2) = await proxy.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
+        // Assert
         Assert.That(r1, Is.EqualTo(10));
         Assert.That(r2, Is.EqualTo(20));
     }
