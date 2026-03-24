@@ -231,7 +231,7 @@ public partial class OperationTests
         var proxy = new MyTaggedOperationsProxy(invoker);
 
         // Act/Assert
-        Assert.That(() => proxy.OpAsync(10, 1, 12), Throws.Nothing);
+        Assert.That(async () => await proxy.OpAsync(10, 1, 12), Throws.Nothing);
     }
 
     [Test]
