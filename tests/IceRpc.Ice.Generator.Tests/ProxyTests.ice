@@ -10,4 +10,14 @@ module IceRpc::Ice::Generator::Tests
     interface MyBaseInterface {}
 
     interface MyDerivedInterface : MyBaseInterface {}
+
+    interface ReceiveProxyTest
+    {
+        ReceiveProxyTest* receiveProxy();
+    }
+
+    interface SendProxyTest
+    {
+        void sendProxy(SendProxyTest* proxy);
+    }
 }
