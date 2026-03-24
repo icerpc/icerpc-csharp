@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Ice.Codec;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
@@ -157,6 +158,61 @@ public partial class ProxyTests
         Assert.That(derived, Is.Null);
     }
 
+    /// <summary>Verifies that a proxy decoded from an incoming request has the invalid invoker by default.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_an_incoming_request_has_invalid_invoker()
+    {
+        // Arrange
+        var service = new SendProxyTestService();
+        var proxy = new SendProxyTestProxy(new ColocInvoker(service));
+
+        // Act
+        await proxy.SendProxyAsync(proxy);
+
+        // Assert
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(InvalidInvoker.Instance));
+    }
+
+    /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using the Ice
+    /// feature.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_an_incoming_request_can_have_invoker_set_through_an_ice_feature()
+    {
+        // Arrange
+        var service = new SendProxyTestService();
+        var router = new Router();
+        router.Map<ISendProxyTestService>(service);
+        var pipeline = new Pipeline();
+        var baseProxy = new SendProxyTestProxy(pipeline);
+        router.UseFeature<IIceFeature>(new IceFeature(baseProxy: baseProxy));
+
+        var proxy = new SendProxyTestProxy(new ColocInvoker(router));
+
+        // Act
+        await proxy.SendProxyAsync(proxy);
+
+        // Assert
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(pipeline));
+    }
+
+    /// <summary>Verifies that a proxy decoded from an incoming response inherits the caller's invoker.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_an_incoming_response_inherits_the_callers_invoker()
+    {
+        // Arrange
+        IInvoker invoker = new ColocInvoker(new ReceiveProxyTestService());
+        var proxy = new ReceiveProxyTestProxy(invoker);
+
+        // Act
+        ReceiveProxyTestProxy? received = await proxy.ReceiveProxyAsync();
+
+        // Assert
+        Assert.That(received, Is.Not.Null);
+        Assert.That(received!.Value.Invoker, Is.EqualTo(invoker));
+    }
+
     [Service]
     private partial class MyBaseInterfaceService : IMyBaseInterfaceService, IIceObjectService
     {
@@ -165,5 +221,29 @@ public partial class ProxyTests
     [Service]
     private sealed partial class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
     {
+    }
+
+    [Service]
+    private sealed partial class ReceiveProxyTestService : IReceiveProxyTestService
+    {
+        public ValueTask<ReceiveProxyTestProxy?> ReceiveProxyAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) =>
+            new(new ReceiveProxyTestProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
+    }
+
+    [Service]
+    private sealed partial class SendProxyTestService : ISendProxyTestService
+    {
+        public SendProxyTestProxy? ReceivedProxy { get; private set; }
+
+        public ValueTask SendProxyAsync(
+            SendProxyTestProxy? proxy,
+            IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            ReceivedProxy = proxy;
+            return default;
+        }
     }
 }
