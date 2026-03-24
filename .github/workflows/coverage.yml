@@ -36,7 +36,8 @@ jobs:
 
       - name: Sync Coverage Report to S3
         run: |
-          aws s3 sync ./coveragereport s3://${{ secrets.AWS_S3_BUCKET }}/csharp/${{ github.ref_name }}/coverage --delete
+          aws s3 sync ./coveragereport s3://${{ secrets.AWS_S3_BUCKET }}/csharp/${{ github.ref_name }}/coverage \
+            --delete --metadata-directive REPLACE --cache-control "no-cache, no-store"
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CODE_DISTRIBUTION_ID }} \
             --paths "/csharp/${{ github.ref_name }}/coverage/*"
