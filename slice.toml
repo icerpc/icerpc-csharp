@@ -18,7 +18,7 @@ include = ["**/*.slice", "**/*.ice"]
 
 [source.compiler]
 repo    = "https://github.com/icerpc/slicec"
-rev     = "a1edd7995fa1e7e8f0aa8332136fd0aba2a31e38"
+rev     = "08e843cfc77a37dfcdae226d9494d68ffbbb8d0d"
 source  = "slice"
 dest    = "slice"
 include = ["**/*.slice"]

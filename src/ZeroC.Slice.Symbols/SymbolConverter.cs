@@ -258,12 +258,14 @@ public sealed class SymbolConverter
             {
                 Identifier = c.V.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(c.V.EntityInfo.Attributes),
+                Comment = ConvertComment(c.V.EntityInfo.Comment),
                 Module = module,
             },
             Compiler.Symbol.TypeAlias t => new TypeAlias
             {
                 Identifier = t.V.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(t.V.EntityInfo.Attributes),
+                Comment = ConvertComment(t.V.EntityInfo.Comment),
                 Module = module,
                 UnderlyingType = ConvertTypeRef(t.V.UnderlyingType, file),
             },
@@ -288,14 +290,20 @@ public sealed class SymbolConverter
             _ => throw new InvalidOperationException($"Unknown symbol type: {symbol.GetType().Name}"),
         };
 
-    private Struct ConvertStruct(Compiler.Struct raw, Compiler.SliceFile file, Module module) => new()
+    private Struct ConvertStruct(Compiler.Struct raw, Compiler.SliceFile file, Module module)
     {
-        Identifier = raw.EntityInfo.Identifier,
-        Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
-        Module = module,
-        IsCompact = raw.IsCompact,
-        Fields = raw.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
-    };
+        var result = new Struct
+        {
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
+            Module = module,
+            IsCompact = raw.IsCompact,
+            Fields = raw.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
+        };
+        SetParent(result, result.Fields);
+        return result;
+    }
 
     private ISymbol ConvertEnum(Compiler.Enum raw, Compiler.SliceFile file, Module module)
     {
@@ -349,10 +357,11 @@ public sealed class SymbolConverter
         }
         else
         {
-            return new EnumWithFields
+            var result = new EnumWithFields
             {
                 Identifier = raw.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+                Comment = ConvertComment(raw.EntityInfo.Comment),
                 Module = module,
                 IsCompact = raw.IsCompact,
                 IsUnchecked = raw.IsUnchecked,
@@ -360,34 +369,49 @@ public sealed class SymbolConverter
                 {
                     Identifier = e.EntityInfo.Identifier,
                     Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                    Comment = ConvertComment(e.EntityInfo.Comment),
                     Module = module,
                     Discriminant = (int)e.Value.AbsoluteValue,
                     Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
                 }).ToImmutableList(),
             };
+            SetParent(result, result.Enumerators);
+            foreach (EnumWithFields.Enumerator enumerator in result.Enumerators)
+            {
+                SetParent(enumerator, enumerator.Fields);
+            }
+            return result;
         }
     }
 
-    private Interface ConvertInterface(Compiler.Interface raw, Compiler.SliceFile file, Module module) =>
-        new()
+    private Interface ConvertInterface(Compiler.Interface raw, Compiler.SliceFile file, Module module)
+    {
+        var result = new Interface
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             Bases = raw.Bases
-            .Select(baseId => ResolveNamedSymbol(baseId))
-            .OfType<Interface>()
-            .ToImmutableList(),
+                .Select(baseId => ResolveNamedSymbol(baseId))
+                .OfType<Interface>()
+                .ToImmutableList(),
             Operations = raw.Operations.Select(op => ConvertOperation(op, file, module)).ToImmutableList(),
         };
+        SetParent(result, result.Operations);
+        return result;
+    }
 
     private Operation ConvertOperation(
         Compiler.Operation raw,
         Compiler.SliceFile file,
-        Module module) => new()
+        Module module)
+    {
+        var result = new Operation
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             IsIdempotent = raw.IsIdempotent,
             Parameters = raw.Parameters.Select(f => ConvertField(f, file, module)).ToImmutableList(),
@@ -395,15 +419,22 @@ public sealed class SymbolConverter
             ReturnType = raw.ReturnType.Select(f => ConvertField(f, file, module)).ToImmutableList(),
             HasStreamedReturn = raw.HasStreamedReturn,
         };
+        SetParent(result, result.Parameters);
+        SetParent(result, result.ReturnType);
+        return result;
+    }
 
-    private static EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
+    private EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
         Compiler.Enum raw,
         Module module,
         Builtin builtin,
-        Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T> => new()
+        Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T>
+    {
+        var result = new EnumWithUnderlying<T>
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             IsUnchecked = raw.IsUnchecked,
             Underlying = builtin,
@@ -411,15 +442,20 @@ public sealed class SymbolConverter
             {
                 Identifier = e.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                Comment = ConvertComment(e.EntityInfo.Comment),
                 Module = module,
                 Value = toValue(e.Value.AbsoluteValue, e.Value.IsNegative),
             }).ToImmutableList(),
         };
+        SetParent(result, result.Enumerators);
+        return result;
+    }
 
     private Field ConvertField(Compiler.Field raw, Compiler.SliceFile file, Module module) => new()
     {
         Identifier = raw.EntityInfo.Identifier,
         Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+        Comment = ConvertComment(raw.EntityInfo.Comment),
         Module = module,
         Tag = raw.Tag,
         DataType = ConvertTypeRef(raw.DataType, file),
@@ -438,12 +474,75 @@ public sealed class SymbolConverter
         Attributes = ConvertAttributes(raw.Attributes),
     };
 
+    private static void SetParent(Entity parent, IEnumerable<Entity> children)
+    {
+        foreach (Entity child in children)
+        {
+            child.Parent = parent;
+        }
+    }
+
     private static ImmutableList<Attribute> ConvertAttributes(IList<Compiler.Attribute> raw) =>
         raw.Select(a => new Attribute
         {
             Directive = a.Directive,
             Args = [.. a.Args],
         }).ToImmutableList();
+
+    private Comment? ConvertComment(Compiler.DocComment? raw)
+    {
+        if (raw is null)
+        {
+            return null;
+        }
+
+        var overview = raw.Value.Overview.Select<Compiler.MessageComponent, CommentMessageComponent>(c => c switch
+        {
+            Compiler.MessageComponent.Text t => new CommentText(t.V),
+            Compiler.MessageComponent.Link l => new CommentInlineLink(ResolveLink(l.V)),
+            _ => throw new InvalidOperationException($"Unknown MessageComponent kind: {c.GetType().FullName}")
+        }).ToImmutableList();
+
+        var seeTags = raw.Value.SeeTags.Select(ResolveLink).ToImmutableList();
+
+        return new Comment { Overview = overview, SeeTags = seeTags };
+
+        CommentLink ResolveLink(string entityId) =>
+            ResolveEntityById(entityId) is Entity entity
+                ? new ResolvedCommentLink(entity)
+                : new UnresolvedCommentLink(entityId);
+    }
+
+    private Entity? ResolveEntityById(string entityId)
+    {
+        // Try as top-level type first.
+        if (_cache.TryGetValue(entityId, out ISymbol? symbol) && symbol is Entity entity)
+        {
+            return entity;
+        }
+
+        // Try as sub-entity: split off last segment, resolve parent, then find child.
+        int lastSep = entityId.LastIndexOf("::", StringComparison.Ordinal);
+        if (lastSep < 0)
+        {
+            return null;
+        }
+
+        string parentId = entityId[..lastSep];
+        string childName = entityId[(lastSep + 2)..];
+
+        Entity? parent = ResolveEntityById(parentId);
+        return parent switch
+        {
+            Interface i => i.Operations.FirstOrDefault(o => o.Identifier == childName),
+            EnumWithFields ewf => ewf.Enumerators.FirstOrDefault(e => e.Identifier == childName),
+            EnumWithUnderlying ewu => ewu.FindEnumeratorByIdentifier(childName),
+            Struct s => s.Fields.FirstOrDefault(f => f.Identifier == childName),
+            EnumWithFields.Enumerator e => e.Fields.FirstOrDefault(f => f.Identifier == childName),
+            Operation op => op.Parameters.Concat(op.ReturnType).FirstOrDefault(f => f.Identifier == childName),
+            _ => null,
+        };
+    }
 
     private static string? GetNamedIdentifier(Compiler.Symbol symbol) => symbol switch
     {

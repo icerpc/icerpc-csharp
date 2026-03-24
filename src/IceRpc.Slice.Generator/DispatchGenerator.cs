@@ -21,13 +21,15 @@ internal static class DispatchGenerator
         string defaultServicePath = $"/{scopedId.Replace("::", ".", StringComparison.Ordinal)}";
 
         ContainerBuilder builder = new ContainerBuilder($"{accessModifier} partial interface", $"I{name}Service")
+            .AddDocCommentSummary(interfaceDef.Comment, currentNamespace)
             .AddComment(
                 "remarks",
                 $"""
                 The Slice compiler generated this server-side interface from Slice interface <c>{scopedId}</c>.
                 Your service implementation must implement this interface.
                 """)
-            .AddAttribute($"""IceRpc.DefaultServicePath("{defaultServicePath}")""");
+            .AddDocCommentSeeAlso(interfaceDef.Comment, currentNamespace)
+            .AddAttribute($"IceRpc.DefaultServicePath(\"{defaultServicePath}\")");
 
         // Inherit from base service interfaces
         foreach (Interface baseInterface in interfaceDef.Bases)
@@ -256,20 +258,23 @@ internal static class DispatchGenerator
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
         string returnType = op.GetServiceReturnType(currentNamespace);
 
-        var operationBuilder = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration);
+        var operationBuilder = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration)
+            .AddDocCommentSummary(op.Comment, currentNamespace);
 
         foreach (Field param in nonStreamedParams)
         {
             operationBuilder.AddParameter(
                 param.DataType.FieldTypeString(param.DataTypeIsOptional, currentNamespace),
-                param.ParameterName);
+                param.ParameterName,
+                docComment: DocCommentFormatter.FormatOverview(param.Comment, currentNamespace));
         }
 
         if (op.StreamedParameter is Field streamParam)
         {
             operationBuilder.AddParameter(
                 OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
-                streamParam.ParameterName);
+                streamParam.ParameterName,
+                docComment: DocCommentFormatter.FormatOverview(streamParam.Comment, currentNamespace));
         }
 
         string featuresParam = op.FeaturesParamName;
@@ -303,7 +308,9 @@ internal static class DispatchGenerator
         {
             attrParts.Add("CompressReturn = true");
         }
-        operationBuilder.AddAttribute($"SliceOperation({string.Join(", ", attrParts)})");
+        operationBuilder
+            .AddDocCommentSeeAlso(op.Comment, currentNamespace)
+            .AddAttribute($"SliceOperation({string.Join(", ", attrParts)})");
         return operationBuilder.Build();
     }
 }

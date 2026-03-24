@@ -29,7 +29,7 @@ struct TypeRef {
 struct EntityInfo {
     identifier: string
     attributes: Sequence<Attribute>
-    tag(1) comment: DocComment?
+    comment: DocComment?
 }
 
 struct Module {
