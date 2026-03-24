@@ -5,3 +5,7 @@ module ZeroC::Slice::Generator::Tests
 compact struct BoolS {
     value: Sequence<bool>
 }
+
+compact struct CustomOptInt32S {
+    value: [cs::type("List<int?>")] Sequence<int32?>
+}
