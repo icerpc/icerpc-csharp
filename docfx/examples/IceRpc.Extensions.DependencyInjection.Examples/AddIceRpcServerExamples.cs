@@ -54,7 +54,8 @@ public static class AddIceRpcServerExamples
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
         {
-            // Load and register the server certificate as a singleton so it stays alive and gets disposed.
+            // Load the server certificate from the path specified in the "Certificate" configuration section,
+            // and register it as a singleton so it stays alive and gets disposed.
             services.AddSingleton<X509Certificate2>(sp =>
                 X509CertificateLoader.LoadPkcs12FromFile(
                     Path.Combine(
@@ -138,7 +139,8 @@ public static class AddIceRpcServerExamples
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
         {
-            // Load and register the server certificate as a singleton so it stays alive and gets disposed.
+            // Load the server certificate from the path specified in the "Certificate" configuration section,
+            // and register it as a singleton so it stays alive and gets disposed.
             services.AddSingleton<X509Certificate2>(sp =>
                 X509CertificateLoader.LoadPkcs12FromFile(
                     Path.Combine(
