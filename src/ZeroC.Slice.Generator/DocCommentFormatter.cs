@@ -58,11 +58,11 @@ internal static class DocCommentFormatter
             CustomType ct => ct.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] ?? entity.Name,
             Operation op when op.Parent is Interface => $"I{op.Parent.Name}.{entity.Name}Async",
             Field f when f.Parent is not null => $"{f.Parent.Name}.{entity.Name}",
-            EnumWithFields.Enumerator e when e.Parent is not null => $"{e.Parent.Name}.{entity.Name}",
-            // EnumWithUnderlying<T>.Enumerator
-            Entity e when e.Parent is EnumWithUnderlying => $"{e.Parent.Name}.{entity.Name}",
-            EnumWithUnderlying => entity.Name,
-            EnumWithFields => entity.Name,
+            VariantEnum.Variant e when e.Parent is not null => $"{e.Parent.Name}.{entity.Name}",
+            // BasicEnum<T>.Enumerator
+            Entity e when e.Parent is BasicEnum => $"{e.Parent.Name}.{entity.Name}",
+            BasicEnum => entity.Name,
+            VariantEnum => entity.Name,
             Struct => entity.Name,
             _ => entity.Name
         };
