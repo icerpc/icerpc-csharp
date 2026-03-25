@@ -7,8 +7,8 @@ namespace ZeroC.Slice.Symbols;
 /// <summary>Represents a Slice variant enumeration.</summary>
 public class VariantEnum : Entity, ISymbol, IType
 {
-    /// <summary>Gets a value indicating whether this variant enumeration is a compact enumeration. Compact variant
-    /// enumerations do not accept tagged fields.</summary>
+    /// <summary>Gets a value indicating whether this variant enumeration is a compact enumeration. Variants in compact
+    /// variant enumerations don't accept tagged fields.</summary>
     public required bool IsCompact { get; init; }
 
     /// <summary>Gets a value indicating whether this enumeration is unchecked.</summary>
