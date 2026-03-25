@@ -20,4 +20,9 @@ module IceRpc::Ice::Generator::Tests
     {
         void sendProxy(SendProxyTest* proxy);
     }
+
+    interface SendTaggedProxyTest
+    {
+        void sendTaggedProxy(optional(0) SendTaggedProxyTest* proxy);
+    }
 }

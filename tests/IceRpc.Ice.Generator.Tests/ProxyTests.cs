@@ -213,6 +213,20 @@ public partial class ProxyTests
         Assert.That(received!.Value.Invoker, Is.EqualTo(invoker));
     }
 
+    [Test]
+    public async Task Send_tagged_proxy([Values] bool sendNullProxy)
+    {
+        // Arrange
+        var service = new SendTaggedProxyTestService();
+        var proxy = new SendTaggedProxyTestProxy(new ColocInvoker(service));
+
+        // Act
+        await proxy.SendTaggedProxyAsync(sendNullProxy ? null : proxy);
+
+        // Assert
+        Assert.That(service.ReceivedProxy, sendNullProxy ? Is.Null : Is.Not.Null);
+    }
+
     [Service]
     private partial class MyBaseInterfaceService : IMyBaseInterfaceService, IIceObjectService
     {
@@ -239,6 +253,21 @@ public partial class ProxyTests
 
         public ValueTask SendProxyAsync(
             SendProxyTestProxy? proxy,
+            IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            ReceivedProxy = proxy;
+            return default;
+        }
+    }
+
+    [Service]
+    private sealed partial class SendTaggedProxyTestService : ISendTaggedProxyTestService
+    {
+        public SendTaggedProxyTestProxy? ReceivedProxy { get; private set; }
+
+        public ValueTask SendTaggedProxyAsync(
+            SendTaggedProxyTestProxy? proxy,
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
