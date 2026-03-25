@@ -269,48 +269,42 @@ public class TaggedTests
             decoder.DecodeTagged(
                 1,
                 TagFormat.F1,
-                (ref IceDecoder decoder) => decoder.DecodeByte() as byte?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeByte() as byte?),
             Is.EqualTo(c.A));
 
         Assert.That(
             decoder.DecodeTagged(
                 2,
                 TagFormat.F2,
-                (ref IceDecoder decoder) => decoder.DecodeShort() as short?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeShort() as short?),
             Is.EqualTo(c.B));
 
         Assert.That(
             decoder.DecodeTagged(
                 3,
                 TagFormat.F4,
-                (ref IceDecoder decoder) => decoder.DecodeInt() as int?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeInt() as int?),
             Is.EqualTo(c.C));
 
         Assert.That(
             decoder.DecodeTagged(
                 4,
                 TagFormat.F8,
-                (ref IceDecoder decoder) => decoder.DecodeLong() as long?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeLong() as long?),
             Is.EqualTo(c.D));
 
         Assert.That(
             decoder.DecodeTagged(
                 5,
                 TagFormat.VSize,
-                (ref IceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?),
             Is.EqualTo(c.E));
 
         Assert.That(
             decoder.DecodeTagged(
                 6,
                 TagFormat.FSize,
-                (ref IceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?),
             Is.EqualTo(c.F));
 
         Assert.That(
@@ -318,32 +312,28 @@ public class TaggedTests
                 7,
                 TagFormat.Size,
                 (ref IceDecoder decoder) =>
-                    MyEnumIceDecoderExtensions.DecodeMyEnum(ref decoder) as MyEnum?,
-                useTagEndMarker: false),
+                    MyEnumIceDecoderExtensions.DecodeMyEnum(ref decoder) as MyEnum?),
             Is.EqualTo(c.G));
 
         Assert.That(
             decoder.DecodeTagged(
                 8,
                 TagFormat.OptimizedVSize,
-                (ref IceDecoder decoder) => decoder.DecodeSequence<byte>(),
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeSequence<byte>()),
             Is.EqualTo(c.H));
 
         Assert.That(
             decoder.DecodeTagged(
                 9,
                 TagFormat.VSize,
-                (ref IceDecoder decoder) => decoder.DecodeSequence<int>(),
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeSequence<int>()),
             Is.EqualTo(c.I));
 
         Assert.That(
             decoder.DecodeTagged(
                 10,
                 TagFormat.OptimizedVSize,
-                (ref IceDecoder decoder) => decoder.DecodeString(),
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(c.J));
 
         if (hasTaggedFields)

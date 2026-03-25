@@ -450,8 +450,7 @@ public sealed class ClassTests
                 decoder.DecodeTagged(
                     20,
                     TagFormat.OptimizedVSize,
-                    (ref IceDecoder decoder) => decoder.DecodeString(),
-                    useTagEndMarker: false),
+                    (ref IceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(b));
             Assert.That(decoder.DecodeByte(), Is.EqualTo(IceEncodingDefinitions.TagEndMarker));
         }
@@ -469,8 +468,7 @@ public sealed class ClassTests
                 decoder.DecodeTagged(
                     10,
                     TagFormat.F4,
-                    (ref IceDecoder decoder) => decoder.DecodeInt(),
-                    useTagEndMarker: false),
+                    (ref IceDecoder decoder) => decoder.DecodeInt()),
                 Is.EqualTo(a));
             Assert.That(decoder.DecodeByte(), Is.EqualTo(IceEncodingDefinitions.TagEndMarker));
             Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
