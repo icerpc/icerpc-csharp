@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using System.Buffers;
-using System.IO.Pipelines;
 using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Codec.Tests;
@@ -18,7 +16,7 @@ public class DecodeStringTests
     [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
     [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
     [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")]
-    public void Decode_single_segment_string(string testString)
+    public void Decode_string(string testString)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -33,41 +31,8 @@ public class DecodeStringTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedString.Length));
     }
 
-    /// <summary>Tests the decoding of a string from a custom memory pool.</summary>
-    /// <param name="value">The string to be decoded.</param>
-    [TestCase("Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit.")] // cspell:disable-line
-    [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
-    [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
-    [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")]
-    public void Decode_multi_segment_string(string value)
-    {
-        // Arrange
-        // now with a custom memory pool with a tiny max buffer size
-        using var customPool = new TestMemoryPool(7);
-
-        // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
-        // minBufferSize given to Rent
-        var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
-        var encoder = new SliceEncoder(pipe.Writer);
-        encoder.EncodeString(value);
-        pipe.Writer.Complete();
-        pipe.Reader.TryRead(out ReadResult readResult);
-
-        var sut = new SliceDecoder(readResult.Buffer);
-
-        // Act
-        var r1 = sut.DecodeString();
-
-        // Assert
-        Assert.That(sut.Consumed, Is.EqualTo(encoder.EncodedByteCount));
-        Assert.That(r1, Is.EqualTo(value));
-
-        // Cleanup pipe
-        pipe.Reader.Complete();
-    }
-
     [Test]
-    public void Decode_single_segment_non_utf8_string_fails()
+    public void Decode_non_utf8_string_fails()
     {
         Assert.That(() =>
         {
@@ -75,36 +40,6 @@ public class DecodeStringTests
             var sut = new SliceDecoder(encodedString);
 
             _ = sut.DecodeString();
-        }, Throws.InstanceOf<InvalidDataException>());
-    }
-
-    [Test]
-    public void Decode_multi_segment_non_utf8_string_fails()
-    {
-        Assert.That(() =>
-        {
-            // Arrange
-            // A custom memory pool with a tiny max buffer size
-            using var customPool = new TestMemoryPool(7);
-
-            // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
-            // minBufferSize given to Rent
-            var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
-            var p1 = System.Text.Encoding.UTF8.GetBytes("This is a bad string with unicode characters");
-            var badBytes = new byte[] { 0xFE, 0xFF };
-            var size = p1.Length + badBytes.Length;
-
-            pipe.Writer.Write(new byte[] { (byte)(size << 2) });
-            pipe.Writer.Write(p1);
-            pipe.Writer.Write(badBytes);
-            pipe.Writer.Complete();
-            pipe.Reader.TryRead(out ReadResult readResult);
-
-            var sut = new SliceDecoder(readResult.Buffer);
-
-            // Act
-            _ = sut.DecodeString();
-
         }, Throws.InstanceOf<InvalidDataException>());
     }
 }
