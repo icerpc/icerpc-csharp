@@ -74,7 +74,7 @@ internal static class CsAttributeValidator
 
             case BasicEnum e:
                 ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
-                ValidateBasicEnumEnumerators(e, diagnostics);
+                ValidateEnumerators(e, diagnostics);
                 break;
 
             case Interface i:
@@ -101,37 +101,35 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateBasicEnumEnumerators(
+    private static void ValidateEnumerators(
         BasicEnum e,
         List<Compiler.Diagnostic> diagnostics)
     {
-        // TODO will be better to refactor BasicEnum to avoid the need for this switch,
-        // We can have Variants and TypedEnumerators and only used the typed one to access the value.
         switch (e)
         {
-            case BasicEnum<sbyte> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<sbyte> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<byte> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<byte> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<short> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<short> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<ushort> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<ushort> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<int> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<int> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<uint> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<uint> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<long> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<long> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case BasicEnum<ulong> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<ulong> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
         }
 

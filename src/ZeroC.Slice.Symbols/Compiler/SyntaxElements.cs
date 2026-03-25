@@ -126,11 +126,10 @@ public partial record struct EntityInfo
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
     public EntityInfo(ref SliceDecoder decoder)
     {
-        var bitSequenceReader = decoder.GetBitSequenceReader(1);
         this.Identifier = decoder.DecodeString();
         this.Attributes = decoder.DecodeSequence(
             (ref SliceDecoder decoder) => new Attribute(ref decoder));
-        this.Comment = bitSequenceReader.Read() ? new DocComment(ref decoder) : null;
+        this.Comment = decoder.DecodeTagged(1, (ref SliceDecoder decoder) => (DocComment?)new DocComment(ref decoder));
         decoder.SkipTagged();
     }
 
@@ -138,15 +137,13 @@ public partial record struct EntityInfo
     /// <param name="encoder">The Slice encoder.</param>
     public readonly void Encode(ref SliceEncoder encoder)
     {
-        var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
         encoder.EncodeString(this.Identifier);
         encoder.EncodeSequence(
             this.Attributes,
             (ref SliceEncoder encoder, Attribute value) => value.Encode(ref encoder));
-        bitSequenceWriter.Write(this.Comment != null);
-        if (this.Comment != null)
+        if (this.Comment is DocComment comment_)
         {
-            this.Comment.Value.Encode(ref encoder);
+            encoder.EncodeTagged(1, comment_, (ref SliceEncoder encoder, DocComment value) => value.Encode(ref encoder));
         }
         encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
@@ -465,7 +462,7 @@ public partial record struct Enum
     }
 }
 
-/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Variant</c>.</remarks>
+/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Enumerator</c>.</remarks>
 public partial record struct Enumerator
 {
     public EntityInfo EntityInfo { get; set; }
