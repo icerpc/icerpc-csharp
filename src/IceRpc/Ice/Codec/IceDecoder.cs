@@ -333,8 +333,8 @@ public ref partial struct IceDecoder
     /// <summary>Skips the remaining tagged fields.</summary>
     public void SkipTagged()
     {
-        // True when decoding a class or exception, false when decoding parameters. Keep in mind we can't ever encounter
-        // a class when decoding a tagged parameter.
+        // True when decoding a class or exception, false when decoding parameters. Keep in mind we never decode a
+        // class while decoding a tagged parameter.
         bool useTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
         while (true)
@@ -374,8 +374,8 @@ public ref partial struct IceDecoder
 
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat)
     {
-        // True when decoding a class or exception, false when decoding parameters. Keep in mind we can't ever encounter
-        // a class when decoding a tagged parameter.
+        // True when decoding a class or exception, false when decoding parameters. Keep in mind we never decode a
+        // class while decoding a tagged parameter.
         bool useTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
         if (_classContext.Current.InstanceType != InstanceType.None)
