@@ -3,6 +3,7 @@
 module IceRpc
 
 /// The keys of fields carried by icerpc request headers.
+[cs::public]
 unchecked enum RequestFieldKey : varuint62 {
     /// The string-string dictionary field.
     Context = 0

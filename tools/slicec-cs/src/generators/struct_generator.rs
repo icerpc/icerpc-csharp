@@ -41,38 +41,41 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
 
     let has_required_field = fields.iter().any(|f| f.is_required());
 
-    let mut main_constructor = FunctionBuilder::new(
-        struct_def.access_modifier(),
-        "",
-        &escaped_identifier,
-        FunctionType::BlockBody,
-    );
-
-    if has_required_field {
-        main_constructor.add_sets_required_members_attribute();
-    }
-
-    main_constructor.add_comment(
-        "summary",
-        format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
-    );
-
-    for field in &fields {
-        main_constructor.add_parameter(
-            &field.data_type().field_type_string(&namespace),
-            field.parameter_name().as_str(),
-            None,
-            field.formatted_doc_comment_summary(),
+    // We don't need to "override" the implicit public parameterless constructor.
+    if !fields.is_empty() {
+        let mut main_constructor = FunctionBuilder::new(
+            struct_def.access_modifier(),
+            "",
+            &escaped_identifier,
+            FunctionType::BlockBody,
         );
-    }
-    main_constructor.set_body({
-        let mut code = CodeBlock::default();
-        for field in &fields {
-            writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name(),);
+
+        if has_required_field {
+            main_constructor.add_sets_required_members_attribute();
         }
-        code
-    });
-    builder.add_block(main_constructor.build());
+
+        main_constructor.add_comment(
+            "summary",
+            format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
+        );
+
+        for field in &fields {
+            main_constructor.add_parameter(
+                &field.data_type().field_type_string(&namespace),
+                field.parameter_name().as_str(),
+                None,
+                field.formatted_doc_comment_summary(),
+            );
+        }
+        main_constructor.set_body({
+            let mut code = CodeBlock::default();
+            for field in &fields {
+                writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name(),);
+            }
+            code
+        });
+        builder.add_block(main_constructor.build());
+    }
 
     // Decode constructor
     let mut decode_constructor = FunctionBuilder::new(
