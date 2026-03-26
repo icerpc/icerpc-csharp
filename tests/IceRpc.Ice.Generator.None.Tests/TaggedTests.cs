@@ -101,6 +101,7 @@ public class TaggedTests
         bool hasTaggedFields =
             expected.A is not null ||
             expected.B is not null ||
+            expected.C is not null ||
             expected.D is not null ||
             expected.E is not null ||
             expected.F is not null ||
@@ -260,6 +261,7 @@ public class TaggedTests
         bool hasTaggedFields =
             c.A is not null ||
             c.B is not null ||
+            c.C is not null ||
             c.D is not null ||
             c.E is not null ||
             c.F is not null ||

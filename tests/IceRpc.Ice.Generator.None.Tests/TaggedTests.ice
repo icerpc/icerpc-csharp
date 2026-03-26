@@ -26,7 +26,7 @@ module IceRpc::Ice::Generator::None::Tests
         optional(3) int c;             // Uses F4 tag format
         optional(4) long d;            // Uses F8 tag format
         optional(5) FixedSizeStruct e; // Uses VSize tag format
-        optional(6) VarSizeStruct f;   // Use FSize tag format
+        optional(6) VarSizeStruct f;   // Uses FSize tag format
         optional(7) MyEnum g;          // Uses Size tag format
         optional(8) ByteSeq h;         // Uses OptimizedVSize tag format
         optional(9) IntSeq i;          // Uses VSize tag format
