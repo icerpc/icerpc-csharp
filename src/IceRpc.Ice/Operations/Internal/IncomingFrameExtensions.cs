@@ -47,8 +47,7 @@ internal static class IncomingFrameExtensions
                 feature.MaxDepth);
             T value = decodeFunc(ref decoder);
 
-            // useTagEndMarker is false because we're decoding parameters or a return value, not class/exception fields.
-            decoder.SkipTagged(useTagEndMarker: false);
+            decoder.SkipTagged();
             decoder.CheckEndOfBuffer();
 
             frame.Payload.AdvanceTo(readResult.Buffer.End);
@@ -91,7 +90,7 @@ internal static class IncomingFrameExtensions
             {
                 // No need to pass maxCollectionAllocation since the only thing this decoding does is skip unknown tags.
                 var decoder = new IceDecoder(readResult.Buffer);
-                decoder.SkipTagged(useTagEndMarker: false); // false because we're decoding parameters, not class/exception fields
+                decoder.SkipTagged();
                 decoder.CheckEndOfBuffer();
             }
             frame.Payload.AdvanceTo(readResult.Buffer.End);

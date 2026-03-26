@@ -278,14 +278,12 @@ public ref partial struct IceDecoder
     /// <param name="tag">The tag.</param>
     /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
-    /// <param name="useTagEndMarker">When <see langword="true" />, a tag end marker marks the end of the tagged fields.
-    /// When <see langword="false" />, the end of the buffer marks the end of the tagged fields.</param>
     /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
     /// such as string?.</remarks>
-    public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+    public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
     {
-        if (DecodeTagHeader(tag, tagFormat, useTagEndMarker))
+        if (DecodeTagHeader(tag, tagFormat))
         {
             if (tagFormat == TagFormat.VSize)
             {
@@ -333,21 +331,11 @@ public ref partial struct IceDecoder
     }
 
     /// <summary>Skips the remaining tagged fields.</summary>
-    /// <param name="useTagEndMarker">Whether or not the tagged fields use a tag end marker.</param>
-    public void SkipTagged(bool useTagEndMarker = true)
+    public void SkipTagged()
     {
-        if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
-        {
-            throw new ArgumentException(
-                $"The {nameof(useTagEndMarker)} argument must be true when decoding a class/exception fields.",
-                nameof(useTagEndMarker));
-        }
-        else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
-        {
-            throw new ArgumentException(
-                $"The {nameof(useTagEndMarker)} argument must be false when decoding parameters.",
-                nameof(useTagEndMarker));
-        }
+        // True when decoding a class or exception, false when decoding parameters. Keep in mind we never decode a
+        // class while decoding a tagged parameter.
+        bool useTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
         while (true)
         {
@@ -384,20 +372,11 @@ public ref partial struct IceDecoder
         }
     }
 
-    private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)
+    private bool DecodeTagHeader(int tag, TagFormat expectedFormat)
     {
-        if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
-        {
-            throw new ArgumentException(
-                $"The {nameof(useTagEndMarker)} argument must be true when decoding the fields of a class or exception.",
-                nameof(useTagEndMarker));
-        }
-        else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
-        {
-            throw new ArgumentException(
-                $"The {nameof(useTagEndMarker)} argument must be false when decoding parameters.",
-                nameof(useTagEndMarker));
-        }
+        // True when decoding a class or exception, false when decoding parameters. Keep in mind we never decode a
+        // class while decoding a tagged parameter.
+        bool useTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
         if (_classContext.Current.InstanceType != InstanceType.None)
         {
