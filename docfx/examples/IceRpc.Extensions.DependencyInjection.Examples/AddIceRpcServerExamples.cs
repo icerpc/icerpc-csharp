@@ -4,8 +4,11 @@ using GreeterExample;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Extensions.DependencyInjection.Examples;
 
@@ -18,7 +21,28 @@ public static class AddIceRpcServerExamples
         var router = new Router(); // the dispatch pipeline
 
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
-        builder.ConfigureServices(services => services.AddIceRpcServer(router));
+        builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
+        {
+            // Load and register the server certificate as a singleton so it stays alive and gets disposed.
+            services.AddSingleton<X509Certificate2>(sp =>
+                X509CertificateLoader.LoadPkcs12FromFile(
+                    Path.Combine(hostContext.HostingEnvironment.ContentRootPath, "server.p12"),
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable));
+
+            // Configure the server authentication options using the server certificate.
+            services
+                .AddOptions<ServerOptions>()
+                .Configure<X509Certificate2>((options, serverCertificate) =>
+                    options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
+                    {
+                        ServerCertificateContext = SslStreamCertificateContext.Create(
+                            serverCertificate,
+                            additionalCertificates: null)
+                    });
+
+            services.AddIceRpcServer(router);
+        });
         #endregion
     }
 
@@ -30,10 +54,28 @@ public static class AddIceRpcServerExamples
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
         {
+            // Load the server certificate from the path specified in the "Certificate" configuration section,
+            // and register it as a singleton so it stays alive and gets disposed.
+            services.AddSingleton<X509Certificate2>(sp =>
+                X509CertificateLoader.LoadPkcs12FromFile(
+                    Path.Combine(
+                        hostContext.HostingEnvironment.ContentRootPath,
+                        hostContext.Configuration.GetValue<string>("Certificate:File")!),
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable));
+
+            // Bind the server options to the configuration "Server" section, and add a Configure callback to
+            // configure its authentication options.
             services
                 .AddOptions<ServerOptions>()
-                // Read the server options from configuration.
-                .Bind(hostContext.Configuration.GetSection("Server"));
+                .Bind(hostContext.Configuration.GetSection("Server"))
+                .Configure<X509Certificate2>((options, serverCertificate) =>
+                    options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
+                    {
+                        ServerCertificateContext = SslStreamCertificateContext.Create(
+                            serverCertificate,
+                            additionalCertificates: null)
+                    });
 
             services.AddIceRpcServer(router);
         });
@@ -59,14 +101,33 @@ public static class AddIceRpcServerExamples
     {
         #region ServerWithDispatcherBuilder
         IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args);
-        hostBuilder.ConfigureServices(services =>
+        hostBuilder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
+        {
+            // Load and register the server certificate as a singleton so it stays alive and gets disposed.
+            services.AddSingleton<X509Certificate2>(sp =>
+                X509CertificateLoader.LoadPkcs12FromFile(
+                    Path.Combine(hostContext.HostingEnvironment.ContentRootPath, "server.p12"),
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable));
+
+            // Configure the server authentication options using the server certificate.
             services
-                .AddIceRpcServer(builder =>
-                    // Configure the dispatch pipeline:
-                    builder
-                        .UseTelemetry()
-                        .UseLogger()
-                        .Map<IGreeterService>()));
+                .AddOptions<ServerOptions>()
+                .Configure<X509Certificate2>((options, serverCertificate) =>
+                    options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
+                    {
+                        ServerCertificateContext = SslStreamCertificateContext.Create(
+                            serverCertificate,
+                            additionalCertificates: null)
+                    });
+
+            services.AddIceRpcServer(builder =>
+                // Configure the dispatch pipeline:
+                builder
+                    .UseTelemetry()
+                    .UseLogger()
+                    .Map<IGreeterService>());
+        });
         #endregion
     }
 
@@ -78,15 +139,39 @@ public static class AddIceRpcServerExamples
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
         {
+            // Load the server certificate from the path specified in the "Certificate" configuration section,
+            // and register it as a singleton so it stays alive and gets disposed.
+            services.AddSingleton<X509Certificate2>(sp =>
+                X509CertificateLoader.LoadPkcs12FromFile(
+                    Path.Combine(
+                        hostContext.HostingEnvironment.ContentRootPath,
+                        hostContext.Configuration.GetValue<string>("Certificate:File")!),
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable));
+
             // The server options for the icerpc server
             services
                 .AddOptions<ServerOptions>("IceRpcGreeter") // named option
-                .Bind(hostContext.Configuration.GetSection("IceRpcGreeter"));
+                .Bind(hostContext.Configuration.GetSection("IceRpcGreeter"))
+                .Configure<X509Certificate2>((options, serverCertificate) =>
+                    options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
+                    {
+                        ServerCertificateContext = SslStreamCertificateContext.Create(
+                            serverCertificate,
+                            additionalCertificates: null)
+                    });
 
             // The server options for the ice server
             services
                 .AddOptions<ServerOptions>("IceGreeter")
-                .Bind(hostContext.Configuration.GetSection("IceGreeter"));
+                .Bind(hostContext.Configuration.GetSection("IceGreeter"))
+                .Configure<X509Certificate2>((options, serverCertificate) =>
+                    options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
+                    {
+                        ServerCertificateContext = SslStreamCertificateContext.Create(
+                            serverCertificate,
+                            additionalCertificates: null)
+                    });
 
             // We pass the named server options to get the correct server options for each server.
             services.AddIceRpcServer("IceRpcGreeter", router);
