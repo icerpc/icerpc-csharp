@@ -110,17 +110,19 @@ public sealed class Server : IAsyncDisposable
             if (_serverAddress.Protocol == Protocol.Ice)
             {
                 SslServerAuthenticationOptions? authOptions = options.ServerAuthenticationOptions;
-                if (authOptions is not null)
+                if (authOptions is null)
+                {
+                    if (duplexServerTransport.IsSslRequired(_serverAddress.Transport))
+                    {
+                        throw new ArgumentNullException(
+                            nameof(options),
+                            "The SSL server authentication options must be set when the transport requires SSL.");
+                    }
+                }
+                else if (authOptions.ApplicationProtocols is null)
                 {
                     authOptions = authOptions.Clone();
-                    authOptions.ApplicationProtocols ??= [Protocol.IceRpc.AlpnProtocol];
-                }
-
-                if (authOptions is null && duplexServerTransport.IsSslRequired(_serverAddress.Transport))
-                {
-                    throw new ArgumentNullException(
-                        nameof(options),
-                        "The SSL server authentication options must be set when the transport requires SSL.");
+                    authOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
                 }
 
                 IListener<IDuplexConnection> transportListener = duplexServerTransport.Listen(
@@ -140,17 +142,19 @@ public sealed class Server : IAsyncDisposable
             else
             {
                 SslServerAuthenticationOptions? authOptions = options.ServerAuthenticationOptions;
-                if (authOptions is not null)
+                if (authOptions is null)
+                {
+                    if (multiplexedServerTransport.IsSslRequired(_serverAddress.Transport))
+                    {
+                        throw new ArgumentNullException(
+                            nameof(options),
+                            "The SSL server authentication options must be set when the transport requires SSL.");
+                    }
+                }
+                else if (authOptions.ApplicationProtocols is null)
                 {
                     authOptions = authOptions.Clone();
-                    authOptions.ApplicationProtocols ??= [Protocol.IceRpc.AlpnProtocol];
-                }
-
-                if (authOptions is null && multiplexedServerTransport.IsSslRequired(_serverAddress.Transport))
-                {
-                    throw new ArgumentNullException(
-                        nameof(options),
-                        "The SSL server authentication options must be set when the transport requires SSL.");
+                    authOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
                 }
 
                 IListener<IMultiplexedConnection> transportListener = multiplexedServerTransport.Listen(

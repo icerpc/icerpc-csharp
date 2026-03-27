@@ -11,6 +11,8 @@ namespace IceRpc.IntegrationTests;
 
 public class CustomClientTransport : IMultiplexedClientTransport
 {
+    public bool IsSslRequired(string? transportName) => false;
+
     public string Name => "custom";
 
     private readonly IMultiplexedClientTransport _transport =
@@ -24,7 +26,7 @@ public class CustomClientTransport : IMultiplexedClientTransport
         // Remap custom transport name to tcp and strip custom params before delegating.
         transportAddress = transportAddress with
         {
-            Name = "tcp",
+            TransportName = "tcp",
             Params = transportAddress.Params.Remove("custom-p")
         };
 
@@ -34,6 +36,8 @@ public class CustomClientTransport : IMultiplexedClientTransport
 
 public class CustomServerTransport : IMultiplexedServerTransport
 {
+    public bool IsSslRequired(string? transportName) => false;
+
     public string Name => "custom";
 
     private readonly IMultiplexedServerTransport _transport =
@@ -47,7 +51,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
         // Remap custom transport name to tcp and strip custom params before delegating.
         transportAddress = transportAddress with
         {
-            Name = "tcp",
+            TransportName = "tcp",
             Params = transportAddress.Params.Remove("custom-p")
         };
 

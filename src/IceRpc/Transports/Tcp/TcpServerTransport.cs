@@ -32,7 +32,7 @@ public class TcpServerTransport : IDuplexServerTransport
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (transportAddress.Name is string name && name is not "tcp" and not "ssl")
+        if (transportAddress.TransportName is string name && name is not "tcp" and not "ssl")
         {
             throw new NotSupportedException(
                 $"The TCP server transport does not support transport '{name}'.");

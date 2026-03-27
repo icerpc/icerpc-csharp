@@ -219,8 +219,8 @@ public readonly record struct ServerAddress
         new()
         {
             Host = _host,
-            Name = _transport,
             Port = _port,
+            TransportName = _transport,
             Params = _params,
         };
 }

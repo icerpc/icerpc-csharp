@@ -44,7 +44,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 "The QUIC client transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
-        if (transportAddress.Name is string name && name != Name)
+        if (transportAddress.TransportName is string name && name != Name)
         {
             throw new NotSupportedException(
                 $"The QUIC client transport does not support transport '{name}'.");

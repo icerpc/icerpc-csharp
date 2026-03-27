@@ -63,6 +63,9 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     public MultiplexedConnectionOptions? LastCreatedConnectionOptions { get; private set; }
 
     /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
+
+    /// <inheritdoc/>
     public string Name => _decoratee.Name;
 
     private readonly IMultiplexedClientTransport _decoratee;
@@ -124,6 +127,9 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     /// <summary>The connection options used for the last Listen call.</summary>
     public MultiplexedConnectionOptions? LastListenOptions { get; private set; }
+
+    /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
     /// <inheritdoc/>
     public string Name => _decoratee.Name;

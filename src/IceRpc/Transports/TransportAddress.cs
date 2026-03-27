@@ -8,21 +8,20 @@ namespace IceRpc.Transports;
 public readonly record struct TransportAddress
 {
     /// <summary>Gets or initializes the host.</summary>
-    /// <value>The host name or IP address. Defaults to <c>::0</c>.</value>
-    public string Host { get; init; } = "::0";
+    /// <value>The host name or IP address.</value>
+    public required string Host { get; init; }
+
+    /// <summary>Gets or initializes the port number.</summary>
+    /// <value>The port number.</value>
+    public ushort Port { get; init; }
 
     /// <summary>Gets or initializes the transport name.</summary>
-    /// <value>The transport name (e.g., "tcp", "ssl", "quic"), or <see langword="null" /> if unspecified. Defaults to
-    /// <see langword="null" />.</value>
-    public string? Name { get; init; }
+    /// <value>The transport name (e.g., "tcp", "ssl", "quic"), or <see langword="null" /> if unspecified.</value>
+    public string? TransportName { get; init; }
 
     /// <summary>Gets or initializes the transport-specific parameters.</summary>
     /// <value>The transport parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.</value>
-    public ImmutableDictionary<string, string> Params { get; init; } = [];
-
-    /// <summary>Gets or initializes the port number.</summary>
-    /// <value>The port number. Defaults to <c>0</c>.</value>
-    public ushort Port { get; init; }
+    public ImmutableDictionary<string, string> Params { get; init; } = ImmutableDictionary<string, string>.Empty;
 
     /// <summary>Constructs a transport address.</summary>
     public TransportAddress()

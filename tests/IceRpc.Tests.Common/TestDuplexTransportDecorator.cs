@@ -53,6 +53,9 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
         _lastConnection ?? throw new InvalidOperationException("Call CreateConnection first.");
 
     /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
+
+    /// <inheritdoc/>
     public string Name => _decoratee.Name;
 
     private readonly IDuplexClientTransport _decoratee;
@@ -110,6 +113,9 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     /// <summary>The last accepted connection.</summary>
     public TestDuplexConnectionDecorator LastAcceptedConnection =>
         _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
+
+    /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
     /// <inheritdoc/>
     public string Name => _decoratee.Name;

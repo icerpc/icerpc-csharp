@@ -43,7 +43,7 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 "The QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
-        if (transportAddress.Name is string name && name != Name)
+        if (transportAddress.TransportName is string name && name != Name)
         {
             throw new NotSupportedException(
                 $"The QUIC server transport does not support transport '{name}'.");
