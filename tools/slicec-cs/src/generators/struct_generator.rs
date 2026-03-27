@@ -70,7 +70,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
         main_constructor.set_body({
             let mut code = CodeBlock::default();
             for field in &fields {
-                writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name(),);
+                writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name());
             }
             code
         });
