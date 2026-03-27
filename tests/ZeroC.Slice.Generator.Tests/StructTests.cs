@@ -7,7 +7,7 @@ using ZeroC.Tests.Common;
 namespace ZeroC.Slice.Generator.Tests;
 
 [Parallelizable(ParallelScope.All)]
-public sealed class StructTests
+internal sealed class StructTests
 {
     [Test]
     public void Decode_compact_struct()

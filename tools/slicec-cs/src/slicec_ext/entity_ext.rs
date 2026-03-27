@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
-use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal, CsType};
+use crate::cs_attributes::{CsAttribute, CsIdentifier, CsPublic, CsType};
 use crate::cs_util::{escape_keyword, CsCase};
 use convert_case::Case;
 use slicec::grammar::attributes::Deprecated;
@@ -84,12 +84,12 @@ pub trait EntityExt: Entity {
         format!(r#"SliceTypeId("::{}")"#, self.module_scoped_identifier())
     }
 
-    /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
-    /// attribute otherwise returns "public".
+    /// The C# access modifier to use. Returns "public" if this entity has the cs::public
+    /// attribute otherwise returns "internal".
     fn access_modifier(&self) -> &str {
-        match self.has_attribute::<CsInternal>() {
-            true => "internal",
-            false => "public",
+        match self.has_attribute::<CsPublic>() {
+            true => "public",
+            false => "internal",
         }
     }
 

@@ -3,6 +3,7 @@
 module IceRpc
 
 /// The keys of fields carried by icerpc response headers.
+[cs::public]
 unchecked enum ResponseFieldKey : varuint62 {
     /// The compression format of the payload.
     CompressionFormat = 2
