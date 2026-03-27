@@ -9,10 +9,10 @@ internal class ColocEndPoint : System.Net.EndPoint
     /// <inheritdoc/>
     public override AddressFamily AddressFamily => AddressFamily.Unspecified;
 
-    private readonly ServerAddress _serverAddress;
+    private readonly TransportAddress _transportAddress;
 
     /// <inheritdoc/>
-    public override string ToString() => _serverAddress.ToString();
+    public override string ToString() => $"{_transportAddress.Host}:{_transportAddress.Port}";
 
-    internal ColocEndPoint(ServerAddress serverAddress) => _serverAddress = serverAddress;
+    internal ColocEndPoint(TransportAddress transportAddress) => _transportAddress = transportAddress;
 }

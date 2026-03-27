@@ -17,9 +17,9 @@ namespace IceRpc.Transports;
 /// </remarks>
 public interface IListener<T> : IAsyncDisposable
 {
-    /// <summary>Gets the server address of this listener. That's the address a client would connect to.</summary>
-    /// <value>The server address.</value>
-    ServerAddress ServerAddress { get; }
+    /// <summary>Gets the transport address of this listener. That's the address a client would connect to.</summary>
+    /// <value>The transport address.</value>
+    TransportAddress TransportAddress { get; }
 
     /// <summary>Accepts a new connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

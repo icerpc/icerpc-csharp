@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Coloc.Internal;
 /// <summary>The listener implementation for the colocated transport.</summary>
 internal class ColocListener : IListener<IDuplexConnection>
 {
-    public ServerAddress ServerAddress { get; }
+    public TransportAddress TransportAddress { get; }
 
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly EndPoint _networkAddress;
@@ -41,7 +41,7 @@ internal class ColocListener : IListener<IDuplexConnection>
                 if (tcs.TrySetResult(serverPipe.Reader))
                 {
                     var serverConnection = new ServerColocConnection(
-                        ServerAddress,
+                        TransportAddress,
                         serverPipe.Writer,
                         clientPipeReader);
                     return (serverConnection, _networkAddress);
@@ -90,13 +90,13 @@ internal class ColocListener : IListener<IDuplexConnection>
     }
 
     internal ColocListener(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         ColocTransportOptions colocTransportOptions,
         DuplexConnectionOptions duplexConnectionOptions)
     {
-        ServerAddress = serverAddress;
+        TransportAddress = transportAddress;
 
-        _networkAddress = new ColocEndPoint(serverAddress);
+        _networkAddress = new ColocEndPoint(transportAddress);
         _pipeOptions = new PipeOptions(
             pool: duplexConnectionOptions.Pool,
             minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,

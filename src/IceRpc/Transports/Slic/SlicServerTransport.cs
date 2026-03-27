@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Slic;
 public class SlicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
-    public string Name => _duplexServerTransport.Name;
+    public string DefaultName => _duplexServerTransport.DefaultName;
 
     private readonly IDuplexServerTransport _duplexServerTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
@@ -32,12 +32,12 @@ public class SlicServerTransport : IMultiplexedServerTransport
 
     /// <inheritdoc/>
     public IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions) =>
         new SlicListener(
             _duplexServerTransport.Listen(
-                serverAddress,
+                transportAddress,
                 new DuplexConnectionOptions
                 {
                     MinSegmentSize = options.MinSegmentSize,

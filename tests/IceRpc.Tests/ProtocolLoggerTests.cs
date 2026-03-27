@@ -312,7 +312,7 @@ public sealed class ProtocolLoggerTests
     // that creates duplex connections that will fail during connect.
     internal sealed class ConnectFailDuplexServerTransportDecorator : IDuplexServerTransport
     {
-        public string Name => _decoratee.Name;
+        public string DefaultName => _decoratee.DefaultName;
 
         private readonly IDuplexServerTransport _decoratee;
 
@@ -320,12 +320,12 @@ public sealed class ProtocolLoggerTests
             _decoratee = decoratee;
 
         public IListener<IDuplexConnection> Listen(
-            ServerAddress serverAddress,
+            TransportAddress transportAddress,
             DuplexConnectionOptions options,
             SslServerAuthenticationOptions? serverAuthenticationOptions)
         {
             IListener<IDuplexConnection> listener =
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+                _decoratee.Listen(transportAddress, options, serverAuthenticationOptions);
             return new ConnectFailDuplexConnectionListenerDecorator(listener);
         }
     }
@@ -334,7 +334,7 @@ public sealed class ProtocolLoggerTests
     // that will fail to connect
     private sealed class ConnectFailDuplexConnectionListenerDecorator : IListener<IDuplexConnection>
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         private readonly IListener<IDuplexConnection> _decoratee;
 
@@ -378,7 +378,7 @@ public sealed class ProtocolLoggerTests
     // that creates multiplexed connections that will fail during connect.
     internal sealed class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
     {
-        public string Name => _decoratee.Name;
+        public string DefaultName => _decoratee.DefaultName;
 
         private readonly IMultiplexedServerTransport _decoratee;
 
@@ -386,12 +386,12 @@ public sealed class ProtocolLoggerTests
             _decoratee = decoratee;
 
         public IListener<IMultiplexedConnection> Listen(
-            ServerAddress serverAddress,
+            TransportAddress transportAddress,
             MultiplexedConnectionOptions options,
             SslServerAuthenticationOptions? serverAuthenticationOptions)
         {
             IListener<IMultiplexedConnection> listener =
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+                _decoratee.Listen(transportAddress, options, serverAuthenticationOptions);
             return new ConnectFailMultiplexedConnectionListenerDecorator(listener);
         }
     }
@@ -400,7 +400,7 @@ public sealed class ProtocolLoggerTests
     // that will fail to connect
     private sealed class ConnectFailMultiplexedConnectionListenerDecorator : IListener<IMultiplexedConnection>
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         private readonly IListener<IMultiplexedConnection> _decoratee;
 

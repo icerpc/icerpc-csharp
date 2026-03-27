@@ -10,14 +10,19 @@ namespace IceRpc.Transports.Coloc.Internal;
 internal class ColocClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
-    public string Name => ColocTransport.Name;
+    public string DefaultName => ColocTransport.Name;
 
-    private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
+    /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) =>
+        transportName is null || transportName == ColocTransport.Name ? false :
+            throw new NotSupportedException($"The Coloc client transport does not support transport '{transportName}'.");
+
+    private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
     private readonly ColocTransportOptions _options;
 
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions duplexConnectionOptions,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
@@ -26,15 +31,17 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new NotSupportedException("The Coloc client transport does not support SSL.");
         }
 
-        if ((serverAddress.Transport is string transport && transport != ColocTransport.Name) ||
-            !ColocTransport.CheckParams(serverAddress))
+        if (transportAddress.TransportName is string name && name != DefaultName)
         {
-            throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc client transport.",
-                nameof(serverAddress));
+            throw new NotSupportedException($"The Coloc client transport does not support transport '{name}'.");
         }
 
-        serverAddress = serverAddress with { Transport = Name };
+        if (transportAddress.Params.Count > 0)
+        {
+            throw new ArgumentException(
+                "The transport address contains parameters that are not valid for the Coloc client transport.",
+                nameof(transportAddress));
+        }
 
         var localPipe = new Pipe(new PipeOptions(
             pool: duplexConnectionOptions.Pool,
@@ -42,13 +49,13 @@ internal class ColocClientTransport : IDuplexClientTransport
             pauseWriterThreshold: _options.PauseWriterThreshold,
             resumeWriterThreshold: _options.ResumeWriterThreshold,
             useSynchronizationContext: false));
-        return new ClientColocConnection(serverAddress, localPipe, ConnectAsync);
+        return new ClientColocConnection(transportAddress, localPipe, ConnectAsync);
 
         // The client connection connect operation calls this method to queue a connection establishment request with
         // the listener. The returned task is completed once the listener accepts the connection establishment request.
         Task<PipeReader> ConnectAsync(PipeReader clientPipeReader, CancellationToken cancellationToken)
         {
-            if (_listeners.TryGetValue(serverAddress, out ColocListener? listener) &&
+            if (_listeners.TryGetValue((transportAddress.Host, transportAddress.Port), out ColocListener? listener) &&
                 listener.TryQueueConnect(
                     clientPipeReader,
                     cancellationToken,
@@ -64,7 +71,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     }
 
     internal ColocClientTransport(
-        ConcurrentDictionary<ServerAddress, ColocListener> listeners,
+        ConcurrentDictionary<(string Host, ushort Port), ColocListener> listeners,
         ColocTransportOptions options)
     {
         _listeners = listeners;

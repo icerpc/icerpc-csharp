@@ -17,7 +17,7 @@ internal abstract class ColocConnection : IDuplexConnection
     // locking.
     private protected int _state;
 
-    private readonly ServerAddress _serverAddress;
+    private readonly TransportAddress _transportAddress;
     private readonly PipeWriter _writer;
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -164,9 +164,9 @@ internal abstract class ColocConnection : IDuplexConnection
         }
     }
 
-    public ColocConnection(ServerAddress serverAddress, PipeWriter writer)
+    public ColocConnection(TransportAddress transportAddress, PipeWriter writer)
     {
-        _serverAddress = serverAddress;
+        _transportAddress = transportAddress;
         _writer = writer;
     }
 
@@ -208,7 +208,7 @@ internal abstract class ColocConnection : IDuplexConnection
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
 
-        var colocEndPoint = new ColocEndPoint(_serverAddress);
+        var colocEndPoint = new ColocEndPoint(_transportAddress);
         return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
     }
 
@@ -247,10 +247,10 @@ internal class ClientColocConnection : ColocConnection
     }
 
     internal ClientColocConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         Pipe localPipe,
         Func<PipeReader, CancellationToken, Task<PipeReader>> connectAsync)
-        : base(serverAddress, localPipe.Writer)
+        : base(transportAddress, localPipe.Writer)
     {
         _connectAsync = connectAsync;
         _localPipeReader = localPipe.Reader;
@@ -269,6 +269,6 @@ internal class ServerColocConnection : ColocConnection
     public override Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
         Task.FromResult(FinishConnect());
 
-    public ServerColocConnection(ServerAddress serverAddress, PipeWriter writer, PipeReader reader)
-       : base(serverAddress, writer) => _reader = reader;
+    public ServerColocConnection(TransportAddress transportAddress, PipeWriter writer, PipeReader reader)
+       : base(transportAddress, writer) => _reader = reader;
 }

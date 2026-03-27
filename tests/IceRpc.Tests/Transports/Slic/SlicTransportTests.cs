@@ -279,7 +279,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         var clientConnection = clientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new MultiplexedConnectionOptions(),
             clientAuthenticationOptions: null);
         var connectTask = clientConnection.ConnectAsync(cts.Token);
@@ -370,7 +370,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
@@ -411,12 +411,12 @@ public class SlicTransportTests
         var multiplexedClientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         var duplexServerTransport = provider.GetRequiredService<IDuplexServerTransport>();
         await using var listener = duplexServerTransport.Listen(
-            new ServerAddress(new Uri("icerpc://[::1]")),
+            new TransportAddress { Host = "::1" },
             options: new(),
             serverAuthenticationOptions: null);
         var acceptTask = listener.AcceptAsync(default);
         await using var multiplexedClientConnection = multiplexedClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new MultiplexedConnectionOptions(),
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
@@ -449,12 +449,12 @@ public class SlicTransportTests
         var multiplexedClientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         var duplexServerTransport = provider.GetRequiredService<IDuplexServerTransport>();
         await using var listener = duplexServerTransport.Listen(
-            new ServerAddress(new Uri("icerpc://[::1]")),
+            new TransportAddress { Host = "::1" },
             options: new(),
             serverAuthenticationOptions: null);
         var acceptTask = listener.AcceptAsync(default);
         await using var multiplexedClientConnection = multiplexedClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new MultiplexedConnectionOptions(),
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
@@ -488,7 +488,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
@@ -707,7 +707,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         Task connectTask = duplexClientConnection.ConnectAsync(default);
@@ -921,7 +921,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         Task connectTask = duplexClientConnection.ConnectAsync(default);
@@ -953,12 +953,12 @@ public class SlicTransportTests
         var multiplexedClientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         var duplexServerTransport = provider.GetRequiredService<IDuplexServerTransport>();
         await using var listener = duplexServerTransport.Listen(
-            new ServerAddress(new Uri("icerpc://[::1]")),
+            new TransportAddress { Host = "::1" },
             options: new(),
             serverAuthenticationOptions: null);
         var acceptTask = listener.AcceptAsync(default);
         await using var multiplexedClientConnection = multiplexedClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new MultiplexedConnectionOptions(),
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
@@ -989,7 +989,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         Task connectTask = duplexClientConnection.ConnectAsync(default);
@@ -1034,7 +1034,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
+            listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         Task connectTask = duplexClientConnection.ConnectAsync(default);

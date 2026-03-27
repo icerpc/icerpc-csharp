@@ -30,10 +30,8 @@ public sealed class ColocTransport
     /// <param name="options">The options to configure the Coloc transport.</param>
     public ColocTransport(ColocTransportOptions options)
     {
-        var listeners = new ConcurrentDictionary<ServerAddress, ColocListener>();
+        var listeners = new ConcurrentDictionary<(string Host, ushort Port), ColocListener>();
         ClientTransport = new ColocClientTransport(listeners, options);
         ServerTransport = new ColocServerTransport(listeners, options);
     }
-
-    internal static bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;
 }

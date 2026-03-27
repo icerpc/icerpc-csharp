@@ -77,7 +77,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             _serverAddress = _serverAddress with
             {
                 Transport = _serverAddress.Protocol == Protocol.Ice ?
-                    duplexClientTransport.Name : multiplexedClientTransport.Name
+                    duplexClientTransport.DefaultName : multiplexedClientTransport.DefaultName
             };
         }
 
