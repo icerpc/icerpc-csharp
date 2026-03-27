@@ -9,10 +9,10 @@ namespace IceRpc.Transports.Tcp;
 public class TcpClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => transportName == "ssl";
+    public string DefaultName => "tcp";
 
     /// <inheritdoc/>
-    public string Name => "tcp";
+    public bool IsSslRequired(string? transportName) => transportName == "ssl";
 
     private readonly TcpClientTransportOptions _options;
 
@@ -45,9 +45,12 @@ public class TcpClientTransport : IDuplexClientTransport
                 nameof(transportAddress));
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone();
-
-        authenticationOptions?.TargetHost ??= transportAddress.Host;
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions;
+        if (authenticationOptions is not null && authenticationOptions.TargetHost is null)
+        {
+            authenticationOptions = authenticationOptions.Clone();
+            authenticationOptions?.TargetHost ??= transportAddress.Host;
+        }
 
         return new TcpClientConnection(
             transportAddress,

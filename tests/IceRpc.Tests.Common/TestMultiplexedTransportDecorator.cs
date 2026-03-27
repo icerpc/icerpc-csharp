@@ -63,10 +63,10 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     public MultiplexedConnectionOptions? LastCreatedConnectionOptions { get; private set; }
 
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
+    public string DefaultName => _decoratee.DefaultName;
 
     /// <inheritdoc/>
-    public string Name => _decoratee.Name;
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
     private readonly IMultiplexedClientTransport _decoratee;
     private TestMultiplexedConnectionDecorator? _lastConnection;
@@ -129,10 +129,10 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     public MultiplexedConnectionOptions? LastListenOptions { get; private set; }
 
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
+    public string DefaultName => _decoratee.DefaultName;
 
     /// <inheritdoc/>
-    public string Name => _decoratee.Name;
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
     /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by the <see
     /// cref="IListener{IMultiplexedConnection}" /> operations.</summary>

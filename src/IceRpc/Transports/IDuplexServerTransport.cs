@@ -12,15 +12,16 @@ public interface IDuplexServerTransport
     /// <value>The default duplex server transport is the <see cref="TcpServerTransport" />.</value>
     public static IDuplexServerTransport Default { get; } = new TcpServerTransport();
 
+    /// <summary>Gets the default transport name.</summary>
+    /// <value>The transport accepts transport addresses that use this name as the
+    /// <see cref="TransportAddress.TransportName"/>. Some transports may accept additional names beyond this default.
+    /// </value>
+    string DefaultName { get; }
+
     /// <summary>Gets a value indicating whether this transport requires SSL.</summary>
     /// <value><see langword="true" /> if this transport requires SSL; otherwise, <see langword="false" />. Defaults to
     /// <see langword="false" />.</value>
     bool IsSslRequired(string? transportName);
-
-    /// <summary>Gets the transport names accepted by this transport.</summary>
-    /// <value>A set of transport names. The first name is the primary name used as the default when no transport is
-    /// specified in the server address.</value>
-    string Name { get; }
 
     /// <summary>Starts listening on a transport address.</summary>
     /// <param name="transportAddress">The transport address to listen on.</param>

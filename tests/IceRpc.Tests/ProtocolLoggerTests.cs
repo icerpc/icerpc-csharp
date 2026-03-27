@@ -314,7 +314,7 @@ public sealed class ProtocolLoggerTests
     {
         public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
-        public string Name => _decoratee.Name;
+        public string DefaultName => _decoratee.DefaultName;
 
         private readonly IDuplexServerTransport _decoratee;
 
@@ -382,7 +382,7 @@ public sealed class ProtocolLoggerTests
     {
         public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
-        public string Name => _decoratee.Name;
+        public string DefaultName => _decoratee.DefaultName;
 
         private readonly IMultiplexedServerTransport _decoratee;
 

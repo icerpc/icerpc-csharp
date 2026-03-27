@@ -14,10 +14,10 @@ namespace IceRpc.Transports.Quic;
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => true;
+    public string DefaultName => "quic";
 
     /// <inheritdoc/>
-    public string Name => "quic";
+    public bool IsSslRequired(string? transportName) => true;
 
     private readonly QuicServerTransportOptions _quicOptions;
 
@@ -43,10 +43,9 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 "The QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
-        if (transportAddress.TransportName is string name && name != Name)
+        if (transportAddress.TransportName is string name && name != DefaultName)
         {
-            throw new NotSupportedException(
-                $"The QUIC server transport does not support transport '{name}'.");
+            throw new NotSupportedException($"The QUIC server transport does not support transport '{name}'.");
         }
 
         if (transportAddress.Params.Count > 0)

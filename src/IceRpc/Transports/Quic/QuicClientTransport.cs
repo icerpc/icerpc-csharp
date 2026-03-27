@@ -15,10 +15,10 @@ namespace IceRpc.Transports.Quic;
 public class QuicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => true;
+    public string DefaultName => "quic";
 
     /// <inheritdoc/>
-    public string Name => "quic";
+    public bool IsSslRequired(string? transportName) => true;
 
     private readonly QuicClientTransportOptions _quicTransportOptions;
 
@@ -44,10 +44,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 "The QUIC client transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
-        if (transportAddress.TransportName is string name && name != Name)
+        if (transportAddress.TransportName is string name && name != DefaultName)
         {
-            throw new NotSupportedException(
-                $"The QUIC client transport does not support transport '{name}'.");
+            throw new NotSupportedException($"The QUIC client transport does not support transport '{name}'.");
         }
 
         if (transportAddress.Params.Count > 0)
@@ -71,10 +70,13 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(clientAuthenticationOptions));
         }
 
-        clientAuthenticationOptions = clientAuthenticationOptions.Clone();
-        clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
+        if (clientAuthenticationOptions.TargetHost is null)
+        {
+            clientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            clientAuthenticationOptions.TargetHost = transportAddress.Host;
+        }
 
-        EndPoint addr = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
+        EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, transportAddress.Port) :
             new DnsEndPoint(transportAddress.Host, transportAddress.Port);
 
@@ -88,7 +90,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             InitialReceiveWindowSizes = _quicTransportOptions.InitialReceiveWindowSizes,
             KeepAliveInterval = _quicTransportOptions.KeepAliveInterval,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
-            RemoteEndPoint = addr,
+            RemoteEndPoint = endPoint,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
         };

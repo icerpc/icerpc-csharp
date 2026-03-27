@@ -9,10 +9,10 @@ namespace IceRpc.Transports.Tcp;
 public class TcpServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => transportName == "ssl";
+    public string DefaultName => "tcp";
 
     /// <inheritdoc/>
-    public string Name => "tcp";
+    public bool IsSslRequired(string? transportName) => transportName == "ssl";
 
     private readonly TcpServerTransportOptions _options;
 
@@ -36,6 +36,13 @@ public class TcpServerTransport : IDuplexServerTransport
         {
             throw new NotSupportedException(
                 $"The TCP server transport does not support transport '{name}'.");
+        }
+
+        if (transportAddress.TransportName == "ssl" && serverAuthenticationOptions is null)
+        {
+            throw new ArgumentNullException(
+                nameof(serverAuthenticationOptions),
+                "The TCP server transport requires the SSL server authentication options to be set for SSL transport addresses.");
         }
 
         if (transportAddress.Params.Count > 0)

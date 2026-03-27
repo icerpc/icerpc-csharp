@@ -11,9 +11,9 @@ namespace IceRpc.IntegrationTests;
 
 public class CustomClientTransport : IMultiplexedClientTransport
 {
-    public bool IsSslRequired(string? transportName) => false;
+    public string DefaultName => "custom";
 
-    public string Name => "custom";
+    public bool IsSslRequired(string? transportName) => false;
 
     private readonly IMultiplexedClientTransport _transport =
         new SlicClientTransport(new TcpClientTransport());
@@ -36,9 +36,9 @@ public class CustomClientTransport : IMultiplexedClientTransport
 
 public class CustomServerTransport : IMultiplexedServerTransport
 {
-    public bool IsSslRequired(string? transportName) => false;
+    public string DefaultName => "custom";
 
-    public string Name => "custom";
+    public bool IsSslRequired(string? transportName) => false;
 
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());

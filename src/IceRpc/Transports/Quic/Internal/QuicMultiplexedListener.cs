@@ -43,13 +43,27 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         QuicServerTransportOptions quicTransportOptions,
-        SslServerAuthenticationOptions authenticationOptions)
+        SslServerAuthenticationOptions serverAuthenticationOptions)
     {
         if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
         {
             throw new ArgumentException(
                 $"Listening on the DNS name '{transportAddress.Host}' is not allowed; an IP address is required.",
                 nameof(transportAddress));
+        }
+
+        if (serverAuthenticationOptions is null)
+        {
+            throw new ArgumentNullException(
+                nameof(serverAuthenticationOptions),
+                "The QUIC server transport requires the SSL server authentication options to be set.");
+        }
+
+        if (serverAuthenticationOptions.ApplicationProtocols is null or { Count: 0 })
+        {
+            throw new ArgumentException(
+                "The QUIC server transport requires ApplicationProtocols to be set on the SSL server authentication options.",
+                nameof(serverAuthenticationOptions));
         }
 
         _options = options;
@@ -62,7 +76,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             IdleTimeout = quicTransportOptions.IdleTimeout,
             KeepAliveInterval = Timeout.InfiniteTimeSpan, // the server doesn't send PING frames
             InitialReceiveWindowSizes = quicTransportOptions.InitialReceiveWindowSizes,
-            ServerAuthenticationOptions = authenticationOptions,
+            ServerAuthenticationOptions = serverAuthenticationOptions,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
         };
@@ -75,7 +89,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 {
                     ListenEndPoint = new IPEndPoint(ipAddress, transportAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
-                    ApplicationProtocols = authenticationOptions.ApplicationProtocols!,
+                    ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);

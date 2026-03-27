@@ -656,8 +656,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Once shutdownTask is not null, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId
                 // are immutable.
 
-                // When this peer is the server transportAddress, the first accepted bidirectional stream ID is 0. When this
-                // peer is the client transportAddress, the first accepted bidirectional stream ID is 1.
+                // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
+                // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
                 IceRpcGoAway goAwayFrame = new(
                     _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
                     (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream.Id) + 4);

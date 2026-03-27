@@ -9,10 +9,10 @@ namespace IceRpc.Transports.Slic;
 public class SlicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => _duplexServerTransport.IsSslRequired(transportName);
+    public string DefaultName => _duplexServerTransport.DefaultName;
 
     /// <inheritdoc/>
-    public string Name => _duplexServerTransport.Name;
+    public bool IsSslRequired(string? transportName) => _duplexServerTransport.IsSslRequired(transportName);
 
     private readonly IDuplexServerTransport _duplexServerTransport;
     private readonly SlicTransportOptions _slicTransportOptions;

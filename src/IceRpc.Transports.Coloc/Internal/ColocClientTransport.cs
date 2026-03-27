@@ -10,10 +10,10 @@ namespace IceRpc.Transports.Coloc.Internal;
 internal class ColocClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => false;
+    public string DefaultName => ColocTransport.Name;
 
     /// <inheritdoc/>
-    public string Name => ColocTransport.Name;
+    public bool IsSslRequired(string? transportName) => false;
 
     private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
     private readonly ColocTransportOptions _options;
@@ -29,7 +29,7 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new NotSupportedException("The Coloc client transport does not support SSL.");
         }
 
-        if (transportAddress.TransportName is string name && name != Name)
+        if (transportAddress.TransportName is string name && name != DefaultName)
         {
             throw new NotSupportedException($"The Coloc client transport does not support transport '{name}'.");
         }

@@ -275,7 +275,7 @@ internal class TcpClientConnection : TcpConnection
 
     internal override SslStream? SslStream => _sslStream;
 
-    private readonly EndPoint _addr;
+    private readonly EndPoint _address;
     private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
     private SslStream? _sslStream;
@@ -288,7 +288,7 @@ internal class TcpClientConnection : TcpConnection
         TcpClientTransportOptions options)
         : base(authenticationOptions is not null ? pool.Rent(minimumSegmentSize) : null)
     {
-        _addr = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
+        _address = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, transportAddress.Port) :
             new DnsEndPoint(transportAddress.Host, transportAddress.Port);
 
@@ -330,7 +330,7 @@ internal class TcpClientConnection : TcpConnection
             Debug.Assert(Socket is not null);
 
             // Connect to the peer.
-            await Socket.ConnectAsync(_addr, cancellationToken).ConfigureAwait(false);
+            await Socket.ConnectAsync(_address, cancellationToken).ConfigureAwait(false);
             isConnected = true;
 
             if (_authenticationOptions is not null)
@@ -353,9 +353,9 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (SocketException exception) when (isConnected)
         {
-            // This can happen if the peer closes the connection immediately after accepting it, which can
-            // cause the transportAddress information to be unavailable. Any SocketException at this point means the
-            // connection is no longer usable.
+            // This can happen if the peer closes the connection immediately after accepting it, which can cause the
+            // endpoint information to be unavailable. Any SocketException at this point means the connection is no
+            // longer usable.
             throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
         catch (SocketException exception)

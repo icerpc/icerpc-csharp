@@ -20,8 +20,8 @@ public readonly record struct TransportAddress
     public string? TransportName { get; init; }
 
     /// <summary>Gets or initializes the transport-specific parameters.</summary>
-    /// <value>The transport parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.</value>
-    public ImmutableDictionary<string, string> Params { get; init; } = ImmutableDictionary<string, string>.Empty;
+    /// <value>The transport parameters. Defaults to an empty dictionary.</value>
+    public ImmutableDictionary<string, string> Params { get; init; } = [];
 
     /// <summary>Constructs a transport address.</summary>
     public TransportAddress()
