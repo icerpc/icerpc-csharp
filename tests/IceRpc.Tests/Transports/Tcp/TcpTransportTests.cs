@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Tcp;
+using System.Collections.Immutable;
 using IceRpc.Transports.Tcp.Internal;
 using NUnit.Framework;
 using System.Net;
@@ -34,6 +35,17 @@ public class TcpTransportTests
     private static SslServerAuthenticationOptions DefaultSslServerAuthenticationOptions { get; } =
         new SslServerAuthenticationOptions
         {
+            ClientCertificateRequired = false,
+            ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                "server.p12",
+                password: null,
+                keyStorageFlags: X509KeyStorageFlags.Exportable),
+        };
+
+    private static SslServerAuthenticationOptions DefaultSslServerAuthenticationOptionsWithIceAlpn { get; } =
+        new SslServerAuthenticationOptions
+        {
+            ApplicationProtocols = [new SslApplicationProtocol("ice")],
             ClientCertificateRequired = false,
             ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
                 "server.p12",
@@ -312,34 +324,107 @@ public class TcpTransportTests
             Throws.Exception.InstanceOf<OperationCanceledException>().Or.TypeOf<IceRpcException>());
     }
 
-    [Test]
-    public void Create_connection_to_valid_tcp_address() =>
+    [TestCase(null)]
+    [TestCase("tcp")]
+    public void Create_connection_to_valid_tcp_address(string? transportName) =>
         Assert.That(
             () =>
                 new TcpClientTransport().CreateConnection(
-                    new TransportAddress { Host = "127.0.0.1", Port = 0 },
+                    new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = transportName },
                     new DuplexConnectionOptions(),
                     clientAuthenticationOptions: null).Dispose(),
            Throws.Nothing);
 
     [Test]
-    public void Listen_on_valid_tcp_address() =>
+    public void Create_connection_to_valid_ssl_address() =>
+        Assert.That(
+            () =>
+                new TcpClientTransport().CreateConnection(
+                    new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = "ssl" },
+                    new DuplexConnectionOptions(),
+                    clientAuthenticationOptions: new SslClientAuthenticationOptions
+                    {
+                        ApplicationProtocols = [new SslApplicationProtocol("ice")]
+                    }).Dispose(),
+           Throws.Nothing);
+
+    [TestCase(null)]
+    [TestCase("tcp")]
+    public void Listen_on_valid_tcp_address(string? transportName) =>
         Assert.That(
             async () =>
                 await new TcpServerTransport().Listen(
-                    new TransportAddress { Host = "127.0.0.1", Port = 0 },
+                    new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = transportName },
                     new DuplexConnectionOptions(),
                     serverAuthenticationOptions: DefaultSslServerAuthenticationOptions).DisposeAsync(),
            Throws.Nothing);
 
     [Test]
-    public void Listen_on_ssl_address_without_ice_alpn_fails() =>
+    public void Listen_on_valid_ssl_address() =>
+        Assert.That(
+            async () =>
+                await new TcpServerTransport().Listen(
+                    new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = "ssl" },
+                    new DuplexConnectionOptions(),
+                    serverAuthenticationOptions: DefaultSslServerAuthenticationOptionsWithIceAlpn).DisposeAsync(),
+           Throws.Nothing);
+
+    [TestCase("foo", typeof(NotSupportedException))]
+    [TestCase("ssl", typeof(NotSupportedException))] // ssl without Ice ALPN
+    public void Create_connection_to_invalid_tcp_transport_address_fails(string transportName, Type exceptionType) =>
+        Assert.That(
+            () => new TcpClientTransport().CreateConnection(
+                new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = transportName },
+                new DuplexConnectionOptions(),
+                clientAuthenticationOptions: null),
+            Throws.InstanceOf(exceptionType));
+
+    [Test]
+    public void Create_connection_to_tcp_transport_address_with_params_fails() =>
+        Assert.That(
+            () => new TcpClientTransport().CreateConnection(
+                new TransportAddress
+                {
+                    Host = "127.0.0.1",
+                    Port = 0,
+                    Params = new Dictionary<string, string> { ["x"] = "" }.ToImmutableDictionary()
+                },
+                new DuplexConnectionOptions(),
+                clientAuthenticationOptions: null),
+            Throws.TypeOf<ArgumentException>());
+
+    [TestCase("foo", typeof(NotSupportedException))]
+    [TestCase("ssl", typeof(NotSupportedException))] // ssl without Ice ALPN
+    public void Listen_on_invalid_tcp_transport_address_fails(string transportName, Type exceptionType) =>
         Assert.That(
             () => new TcpServerTransport().Listen(
-                new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = "ssl" },
+                new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = transportName },
                 new DuplexConnectionOptions(),
-                serverAuthenticationOptions: null),
-            Throws.TypeOf<NotSupportedException>());
+                serverAuthenticationOptions: DefaultSslServerAuthenticationOptions),
+            Throws.InstanceOf(exceptionType));
+
+    [Test]
+    public void Listen_on_tcp_transport_address_with_params_fails() =>
+        Assert.That(
+            () => new TcpServerTransport().Listen(
+                new TransportAddress
+                {
+                    Host = "127.0.0.1",
+                    Port = 0,
+                    Params = new Dictionary<string, string> { ["z"] = "" }.ToImmutableDictionary()
+                },
+                new DuplexConnectionOptions(),
+                serverAuthenticationOptions: DefaultSslServerAuthenticationOptions),
+            Throws.TypeOf<ArgumentException>());
+
+    [Test]
+    public void Listen_on_dns_name_fails() =>
+        Assert.That(
+            () => new TcpServerTransport().Listen(
+                new TransportAddress { Host = "localhost", Port = 0 },
+                new DuplexConnectionOptions(),
+                serverAuthenticationOptions: DefaultSslServerAuthenticationOptions),
+            Throws.TypeOf<ArgumentException>());
 
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its
     /// connection. For tcp connections the server connect call is non-op.</summary>

@@ -83,16 +83,11 @@ public static class ServiceCollectionExtensions
                 // Ensure ALPN is set on SSL options before any transport uses them.
                 SslServerAuthenticationOptions? serverAuthOptions =
                     provider.GetService<SslServerAuthenticationOptions>();
-                if (serverAuthOptions is not null)
-                {
-                    serverAuthOptions.ApplicationProtocols ??= [alpn];
-                }
+                serverAuthOptions?.ApplicationProtocols ??= [alpn];
+
                 SslClientAuthenticationOptions? clientAuthOptions =
                     provider.GetService<SslClientAuthenticationOptions>();
-                if (clientAuthOptions is not null)
-                {
-                    clientAuthOptions.ApplicationProtocols ??= [alpn];
-                }
+                clientAuthOptions?.ApplicationProtocols ??= [alpn];
 
                 return provider.GetRequiredService<IDuplexServerTransport>().Listen(
                     transportAddress,
@@ -127,16 +122,11 @@ public static class ServiceCollectionExtensions
                 // Ensure ALPN is set on SSL options before any transport uses them.
                 SslServerAuthenticationOptions? serverAuthOptions =
                     provider.GetService<SslServerAuthenticationOptions>();
-                if (serverAuthOptions is not null)
-                {
-                    serverAuthOptions.ApplicationProtocols ??= [alpn];
-                }
+                serverAuthOptions?.ApplicationProtocols ??= [alpn];
+
                 SslClientAuthenticationOptions? clientAuthOptions =
                     provider.GetService<SslClientAuthenticationOptions>();
-                if (clientAuthOptions is not null)
-                {
-                    clientAuthOptions.ApplicationProtocols ??= [alpn];
-                }
+                clientAuthOptions?.ApplicationProtocols ??= [alpn];
 
                 var options = provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new();
                 return provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
@@ -148,10 +138,9 @@ public static class ServiceCollectionExtensions
             {
                 var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
                 var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-                var options = provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new();
                 var connection = clientTransport.CreateConnection(
                     listener.TransportAddress,
-                    options,
+                    provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>());
                 return new ClientServerMultiplexedConnection(connection, listener);
             });
@@ -169,7 +158,7 @@ public static class ServiceCollectionExtensions
             null) ?? throw new ArgumentException($"No {typeof(TTransportService)} service is registered");
 
         Func<IServiceProvider, object> factory = descriptor.ImplementationFactory ?? throw new ArgumentException(
-                "Only transport services registered with an implementation factory are supported.");
+            "Only transport services registered with an implementation factory are supported.");
         if (descriptor.Lifetime != ServiceLifetime.Singleton)
         {
             throw new NotSupportedException(

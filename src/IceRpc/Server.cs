@@ -92,6 +92,13 @@ public sealed class Server : IAsyncDisposable
             };
         }
 
+        if (options.ServerAuthenticationOptions?.ApplicationProtocols is not null)
+        {
+            throw new ArgumentException(
+                "The ApplicationProtocols property of the SSL server authentication options must be null. The ALPN is set automatically based on the server address protocol.",
+                nameof(options));
+        }
+
         var transportAddress = new TransportAddress
         {
             Host = _serverAddress.Host,
@@ -102,17 +109,6 @@ public sealed class Server : IAsyncDisposable
 
         _listenerFactory = () =>
         {
-            // Validate user-provided ALPN.
-            if (options.ServerAuthenticationOptions?.ApplicationProtocols
-                is List<SslApplicationProtocol> applicationProtocols)
-            {
-                if (applicationProtocols.Count != 1 || applicationProtocols[0] != _serverAddress.Protocol.AlpnProtocol)
-                {
-                    throw new ArgumentException(
-                        $"The ApplicationProtocols must contain exactly '{_serverAddress.Protocol.Name}'.");
-                }
-            }
-
             IConnectorListener listener;
 
             SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions?.Clone();
