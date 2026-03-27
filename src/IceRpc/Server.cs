@@ -122,7 +122,7 @@ public sealed class Server : IAsyncDisposable
                 else if (authOptions.ApplicationProtocols is null)
                 {
                     authOptions = authOptions.Clone();
-                    authOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
+                    authOptions.ApplicationProtocols = [Protocol.Ice.AlpnProtocol];
                 }
 
                 IListener<IDuplexConnection> transportListener = duplexServerTransport.Listen(

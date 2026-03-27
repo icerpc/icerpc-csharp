@@ -23,6 +23,12 @@ public class CustomClientTransport : IMultiplexedClientTransport
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
+        if (transportAddress.TransportName is string name && name is not "custom" and not "tcp")
+        {
+            throw new NotSupportedException(
+                $"The custom client transport does not support transport '{name}'.");
+        }
+
         // Remap custom transport name to tcp and strip custom params before delegating.
         transportAddress = transportAddress with
         {
@@ -48,6 +54,12 @@ public class CustomServerTransport : IMultiplexedServerTransport
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
+        if (transportAddress.TransportName is string name && name is not "custom" and not "tcp")
+        {
+            throw new NotSupportedException(
+                $"The custom server transport does not support transport '{name}'.");
+        }
+
         // Remap custom transport name to tcp and strip custom params before delegating.
         transportAddress = transportAddress with
         {

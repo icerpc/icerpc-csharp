@@ -45,7 +45,8 @@ public class TcpClientTransport : IDuplexClientTransport
                 nameof(transportAddress));
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions;
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions ??
+            (transportAddress.TransportName == "ssl" ? new SslClientAuthenticationOptions() : null);
         if (authenticationOptions is not null && authenticationOptions.TargetHost is null)
         {
             authenticationOptions = authenticationOptions.Clone();

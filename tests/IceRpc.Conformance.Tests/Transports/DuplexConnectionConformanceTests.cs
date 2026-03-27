@@ -128,7 +128,7 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Create_client_connection_with_unknown_endpoint_parameter_fails()
+    public async Task Create_client_connection_with_unknown_transport_address_parameter_fails()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
@@ -148,7 +148,7 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Create_listener_with_unknown_endpoint_parameter_fails()
+    public async Task Create_listener_with_unknown_transport_address_parameter_fails()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();

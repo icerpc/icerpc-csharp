@@ -68,6 +68,8 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
         _options = options;
 
+        serverAuthenticationOptions = serverAuthenticationOptions.Clone();
+
         _quicServerOptions = new QuicServerConnectionOptions
         {
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
@@ -89,7 +91,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 {
                     ListenEndPoint = new IPEndPoint(ipAddress, transportAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
-                    ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols,
+                    ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols!,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);
