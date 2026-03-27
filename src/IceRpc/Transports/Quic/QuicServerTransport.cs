@@ -45,13 +45,13 @@ public class QuicServerTransport : IMultiplexedServerTransport
 
         if (transportAddress.TransportName is string name && name != DefaultName)
         {
-            throw new NotSupportedException($"The QUIC server transport does not support transport '{name}'.");
+            throw new NotSupportedException($"The Quic server transport does not support transport '{name}'.");
         }
 
         if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                "The transport address contains parameters that are not valid for the QUIC server transport.",
+                "The transport address contains parameters that are not valid for the Quic server transport.",
                 nameof(transportAddress));
         }
 
@@ -59,13 +59,13 @@ public class QuicServerTransport : IMultiplexedServerTransport
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),
-                "The QUIC server transport requires the SSL server authentication options to be set.");
+                "The Quic server transport requires the Ssl server authentication options to be set.");
         }
 
         if (serverAuthenticationOptions.ApplicationProtocols is null or { Count: 0 })
         {
             throw new ArgumentException(
-                "The QUIC server transport requires ApplicationProtocols to be set on the SSL server authentication options.",
+                "The Quic server transport requires ApplicationProtocols to be set on the Ssl server authentication options.",
                 nameof(serverAuthenticationOptions));
         }
 

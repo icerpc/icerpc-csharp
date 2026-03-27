@@ -60,21 +60,18 @@ public class QuicClientTransport : IMultiplexedClientTransport
         {
             throw new ArgumentNullException(
                 nameof(clientAuthenticationOptions),
-                "The QUIC client transport requires the SSL client authentication options to be set.");
+                "The Quic client transport requires the Ssl client authentication options to be set.");
         }
+        clientAuthenticationOptions = clientAuthenticationOptions.Clone();
 
         if (clientAuthenticationOptions.ApplicationProtocols is null or { Count: 0 })
         {
             throw new ArgumentException(
-                "The QUIC client transport requires ApplicationProtocols to be set on the SSL client authentication options.",
+                "The Quic client transport requires ApplicationProtocols to be set on the Ssl client authentication options.",
                 nameof(clientAuthenticationOptions));
         }
 
-        if (clientAuthenticationOptions.TargetHost is null)
-        {
-            clientAuthenticationOptions = clientAuthenticationOptions.Clone();
-            clientAuthenticationOptions.TargetHost = transportAddress.Host;
-        }
+        clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
 
         EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, transportAddress.Port) :

@@ -34,24 +34,19 @@ public class TcpClientTransport : IDuplexClientTransport
     {
         if (transportAddress.TransportName is string name && name is not "tcp" and not "ssl")
         {
-            throw new NotSupportedException(
-                $"The TCP client transport does not support transport '{name}'.");
+            throw new NotSupportedException($"The Tcp client transport does not support transport '{name}'.");
         }
 
         if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                "The transport address contains parameters that are not valid for the TCP client transport.",
+                "The transport address contains parameters that are not valid for the Tcp client transport.",
                 nameof(transportAddress));
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions ??
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
             (transportAddress.TransportName == "ssl" ? new SslClientAuthenticationOptions() : null);
-        if (authenticationOptions is not null && authenticationOptions.TargetHost is null)
-        {
-            authenticationOptions = authenticationOptions.Clone();
-            authenticationOptions.TargetHost ??= transportAddress.Host;
-        }
+        authenticationOptions?.TargetHost ??= transportAddress.Host;
 
         return new TcpClientConnection(
             transportAddress,

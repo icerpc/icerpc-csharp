@@ -58,6 +58,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 nameof(serverAuthenticationOptions),
                 "The QUIC server transport requires the SSL server authentication options to be set.");
         }
+        serverAuthenticationOptions = serverAuthenticationOptions.Clone();
 
         if (serverAuthenticationOptions.ApplicationProtocols is null or { Count: 0 })
         {
@@ -67,8 +68,6 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         }
 
         _options = options;
-
-        serverAuthenticationOptions = serverAuthenticationOptions.Clone();
 
         _quicServerOptions = new QuicServerConnectionOptions
         {
@@ -91,7 +90,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 {
                     ListenEndPoint = new IPEndPoint(ipAddress, transportAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
-                    ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols!,
+                    ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);

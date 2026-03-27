@@ -34,21 +34,20 @@ public class TcpServerTransport : IDuplexServerTransport
     {
         if (transportAddress.TransportName is string name && name is not "tcp" and not "ssl")
         {
-            throw new NotSupportedException(
-                $"The TCP server transport does not support transport '{name}'.");
+            throw new NotSupportedException($"The Tcp server transport does not support transport '{name}'.");
         }
 
         if (transportAddress.TransportName == "ssl" && serverAuthenticationOptions is null)
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),
-                "The TCP server transport requires the SSL server authentication options to be set for SSL transport addresses.");
+                "The Tcp server transport requires the Ssl server authentication options to be set for Ssl transport addresses.");
         }
 
         if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                "The transport address contains parameters that are not valid for the TCP server transport.",
+                "The transport address contains parameters that are not valid for the Tcp server transport.",
                 nameof(transportAddress));
         }
 
