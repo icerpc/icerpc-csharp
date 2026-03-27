@@ -13,7 +13,9 @@ internal class ColocClientTransport : IDuplexClientTransport
     public string DefaultName => ColocTransport.Name;
 
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => false;
+    public bool IsSslRequired(string? transportName) =>
+        transportName is null || transportName == ColocTransport.Name ? false :
+            throw new NotSupportedException($"The Coloc client transport does not support transport '{transportName}'.");
 
     private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
     private readonly ColocTransportOptions _options;

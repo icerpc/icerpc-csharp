@@ -12,7 +12,12 @@ public class TcpClientTransport : IDuplexClientTransport
     public string DefaultName => "tcp";
 
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => transportName == "ssl";
+    public bool IsSslRequired(string? transportName) => transportName switch
+    {
+        null or "tcp" => false,
+        "ssl" => true,
+        _ => throw new NotSupportedException($"The TCP client transport does not support transport '{transportName}'.")
+    };
 
     private readonly TcpClientTransportOptions _options;
 

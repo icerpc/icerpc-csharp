@@ -13,7 +13,9 @@ public class CustomClientTransport : IMultiplexedClientTransport
 {
     public string DefaultName => "custom";
 
-    public bool IsSslRequired(string? transportName) => false;
+    public bool IsSslRequired(string? transportName) =>
+        transportName is null or "custom" or "tcp" ? false :
+            throw new NotSupportedException($"The custom transport does not support transport '{transportName}'.");
 
     private readonly IMultiplexedClientTransport _transport =
         new SlicClientTransport(new TcpClientTransport());

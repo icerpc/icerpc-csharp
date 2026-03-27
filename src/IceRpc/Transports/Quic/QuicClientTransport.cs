@@ -18,7 +18,8 @@ public class QuicClientTransport : IMultiplexedClientTransport
     public string DefaultName => "quic";
 
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => true;
+    public bool IsSslRequired(string? transportName) => transportName is null or "quic" ? true :
+        throw new NotSupportedException($"The QUIC client transport does not support transport '{transportName}'.");
 
     private readonly QuicClientTransportOptions _quicTransportOptions;
 
