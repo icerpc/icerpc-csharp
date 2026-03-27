@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
@@ -213,16 +212,6 @@ public readonly record struct ServerAddress
         _params = serverAddressParams;
         OriginalUri = null;
     }
-
-    /// <summary>Converts a <see cref="ServerAddress" /> to a <see cref="TransportAddress" />.</summary>
-    internal TransportAddress ToTransportAddress() =>
-        new()
-        {
-            Host = _host,
-            Port = _port,
-            TransportName = _transport,
-            Params = _params,
-        };
 }
 
 /// <summary>Equality comparer for <see cref="ServerAddress" />.</summary>

@@ -75,13 +75,30 @@ public static class ServiceCollectionExtensions
     {
         var serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
         var transportAddress = new TransportAddress { Host = serverAddress.Host, Port = serverAddress.Port };
+        var alpn = new SslApplicationProtocol(serverAddress.Protocol.Name);
 
         return services
             .AddSingleton(provider =>
-                provider.GetRequiredService<IDuplexServerTransport>().Listen(
+            {
+                // Ensure ALPN is set on SSL options before any transport uses them.
+                SslServerAuthenticationOptions? serverAuthOptions =
+                    provider.GetService<SslServerAuthenticationOptions>();
+                if (serverAuthOptions is not null)
+                {
+                    serverAuthOptions.ApplicationProtocols ??= [alpn];
+                }
+                SslClientAuthenticationOptions? clientAuthOptions =
+                    provider.GetService<SslClientAuthenticationOptions>();
+                if (clientAuthOptions is not null)
+                {
+                    clientAuthOptions.ApplicationProtocols ??= [alpn];
+                }
+
+                return provider.GetRequiredService<IDuplexServerTransport>().Listen(
                     transportAddress,
                     provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
-                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()))
+                    serverAuthenticationOptions: serverAuthOptions);
+            })
             .AddSingleton(provider =>
             {
                 var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();

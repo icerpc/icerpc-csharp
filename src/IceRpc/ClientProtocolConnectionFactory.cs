@@ -13,10 +13,11 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
 {
     private static readonly string[] _iceParams = ["t", "z"];
 
-    private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
     private readonly ConnectionOptions _connectionOptions;
     private readonly IDuplexClientTransport _duplexClientTransport;
     private readonly DuplexConnectionOptions _duplexConnectionOptions;
+    private readonly SslClientAuthenticationOptions? _iceClientAuthenticationOptions;
+    private readonly SslClientAuthenticationOptions? _iceRpcClientAuthenticationOptions;
     private readonly ILogger _logger;
     private readonly IMultiplexedClientTransport _multiplexedClientTransport;
     private readonly MultiplexedConnectionOptions _multiplexedConnectionOptions;
@@ -39,7 +40,13 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         ILogger? logger = null)
     {
-        _clientAuthenticationOptions = clientAuthenticationOptions;
+        if (clientAuthenticationOptions?.ApplicationProtocols is not null)
+        {
+            throw new ArgumentException(
+                "The ApplicationProtocols property of the SSL client authentication options must be null. The ALPN is set automatically based on the server address protocol.",
+                nameof(clientAuthenticationOptions));
+        }
+
         _connectionOptions = connectionOptions;
 
         _duplexClientTransport = duplexClientTransport ?? IDuplexClientTransport.Default;
@@ -68,6 +75,16 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
             MinSegmentSize = connectionOptions.MinSegmentSize,
         };
 
+        // Clone and set ALPN for each protocol.
+        if (clientAuthenticationOptions is not null)
+        {
+            _iceClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceClientAuthenticationOptions.ApplicationProtocols = [Protocol.Ice.AlpnProtocol];
+
+            _iceRpcClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceRpcClientAuthenticationOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
+        }
+
         _logger = logger ?? NullLogger.Instance;
     }
 
@@ -79,50 +96,51 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <see cref="IInvoker.InvokeAsync" />.</remarks>
     public IProtocolConnection CreateConnection(ServerAddress serverAddress)
     {
-        var transportAddress = serverAddress.ToTransportAddress();
-
-        // Validate user-provided ALPN.
-        if (_clientAuthenticationOptions?.ApplicationProtocols is { } applicationProtocols)
-        {
-            if (applicationProtocols.Count != 1 || applicationProtocols[0] != serverAddress.Protocol.AlpnProtocol)
+        var transportAddress = new TransportAddress
             {
-                throw new ArgumentException(
-                    $"The ApplicationProtocols must contain exactly '{serverAddress.Protocol.Name}'.");
-            }
-        }
+                Host = serverAddress.Host,
+                Port = serverAddress.Port,
+                TransportName = serverAddress.Transport,
+                Params = serverAddress.Params
+            };
 
         IProtocolConnection connection;
         if (serverAddress.Protocol == Protocol.Ice)
         {
-            SslClientAuthenticationOptions? authOptions = _clientAuthenticationOptions?.Clone();
-            if (authOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
+            SslClientAuthenticationOptions? authenticationOptions = _iceClientAuthenticationOptions?.Clone();
+            if (authenticationOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
             {
-                authOptions = new SslClientAuthenticationOptions();
+                authenticationOptions = new SslClientAuthenticationOptions
+                {
+                    ApplicationProtocols = [Protocol.Ice.AlpnProtocol]
+                };
             }
-            authOptions?.ApplicationProtocols ??= [Protocol.Ice.AlpnProtocol];
 
-            // Strip Ice-specific params ("t", "z") before passing to transport.
+            // Strip Ice-specific params ("t", "z") before passing to transport. These params have no
+            // effect with IceRPC transports.
             transportAddress = transportAddress with
             {
                 Params = transportAddress.Params.RemoveRange(_iceParams)
             };
 
             connection = new IceProtocolConnection(
-                _duplexClientTransport.CreateConnection(transportAddress, _duplexConnectionOptions, authOptions),
+                _duplexClientTransport.CreateConnection(transportAddress, _duplexConnectionOptions, authenticationOptions),
                 transportConnectionInformation: null,
                 _connectionOptions);
         }
         else
         {
-            SslClientAuthenticationOptions? authOptions = _clientAuthenticationOptions?.Clone();
-            if (authOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
+            SslClientAuthenticationOptions? authenticationOptions = _iceRpcClientAuthenticationOptions?.Clone();
+            if (authenticationOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
             {
-                authOptions = new SslClientAuthenticationOptions();
+                authenticationOptions = new SslClientAuthenticationOptions
+                {
+                    ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol]
+                };
             }
-            authOptions?.ApplicationProtocols ??= [Protocol.IceRpc.AlpnProtocol];
 
             connection = new IceRpcProtocolConnection(
-                _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, authOptions),
+                _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, authenticationOptions),
                 transportConnectionInformation: null,
                 _connectionOptions,
                 taskExceptionObserver: _logger == NullLogger.Instance ? null :

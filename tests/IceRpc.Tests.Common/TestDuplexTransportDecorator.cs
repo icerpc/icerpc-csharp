@@ -117,9 +117,6 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     /// <inheritdoc/>
     public string DefaultName => _decoratee.DefaultName;
 
-    /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
-
     /// <summary>The <see cref="TransportOperations{DuplexTransportOperations}" /> used by the <see
     /// cref="IListener{IDuplexConnection}" /> operations.</summary>
     public TransportOperations<DuplexTransportOperations> ListenerOperations;

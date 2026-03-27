@@ -92,12 +92,19 @@ public sealed class Server : IAsyncDisposable
             };
         }
 
-        TransportAddress transportAddress = _serverAddress.ToTransportAddress();
+        var transportAddress = new TransportAddress
+        {
+            Host = _serverAddress.Host,
+            Port = _serverAddress.Port,
+            TransportName = _serverAddress.Transport,
+            Params = _serverAddress.Params
+        };
 
         _listenerFactory = () =>
         {
             // Validate user-provided ALPN.
-            if (options.ServerAuthenticationOptions?.ApplicationProtocols is { } applicationProtocols)
+            if (options.ServerAuthenticationOptions?.ApplicationProtocols
+                is List<SslApplicationProtocol> applicationProtocols)
             {
                 if (applicationProtocols.Count != 1 || applicationProtocols[0] != _serverAddress.Protocol.AlpnProtocol)
                 {
@@ -107,24 +114,12 @@ public sealed class Server : IAsyncDisposable
             }
 
             IConnectorListener listener;
+
+            SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions?.Clone();
+            serverAuthenticationOptions?.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
+
             if (_serverAddress.Protocol == Protocol.Ice)
             {
-                SslServerAuthenticationOptions? authOptions = options.ServerAuthenticationOptions;
-                if (authOptions is null)
-                {
-                    if (duplexServerTransport.IsSslRequired(_serverAddress.Transport))
-                    {
-                        throw new ArgumentNullException(
-                            nameof(options),
-                            "The SSL server authentication options must be set when the transport requires SSL.");
-                    }
-                }
-                else if (authOptions.ApplicationProtocols is null)
-                {
-                    authOptions = authOptions.Clone();
-                    authOptions.ApplicationProtocols = [Protocol.Ice.AlpnProtocol];
-                }
-
                 IListener<IDuplexConnection> transportListener = duplexServerTransport.Listen(
                     transportAddress,
                     new DuplexConnectionOptions
@@ -132,31 +127,12 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
                     },
-                    authOptions);
+                    serverAuthenticationOptions);
 
-                listener = new IceConnectorListener(
-                    transportListener,
-                    _serverAddress,
-                    options.ConnectionOptions);
+                listener = new IceConnectorListener(transportListener, _serverAddress, options.ConnectionOptions);
             }
             else
             {
-                SslServerAuthenticationOptions? authOptions = options.ServerAuthenticationOptions;
-                if (authOptions is null)
-                {
-                    if (multiplexedServerTransport.IsSslRequired(_serverAddress.Transport))
-                    {
-                        throw new ArgumentNullException(
-                            nameof(options),
-                            "The SSL server authentication options must be set when the transport requires SSL.");
-                    }
-                }
-                else if (authOptions.ApplicationProtocols is null)
-                {
-                    authOptions = authOptions.Clone();
-                    authOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
-                }
-
                 IListener<IMultiplexedConnection> transportListener = multiplexedServerTransport.Listen(
                     transportAddress,
                     new MultiplexedConnectionOptions
@@ -168,7 +144,7 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool
                     },
-                    authOptions);
+                    serverAuthenticationOptions);
 
                 listener = new IceRpcConnectorListener(
                     transportListener,

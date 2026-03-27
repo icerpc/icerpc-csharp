@@ -11,9 +11,6 @@ public class SlicServerTransport : IMultiplexedServerTransport
     /// <inheritdoc/>
     public string DefaultName => _duplexServerTransport.DefaultName;
 
-    /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => _duplexServerTransport.IsSslRequired(transportName);
-
     private readonly IDuplexServerTransport _duplexServerTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 

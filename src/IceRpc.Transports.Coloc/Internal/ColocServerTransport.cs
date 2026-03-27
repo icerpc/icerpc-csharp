@@ -11,9 +11,6 @@ internal class ColocServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string DefaultName => ColocTransport.Name;
 
-    /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => false;
-
     private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
     private readonly ColocTransportOptions _options;
 

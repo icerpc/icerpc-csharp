@@ -131,9 +131,6 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     /// <inheritdoc/>
     public string DefaultName => _decoratee.DefaultName;
 
-    /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
-
     /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by the <see
     /// cref="IListener{IMultiplexedConnection}" /> operations.</summary>
     public TransportOperations<MultiplexedTransportOperations> ListenerOperations { get; }

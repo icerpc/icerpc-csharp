@@ -32,15 +32,27 @@ public class TcpClientTransport : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if (transportAddress.TransportName is string name && name is not "tcp" and not "ssl")
+        // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
+        if (transportAddress.TransportName == "ssl")
         {
-            throw new NotSupportedException($"The Tcp client transport does not support transport '{name}'.");
+            if (clientAuthenticationOptions?.ApplicationProtocols
+                is not List<SslApplicationProtocol> alpnProtocols ||
+                alpnProtocols.Count != 1 ||
+                alpnProtocols[0] != new SslApplicationProtocol("ice"))
+            {
+                throw new NotSupportedException(
+                    "The 'ssl' transport name is only supported with the Ice protocol.");
+            }
+        }
+        else if (transportAddress.TransportName is string name && name != "tcp")
+        {
+            throw new NotSupportedException($"The TCP client transport does not support transport '{name}'.");
         }
 
         if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                "The transport address contains parameters that are not valid for the Tcp client transport.",
+                "The transport address contains parameters that are not valid for the TCP client transport.",
                 nameof(transportAddress));
         }
 

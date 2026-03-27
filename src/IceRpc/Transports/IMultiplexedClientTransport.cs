@@ -41,8 +41,12 @@ public interface IMultiplexedClientTransport
     /// </value>
     string DefaultName { get; }
 
-    /// <summary>Gets a value indicating whether this transport requires SSL.</summary>
-    /// <value><see langword="true" /> if this transport requires SSL; otherwise, <see langword="false" />.</value>
+    /// <summary>Determines whether this transport requires SSL for the specified transport name.</summary>
+    /// <param name="transportName">The transport name, or <see langword="null" /> which is equivalent to
+    /// <see cref="DefaultName" />.</param>
+    /// <returns><see langword="true" /> if SSL is required; otherwise, <see langword="false" />.</returns>
+    /// <exception cref="NotSupportedException">Thrown if <paramref name="transportName" /> is not supported by this
+    /// transport.</exception>
     bool IsSslRequired(string? transportName);
 
     /// <summary>Creates a new transport connection to the specified transport address.</summary>

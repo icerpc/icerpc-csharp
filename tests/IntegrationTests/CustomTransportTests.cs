@@ -44,8 +44,6 @@ public class CustomServerTransport : IMultiplexedServerTransport
 {
     public string DefaultName => "custom";
 
-    public bool IsSslRequired(string? transportName) => false;
-
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());
 

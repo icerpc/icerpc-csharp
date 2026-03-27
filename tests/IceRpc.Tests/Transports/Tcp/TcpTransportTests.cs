@@ -333,13 +333,13 @@ public class TcpTransportTests
            Throws.Nothing);
 
     [Test]
-    public void Listen_on_ssl_address_without_server_authentication_options_fails() =>
+    public void Listen_on_ssl_address_without_ice_alpn_fails() =>
         Assert.That(
             () => new TcpServerTransport().Listen(
                 new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = "ssl" },
                 new DuplexConnectionOptions(),
                 serverAuthenticationOptions: null),
-            Throws.TypeOf<ArgumentNullException>());
+            Throws.TypeOf<NotSupportedException>());
 
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its
     /// connection. For tcp connections the server connect call is non-op.</summary>

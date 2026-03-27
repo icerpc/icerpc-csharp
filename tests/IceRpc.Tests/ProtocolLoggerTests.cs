@@ -312,8 +312,6 @@ public sealed class ProtocolLoggerTests
     // that creates duplex connections that will fail during connect.
     internal sealed class ConnectFailDuplexServerTransportDecorator : IDuplexServerTransport
     {
-        public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
-
         public string DefaultName => _decoratee.DefaultName;
 
         private readonly IDuplexServerTransport _decoratee;
@@ -380,8 +378,6 @@ public sealed class ProtocolLoggerTests
     // that creates multiplexed connections that will fail during connect.
     internal sealed class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
     {
-        public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
-
         public string DefaultName => _decoratee.DefaultName;
 
         private readonly IMultiplexedServerTransport _decoratee;

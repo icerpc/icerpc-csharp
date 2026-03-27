@@ -16,9 +16,6 @@ public class QuicServerTransport : IMultiplexedServerTransport
     /// <inheritdoc/>
     public string DefaultName => "quic";
 
-    /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => true;
-
     private readonly QuicServerTransportOptions _quicOptions;
 
     /// <summary>Constructs a QUIC server transport.</summary>
@@ -62,10 +59,11 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 "The Quic server transport requires the Ssl server authentication options to be set.");
         }
 
-        if (serverAuthenticationOptions.ApplicationProtocols is null or { Count: 0 })
+        if (serverAuthenticationOptions.ApplicationProtocols
+            is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
         {
             throw new ArgumentException(
-                "The Quic server transport requires ApplicationProtocols to be set on the Ssl server authentication options.",
+                "The Quic server transport requires ApplicationProtocols to be set in the Ssl server authentication options.",
                 nameof(serverAuthenticationOptions));
         }
 

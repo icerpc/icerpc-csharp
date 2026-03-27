@@ -60,7 +60,8 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         }
         serverAuthenticationOptions = serverAuthenticationOptions.Clone();
 
-        if (serverAuthenticationOptions.ApplicationProtocols is null or { Count: 0 })
+        if (serverAuthenticationOptions.ApplicationProtocols
+            is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
         {
             throw new ArgumentException(
                 "The QUIC server transport requires ApplicationProtocols to be set on the SSL server authentication options.",

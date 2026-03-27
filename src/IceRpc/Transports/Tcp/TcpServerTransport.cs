@@ -11,9 +11,6 @@ public class TcpServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string DefaultName => "tcp";
 
-    /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => transportName == "ssl";
-
     private readonly TcpServerTransportOptions _options;
 
     /// <summary>Constructs a <see cref="TcpServerTransport" />.</summary>
@@ -32,16 +29,21 @@ public class TcpServerTransport : IDuplexServerTransport
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (transportAddress.TransportName is string name && name is not "tcp" and not "ssl")
+        // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
+        if (transportAddress.TransportName == "ssl")
         {
-            throw new NotSupportedException($"The Tcp server transport does not support transport '{name}'.");
+            if (serverAuthenticationOptions?.ApplicationProtocols
+                is not List<SslApplicationProtocol> alpnProtocols ||
+                alpnProtocols.Count != 1 ||
+                alpnProtocols[0] != new SslApplicationProtocol("ice"))
+            {
+                throw new NotSupportedException(
+                    "The 'ssl' transport name is only supported with the Ice protocol.");
+            }
         }
-
-        if (transportAddress.TransportName == "ssl" && serverAuthenticationOptions is null)
+        else if (transportAddress.TransportName is string name && name != "tcp")
         {
-            throw new ArgumentNullException(
-                nameof(serverAuthenticationOptions),
-                "The Tcp server transport requires the Ssl server authentication options to be set for Ssl transport addresses.");
+            throw new NotSupportedException($"The TCP server transport does not support transport '{name}'.");
         }
 
         if (transportAddress.Params.Count > 0)
