@@ -49,7 +49,7 @@ public class TcpServerTransport : IDuplexServerTransport
         if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                "The transport address contains parameters that are not valid for the Tcp server transport.",
+                "The transport address contains parameters that are not valid for the TCP server transport.",
                 nameof(transportAddress));
         }
 

@@ -60,7 +60,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
         {
             throw new ArgumentNullException(
                 nameof(clientAuthenticationOptions),
-                "The Quic client transport requires the Ssl client authentication options to be set.");
+                "The QUIC client transport requires the SSL client authentication options to be set.");
         }
         clientAuthenticationOptions = clientAuthenticationOptions.Clone();
 
@@ -68,7 +68,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
         {
             throw new ArgumentException(
-                "The Quic client transport requires ApplicationProtocols to be set in the Ssl client authentication options.",
+                "The QUIC client transport requires ApplicationProtocols to be set in the SSL client authentication options.",
                 nameof(clientAuthenticationOptions));
         }
 
