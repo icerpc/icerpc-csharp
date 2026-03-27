@@ -23,7 +23,7 @@ on:
         required: true
         default: "nightly"
       authenticode_sign:
-        description: "Whether to authenticode sign the assemblies"
+        description: "Sign the assemblies with authenticode"
         required: false
         type: boolean
         default: false
