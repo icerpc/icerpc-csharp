@@ -15,15 +15,15 @@ using ZeroC.Slice.Codec;
 namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Attribute</c>.</remarks>
-public partial record struct Attribute
+internal partial record struct Attribute
 {
-    public required string Directive { get; set; }
+    internal required string Directive { get; set; }
 
-    public required global::System.Collections.Generic.IList<string> Args { get; set; }
+    internal required global::System.Collections.Generic.IList<string> Args { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Attribute" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Attribute(
+    internal Attribute(
         string directive,
         global::System.Collections.Generic.IList<string> args)
     {
@@ -34,7 +34,7 @@ public partial record struct Attribute
     /// <summary>Constructs a new instance of <see cref="Attribute" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Attribute(ref SliceDecoder decoder)
+    internal Attribute(ref SliceDecoder decoder)
     {
         this.Directive = decoder.DecodeString();
         this.Args = decoder.DecodeSequence(
@@ -44,7 +44,7 @@ public partial record struct Attribute
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeString(this.Directive);
         encoder.EncodeSequence(
@@ -55,17 +55,17 @@ public partial record struct Attribute
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::TypeRef</c>.</remarks>
-public partial record struct TypeRef
+internal partial record struct TypeRef
 {
-    public required string TypeId { get; set; }
+    internal required string TypeId { get; set; }
 
-    public bool IsOptional { get; set; }
+    internal bool IsOptional { get; set; }
 
-    public required global::System.Collections.Generic.IList<Attribute> TypeAttributes { get; set; }
+    internal required global::System.Collections.Generic.IList<Attribute> TypeAttributes { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="TypeRef" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public TypeRef(
+    internal TypeRef(
         string typeId,
         bool isOptional,
         global::System.Collections.Generic.IList<Attribute> typeAttributes)
@@ -78,7 +78,7 @@ public partial record struct TypeRef
     /// <summary>Constructs a new instance of <see cref="TypeRef" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public TypeRef(ref SliceDecoder decoder)
+    internal TypeRef(ref SliceDecoder decoder)
     {
         this.TypeId = decoder.DecodeString();
         this.IsOptional = decoder.DecodeBool();
@@ -89,7 +89,7 @@ public partial record struct TypeRef
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeString(this.TypeId);
         encoder.EncodeBool(this.IsOptional);
@@ -101,17 +101,17 @@ public partial record struct TypeRef
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::EntityInfo</c>.</remarks>
-public partial record struct EntityInfo
+internal partial record struct EntityInfo
 {
-    public required string Identifier { get; set; }
+    internal required string Identifier { get; set; }
 
-    public required global::System.Collections.Generic.IList<Attribute> Attributes { get; set; }
+    internal required global::System.Collections.Generic.IList<Attribute> Attributes { get; set; }
 
-    public DocComment? Comment { get; set; }
+    internal DocComment? Comment { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="EntityInfo" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public EntityInfo(
+    internal EntityInfo(
         string identifier,
         global::System.Collections.Generic.IList<Attribute> attributes,
         DocComment? comment)
@@ -124,41 +124,44 @@ public partial record struct EntityInfo
     /// <summary>Constructs a new instance of <see cref="EntityInfo" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public EntityInfo(ref SliceDecoder decoder)
+    internal EntityInfo(ref SliceDecoder decoder)
     {
+        var bitSequenceReader = decoder.GetBitSequenceReader(1);
         this.Identifier = decoder.DecodeString();
         this.Attributes = decoder.DecodeSequence(
             (ref SliceDecoder decoder) => new Attribute(ref decoder));
-        this.Comment = decoder.DecodeTagged(1, (ref SliceDecoder decoder) => (DocComment?)new DocComment(ref decoder));
+        this.Comment = bitSequenceReader.Read() ? new DocComment(ref decoder) : null;
         decoder.SkipTagged();
     }
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
+        var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
         encoder.EncodeString(this.Identifier);
         encoder.EncodeSequence(
             this.Attributes,
             (ref SliceEncoder encoder, Attribute value) => value.Encode(ref encoder));
-        if (this.Comment is DocComment comment_)
+        bitSequenceWriter.Write(this.Comment != null);
+        if (this.Comment != null)
         {
-            encoder.EncodeTagged(1, comment_, (ref SliceEncoder encoder, DocComment value) => value.Encode(ref encoder));
+            this.Comment.Value.Encode(ref encoder);
         }
         encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
     }
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Module</c>.</remarks>
-public partial record struct Module
+internal partial record struct Module
 {
-    public required string Identifier { get; set; }
+    internal required string Identifier { get; set; }
 
-    public required global::System.Collections.Generic.IList<Attribute> Attributes { get; set; }
+    internal required global::System.Collections.Generic.IList<Attribute> Attributes { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Module" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Module(
+    internal Module(
         string identifier,
         global::System.Collections.Generic.IList<Attribute> attributes)
     {
@@ -169,7 +172,7 @@ public partial record struct Module
     /// <summary>Constructs a new instance of <see cref="Module" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Module(ref SliceDecoder decoder)
+    internal Module(ref SliceDecoder decoder)
     {
         this.Identifier = decoder.DecodeString();
         this.Attributes = decoder.DecodeSequence(
@@ -179,7 +182,7 @@ public partial record struct Module
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeString(this.Identifier);
         encoder.EncodeSequence(
@@ -190,17 +193,17 @@ public partial record struct Module
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Struct</c>.</remarks>
-public partial record struct Struct
+internal partial record struct Struct
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public bool IsCompact { get; set; }
+    internal bool IsCompact { get; set; }
 
-    public required global::System.Collections.Generic.IList<Field> Fields { get; set; }
+    internal required global::System.Collections.Generic.IList<Field> Fields { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Struct" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Struct(
+    internal Struct(
         EntityInfo entityInfo,
         bool isCompact,
         global::System.Collections.Generic.IList<Field> fields)
@@ -213,7 +216,7 @@ public partial record struct Struct
     /// <summary>Constructs a new instance of <see cref="Struct" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Struct(ref SliceDecoder decoder)
+    internal Struct(ref SliceDecoder decoder)
     {
         this.EntityInfo = new EntityInfo(ref decoder);
         this.IsCompact = decoder.DecodeBool();
@@ -224,7 +227,7 @@ public partial record struct Struct
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
         encoder.EncodeBool(this.IsCompact);
@@ -236,16 +239,16 @@ public partial record struct Struct
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Field</c>.</remarks>
-public partial record struct Field
+internal partial record struct Field
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public int? Tag { get; set; }
+    internal int? Tag { get; set; }
 
-    public TypeRef DataType { get; set; }
+    internal TypeRef DataType { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Field" />.</summary>
-    public Field(
+    internal Field(
         EntityInfo entityInfo,
         int? tag,
         TypeRef dataType)
@@ -257,7 +260,7 @@ public partial record struct Field
 
     /// <summary>Constructs a new instance of <see cref="Field" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    public Field(ref SliceDecoder decoder)
+    internal Field(ref SliceDecoder decoder)
     {
         var bitSequenceReader = decoder.GetBitSequenceReader(1);
         this.EntityInfo = new EntityInfo(ref decoder);
@@ -268,7 +271,7 @@ public partial record struct Field
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
         this.EntityInfo.Encode(ref encoder);
@@ -283,17 +286,17 @@ public partial record struct Field
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Interface</c>.</remarks>
-public partial record struct Interface
+internal partial record struct Interface
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public required global::System.Collections.Generic.IList<string> Bases { get; set; }
+    internal required global::System.Collections.Generic.IList<string> Bases { get; set; }
 
-    public required global::System.Collections.Generic.IList<Operation> Operations { get; set; }
+    internal required global::System.Collections.Generic.IList<Operation> Operations { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Interface" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Interface(
+    internal Interface(
         EntityInfo entityInfo,
         global::System.Collections.Generic.IList<string> bases,
         global::System.Collections.Generic.IList<Operation> operations)
@@ -306,7 +309,7 @@ public partial record struct Interface
     /// <summary>Constructs a new instance of <see cref="Interface" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Interface(ref SliceDecoder decoder)
+    internal Interface(ref SliceDecoder decoder)
     {
         this.EntityInfo = new EntityInfo(ref decoder);
         this.Bases = decoder.DecodeSequence(
@@ -318,7 +321,7 @@ public partial record struct Interface
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
         encoder.EncodeSequence(
@@ -332,23 +335,23 @@ public partial record struct Interface
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Operation</c>.</remarks>
-public partial record struct Operation
+internal partial record struct Operation
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public bool IsIdempotent { get; set; }
+    internal bool IsIdempotent { get; set; }
 
-    public required global::System.Collections.Generic.IList<Field> Parameters { get; set; }
+    internal required global::System.Collections.Generic.IList<Field> Parameters { get; set; }
 
-    public bool HasStreamedParameter { get; set; }
+    internal bool HasStreamedParameter { get; set; }
 
-    public required global::System.Collections.Generic.IList<Field> ReturnType { get; set; }
+    internal required global::System.Collections.Generic.IList<Field> ReturnType { get; set; }
 
-    public bool HasStreamedReturn { get; set; }
+    internal bool HasStreamedReturn { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Operation" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Operation(
+    internal Operation(
         EntityInfo entityInfo,
         bool isIdempotent,
         global::System.Collections.Generic.IList<Field> parameters,
@@ -367,7 +370,7 @@ public partial record struct Operation
     /// <summary>Constructs a new instance of <see cref="Operation" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Operation(ref SliceDecoder decoder)
+    internal Operation(ref SliceDecoder decoder)
     {
         this.EntityInfo = new EntityInfo(ref decoder);
         this.IsIdempotent = decoder.DecodeBool();
@@ -382,7 +385,7 @@ public partial record struct Operation
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
         encoder.EncodeBool(this.IsIdempotent);
@@ -398,45 +401,39 @@ public partial record struct Operation
     }
 }
 
-/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Enum</c>.</remarks>
-public partial record struct Enum
+/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::BasicEnum</c>.</remarks>
+internal partial record struct BasicEnum
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public bool IsCompact { get; set; }
+    internal bool IsUnchecked { get; set; }
 
-    public bool IsUnchecked { get; set; }
+    internal required string Underlying { get; set; }
 
-    public string? Underlying { get; set; }
+    internal required global::System.Collections.Generic.IList<Enumerator> Enumerators { get; set; }
 
-    public required global::System.Collections.Generic.IList<Enumerator> Enumerators { get; set; }
-
-    /// <summary>Constructs a new instance of <see cref="Enum" />.</summary>
+    /// <summary>Constructs a new instance of <see cref="BasicEnum" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Enum(
+    internal BasicEnum(
         EntityInfo entityInfo,
-        bool isCompact,
         bool isUnchecked,
-        string? underlying,
+        string underlying,
         global::System.Collections.Generic.IList<Enumerator> enumerators)
     {
         this.EntityInfo = entityInfo;
-        this.IsCompact = isCompact;
         this.IsUnchecked = isUnchecked;
         this.Underlying = underlying;
         this.Enumerators = enumerators;
     }
 
-    /// <summary>Constructs a new instance of <see cref="Enum" /> and decodes its fields from a Slice decoder.</summary>
+    /// <summary>Constructs a new instance of <see cref="BasicEnum" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Enum(ref SliceDecoder decoder)
+    internal BasicEnum(ref SliceDecoder decoder)
     {
-        var bitSequenceReader = decoder.GetBitSequenceReader(1);
         this.EntityInfo = new EntityInfo(ref decoder);
-        this.IsCompact = decoder.DecodeBool();
         this.IsUnchecked = decoder.DecodeBool();
-        this.Underlying = bitSequenceReader.Read() ? decoder.DecodeString() : null;
+        this.Underlying = decoder.DecodeString();
         this.Enumerators = decoder.DecodeSequence(
             (ref SliceDecoder decoder) => new Enumerator(ref decoder));
         decoder.SkipTagged();
@@ -444,17 +441,11 @@ public partial record struct Enum
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
-        var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
         this.EntityInfo.Encode(ref encoder);
-        encoder.EncodeBool(this.IsCompact);
         encoder.EncodeBool(this.IsUnchecked);
-        bitSequenceWriter.Write(this.Underlying != null);
-        if (this.Underlying != null)
-        {
-            encoder.EncodeString(this.Underlying);
-        }
+        encoder.EncodeString(this.Underlying);
         encoder.EncodeSequence(
             this.Enumerators,
             (ref SliceEncoder encoder, Enumerator value) => value.Encode(ref encoder));
@@ -463,33 +454,126 @@ public partial record struct Enum
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Enumerator</c>.</remarks>
-public partial record struct Enumerator
+internal partial record struct Enumerator
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public Discriminant Value { get; set; }
+    internal ulong AbsoluteValue { get; set; }
 
-    public required global::System.Collections.Generic.IList<Field> Fields { get; set; }
+    internal bool HasNegativeValue { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Enumerator" />.</summary>
-    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Enumerator(
+    internal Enumerator(
         EntityInfo entityInfo,
-        Discriminant value,
-        global::System.Collections.Generic.IList<Field> fields)
+        ulong absoluteValue,
+        bool hasNegativeValue)
     {
         this.EntityInfo = entityInfo;
-        this.Value = value;
-        this.Fields = fields;
+        this.AbsoluteValue = absoluteValue;
+        this.HasNegativeValue = hasNegativeValue;
     }
 
     /// <summary>Constructs a new instance of <see cref="Enumerator" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Enumerator(ref SliceDecoder decoder)
+    internal Enumerator(ref SliceDecoder decoder)
     {
         this.EntityInfo = new EntityInfo(ref decoder);
-        this.Value = new Discriminant(ref decoder);
+        this.AbsoluteValue = decoder.DecodeUInt64();
+        this.HasNegativeValue = decoder.DecodeBool();
+        decoder.SkipTagged();
+    }
+
+    /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
+    /// <param name="encoder">The Slice encoder.</param>
+    internal readonly void Encode(ref SliceEncoder encoder)
+    {
+        this.EntityInfo.Encode(ref encoder);
+        encoder.EncodeUInt64(this.AbsoluteValue);
+        encoder.EncodeBool(this.HasNegativeValue);
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
+    }
+}
+
+/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::VariantEnum</c>.</remarks>
+internal partial record struct VariantEnum
+{
+    internal EntityInfo EntityInfo { get; set; }
+
+    internal bool IsCompact { get; set; }
+
+    internal bool IsUnchecked { get; set; }
+
+    internal required global::System.Collections.Generic.IList<Variant> Variants { get; set; }
+
+    /// <summary>Constructs a new instance of <see cref="VariantEnum" />.</summary>
+    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+    internal VariantEnum(
+        EntityInfo entityInfo,
+        bool isCompact,
+        bool isUnchecked,
+        global::System.Collections.Generic.IList<Variant> variants)
+    {
+        this.EntityInfo = entityInfo;
+        this.IsCompact = isCompact;
+        this.IsUnchecked = isUnchecked;
+        this.Variants = variants;
+    }
+
+    /// <summary>Constructs a new instance of <see cref="VariantEnum" /> and decodes its fields from a Slice decoder.</summary>
+    /// <param name="decoder">The Slice decoder.</param>
+    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+    internal VariantEnum(ref SliceDecoder decoder)
+    {
+        this.EntityInfo = new EntityInfo(ref decoder);
+        this.IsCompact = decoder.DecodeBool();
+        this.IsUnchecked = decoder.DecodeBool();
+        this.Variants = decoder.DecodeSequence(
+            (ref SliceDecoder decoder) => new Variant(ref decoder));
+        decoder.SkipTagged();
+    }
+
+    /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
+    /// <param name="encoder">The Slice encoder.</param>
+    internal readonly void Encode(ref SliceEncoder encoder)
+    {
+        this.EntityInfo.Encode(ref encoder);
+        encoder.EncodeBool(this.IsCompact);
+        encoder.EncodeBool(this.IsUnchecked);
+        encoder.EncodeSequence(
+            this.Variants,
+            (ref SliceEncoder encoder, Variant value) => value.Encode(ref encoder));
+        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
+    }
+}
+
+/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Variant</c>.</remarks>
+internal partial record struct Variant
+{
+    internal EntityInfo EntityInfo { get; set; }
+
+    internal int Discriminant { get; set; }
+
+    internal required global::System.Collections.Generic.IList<Field> Fields { get; set; }
+
+    /// <summary>Constructs a new instance of <see cref="Variant" />.</summary>
+    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+    internal Variant(
+        EntityInfo entityInfo,
+        int discriminant,
+        global::System.Collections.Generic.IList<Field> fields)
+    {
+        this.EntityInfo = entityInfo;
+        this.Discriminant = discriminant;
+        this.Fields = fields;
+    }
+
+    /// <summary>Constructs a new instance of <see cref="Variant" /> and decodes its fields from a Slice decoder.</summary>
+    /// <param name="decoder">The Slice decoder.</param>
+    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+    internal Variant(ref SliceDecoder decoder)
+    {
+        this.EntityInfo = new EntityInfo(ref decoder);
+        this.Discriminant = decoder.DecodeInt32();
         this.Fields = decoder.DecodeSequence(
             (ref SliceDecoder decoder) => new Field(ref decoder));
         decoder.SkipTagged();
@@ -497,10 +581,10 @@ public partial record struct Enumerator
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
-        this.Value.Encode(ref encoder);
+        encoder.EncodeInt32(this.Discriminant);
         encoder.EncodeSequence(
             this.Fields,
             (ref SliceEncoder encoder, Field value) => value.Encode(ref encoder));
@@ -508,55 +592,20 @@ public partial record struct Enumerator
     }
 }
 
-/// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Discriminant</c>.</remarks>
-public partial record struct Discriminant
-{
-    public ulong AbsoluteValue { get; set; }
-
-    public bool IsNegative { get; set; }
-
-    /// <summary>Constructs a new instance of <see cref="Discriminant" />.</summary>
-    public Discriminant(
-        ulong absoluteValue,
-        bool isNegative)
-    {
-        this.AbsoluteValue = absoluteValue;
-        this.IsNegative = isNegative;
-    }
-
-    /// <summary>Constructs a new instance of <see cref="Discriminant" /> and decodes its fields from a Slice decoder.</summary>
-    /// <param name="decoder">The Slice decoder.</param>
-    public Discriminant(ref SliceDecoder decoder)
-    {
-        this.AbsoluteValue = decoder.DecodeUInt64();
-        this.IsNegative = decoder.DecodeBool();
-        decoder.SkipTagged();
-    }
-
-    /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
-    /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
-    {
-        encoder.EncodeUInt64(this.AbsoluteValue);
-        encoder.EncodeBool(this.IsNegative);
-        encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
-    }
-}
-
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::CustomType</c>.</remarks>
-public partial record struct CustomType
+internal partial record struct CustomType
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="CustomType" />.</summary>
-    public CustomType(EntityInfo entityInfo)
+    internal CustomType(EntityInfo entityInfo)
     {
         this.EntityInfo = entityInfo;
     }
 
     /// <summary>Constructs a new instance of <see cref="CustomType" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    public CustomType(ref SliceDecoder decoder)
+    internal CustomType(ref SliceDecoder decoder)
     {
         this.EntityInfo = new EntityInfo(ref decoder);
         decoder.SkipTagged();
@@ -564,7 +613,7 @@ public partial record struct CustomType
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
         encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
@@ -572,14 +621,14 @@ public partial record struct CustomType
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::TypeAlias</c>.</remarks>
-public partial record struct TypeAlias
+internal partial record struct TypeAlias
 {
-    public EntityInfo EntityInfo { get; set; }
+    internal EntityInfo EntityInfo { get; set; }
 
-    public TypeRef UnderlyingType { get; set; }
+    internal TypeRef UnderlyingType { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="TypeAlias" />.</summary>
-    public TypeAlias(
+    internal TypeAlias(
         EntityInfo entityInfo,
         TypeRef underlyingType)
     {
@@ -589,7 +638,7 @@ public partial record struct TypeAlias
 
     /// <summary>Constructs a new instance of <see cref="TypeAlias" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    public TypeAlias(ref SliceDecoder decoder)
+    internal TypeAlias(ref SliceDecoder decoder)
     {
         this.EntityInfo = new EntityInfo(ref decoder);
         this.UnderlyingType = new TypeRef(ref decoder);
@@ -598,7 +647,7 @@ public partial record struct TypeAlias
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.EntityInfo.Encode(ref encoder);
         this.UnderlyingType.Encode(ref encoder);
@@ -607,19 +656,19 @@ public partial record struct TypeAlias
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::SequenceType</c>.</remarks>
-public partial record struct SequenceType
+internal partial record struct SequenceType
 {
-    public TypeRef ElementType { get; set; }
+    internal TypeRef ElementType { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="SequenceType" />.</summary>
-    public SequenceType(TypeRef elementType)
+    internal SequenceType(TypeRef elementType)
     {
         this.ElementType = elementType;
     }
 
     /// <summary>Constructs a new instance of <see cref="SequenceType" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    public SequenceType(ref SliceDecoder decoder)
+    internal SequenceType(ref SliceDecoder decoder)
     {
         this.ElementType = new TypeRef(ref decoder);
         decoder.SkipTagged();
@@ -627,7 +676,7 @@ public partial record struct SequenceType
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.ElementType.Encode(ref encoder);
         encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
@@ -635,14 +684,14 @@ public partial record struct SequenceType
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::DictionaryType</c>.</remarks>
-public partial record struct DictionaryType
+internal partial record struct DictionaryType
 {
-    public TypeRef KeyType { get; set; }
+    internal TypeRef KeyType { get; set; }
 
-    public TypeRef ValueType { get; set; }
+    internal TypeRef ValueType { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="DictionaryType" />.</summary>
-    public DictionaryType(
+    internal DictionaryType(
         TypeRef keyType,
         TypeRef valueType)
     {
@@ -652,7 +701,7 @@ public partial record struct DictionaryType
 
     /// <summary>Constructs a new instance of <see cref="DictionaryType" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    public DictionaryType(ref SliceDecoder decoder)
+    internal DictionaryType(ref SliceDecoder decoder)
     {
         this.KeyType = new TypeRef(ref decoder);
         this.ValueType = new TypeRef(ref decoder);
@@ -661,7 +710,7 @@ public partial record struct DictionaryType
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.KeyType.Encode(ref encoder);
         this.ValueType.Encode(ref encoder);
@@ -670,14 +719,14 @@ public partial record struct DictionaryType
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::ResultType</c>.</remarks>
-public partial record struct ResultType
+internal partial record struct ResultType
 {
-    public TypeRef SuccessType { get; set; }
+    internal TypeRef SuccessType { get; set; }
 
-    public TypeRef FailureType { get; set; }
+    internal TypeRef FailureType { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="ResultType" />.</summary>
-    public ResultType(
+    internal ResultType(
         TypeRef successType,
         TypeRef failureType)
     {
@@ -687,7 +736,7 @@ public partial record struct ResultType
 
     /// <summary>Constructs a new instance of <see cref="ResultType" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    public ResultType(ref SliceDecoder decoder)
+    internal ResultType(ref SliceDecoder decoder)
     {
         this.SuccessType = new TypeRef(ref decoder);
         this.FailureType = new TypeRef(ref decoder);
@@ -696,7 +745,7 @@ public partial record struct ResultType
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         this.SuccessType.Encode(ref encoder);
         this.FailureType.Encode(ref encoder);

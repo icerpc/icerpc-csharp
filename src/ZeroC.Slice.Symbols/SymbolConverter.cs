@@ -9,7 +9,7 @@ public sealed class SymbolConverter
 {
     /// <summary>Converts source files into rich symbol types with all TypeRefs resolved. Reference files are used for
     /// type resolution but are not included in the output.</summary>
-    public static ImmutableList<SliceFile> ConvertFiles(
+    internal static ImmutableList<SliceFile> ConvertFiles(
         IEnumerable<Compiler.SliceFile> sourceFiles,
         IEnumerable<Compiler.SliceFile> referenceFiles)
     {
@@ -186,7 +186,8 @@ public sealed class SymbolConverter
                 Compiler.Symbol.Struct structSymbol => StructDeps(structSymbol.V),
                 Compiler.Symbol.TypeAlias typeAliasSymbol => TypeAliasDeps(typeAliasSymbol.V),
                 Compiler.Symbol.Interface interfaceSymbol => InterfaceDeps(interfaceSymbol.V),
-                Compiler.Symbol.Enum enumSymbol => EnumDeps(enumSymbol.V),
+                Compiler.Symbol.BasicEnum basicEnumSymbol => BasicEnumDeps(basicEnumSymbol.V),
+                Compiler.Symbol.VariantEnum variantEnumSymbol => VariantEnumDeps(variantEnumSymbol.V),
                 Compiler.Symbol.SequenceType sequenceTypeSymbol => SequenceTypeDeps(sequenceTypeSymbol.V),
                 Compiler.Symbol.DictionaryType dictionaryTypeSymbol => DictionaryTypeDeps(dictionaryTypeSymbol.V),
                 Compiler.Symbol.ResultType resultTypeSymbol => ResultTypeDeps(resultTypeSymbol.V),
@@ -243,8 +244,10 @@ public sealed class SymbolConverter
                 }
             }
 
-            static IEnumerable<string> EnumDeps(Compiler.Enum e) =>
-                e.Enumerators.SelectMany(en => en.Fields.Select(f => f.DataType.TypeId));
+            static IEnumerable<string> BasicEnumDeps(Compiler.BasicEnum e) => [];
+
+            static IEnumerable<string> VariantEnumDeps(Compiler.VariantEnum e) =>
+                e.Variants.SelectMany(v => v.Fields.Select(f => f.DataType.TypeId));
         }
     }
 
@@ -252,7 +255,8 @@ public sealed class SymbolConverter
         symbol switch
         {
             Compiler.Symbol.Struct s => ConvertStruct(s.V, file, module),
-            Compiler.Symbol.Enum e => ConvertEnum(e.V, file, module),
+            Compiler.Symbol.BasicEnum e => ConvertBasicEnum(e.V, module),
+            Compiler.Symbol.VariantEnum e => ConvertVariantEnum(e.V, file, module),
             Compiler.Symbol.Interface i => ConvertInterface(i.V, file, module),
             Compiler.Symbol.CustomType c => new CustomType
             {
@@ -305,83 +309,82 @@ public sealed class SymbolConverter
         return result;
     }
 
-    private ISymbol ConvertEnum(Compiler.Enum raw, Compiler.SliceFile file, Module module)
+    private ISymbol ConvertBasicEnum(Compiler.BasicEnum raw, Module module)
     {
-        if (raw.Underlying is string u && _builtins.TryGetValue(u, out var builtin))
+        Builtin builtin = _builtins[raw.Underlying];
+        return builtin.Kind switch
         {
-            return builtin.Kind switch
-            {
-                BuiltinKind.Int8 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
-                BuiltinKind.UInt8 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => (byte)abs),
-                BuiltinKind.Int16 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
-                BuiltinKind.UInt16 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => (ushort)abs),
-                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
-                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => (uint)abs),
-                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
-                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateBasicEnum(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => abs),
-                _ => throw new InvalidOperationException(
-                    $"Unsupported enum underlying type: {builtin.Kind}"),
-            };
-        }
-        else
+            BuiltinKind.Int8 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
+            BuiltinKind.UInt8 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => (byte)abs),
+            BuiltinKind.Int16 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
+            BuiltinKind.UInt16 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => (ushort)abs),
+            BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
+            BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => (uint)abs),
+            BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
+            BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => abs),
+            _ => throw new InvalidOperationException(
+                $"Unsupported enum underlying type: {builtin.Kind}"),
+        };
+    }
+
+    private ISymbol ConvertVariantEnum(Compiler.VariantEnum raw, Compiler.SliceFile file, Module module)
+    {
+        var result = new VariantEnum
         {
-            var result = new VariantEnum
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
+            Module = module,
+            IsCompact = raw.IsCompact,
+            IsUnchecked = raw.IsUnchecked,
+            Variants = raw.Variants.Select(v => new VariantEnum.Variant
             {
-                Identifier = raw.EntityInfo.Identifier,
-                Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
-                Comment = ConvertComment(raw.EntityInfo.Comment),
+                Identifier = v.EntityInfo.Identifier,
+                Attributes = ConvertAttributes(v.EntityInfo.Attributes),
+                Comment = ConvertComment(v.EntityInfo.Comment),
                 Module = module,
-                IsCompact = raw.IsCompact,
-                IsUnchecked = raw.IsUnchecked,
-                Variants = raw.Enumerators.Select(e => new VariantEnum.Variant
-                {
-                    Identifier = e.EntityInfo.Identifier,
-                    Attributes = ConvertAttributes(e.EntityInfo.Attributes),
-                    Comment = ConvertComment(e.EntityInfo.Comment),
-                    Module = module,
-                    Discriminant = (int)e.Value.AbsoluteValue,
-                    Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
-                }).ToImmutableList(),
-            };
-            SetParent(result, result.Variants);
-            foreach (VariantEnum.Variant variant in result.Variants)
-            {
-                SetParent(variant, variant.Fields);
-            }
-            return result;
+                Discriminant = v.Discriminant,
+                Fields = v.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
+            }).ToImmutableList(),
+        };
+        SetParent(result, result.Variants);
+        foreach (VariantEnum.Variant variant in result.Variants)
+        {
+            SetParent(variant, variant.Fields);
         }
+        return result;
     }
 
     private Interface ConvertInterface(Compiler.Interface raw, Compiler.SliceFile file, Module module)
@@ -425,7 +428,7 @@ public sealed class SymbolConverter
     }
 
     private BasicEnum<T> CreateBasicEnum<T>(
-        Compiler.Enum raw,
+        Compiler.BasicEnum raw,
         Module module,
         Builtin builtin,
         Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T>
@@ -444,7 +447,7 @@ public sealed class SymbolConverter
                 Attributes = ConvertAttributes(e.EntityInfo.Attributes),
                 Comment = ConvertComment(e.EntityInfo.Comment),
                 Module = module,
-                Value = toValue(e.Value.AbsoluteValue, e.Value.IsNegative),
+                Value = toValue(e.AbsoluteValue, e.HasNegativeValue),
             }).ToImmutableList(),
         };
         SetParent(result, result.Enumerators);
@@ -547,7 +550,8 @@ public sealed class SymbolConverter
     private static string? GetNamedIdentifier(Compiler.Symbol symbol) => symbol switch
     {
         Compiler.Symbol.Struct s => s.V.EntityInfo.Identifier,
-        Compiler.Symbol.Enum e => e.V.EntityInfo.Identifier,
+        Compiler.Symbol.BasicEnum e => e.V.EntityInfo.Identifier,
+        Compiler.Symbol.VariantEnum e => e.V.EntityInfo.Identifier,
         Compiler.Symbol.Interface i => i.V.EntityInfo.Identifier,
         Compiler.Symbol.CustomType c => c.V.EntityInfo.Identifier,
         Compiler.Symbol.TypeAlias t => t.V.EntityInfo.Identifier,
