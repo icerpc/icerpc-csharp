@@ -52,21 +52,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 nameof(transportAddress));
         }
 
-        if (serverAuthenticationOptions is null)
-        {
-            throw new ArgumentNullException(
-                nameof(serverAuthenticationOptions),
-                "The QUIC server transport requires the SSL server authentication options to be set.");
-        }
         serverAuthenticationOptions = serverAuthenticationOptions.Clone();
 
-        if (serverAuthenticationOptions.ApplicationProtocols
-            is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
-        {
-            throw new ArgumentException(
-                "The QUIC server transport requires ApplicationProtocols to be set in the SSL server authentication options.",
-                nameof(serverAuthenticationOptions));
-        }
+        // Always set by the caller QuicServerTransport.
+        Debug.Assert(serverAuthenticationOptions.ApplicationProtocols is not null);
 
         _options = options;
 

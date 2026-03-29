@@ -40,8 +40,7 @@ public class TcpClientTransport : IDuplexClientTransport
         // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
         if (transportAddress.TransportName == "ssl")
         {
-            if (clientAuthenticationOptions?.ApplicationProtocols
-                is not List<SslApplicationProtocol> alpnProtocols ||
+            if (clientAuthenticationOptions?.ApplicationProtocols is not List<SslApplicationProtocol> alpnProtocols ||
                 alpnProtocols.Count != 1 ||
                 alpnProtocols[0] != new SslApplicationProtocol("ice"))
             {

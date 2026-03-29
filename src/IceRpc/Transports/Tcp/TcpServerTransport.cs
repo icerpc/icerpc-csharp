@@ -32,7 +32,13 @@ public class TcpServerTransport : IDuplexServerTransport
         // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
         if (transportAddress.TransportName == "ssl")
         {
-            if (serverAuthenticationOptions?.ApplicationProtocols
+            if (serverAuthenticationOptions is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(serverAuthenticationOptions),
+                    "The SSL server transport requires the SSL server authentication options to be set.");
+            }
+            else if (serverAuthenticationOptions?.ApplicationProtocols
                 is not List<SslApplicationProtocol> alpnProtocols ||
                 alpnProtocols.Count != 1 ||
                 alpnProtocols[0] != new SslApplicationProtocol("ice"))
