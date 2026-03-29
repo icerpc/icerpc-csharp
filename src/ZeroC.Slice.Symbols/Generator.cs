@@ -20,7 +20,7 @@ public static class Generator
     public static async Task RunAsync(
         PipeReader input,
         PipeWriter output,
-        Func<ImmutableList<SliceFile>, Task<GeneratorResponse>> transform)
+        Func<ImmutableList<SliceFile>, GeneratorResponse> transform)
     {
         // Read all data from input.
         ReadResult readResult;
@@ -50,7 +50,7 @@ public static class Generator
         ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
         // Invoke the transform.
-        GeneratorResponse response = await transform(symbolFiles).ConfigureAwait(false);
+        GeneratorResponse response = transform(symbolFiles);
 
         // Convert public types to internal compiler types and encode the response.
         var encoder = new SliceEncoder(output);

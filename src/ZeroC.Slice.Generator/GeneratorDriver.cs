@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Reflection;
 using ZeroC.CodeBuilder;
@@ -27,7 +28,9 @@ internal static class GeneratorDriver
         using Stream stdout = Console.OpenStandardOutput();
         var writer = PipeWriter.Create(stdout);
 
-        await Symbols.Generator.RunAsync(reader, writer, symbolFiles =>
+        await Symbols.Generator.RunAsync(reader, writer, RunCore).ConfigureAwait(false);
+
+        GeneratorResponse RunCore(ImmutableList<SliceFile> symbolFiles)
         {
             // Validate CS attributes before generation.
             List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
@@ -95,11 +98,11 @@ internal static class GeneratorDriver
                 }
             }
 
-            return Task.FromResult(new GeneratorResponse
+            return new GeneratorResponse
             {
                 GeneratedFiles = generatedFiles,
                 Diagnostics = diagnostics,
-            });
-        }).ConfigureAwait(false);
+            };
+        }
     }
 }

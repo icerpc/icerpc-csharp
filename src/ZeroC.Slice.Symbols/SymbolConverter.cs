@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace ZeroC.Slice.Symbols;
 
 /// <summary>Converts decoded Slice compiler types into rich symbol types intended to use in code generators.</summary>
-public sealed class SymbolConverter
+internal sealed class SymbolConverter
 {
     /// <summary>Converts source files into rich symbol types with all TypeRefs resolved. Reference files are used for
     /// type resolution but are not included in the output.</summary>
