@@ -8,8 +8,7 @@ using ZeroC.Slice.Symbols;
 
 namespace ZeroC.Slice.Generator;
 
-/// <summary>Shared pipeline for Slice code generators. Handles the stdin/stdout protocol, attribute validation,
-/// preamble generation, and response encoding.</summary>
+/// <summary>Shared pipeline for Slice code generators.</summary>
 internal static class GeneratorDriver
 {
     /// <summary>Runs the generator pipeline: reads stdin, decodes symbols, generates code, writes stdout.</summary>
