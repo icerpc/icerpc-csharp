@@ -64,23 +64,30 @@ struct Operation {
     hasStreamedReturn: bool
 }
 
-struct Enum {
+struct BasicEnum {
     entityInfo: EntityInfo
-    isCompact: bool
     isUnchecked: bool
-    underlying: TypeId?
+    underlying: TypeId
     enumerators: Sequence<Enumerator>
 }
 
 struct Enumerator {
     entityInfo: EntityInfo
-    value: Discriminant
-    fields: Sequence<Field>
+    absoluteValue: uint64
+    hasNegativeValue: bool
 }
 
-struct Discriminant {
-    absoluteValue: uint64
-    isNegative: bool
+struct VariantEnum {
+    entityInfo: EntityInfo
+    isCompact: bool
+    isUnchecked: bool
+    variants: Sequence<Variant>
+}
+
+struct Variant {
+    entityInfo: EntityInfo
+    discriminant: int32 // always non-negative
+    fields: Sequence<Field>
 }
 
 struct CustomType {

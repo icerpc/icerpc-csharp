@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using ZeroC.Slice.Symbols;
 
 using Attribute = ZeroC.Slice.Symbols.Attribute;
-using Compiler = ZeroC.Slice.Symbols.Compiler;
 
 namespace ZeroC.Slice.Generator;
 
@@ -30,9 +29,9 @@ internal static class CsAttributeValidator
     }
 
     /// <summary>Validates all CS attributes across the given files and returns any diagnostics.</summary>
-    internal static List<Compiler.Diagnostic> Validate(ImmutableList<SliceFile> files)
+    internal static List<Diagnostic> Validate(ImmutableList<SliceFile> files)
     {
-        var diagnostics = new List<Compiler.Diagnostic>();
+        var diagnostics = new List<Diagnostic>();
 
         foreach (SliceFile file in files)
         {
@@ -48,7 +47,7 @@ internal static class CsAttributeValidator
         return diagnostics;
     }
 
-    private static void ValidateSymbol(ISymbol symbol, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateSymbol(ISymbol symbol, List<Diagnostic> diagnostics)
     {
         switch (symbol)
         {
@@ -103,7 +102,7 @@ internal static class CsAttributeValidator
 
     private static void ValidateEnumerators(
         BasicEnum e,
-        List<Compiler.Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics)
     {
         switch (e)
         {
@@ -135,7 +134,7 @@ internal static class CsAttributeValidator
 
         static void ValidateEnumerators<T>(
             BasicEnum<T> e,
-            List<Compiler.Diagnostic> diagnostics)
+            List<Diagnostic> diagnostics)
             where T : struct, System.Numerics.INumber<T>
         {
             foreach (BasicEnum<T>.Enumerator en in e.Enumerators)
@@ -145,7 +144,7 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateOperation(Operation op, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateOperation(Operation op, List<Diagnostic> diagnostics)
     {
         ValidateAttributes(op.Attributes, Target.Operation, diagnostics);
 
@@ -174,13 +173,13 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateField(Field field, Target target, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateField(Field field, Target target, List<Diagnostic> diagnostics)
     {
         ValidateAttributes(field.Attributes, target, diagnostics);
         ValidateTypeRef(field.DataType, diagnostics);
     }
 
-    private static void ValidateTypeRef(TypeRef typeRef, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateTypeRef(TypeRef typeRef, List<Diagnostic> diagnostics)
     {
         Target target = typeRef.Type switch
         {
@@ -194,7 +193,7 @@ internal static class CsAttributeValidator
     private static void ValidateAttributes(
         ImmutableList<Attribute> attributes,
         Target target,
-        List<Compiler.Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics)
     {
         foreach (Attribute attr in attributes)
         {
@@ -208,7 +207,7 @@ internal static class CsAttributeValidator
     private static void ValidateCSAttribute(
         Attribute attr,
         Target target,
-        List<Compiler.Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics)
     {
         switch (attr.Directive)
         {
@@ -293,7 +292,7 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void RequireArgs(Attribute attr, int expected, List<Compiler.Diagnostic> diagnostics)
+    private static void RequireArgs(Attribute attr, int expected, List<Diagnostic> diagnostics)
     {
         if (attr.Args.Count != expected)
         {
@@ -302,9 +301,9 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ReportUnexpected(Attribute attr, List<Compiler.Diagnostic> diagnostics) =>
+    private static void ReportUnexpected(Attribute attr, List<Diagnostic> diagnostics) =>
         diagnostics.Add(Error($"Unexpected attribute '{attr.Directive}' on this target."));
 
-    private static Compiler.Diagnostic Error(string message) =>
-        new(Compiler.DiagnosticLevel.Error, message, null);
+    private static Diagnostic Error(string message) =>
+        new() { Level = DiagnosticLevel.Error, Message = message };
 }
