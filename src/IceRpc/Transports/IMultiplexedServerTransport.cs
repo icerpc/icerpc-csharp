@@ -29,18 +29,20 @@ public interface IMultiplexedServerTransport
     [SupportedOSPlatform("windows")]
     private static readonly QuicServerTransport _quicServerTransport = new();
 
-    /// <summary>Gets the transport's name.</summary>
-    /// <value>The transport name.</value>
-    string Name { get; }
+    /// <summary>Gets the default transport name.</summary>
+    /// <value>The transport accepts transport addresses that use this name as the
+    /// <see cref="TransportAddress.TransportName"/>. Some transports may accept additional names beyond this default.
+    /// </value>
+    string DefaultName { get; }
 
-    /// <summary>Starts listening on a server address.</summary>
-    /// <param name="serverAddress">The server address of the listener.</param>
+    /// <summary>Starts listening on a transport address.</summary>
+    /// <param name="transportAddress">The transport address to listen on.</param>
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
     /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions);
 }

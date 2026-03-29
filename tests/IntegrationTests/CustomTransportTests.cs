@@ -11,60 +11,63 @@ namespace IceRpc.IntegrationTests;
 
 public class CustomClientTransport : IMultiplexedClientTransport
 {
-    public string Name => "custom";
+    public string DefaultName => "custom";
+
+    public bool IsSslRequired(string? transportName) =>
+        transportName is null or "custom" or "tcp" ? false :
+            throw new NotSupportedException($"The custom transport does not support transport '{transportName}'.");
 
     private readonly IMultiplexedClientTransport _transport =
         new SlicClientTransport(new TcpClientTransport());
 
     public IMultiplexedConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if (serverAddress.Transport is string transport)
+        if (transportAddress.TransportName is string name && name is not "custom" and not "tcp")
         {
-            if (transport != "tcp" && transport != "custom")
-            {
-                throw new ArgumentException(
-                    $"cannot use custom transport with server address '{serverAddress}'",
-                    nameof(serverAddress));
-            }
+            throw new NotSupportedException(
+                $"The custom client transport does not support transport '{name}'.");
         }
 
-        serverAddress = serverAddress with
+        // Remap custom transport name to tcp and strip custom params before delegating.
+        transportAddress = transportAddress with
         {
-            Params = serverAddress.Params.Remove("custom-p"),
-            Transport = "tcp"
+            TransportName = "tcp",
+            Params = transportAddress.Params.Remove("custom-p")
         };
 
-        return _transport.CreateConnection(serverAddress, options, clientAuthenticationOptions);
+        return _transport.CreateConnection(transportAddress, options, clientAuthenticationOptions);
     }
 }
 
 public class CustomServerTransport : IMultiplexedServerTransport
 {
-    public string Name => "custom";
+    public string DefaultName => "custom";
 
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());
 
     public IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAddress.Transport is string transport && transport != "tcp" && transport != "custom")
+        if (transportAddress.TransportName is string name && name is not "custom" and not "tcp")
         {
-            throw new ArgumentException($"cannot use custom transport with server address '{serverAddress}'", nameof(serverAddress));
+            throw new NotSupportedException(
+                $"The custom server transport does not support transport '{name}'.");
         }
 
-        serverAddress = serverAddress with
+        // Remap custom transport name to tcp and strip custom params before delegating.
+        transportAddress = transportAddress with
         {
-            Params = serverAddress.Params.Remove("custom-p"),
-            Transport = "tcp"
+            TransportName = "tcp",
+            Params = transportAddress.Params.Remove("custom-p")
         };
 
-        return _transport.Listen(serverAddress, options, serverAuthenticationOptions);
+        return _transport.Listen(transportAddress, options, serverAuthenticationOptions);
     }
 }
 

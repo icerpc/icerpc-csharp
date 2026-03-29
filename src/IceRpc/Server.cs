@@ -88,32 +88,49 @@ public sealed class Server : IAsyncDisposable
             _serverAddress = _serverAddress with
             {
                 Transport = _serverAddress.Protocol == Protocol.Ice ?
-                    duplexServerTransport.Name : multiplexedServerTransport.Name
+                    duplexServerTransport.DefaultName : multiplexedServerTransport.DefaultName
             };
         }
+
+        if (options.ServerAuthenticationOptions?.ApplicationProtocols is not null)
+        {
+            throw new ArgumentException(
+                "The ApplicationProtocols property of the SSL server authentication options must be null. The ALPN is set automatically based on the server address protocol.",
+                nameof(options));
+        }
+
+        var transportAddress = new TransportAddress
+        {
+            Host = _serverAddress.Host,
+            Port = _serverAddress.Port,
+            TransportName = _serverAddress.Transport,
+            Params = _serverAddress.Params
+        };
 
         _listenerFactory = () =>
         {
             IConnectorListener listener;
+
+            SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions?.Clone();
+            serverAuthenticationOptions?.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
+
             if (_serverAddress.Protocol == Protocol.Ice)
             {
                 IListener<IDuplexConnection> transportListener = duplexServerTransport.Listen(
-                    _serverAddress,
+                    transportAddress,
                     new DuplexConnectionOptions
                     {
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
                     },
-                    options.ServerAuthenticationOptions);
+                    serverAuthenticationOptions);
 
-                listener = new IceConnectorListener(
-                    transportListener,
-                    options.ConnectionOptions);
+                listener = new IceConnectorListener(transportListener, _serverAddress, options.ConnectionOptions);
             }
             else
             {
                 IListener<IMultiplexedConnection> transportListener = multiplexedServerTransport.Listen(
-                    _serverAddress,
+                    transportAddress,
                     new MultiplexedConnectionOptions
                     {
                         HandshakeTimeout = options.ConnectTimeout,
@@ -123,10 +140,11 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool
                     },
-                    options.ServerAuthenticationOptions);
+                    serverAuthenticationOptions);
 
                 listener = new IceRpcConnectorListener(
                     transportListener,
+                    _serverAddress,
                     options.ConnectionOptions,
                     logger == NullLogger.Instance ? null : new LogTaskExceptionObserver(logger));
             }
@@ -848,7 +866,7 @@ public sealed class Server : IAsyncDisposable
 
     private class IceConnectorListener : IConnectorListener
     {
-        public ServerAddress ServerAddress => _listener.ServerAddress;
+        public ServerAddress ServerAddress { get; }
 
         private readonly IListener<IDuplexConnection> _listener;
         private readonly ConnectionOptions _options;
@@ -862,9 +880,13 @@ public sealed class Server : IAsyncDisposable
             return (new IceConnector(transportConnection, _options), remoteNetworkAddress);
         }
 
-        internal IceConnectorListener(IListener<IDuplexConnection> listener, ConnectionOptions options)
+        internal IceConnectorListener(
+            IListener<IDuplexConnection> listener,
+            ServerAddress serverAddress,
+            ConnectionOptions options)
         {
             _listener = listener;
+            ServerAddress = serverAddress with { Port = listener.TransportAddress.Port };
             _options = options;
         }
     }
@@ -911,7 +933,7 @@ public sealed class Server : IAsyncDisposable
 
     private class IceRpcConnectorListener : IConnectorListener
     {
-        public ServerAddress ServerAddress => _listener.ServerAddress;
+        public ServerAddress ServerAddress { get; }
 
         private readonly IListener<IMultiplexedConnection> _listener;
         private readonly ConnectionOptions _options;
@@ -928,10 +950,12 @@ public sealed class Server : IAsyncDisposable
 
         internal IceRpcConnectorListener(
             IListener<IMultiplexedConnection> listener,
+            ServerAddress serverAddress,
             ConnectionOptions options,
             ITaskExceptionObserver? taskExceptionObserver)
         {
             _listener = listener;
+            ServerAddress = serverAddress with { Port = listener.TransportAddress.Port };
             _options = options;
             _taskExceptionObserver = taskExceptionObserver;
         }

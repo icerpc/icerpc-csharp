@@ -63,7 +63,10 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     public MultiplexedConnectionOptions? LastCreatedConnectionOptions { get; private set; }
 
     /// <inheritdoc/>
-    public string Name => _decoratee.Name;
+    public string DefaultName => _decoratee.DefaultName;
+
+    /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => _decoratee.IsSslRequired(transportName);
 
     private readonly IMultiplexedClientTransport _decoratee;
     private TestMultiplexedConnectionDecorator? _lastConnection;
@@ -81,13 +84,13 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
         LastCreatedConnectionOptions = options;
         var connection = new TestMultiplexedConnectionDecorator(
-            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
+            _decoratee.CreateConnection(transportAddress, options, clientAuthenticationOptions),
             ConnectionOperationsOptions);
         _lastConnection = connection;
         return connection;
@@ -126,7 +129,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     public MultiplexedConnectionOptions? LastListenOptions { get; private set; }
 
     /// <inheritdoc/>
-    public string Name => _decoratee.Name;
+    public string DefaultName => _decoratee.DefaultName;
 
     /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by the <see
     /// cref="IListener{IMultiplexedConnection}" /> operations.</summary>
@@ -150,7 +153,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     /// <inheritdoc/>
     public IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
@@ -160,7 +163,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         }
         LastListenOptions = options;
         _listener = new TestMultiplexedListenerDecorator(
-            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
+            _decoratee.Listen(transportAddress, options, serverAuthenticationOptions),
             ListenerOperations,
             _connectionOperationsOptions);
         return _listener;
@@ -168,7 +171,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     private class TestMultiplexedListenerDecorator : IListener<IMultiplexedConnection>
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public TransportAddress TransportAddress => _decoratee.TransportAddress;
 
         internal MultiplexedTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 

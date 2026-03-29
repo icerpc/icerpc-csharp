@@ -3,6 +3,7 @@
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
@@ -44,7 +45,7 @@ public abstract class DuplexConnectionConformanceTests
         while (true)
         {
             IDuplexConnection? connection = clientTransport.CreateConnection(
-                listener.ServerAddress,
+                listener.TransportAddress,
                 provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
             try
@@ -127,29 +128,43 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
+    public async Task Create_client_connection_with_unknown_transport_address_parameter_fails()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
-        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var transportAddress = new TransportAddress
+        {
+            Host = "foo",
+            Params = new Dictionary<string, string> { ["unknown-parameter"] = "foo" }.ToImmutableDictionary()
+        };
 
-        // Act/Asserts
-        Assert.Throws<ArgumentException>(
-            () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.That(
+            () => clientTransport.CreateConnection(
+                transportAddress,
+                new DuplexConnectionOptions(),
+                clientAuthenticationOptions: null),
+            Throws.TypeOf<ArgumentException>());
     }
 
     [Test]
-    public async Task Create_server_connection_with_unknown_server_address_parameter_fails_with_format_exception()
+    public async Task Create_listener_with_unknown_transport_address_parameter_fails()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
-        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var transportAddress = new TransportAddress
+        {
+            Host = "127.0.0.1",
+            Params = new Dictionary<string, string> { ["unknown-parameter"] = "foo" }.ToImmutableDictionary()
+        };
 
-        // Act/Asserts
-        Assert.Throws<ArgumentException>(
-            () => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.That(
+            () => serverTransport.Listen(
+                transportAddress,
+                new DuplexConnectionOptions(),
+                serverAuthenticationOptions: null),
+            Throws.TypeOf<ArgumentException>());
     }
 
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and

@@ -12,18 +12,28 @@ public interface IDuplexClientTransport
     /// <value>The default duplex client transport instance is the <see cref="TcpClientTransport" />.</value>
     public static IDuplexClientTransport Default { get; } = new TcpClientTransport();
 
-    /// <summary>Gets the transport's name.</summary>
-    /// <value>The transport name.</value>
-    string Name { get; }
+    /// <summary>Gets the default transport name.</summary>
+    /// <value>The transport accepts transport addresses that use this name as the
+    /// <see cref="TransportAddress.TransportName"/>. Some transports may accept additional names beyond this default.
+    /// </value>
+    string DefaultName { get; }
 
-    /// <summary>Creates a new transport connection to the specified server address.</summary>
-    /// <param name="serverAddress">The server address of the connection.</param>
+    /// <summary>Determines whether this transport requires SSL for the specified transport name.</summary>
+    /// <param name="transportName">The transport name, or <see langword="null" /> which is equivalent to
+    /// <see cref="DefaultName" />.</param>
+    /// <returns><see langword="true" /> if SSL is required; otherwise, <see langword="false" />.</returns>
+    /// <exception cref="NotSupportedException">Thrown if <paramref name="transportName" /> is not supported by this
+    /// transport.</exception>
+    bool IsSslRequired(string? transportName);
+
+    /// <summary>Creates a new transport connection to the specified transport address.</summary>
+    /// <param name="transportAddress">The transport address to connect to.</param>
     /// <param name="options">The duplex connection options.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
     /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IDuplexConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions);
 }

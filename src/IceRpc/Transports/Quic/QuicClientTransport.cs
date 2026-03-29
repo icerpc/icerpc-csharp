@@ -15,7 +15,11 @@ namespace IceRpc.Transports.Quic;
 public class QuicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>
-    public string Name => "quic";
+    public string DefaultName => "quic";
+
+    /// <inheritdoc/>
+    public bool IsSslRequired(string? transportName) => transportName is null or "quic" ? true :
+        throw new NotSupportedException($"The QUIC client transport does not support transport '{transportName}'.");
 
     private readonly QuicClientTransportOptions _quicTransportOptions;
 
@@ -31,7 +35,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
@@ -41,29 +45,39 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 "The QUIC client transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
-        if ((serverAddress.Transport is string transport && transport != Name) || !CheckParams(serverAddress))
+        if (transportAddress.TransportName is string name && name != DefaultName)
+        {
+            throw new NotSupportedException($"The QUIC client transport does not support transport '{name}'.");
+        }
+
+        if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the QUIC client transport.",
-                nameof(serverAddress));
+                "The transport address contains parameters that are not valid for the QUIC client transport.",
+                nameof(transportAddress));
         }
 
-        if (serverAddress.Transport is null)
+        if (clientAuthenticationOptions is null)
         {
-            serverAddress = serverAddress with { Transport = Name };
+            throw new ArgumentNullException(
+                nameof(clientAuthenticationOptions),
+                "The QUIC client transport requires the SSL client authentication options to be set.");
+        }
+        clientAuthenticationOptions = clientAuthenticationOptions.Clone();
+
+        if (clientAuthenticationOptions.ApplicationProtocols
+            is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
+        {
+            throw new ArgumentException(
+                "The QUIC client transport requires ApplicationProtocols to be set in the SSL client authentication options.",
+                nameof(clientAuthenticationOptions));
         }
 
-        clientAuthenticationOptions = clientAuthenticationOptions?.Clone() ?? new();
-        clientAuthenticationOptions.TargetHost ??= serverAddress.Host;
-        clientAuthenticationOptions.ApplicationProtocols ??=
-        [
-            // Mandatory with Quic
-            new(serverAddress.Protocol.Name)
-        ];
+        clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
 
-        EndPoint endpoint = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, serverAddress.Port) :
-            new DnsEndPoint(serverAddress.Host, serverAddress.Port);
+        EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
+            new IPEndPoint(ipAddress, transportAddress.Port) :
+            new DnsEndPoint(transportAddress.Host, transportAddress.Port);
 
         var quicClientOptions = new QuicClientConnectionOptions
         {
@@ -75,13 +89,11 @@ public class QuicClientTransport : IMultiplexedClientTransport
             InitialReceiveWindowSizes = _quicTransportOptions.InitialReceiveWindowSizes,
             KeepAliveInterval = _quicTransportOptions.KeepAliveInterval,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
-            RemoteEndPoint = endpoint,
+            RemoteEndPoint = endPoint,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
         };
 
         return new QuicMultiplexedClientConnection(options, quicClientOptions);
     }
-
-    private static bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;
 }

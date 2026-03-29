@@ -15,13 +15,13 @@ public class ColocTransportTests
     public async Task Coloc_transport_connection_information()
     {
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -34,12 +34,13 @@ public class ColocTransportTests
         // Assert
         Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.TypeOf<ColocEndPoint>());
         var localNetworkAddress = (ColocEndPoint?)transportConnectionInformation.LocalNetworkAddress;
-        Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+        string expectedAddress = $"{listener.TransportAddress.Host}:{listener.TransportAddress.Port}";
+        Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(expectedAddress));
         Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
 
         var remoteNetworkAddress = (ColocEndPoint?)transportConnectionInformation.RemoteNetworkAddress;
 
-        Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+        Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(expectedAddress));
         Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
     }
 
@@ -48,9 +49,9 @@ public class ColocTransportTests
     public async Task Coloc_transport_listener_backlog(int listenBacklog)
     {
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = listenBacklog });
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -59,14 +60,14 @@ public class ColocTransportTests
         for (int i = 0; i < listenBacklog; ++i)
         {
             IDuplexConnection connection = colocTransport.ClientTransport.CreateConnection(
-                serverAddress,
+                transportAddress,
                 new DuplexConnectionOptions(),
                 null);
             connections.Add((connection, connection.ConnectAsync(default)));
         }
 
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -85,13 +86,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -110,13 +111,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -133,13 +134,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -154,13 +155,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -185,13 +186,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -208,13 +209,13 @@ public class ColocTransportTests
                 PauseWriterThreshold = 2048,
                 ResumeWriterThreshold = 1024
             });
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -241,13 +242,13 @@ public class ColocTransportTests
                 PauseWriterThreshold = 2048,
                 ResumeWriterThreshold = 1024
             });
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -274,13 +275,13 @@ public class ColocTransportTests
                 PauseWriterThreshold = 2048,
                 ResumeWriterThreshold = 1024
             });
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -301,13 +302,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
@@ -324,13 +325,13 @@ public class ColocTransportTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
-            serverAddress,
+            transportAddress,
             new DuplexConnectionOptions(),
             null);
 
