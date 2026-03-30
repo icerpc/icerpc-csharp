@@ -564,43 +564,41 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_read_returns_canceled_read_result_on_cancel_pending_read()
+    [CancelAfter(2000)] // Cancel after 2000 milliseconds
+    public async Task Stream_read_returns_canceled_read_result_on_cancel_pending_read(
+        CancellationToken cancellationToken)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await clientServerConnection.AcceptAndConnectAsync();
-        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
+        await clientServerConnection.AcceptAndConnectAsync(cancellationToken);
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(cancellationToken: cancellationToken);
 
         // Act
-        ValueTask<ReadResult> readTask = sut.Local.Input.ReadAsync();
+        ValueTask<ReadResult> readTask = sut.Local.Input.ReadAsync(cancellationToken);
         sut.Local.Input.CancelPendingRead();
 
         // Assert
-        ReadResult readResult1 = await readTask;
+        ReadResult readResult1 = default;
+        Assert.That(async () => readResult1 = await readTask, Throws.Nothing);
+        Assert.That(readResult1.IsCanceled, Is.True);
+        Assert.That(readResult1.IsCompleted, Is.False);
         sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
 
-        Assert.That(async () => await sut.Remote.Output.WriteAsync(_oneBytePayload), Throws.Nothing);
+        Assert.That(async () => await sut.Remote.Output.WriteAsync(_oneBytePayload, cancellationToken), Throws.Nothing);
 
         ReadResult? readResult2 = null;
         try
         {
-            readResult2 = await sut.Local.Input.ReadAsync();
+            readResult2 = await sut.Local.Input.ReadAsync(cancellationToken);
+            Assert.That(readResult2.Value.IsCanceled, Is.False);
+            Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
+            sut.Local.Input.AdvanceTo(readResult2.Value.Buffer.Start);
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
             // acceptable behavior (and that's what QUIC does)
             // we get OperationAborted because we locally "aborted" the stream by calling CancelPendingRead.
-        }
-
-        Assert.That(readResult1.IsCanceled, Is.True);
-        Assert.That(readResult1.IsCompleted, Is.False);
-
-        if (readResult2 is not null)
-        {
-            Assert.That(readResult2.Value.IsCanceled, Is.False);
-            Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
-            sut.Local.Input.AdvanceTo(readResult2.Value.Buffer.Start);
         }
     }
 
