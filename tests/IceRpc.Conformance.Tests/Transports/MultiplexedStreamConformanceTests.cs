@@ -587,13 +587,12 @@ public abstract class MultiplexedStreamConformanceTests
 
         Assert.That(async () => await sut.Remote.Output.WriteAsync(_oneBytePayload, cancellationToken), Throws.Nothing);
 
-        ReadResult? readResult2 = null;
         try
         {
-            readResult2 = await sut.Local.Input.ReadAsync(cancellationToken);
-            Assert.That(readResult2.Value.IsCanceled, Is.False);
-            Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
-            sut.Local.Input.AdvanceTo(readResult2.Value.Buffer.Start);
+            ReadResult readResult2 = await sut.Local.Input.ReadAsync(cancellationToken);
+            Assert.That(readResult2.IsCanceled, Is.False);
+            Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
+            sut.Local.Input.AdvanceTo(readResult2.Buffer.Start);
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
