@@ -14,8 +14,8 @@ pub unsafe fn cs_patcher(compilation_state: &mut CompilationState) {
         CsAttribute,
         CsEncodedReturn,
         CsIdentifier,
-        CsInternal,
         CsNamespace,
+        CsPublic,
         CsReadonly,
         CsType,
     );

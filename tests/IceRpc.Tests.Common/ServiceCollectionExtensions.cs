@@ -71,43 +71,80 @@ public static class ServiceCollectionExtensions
     /// specified server address.</summary>
     public static IServiceCollection AddDuplexTransportTest(
         this IServiceCollection services,
-        Uri? serverAddressUri = null) => services
+        Uri? serverAddressUri = null)
+    {
+        var serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
+        var transportAddress = new TransportAddress { Host = serverAddress.Host, Port = serverAddress.Port };
+        var alpn = new SslApplicationProtocol(serverAddress.Protocol.Name);
+
+        return services
             .AddSingleton(provider =>
-                provider.GetRequiredService<IDuplexServerTransport>().Listen(
-                    new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost")),
+            {
+                // Ensure ALPN is set on SSL options before any transport uses them.
+                SslServerAuthenticationOptions? serverAuthOptions =
+                    provider.GetService<SslServerAuthenticationOptions>();
+                serverAuthOptions?.ApplicationProtocols ??= [alpn];
+
+                SslClientAuthenticationOptions? clientAuthOptions =
+                    provider.GetService<SslClientAuthenticationOptions>();
+                clientAuthOptions?.ApplicationProtocols ??= [alpn];
+
+                return provider.GetRequiredService<IDuplexServerTransport>().Listen(
+                    transportAddress,
                     provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
-                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()))
+                    serverAuthenticationOptions: serverAuthOptions);
+            })
             .AddSingleton(provider =>
             {
                 var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
                 var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
                 var connection = clientTransport.CreateConnection(
-                    listener.ServerAddress,
+                    listener.TransportAddress,
                     provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>());
                 return new ClientServerDuplexConnection(connection, listener);
             });
+    }
 
     /// <summary>Adds Listener and ClientServerMultiplexedConnection singletons, with the listener listening on the
     /// specified server address.</summary>
     public static IServiceCollection AddMultiplexedTransportTest(
         this IServiceCollection services,
-        Uri? serverAddressUri = null) => services
+        Uri? serverAddressUri = null)
+    {
+        var serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
+        var transportAddress = new TransportAddress { Host = serverAddress.Host, Port = serverAddress.Port };
+        var alpn = new SslApplicationProtocol(serverAddress.Protocol.Name);
+
+        return services
             .AddSingleton(provider =>
-                provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
-                    new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost")),
-                    provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
-                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()))
+            {
+                // Ensure ALPN is set on SSL options before any transport uses them.
+                SslServerAuthenticationOptions? serverAuthOptions =
+                    provider.GetService<SslServerAuthenticationOptions>();
+                serverAuthOptions?.ApplicationProtocols ??= [alpn];
+
+                SslClientAuthenticationOptions? clientAuthOptions =
+                    provider.GetService<SslClientAuthenticationOptions>();
+                clientAuthOptions?.ApplicationProtocols ??= [alpn];
+
+                var options = provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new();
+                return provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
+                    transportAddress,
+                    options,
+                    serverAuthenticationOptions: serverAuthOptions);
+            })
             .AddSingleton(provider =>
             {
                 var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
                 var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
                 var connection = clientTransport.CreateConnection(
-                    listener.ServerAddress,
+                    listener.TransportAddress,
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>());
                 return new ClientServerMultiplexedConnection(connection, listener);
             });
+    }
 
     /// <summary>Installs a transport decorator for the last registered transport.</summary>
     internal static void AddSingletonTransportDecorator<TTransportService, TTransportDecoratorService>(
@@ -121,7 +158,7 @@ public static class ServiceCollectionExtensions
             null) ?? throw new ArgumentException($"No {typeof(TTransportService)} service is registered");
 
         Func<IServiceProvider, object> factory = descriptor.ImplementationFactory ?? throw new ArgumentException(
-                "Only transport services registered with an implementation factory are supported.");
+            "Only transport services registered with an implementation factory are supported.");
         if (descriptor.Lifetime != ServiceLifetime.Singleton)
         {
             throw new NotSupportedException(

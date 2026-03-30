@@ -11,10 +11,13 @@ namespace IceRpc;
 /// <summary>Default implementation of <see cref="IClientProtocolConnectionFactory" />.</summary>
 public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
 {
-    private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
+    private static readonly string[] _iceParams = ["t", "z"];
+
     private readonly ConnectionOptions _connectionOptions;
     private readonly IDuplexClientTransport _duplexClientTransport;
     private readonly DuplexConnectionOptions _duplexConnectionOptions;
+    private readonly SslClientAuthenticationOptions? _iceClientAuthenticationOptions;
+    private readonly SslClientAuthenticationOptions? _iceRpcClientAuthenticationOptions;
     private readonly ILogger _logger;
     private readonly IMultiplexedClientTransport _multiplexedClientTransport;
     private readonly MultiplexedConnectionOptions _multiplexedConnectionOptions;
@@ -37,7 +40,13 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         ILogger? logger = null)
     {
-        _clientAuthenticationOptions = clientAuthenticationOptions;
+        if (clientAuthenticationOptions?.ApplicationProtocols is not null)
+        {
+            throw new ArgumentException(
+                "The ApplicationProtocols property of the SSL client authentication options must be null. The ALPN is set automatically based on the server address protocol.",
+                nameof(clientAuthenticationOptions));
+        }
+
         _connectionOptions = connectionOptions;
 
         _duplexClientTransport = duplexClientTransport ?? IDuplexClientTransport.Default;
@@ -66,6 +75,16 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
             MinSegmentSize = connectionOptions.MinSegmentSize,
         };
 
+        // Clone and set ALPN for each protocol.
+        if (clientAuthenticationOptions is not null)
+        {
+            _iceClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceClientAuthenticationOptions.ApplicationProtocols = [Protocol.Ice.AlpnProtocol];
+
+            _iceRpcClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceRpcClientAuthenticationOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
+        }
+
         _logger = logger ?? NullLogger.Instance;
     }
 
@@ -77,24 +96,56 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <see cref="IInvoker.InvokeAsync" />.</remarks>
     public IProtocolConnection CreateConnection(ServerAddress serverAddress)
     {
-        IProtocolConnection connection =
-            serverAddress.Protocol == Protocol.Ice ?
-                new IceProtocolConnection(
-                    _duplexClientTransport.CreateConnection(
-                        serverAddress,
-                        _duplexConnectionOptions,
-                        _clientAuthenticationOptions),
-                    transportConnectionInformation: null,
-                    _connectionOptions) :
-                new IceRpcProtocolConnection(
-                    _multiplexedClientTransport.CreateConnection(
-                        serverAddress,
-                        _multiplexedConnectionOptions,
-                        _clientAuthenticationOptions),
-                    transportConnectionInformation: null,
-                    _connectionOptions,
-                    taskExceptionObserver: _logger == NullLogger.Instance ? null :
-                        new LogTaskExceptionObserver(_logger));
+        var transportAddress = new TransportAddress
+            {
+                Host = serverAddress.Host,
+                Port = serverAddress.Port,
+                TransportName = serverAddress.Transport,
+                Params = serverAddress.Params
+            };
+
+        IProtocolConnection connection;
+        if (serverAddress.Protocol == Protocol.Ice)
+        {
+            SslClientAuthenticationOptions? authenticationOptions = _iceClientAuthenticationOptions?.Clone();
+            if (authenticationOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
+            {
+                authenticationOptions = new SslClientAuthenticationOptions
+                {
+                    ApplicationProtocols = [Protocol.Ice.AlpnProtocol]
+                };
+            }
+
+            // Strip Ice-specific params ("t", "z") before passing to transport. These params have no
+            // effect with IceRPC transports.
+            transportAddress = transportAddress with
+            {
+                Params = transportAddress.Params.RemoveRange(_iceParams)
+            };
+
+            connection = new IceProtocolConnection(
+                _duplexClientTransport.CreateConnection(transportAddress, _duplexConnectionOptions, authenticationOptions),
+                transportConnectionInformation: null,
+                _connectionOptions);
+        }
+        else
+        {
+            SslClientAuthenticationOptions? authenticationOptions = _iceRpcClientAuthenticationOptions?.Clone();
+            if (authenticationOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
+            {
+                authenticationOptions = new SslClientAuthenticationOptions
+                {
+                    ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol]
+                };
+            }
+
+            connection = new IceRpcProtocolConnection(
+                _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, authenticationOptions),
+                transportConnectionInformation: null,
+                _connectionOptions,
+                taskExceptionObserver: _logger == NullLogger.Instance ? null :
+                    new LogTaskExceptionObserver(_logger));
+        }
 
         connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, connectStarted: false);
 

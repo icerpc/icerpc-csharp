@@ -4,15 +4,11 @@ using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Reflection;
 using ZeroC.CodeBuilder;
-using ZeroC.Slice.Codec;
 using ZeroC.Slice.Symbols;
-
-using Compiler = ZeroC.Slice.Symbols.Compiler;
 
 namespace ZeroC.Slice.Generator;
 
-/// <summary>Shared pipeline for Slice code generators. Handles the stdin/stdout Slice-encoded protocol,
-/// symbol conversion, attribute validation, preamble generation, and response encoding.</summary>
+/// <summary>Shared pipeline for Slice code generators.</summary>
 internal static class GeneratorDriver
 {
     /// <summary>Runs the generator pipeline: reads stdin, decodes symbols, generates code, writes stdout.</summary>
@@ -25,68 +21,46 @@ internal static class GeneratorDriver
         Func<string, string> mapOutputPath,
         IList<string> usings)
     {
-        // Read the Slice-encoded request from stdin.
         using Stream stdin = Console.OpenStandardInput();
         var reader = PipeReader.Create(stdin);
 
-        ReadResult readResult;
-        do
+        using Stream stdout = Console.OpenStandardOutput();
+        var writer = PipeWriter.Create(stdout);
+
+        await Symbols.Generator.RunAsync(reader, writer, RunCore).ConfigureAwait(false);
+
+        GeneratorResponse RunCore(ImmutableList<SliceFile> symbolFiles)
         {
-            readResult = await reader.ReadAsync().ConfigureAwait(false);
-            if (!readResult.IsCompleted)
+            // Validate CS attributes before generation.
+            List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
+
+            // Use the informational version (e.g., "0.6.0-preview.1") which is the semver string from
+            // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
+            // the informational version attribute is not present.
+            Assembly assembly = Assembly.GetEntryAssembly()!;
+            string generatorName = assembly.GetName().Name ?? "unknown";
+            string version =
+                CustomAttributeExtensions.GetCustomAttribute<AssemblyInformationalVersionAttribute>(
+                    assembly)?.InformationalVersion
+                ?? assembly.GetName().Version?.ToString()
+                ?? "unknown";
+
+            // Generate code for each source file, skipping generation if there are validation errors.
+            var generatedFiles = new List<GeneratedFile>();
+            if (!diagnostics.Any(d => d.Level == DiagnosticLevel.Error))
             {
-                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-            }
-        }
-        while (!readResult.IsCompleted);
-
-        var decoder = new SliceDecoder(readResult.Buffer);
-        string op = decoder.DecodeString();
-
-        // Decode source files and reference files.
-        Compiler.SliceFile[] sourceFiles =
-            decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
-        Compiler.SliceFile[] referenceFiles =
-            decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
-
-        reader.AdvanceTo(readResult.Buffer.End);
-        reader.Complete();
-
-        // Convert decoded types into rich symbols with resolved references.
-        ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
-
-        // Validate CS attributes before generation.
-        List<Compiler.Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
-
-        // Use the informational version (e.g., "0.6.0-preview.1") which is the semver string from
-        // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
-        // the informational version attribute is not present.
-        Assembly assembly = Assembly.GetEntryAssembly()!;
-        string generatorName = assembly.GetName().Name ?? "unknown";
-        string version =
-            CustomAttributeExtensions.GetCustomAttribute<AssemblyInformationalVersionAttribute>(
-                assembly)?.InformationalVersion
-            ?? assembly.GetName().Version?.ToString()
-            ?? "unknown";
-
-        // Generate code for each source file, skipping generation if there are validation errors.
-        var generatedFiles = new List<Compiler.GeneratedFile>();
-        if (!diagnostics.Any(d => d.Level == Compiler.DiagnosticLevel.Error))
-        {
-            foreach (SliceFile file in symbolFiles)
-            {
-                string currentNamespace = file.Module.Namespace;
-                var codeBlocks = new List<CodeBlock>();
-                foreach (ISymbol symbol in file.Contents)
+                foreach (SliceFile file in symbolFiles)
                 {
-                    if (generateCode(symbol, currentNamespace) is CodeBlock code)
+                    string currentNamespace = file.Module.Namespace;
+                    var codeBlocks = new List<CodeBlock>();
+                    foreach (ISymbol symbol in file.Contents)
                     {
-                        codeBlocks.Add(code);
+                        if (generateCode(symbol, currentNamespace) is CodeBlock code)
+                        {
+                            codeBlocks.Add(code);
+                        }
                     }
-                }
 
-                if (codeBlocks.Count > 0)
-                {
                     string fileName = Path.GetFileName(file.Path);
 
                     string usingDirectives = string.Join("\n", usings.Select(u => $"using {u};"));
@@ -107,32 +81,27 @@ internal static class GeneratorDriver
                         {{usingDirectives}}
 
                         namespace {{currentNamespace}};
+
                         """;
 
                     var fileCode = new CodeBlock(preamble);
-                    fileCode.AddBlock(CodeBlock.FromBlocks(codeBlocks));
-                    generatedFiles.Add(new Compiler.GeneratedFile(
-                        mapOutputPath(file.Path), fileCode.ToString()));
+                    if (codeBlocks.Count > 0)
+                    {
+                        fileCode.AddBlock(CodeBlock.FromBlocks(codeBlocks));
+                    }
+                    generatedFiles.Add(new GeneratedFile
+                    {
+                        Path = mapOutputPath(file.Path),
+                        Contents = fileCode.ToString(),
+                    });
                 }
             }
-        }
 
-        // Encode and write the response directly to stdout.
-        using Stream stdout = Console.OpenStandardOutput();
-        var writer = PipeWriter.Create(stdout);
-        var encoder = new SliceEncoder(writer);
-        encoder.EncodeSequence(
-            generatedFiles,
-            (ref encoder, file) =>
+            return new GeneratorResponse
             {
-                encoder.EncodeString(file.Path);
-                encoder.EncodeString(file.Contents);
-            });
-
-        encoder.EncodeSequence(
-            diagnostics,
-            (ref encoder, diagnostic) => diagnostic.Encode(ref encoder));
-        await writer.FlushAsync().ConfigureAwait(false);
-        writer.Complete();
+                GeneratedFiles = generatedFiles,
+                Diagnostics = diagnostics,
+            };
+        }
     }
 }

@@ -6,7 +6,7 @@ using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Generator.Tests;
 
-public class EnumTests
+internal class EnumTests
 {
     [TestCase((int)MyEnum.Enum1, 0)]
     [TestCase((int)MyEnum.Enum2, 1)]

@@ -2,7 +2,6 @@
 
 module IceRpc::Slice::Generator::Tests
 
-// Used for testing the generated code corresponding to proxy and dispatch visitors.
 interface MyOperationsA {
     // No parameters and void return
     opWithoutParametersAndVoidReturn()
@@ -18,6 +17,9 @@ interface MyOperationsA {
 
     // Compress attribute
     [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32
+
+    // Oneway attribute
+    [oneway] opWithOnewayAttribute(p: int32)
 
     // Stream parameters and return alone
     opWithByteStreamArgumentAndReturn(p: stream uint8) -> stream uint8

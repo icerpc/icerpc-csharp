@@ -5,11 +5,11 @@ using System.Collections.Immutable;
 namespace ZeroC.Slice.Symbols;
 
 /// <summary>Converts decoded Slice compiler types into rich symbol types intended to use in code generators.</summary>
-public sealed class SymbolConverter
+internal sealed class SymbolConverter
 {
     /// <summary>Converts source files into rich symbol types with all TypeRefs resolved. Reference files are used for
     /// type resolution but are not included in the output.</summary>
-    public static ImmutableList<SliceFile> ConvertFiles(
+    internal static ImmutableList<SliceFile> ConvertFiles(
         IEnumerable<Compiler.SliceFile> sourceFiles,
         IEnumerable<Compiler.SliceFile> referenceFiles)
     {
@@ -186,7 +186,8 @@ public sealed class SymbolConverter
                 Compiler.Symbol.Struct structSymbol => StructDeps(structSymbol.V),
                 Compiler.Symbol.TypeAlias typeAliasSymbol => TypeAliasDeps(typeAliasSymbol.V),
                 Compiler.Symbol.Interface interfaceSymbol => InterfaceDeps(interfaceSymbol.V),
-                Compiler.Symbol.Enum enumSymbol => EnumDeps(enumSymbol.V),
+                Compiler.Symbol.BasicEnum basicEnumSymbol => BasicEnumDeps(basicEnumSymbol.V),
+                Compiler.Symbol.VariantEnum variantEnumSymbol => VariantEnumDeps(variantEnumSymbol.V),
                 Compiler.Symbol.SequenceType sequenceTypeSymbol => SequenceTypeDeps(sequenceTypeSymbol.V),
                 Compiler.Symbol.DictionaryType dictionaryTypeSymbol => DictionaryTypeDeps(dictionaryTypeSymbol.V),
                 Compiler.Symbol.ResultType resultTypeSymbol => ResultTypeDeps(resultTypeSymbol.V),
@@ -243,8 +244,10 @@ public sealed class SymbolConverter
                 }
             }
 
-            static IEnumerable<string> EnumDeps(Compiler.Enum e) =>
-                e.Enumerators.SelectMany(en => en.Fields.Select(f => f.DataType.TypeId));
+            static IEnumerable<string> BasicEnumDeps(Compiler.BasicEnum e) => [];
+
+            static IEnumerable<string> VariantEnumDeps(Compiler.VariantEnum e) =>
+                e.Variants.SelectMany(v => v.Fields.Select(f => f.DataType.TypeId));
         }
     }
 
@@ -252,18 +255,21 @@ public sealed class SymbolConverter
         symbol switch
         {
             Compiler.Symbol.Struct s => ConvertStruct(s.V, file, module),
-            Compiler.Symbol.Enum e => ConvertEnum(e.V, file, module),
+            Compiler.Symbol.BasicEnum e => ConvertBasicEnum(e.V, module),
+            Compiler.Symbol.VariantEnum e => ConvertVariantEnum(e.V, file, module),
             Compiler.Symbol.Interface i => ConvertInterface(i.V, file, module),
             Compiler.Symbol.CustomType c => new CustomType
             {
                 Identifier = c.V.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(c.V.EntityInfo.Attributes),
+                Comment = ConvertComment(c.V.EntityInfo.Comment),
                 Module = module,
             },
             Compiler.Symbol.TypeAlias t => new TypeAlias
             {
                 Identifier = t.V.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(t.V.EntityInfo.Attributes),
+                Comment = ConvertComment(t.V.EntityInfo.Comment),
                 Module = module,
                 UnderlyingType = ConvertTypeRef(t.V.UnderlyingType, file),
             },
@@ -288,106 +294,127 @@ public sealed class SymbolConverter
             _ => throw new InvalidOperationException($"Unknown symbol type: {symbol.GetType().Name}"),
         };
 
-    private Struct ConvertStruct(Compiler.Struct raw, Compiler.SliceFile file, Module module) => new()
+    private Struct ConvertStruct(Compiler.Struct raw, Compiler.SliceFile file, Module module)
     {
-        Identifier = raw.EntityInfo.Identifier,
-        Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
-        Module = module,
-        IsCompact = raw.IsCompact,
-        Fields = raw.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
-    };
-
-    private ISymbol ConvertEnum(Compiler.Enum raw, Compiler.SliceFile file, Module module)
-    {
-        if (raw.Underlying is string u && _builtins.TryGetValue(u, out var builtin))
-        {
-            return builtin.Kind switch
-            {
-                BuiltinKind.Int8 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
-                BuiltinKind.UInt8 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => (byte)abs),
-                BuiltinKind.Int16 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
-                BuiltinKind.UInt16 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => (ushort)abs),
-                BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
-                BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => (uint)abs),
-                BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
-                BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateEnumWithUnderlying(
-                    raw,
-                    module,
-                    builtin,
-                    (abs, _) => abs),
-                _ => throw new InvalidOperationException(
-                    $"Unsupported enum underlying type: {builtin.Kind}"),
-            };
-        }
-        else
-        {
-            return new EnumWithFields
-            {
-                Identifier = raw.EntityInfo.Identifier,
-                Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
-                Module = module,
-                IsCompact = raw.IsCompact,
-                IsUnchecked = raw.IsUnchecked,
-                Enumerators = raw.Enumerators.Select(e => new EnumWithFields.Enumerator
-                {
-                    Identifier = e.EntityInfo.Identifier,
-                    Attributes = ConvertAttributes(e.EntityInfo.Attributes),
-                    Module = module,
-                    Discriminant = (int)e.Value.AbsoluteValue,
-                    Fields = e.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
-                }).ToImmutableList(),
-            };
-        }
-    }
-
-    private Interface ConvertInterface(Compiler.Interface raw, Compiler.SliceFile file, Module module) =>
-        new()
+        var result = new Struct
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
+            Module = module,
+            IsCompact = raw.IsCompact,
+            Fields = raw.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
+        };
+        SetParent(result, result.Fields);
+        return result;
+    }
+
+    private ISymbol ConvertBasicEnum(Compiler.BasicEnum raw, Module module)
+    {
+        Builtin builtin = _builtins[raw.Underlying];
+        return builtin.Kind switch
+        {
+            BuiltinKind.Int8 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
+            BuiltinKind.UInt8 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => (byte)abs),
+            BuiltinKind.Int16 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
+            BuiltinKind.UInt16 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => (ushort)abs),
+            BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
+            BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => (uint)abs),
+            BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
+            BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateBasicEnum(
+                raw,
+                module,
+                builtin,
+                (abs, _) => abs),
+            _ => throw new InvalidOperationException(
+                $"Unsupported enum underlying type: {builtin.Kind}"),
+        };
+    }
+
+    private ISymbol ConvertVariantEnum(Compiler.VariantEnum raw, Compiler.SliceFile file, Module module)
+    {
+        var result = new VariantEnum
+        {
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
+            Module = module,
+            IsCompact = raw.IsCompact,
+            IsUnchecked = raw.IsUnchecked,
+            Variants = raw.Variants.Select(v => new VariantEnum.Variant
+            {
+                Identifier = v.EntityInfo.Identifier,
+                Attributes = ConvertAttributes(v.EntityInfo.Attributes),
+                Comment = ConvertComment(v.EntityInfo.Comment),
+                Module = module,
+                Discriminant = v.Discriminant,
+                Fields = v.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
+            }).ToImmutableList(),
+        };
+        SetParent(result, result.Variants);
+        foreach (VariantEnum.Variant variant in result.Variants)
+        {
+            SetParent(variant, variant.Fields);
+        }
+        return result;
+    }
+
+    private Interface ConvertInterface(Compiler.Interface raw, Compiler.SliceFile file, Module module)
+    {
+        var result = new Interface
+        {
+            Identifier = raw.EntityInfo.Identifier,
+            Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             Bases = raw.Bases
-            .Select(baseId => ResolveNamedSymbol(baseId))
-            .OfType<Interface>()
-            .ToImmutableList(),
+                .Select(baseId => ResolveNamedSymbol(baseId))
+                .OfType<Interface>()
+                .ToImmutableList(),
             Operations = raw.Operations.Select(op => ConvertOperation(op, file, module)).ToImmutableList(),
         };
+        SetParent(result, result.Operations);
+        return result;
+    }
 
     private Operation ConvertOperation(
         Compiler.Operation raw,
         Compiler.SliceFile file,
-        Module module) => new()
+        Module module)
+    {
+        var result = new Operation
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             IsIdempotent = raw.IsIdempotent,
             Parameters = raw.Parameters.Select(f => ConvertField(f, file, module)).ToImmutableList(),
@@ -395,31 +422,43 @@ public sealed class SymbolConverter
             ReturnType = raw.ReturnType.Select(f => ConvertField(f, file, module)).ToImmutableList(),
             HasStreamedReturn = raw.HasStreamedReturn,
         };
+        SetParent(result, result.Parameters);
+        SetParent(result, result.ReturnType);
+        return result;
+    }
 
-    private static EnumWithUnderlying<T> CreateEnumWithUnderlying<T>(
-        Compiler.Enum raw,
+    private BasicEnum<T> CreateBasicEnum<T>(
+        Compiler.BasicEnum raw,
         Module module,
         Builtin builtin,
-        Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T> => new()
+        Func<ulong, bool, T> toValue) where T : struct, System.Numerics.INumber<T>
+    {
+        var result = new BasicEnum<T>
         {
             Identifier = raw.EntityInfo.Identifier,
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+            Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
             IsUnchecked = raw.IsUnchecked,
             Underlying = builtin,
-            Enumerators = raw.Enumerators.Select(e => new EnumWithUnderlying<T>.Enumerator
+            Enumerators = raw.Enumerators.Select(e => new BasicEnum<T>.Enumerator
             {
                 Identifier = e.EntityInfo.Identifier,
                 Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                Comment = ConvertComment(e.EntityInfo.Comment),
                 Module = module,
-                Value = toValue(e.Value.AbsoluteValue, e.Value.IsNegative),
+                Value = toValue(e.AbsoluteValue, e.HasNegativeValue),
             }).ToImmutableList(),
         };
+        SetParent(result, result.Enumerators);
+        return result;
+    }
 
     private Field ConvertField(Compiler.Field raw, Compiler.SliceFile file, Module module) => new()
     {
         Identifier = raw.EntityInfo.Identifier,
         Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
+        Comment = ConvertComment(raw.EntityInfo.Comment),
         Module = module,
         Tag = raw.Tag,
         DataType = ConvertTypeRef(raw.DataType, file),
@@ -438,6 +477,14 @@ public sealed class SymbolConverter
         Attributes = ConvertAttributes(raw.Attributes),
     };
 
+    private static void SetParent(Entity parent, IEnumerable<Entity> children)
+    {
+        foreach (Entity child in children)
+        {
+            child.Parent = parent;
+        }
+    }
+
     private static ImmutableList<Attribute> ConvertAttributes(IList<Compiler.Attribute> raw) =>
         raw.Select(a => new Attribute
         {
@@ -445,10 +492,66 @@ public sealed class SymbolConverter
             Args = [.. a.Args],
         }).ToImmutableList();
 
+    private Comment? ConvertComment(Compiler.DocComment? raw)
+    {
+        if (raw is null)
+        {
+            return null;
+        }
+
+        var overview = raw.Value.Overview.Select<Compiler.MessageComponent, CommentMessageComponent>(c => c switch
+        {
+            Compiler.MessageComponent.Text t => new CommentText(t.V),
+            Compiler.MessageComponent.Link l => new CommentInlineLink(ResolveLink(l.V)),
+            _ => throw new InvalidOperationException($"Unknown MessageComponent kind: {c.GetType().FullName}")
+        }).ToImmutableList();
+
+        var seeTags = raw.Value.SeeTags.Select(ResolveLink).ToImmutableList();
+
+        return new Comment { Overview = overview, SeeTags = seeTags };
+
+        CommentLink ResolveLink(string entityId) =>
+            ResolveEntityById(entityId) is Entity entity
+                ? new ResolvedCommentLink(entity)
+                : new UnresolvedCommentLink(entityId);
+    }
+
+    private Entity? ResolveEntityById(string entityId)
+    {
+        // Try as top-level type first.
+        if (_cache.TryGetValue(entityId, out ISymbol? symbol) && symbol is Entity entity)
+        {
+            return entity;
+        }
+
+        // Try as sub-entity: split off last segment, resolve parent, then find child.
+        int lastSep = entityId.LastIndexOf("::", StringComparison.Ordinal);
+        if (lastSep < 0)
+        {
+            return null;
+        }
+
+        string parentId = entityId[..lastSep];
+        string childName = entityId[(lastSep + 2)..];
+
+        Entity? parent = ResolveEntityById(parentId);
+        return parent switch
+        {
+            Interface i => i.Operations.FirstOrDefault(o => o.Identifier == childName),
+            VariantEnum ewf => ewf.Variants.FirstOrDefault(e => e.Identifier == childName),
+            BasicEnum ewu => ewu.FindEnumeratorByIdentifier(childName),
+            Struct s => s.Fields.FirstOrDefault(f => f.Identifier == childName),
+            VariantEnum.Variant e => e.Fields.FirstOrDefault(f => f.Identifier == childName),
+            Operation op => op.Parameters.Concat(op.ReturnType).FirstOrDefault(f => f.Identifier == childName),
+            _ => null,
+        };
+    }
+
     private static string? GetNamedIdentifier(Compiler.Symbol symbol) => symbol switch
     {
         Compiler.Symbol.Struct s => s.V.EntityInfo.Identifier,
-        Compiler.Symbol.Enum e => e.V.EntityInfo.Identifier,
+        Compiler.Symbol.BasicEnum e => e.V.EntityInfo.Identifier,
+        Compiler.Symbol.VariantEnum e => e.V.EntityInfo.Identifier,
         Compiler.Symbol.Interface i => i.V.EntityInfo.Identifier,
         Compiler.Symbol.CustomType c => c.V.EntityInfo.Identifier,
         Compiler.Symbol.TypeAlias t => t.V.EntityInfo.Identifier,

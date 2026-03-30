@@ -3,15 +3,15 @@
 use super::*;
 
 #[derive(Debug)]
-pub struct CsInternal {}
+pub struct CsPublic {}
 
-impl CsInternal {
+impl CsPublic {
     pub fn parse_from(Unparsed { directive, args }: &Unparsed, span: &Span, diagnostics: &mut Diagnostics) -> Self {
         debug_assert_eq!(directive, Self::directive());
 
         check_that_no_arguments_were_provided(args, Self::directive(), span, diagnostics);
 
-        CsInternal {}
+        CsPublic {}
     }
 
     pub fn validate_on(&self, applied_on: Attributables, span: &Span, diagnostics: &mut Diagnostics) {
@@ -28,4 +28,4 @@ impl CsInternal {
     }
 }
 
-implement_attribute_kind_for!(CsInternal, "cs::internal", false);
+implement_attribute_kind_for!(CsPublic, "cs::public", false);

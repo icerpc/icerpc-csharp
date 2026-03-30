@@ -137,7 +137,7 @@ public abstract class DuplexListenerConformanceTests
         while (true)
         {
             IDuplexConnection? connection = clientTransport.CreateConnection(
-                listener.ServerAddress,
+                listener.TransportAddress,
                 provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
             connections.Add(connection);
@@ -180,23 +180,11 @@ public abstract class DuplexListenerConformanceTests
 
         // Act/Assert
         IceRpcException? exception = Assert.Throws<IceRpcException>(
-            () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null));
+            () => serverTransport.Listen(listener.TransportAddress, new DuplexConnectionOptions(), null));
         Assert.That(
             exception!.IceRpcError,
             Is.EqualTo(IceRpcError.AddressInUse),
             $"The test failed with an unexpected IceRpcError {exception}");
-    }
-
-    [Test]
-    public async Task Listener_server_address_transport_property_is_set()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var transport = provider.GetRequiredService<IDuplexClientTransport>().Name;
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-
-        // Act/Assert
-        Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
     /// <summary>Creates the service collection used for the duplex listener transport conformance tests.</summary>

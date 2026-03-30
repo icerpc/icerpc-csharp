@@ -34,6 +34,7 @@ public class QuicTransportTests
         services.AddSingleton(
             new SslClientAuthenticationOptions
             {
+                ApplicationProtocols = [new SslApplicationProtocol("icerpc")],
                 // First connection is rejected, the following connections are accepted.
                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => ++connectionNum > 1,
             });
@@ -51,7 +52,7 @@ public class QuicTransportTests
 
         QuicMultiplexedConnection CreateClientConnection() =>
             (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
-                provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
+                provider.GetRequiredService<IListener<IMultiplexedConnection>>().TransportAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 provider.GetRequiredService<SslClientAuthenticationOptions>());
     }

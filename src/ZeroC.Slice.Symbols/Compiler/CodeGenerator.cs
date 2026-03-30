@@ -15,19 +15,19 @@ using ZeroC.Slice.Codec;
 namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::SliceFile</c>.</remarks>
-public partial record struct SliceFile
+internal partial record struct SliceFile
 {
-    public required string Path { get; set; }
+    internal required string Path { get; set; }
 
-    public Module ModuleDeclaration { get; set; }
+    internal Module ModuleDeclaration { get; set; }
 
-    public required global::System.Collections.Generic.IList<Attribute> Attributes { get; set; }
+    internal required global::System.Collections.Generic.IList<Attribute> Attributes { get; set; }
 
-    public required global::System.Collections.Generic.IList<Symbol> Contents { get; set; }
+    internal required global::System.Collections.Generic.IList<Symbol> Contents { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="SliceFile" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public SliceFile(
+    internal SliceFile(
         string path,
         Module moduleDeclaration,
         global::System.Collections.Generic.IList<Attribute> attributes,
@@ -42,7 +42,7 @@ public partial record struct SliceFile
     /// <summary>Constructs a new instance of <see cref="SliceFile" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public SliceFile(ref SliceDecoder decoder)
+    internal SliceFile(ref SliceDecoder decoder)
     {
         this.Path = decoder.DecodeString();
         this.ModuleDeclaration = new Module(ref decoder);
@@ -55,7 +55,7 @@ public partial record struct SliceFile
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeString(this.Path);
         this.ModuleDeclaration.Encode(ref encoder);
@@ -70,15 +70,15 @@ public partial record struct SliceFile
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::GeneratedFile</c>.</remarks>
-public partial record struct GeneratedFile
+internal partial record struct GeneratedFile
 {
-    public required string Path { get; set; }
+    internal required string Path { get; set; }
 
-    public required string Contents { get; set; }
+    internal required string Contents { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="GeneratedFile" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public GeneratedFile(
+    internal GeneratedFile(
         string path,
         string contents)
     {
@@ -89,7 +89,7 @@ public partial record struct GeneratedFile
     /// <summary>Constructs a new instance of <see cref="GeneratedFile" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public GeneratedFile(ref SliceDecoder decoder)
+    internal GeneratedFile(ref SliceDecoder decoder)
     {
         this.Path = decoder.DecodeString();
         this.Contents = decoder.DecodeString();
@@ -98,7 +98,7 @@ public partial record struct GeneratedFile
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeString(this.Path);
         encoder.EncodeString(this.Contents);
@@ -108,7 +108,7 @@ public partial record struct GeneratedFile
 
 /// <remarks>The Slice compiler generated this discriminated union from the Slice enum <c>Compiler::Symbol</c>.</remarks>
 [Dunet.Union]
-public abstract partial record class Symbol
+internal abstract partial record class Symbol
 {
     public partial record class Interface(global::ZeroC.Slice.Symbols.Compiler.Interface V) : Symbol
     {
@@ -124,7 +124,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class Enum(global::ZeroC.Slice.Symbols.Compiler.Enum V) : Symbol
+    public partial record class BasicEnum(global::ZeroC.Slice.Symbols.Compiler.BasicEnum V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 1;
@@ -138,7 +138,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class Struct(global::ZeroC.Slice.Symbols.Compiler.Struct V) : Symbol
+    public partial record class VariantEnum(global::ZeroC.Slice.Symbols.Compiler.VariantEnum V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 2;
@@ -152,7 +152,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class CustomType(global::ZeroC.Slice.Symbols.Compiler.CustomType V) : Symbol
+    public partial record class Struct(global::ZeroC.Slice.Symbols.Compiler.Struct V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 3;
@@ -166,7 +166,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class SequenceType(global::ZeroC.Slice.Symbols.Compiler.SequenceType V) : Symbol
+    public partial record class CustomType(global::ZeroC.Slice.Symbols.Compiler.CustomType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 4;
@@ -180,7 +180,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class DictionaryType(global::ZeroC.Slice.Symbols.Compiler.DictionaryType V) : Symbol
+    public partial record class SequenceType(global::ZeroC.Slice.Symbols.Compiler.SequenceType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 5;
@@ -194,7 +194,7 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class ResultType(global::ZeroC.Slice.Symbols.Compiler.ResultType V) : Symbol
+    public partial record class DictionaryType(global::ZeroC.Slice.Symbols.Compiler.DictionaryType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 6;
@@ -208,10 +208,24 @@ public abstract partial record class Symbol
         }
     }
 
-    public partial record class TypeAlias(global::ZeroC.Slice.Symbols.Compiler.TypeAlias V) : Symbol
+    public partial record class ResultType(global::ZeroC.Slice.Symbols.Compiler.ResultType V) : Symbol
     {
         /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
         public const int Discriminant = 7;
+
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        internal override void Encode(ref SliceEncoder encoder)
+        {
+            encoder.EncodeVarInt32(Discriminant);
+            this.V.Encode(ref encoder);
+            encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
+        }
+    }
+
+    public partial record class TypeAlias(global::ZeroC.Slice.Symbols.Compiler.TypeAlias V) : Symbol
+    {
+        /// <summary>The discriminant of this enumerator, used for encoding/decoding.</summary>
+        public const int Discriminant = 8;
 
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
         internal override void Encode(ref SliceEncoder encoder)
@@ -228,12 +242,12 @@ public abstract partial record class Symbol
 
 /// <summary>Provides an extension method for encoding a <see cref="Symbol" /> using a <see cref="SliceEncoder" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::Symbol</c>.</remarks>
-public static class SymbolSliceEncoderExtensions
+internal static class SymbolSliceEncoderExtensions
 {
     /// <summary>Encodes a <see cref="Symbol" /> enum.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The <see cref="Symbol" /> enumerator value to encode.</param>
-    public static void EncodeSymbol(
+    internal static void EncodeSymbol(
         this ref SliceEncoder encoder,
         Symbol value) =>
         value.Encode(ref encoder);
@@ -241,17 +255,18 @@ public static class SymbolSliceEncoderExtensions
 
 /// <summary>Provides an extension method for decoding a <see cref="Symbol" /> using a <see cref="SliceDecoder" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::Symbol</c>.</remarks>
-public static class SymbolSliceDecoderExtensions
+internal static class SymbolSliceDecoderExtensions
 {
     /// <summary>Decodes a <see cref="Symbol" /> enum.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded <see cref="Symbol" /> enumerator value.</returns>
-    public static Symbol DecodeSymbol(this ref SliceDecoder decoder)
+    internal static Symbol DecodeSymbol(this ref SliceDecoder decoder)
     {
         return decoder.DecodeVarInt32() switch
         {
             Symbol.Interface.Discriminant => DecodeInterface(ref decoder),
-            Symbol.Enum.Discriminant => DecodeEnum(ref decoder),
+            Symbol.BasicEnum.Discriminant => DecodeBasicEnum(ref decoder),
+            Symbol.VariantEnum.Discriminant => DecodeVariantEnum(ref decoder),
             Symbol.Struct.Discriminant => DecodeStruct(ref decoder),
             Symbol.CustomType.Discriminant => DecodeCustomType(ref decoder),
             Symbol.SequenceType.Discriminant => DecodeSequenceType(ref decoder),
@@ -268,9 +283,16 @@ public static class SymbolSliceDecoderExtensions
             return result;
         }
 
-        static Symbol.Enum DecodeEnum(ref SliceDecoder decoder)
+        static Symbol.BasicEnum DecodeBasicEnum(ref SliceDecoder decoder)
         {
-            var result = new Symbol.Enum(V: new Enum(ref decoder));
+            var result = new Symbol.BasicEnum(V: new BasicEnum(ref decoder));
+            decoder.SkipTagged();
+            return result;
+        }
+
+        static Symbol.VariantEnum DecodeVariantEnum(ref SliceDecoder decoder)
+        {
+            var result = new Symbol.VariantEnum(V: new VariantEnum(ref decoder));
             decoder.SkipTagged();
             return result;
         }
@@ -320,17 +342,17 @@ public static class SymbolSliceDecoderExtensions
 }
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::Diagnostic</c>.</remarks>
-public partial record struct Diagnostic
+internal partial record struct Diagnostic
 {
-    public DiagnosticLevel Level { get; set; }
+    internal DiagnosticLevel Level { get; set; }
 
-    public required string Message { get; set; }
+    internal required string Message { get; set; }
 
-    public string? Source { get; set; }
+    internal string? Source { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Diagnostic" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Diagnostic(
+    internal Diagnostic(
         DiagnosticLevel level,
         string message,
         string? source)
@@ -343,7 +365,7 @@ public partial record struct Diagnostic
     /// <summary>Constructs a new instance of <see cref="Diagnostic" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public Diagnostic(ref SliceDecoder decoder)
+    internal Diagnostic(ref SliceDecoder decoder)
     {
         var bitSequenceReader = decoder.GetBitSequenceReader(1);
         this.Level = DiagnosticLevelSliceDecoderExtensions.DecodeDiagnosticLevel(ref decoder);
@@ -354,7 +376,7 @@ public partial record struct Diagnostic
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
         DiagnosticLevelSliceEncoderExtensions.EncodeDiagnosticLevel(ref encoder, this.Level);
@@ -369,7 +391,7 @@ public partial record struct Diagnostic
 }
 
 /// <remarks>The Slice compiler generated this enum from the Slice enum <c>Compiler::DiagnosticLevel</c>.</remarks>
-public enum DiagnosticLevel : byte
+internal enum DiagnosticLevel : byte
 {
     Info = 0,
 
@@ -380,24 +402,24 @@ public enum DiagnosticLevel : byte
 
 /// <summary>Provides an extension method for creating a <see cref="DiagnosticLevel" /> from a <see langword="byte" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::DiagnosticLevel</c>.</remarks>
-public static class DiagnosticLevelByteExtensions
+internal static class DiagnosticLevelByteExtensions
 {
     /// <param name="value">The value being converted.</param>
     /// <summary>Converts a <see langword="byte" /> into the corresponding <see cref="DiagnosticLevel" />
     /// enumerator.</summary>
     /// <returns>The enumerator.</returns>
-    public static DiagnosticLevel AsDiagnosticLevel(this byte value) =>
+    internal static DiagnosticLevel AsDiagnosticLevel(this byte value) =>
         (DiagnosticLevel)value;
 }
 
 /// <summary>Provides an extension method for encoding a <see cref="DiagnosticLevel" /> using a <see cref="SliceEncoder" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::DiagnosticLevel</c>.</remarks>
-public static class DiagnosticLevelSliceEncoderExtensions
+internal static class DiagnosticLevelSliceEncoderExtensions
 {
     /// <summary>Encodes a <see cref="DiagnosticLevel" /> enum.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The <see cref="DiagnosticLevel" /> enumerator value to encode.</param>
-    public static void EncodeDiagnosticLevel(
+    internal static void EncodeDiagnosticLevel(
         this ref SliceEncoder encoder,
         DiagnosticLevel value) =>
         encoder.EncodeUInt8((byte)value);
@@ -405,11 +427,11 @@ public static class DiagnosticLevelSliceEncoderExtensions
 
 /// <summary>Provides an extension method for decoding a <see cref="DiagnosticLevel" /> using a <see cref="SliceDecoder" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::DiagnosticLevel</c>.</remarks>
-public static class DiagnosticLevelSliceDecoderExtensions
+internal static class DiagnosticLevelSliceDecoderExtensions
 {
     /// <summary>Decodes a <see cref="DiagnosticLevel" /> enum.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded <see cref="DiagnosticLevel" /> enumerator value.</returns>
-    public static DiagnosticLevel DecodeDiagnosticLevel(this ref SliceDecoder decoder) =>
+    internal static DiagnosticLevel DecodeDiagnosticLevel(this ref SliceDecoder decoder) =>
         DiagnosticLevelByteExtensions.AsDiagnosticLevel(decoder.DecodeUInt8());
 }

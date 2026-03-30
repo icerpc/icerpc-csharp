@@ -45,4 +45,23 @@ public class SequenceDecodingTests
                 _ = new BoolS(ref decoder);
             });
     }
+
+    [Test]
+    public void Decode_custom_opt_int32_sequence_field()
+    {
+        // Arrange
+        int?[] expected = [1, null, 3];
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSequenceOfOptionals(expected, (ref encoder, value) => encoder.EncodeInt32(value!.Value));
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var sut = new CustomOptInt32S(ref decoder);
+
+        // Assert
+        Assert.That(sut.Value, Is.EqualTo(expected));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
 }

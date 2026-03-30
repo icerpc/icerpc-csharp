@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Quic.Internal;
 [SupportedOSPlatform("windows")]
 internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 {
-    public ServerAddress ServerAddress { get; }
+    public TransportAddress TransportAddress { get; }
 
     private readonly QuicListener _listener;
     private readonly MultiplexedConnectionOptions _options;
@@ -40,25 +40,24 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     public ValueTask DisposeAsync() => _listener.DisposeAsync();
 
     internal QuicMultiplexedListener(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         QuicServerTransportOptions quicTransportOptions,
-        SslServerAuthenticationOptions authenticationOptions)
+        SslServerAuthenticationOptions serverAuthenticationOptions)
     {
-        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
         {
             throw new ArgumentException(
-                $"Listening on the DNS name '{serverAddress.Host}' is not allowed; an IP address is required.",
-                nameof(serverAddress));
+                $"Listening on the DNS name '{transportAddress.Host}' is not allowed; an IP address is required.",
+                nameof(transportAddress));
         }
 
-        _options = options;
+        serverAuthenticationOptions = serverAuthenticationOptions.Clone();
 
-        authenticationOptions = authenticationOptions.Clone();
-        authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> // Mandatory with Quic
-        {
-            new SslApplicationProtocol(serverAddress.Protocol.Name)
-        };
+        // Always set by the caller QuicServerTransport.
+        Debug.Assert(serverAuthenticationOptions.ApplicationProtocols is not null);
+
+        _options = options;
 
         _quicServerOptions = new QuicServerConnectionOptions
         {
@@ -68,7 +67,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             IdleTimeout = quicTransportOptions.IdleTimeout,
             KeepAliveInterval = Timeout.InfiniteTimeSpan, // the server doesn't send PING frames
             InitialReceiveWindowSizes = quicTransportOptions.InitialReceiveWindowSizes,
-            ServerAuthenticationOptions = authenticationOptions,
+            ServerAuthenticationOptions = serverAuthenticationOptions,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
         };
@@ -79,16 +78,16 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             ValueTask<QuicListener> task = QuicListener.ListenAsync(
                 new QuicListenerOptions
                 {
-                    ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
+                    ListenEndPoint = new IPEndPoint(ipAddress, transportAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
-                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                    ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);
             Debug.Assert(task.IsCompleted);
             _listener = task.Result;
 
-            ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
+            TransportAddress = transportAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
         }
         catch (QuicException exception)
         {

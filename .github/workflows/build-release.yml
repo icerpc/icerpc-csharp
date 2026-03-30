@@ -30,12 +30,12 @@ on:
         required: true
         default: "nightly"
       publish:
-        description: "Whether to publish the packages"
+        description: "Publish the packages"
         required: false
         default: false
         type: boolean
       authenticode_sign:
-        description: "Whether to authenticode sign the assemblies"
+        description: "Sign the assemblies with authenticode"
         required: false
         default: false
         type: boolean

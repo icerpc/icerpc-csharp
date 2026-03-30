@@ -199,8 +199,8 @@ public ref partial struct IceEncoder
         }
     }
 
-    /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
-    /// encoding this value.</summary>
+    /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is not known before
+    /// encoding this value. T can be a proxy such as IceObjectProxy? and therefore nullable.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag. Must be either FSize or OptimizedVSize.</param>
     /// <param name="tagFormat">The tag format.</param>
@@ -211,7 +211,7 @@ public ref partial struct IceEncoder
         int tag,
         TagFormat tagFormat,
         T v,
-        EncodeAction<T> encodeAction) where T : notnull
+        EncodeAction<T> encodeAction)
     {
         switch (tagFormat)
         {

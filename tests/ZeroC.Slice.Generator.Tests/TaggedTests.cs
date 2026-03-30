@@ -6,7 +6,7 @@ using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Generator.Tests;
 
-public class TaggedTests
+internal class TaggedTests
 {
     public static IEnumerable<TestCaseData> EncodeSliceTaggedFieldsSource
     {

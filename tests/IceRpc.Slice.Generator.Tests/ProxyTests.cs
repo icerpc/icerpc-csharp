@@ -79,9 +79,9 @@ public partial class ProxyTests
     {
         // Arrange
         var service = new SendProxyTestService();
-        var pipeline = new Pipeline();
         var router = new Router();
         router.Map<ISendProxyTestService>(service);
+        var pipeline = new Pipeline();
         var baseProxy = new SendProxyTestProxy(pipeline);
         router.UseFeature<ISliceFeature>(new SliceFeature(baseProxy: baseProxy));
 

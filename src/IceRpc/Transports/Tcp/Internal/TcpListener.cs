@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Tcp.Internal;
 /// <summary>The listener implementation for the TCP transport.</summary>
 internal sealed class TcpListener : IListener<IDuplexConnection>
 {
-    public ServerAddress ServerAddress { get; }
+    public TransportAddress TransportAddress { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
     private readonly int _minSegmentSize;
@@ -53,34 +53,23 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     }
 
     internal TcpListener(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? authenticationOptions,
         TcpServerTransportOptions tcpOptions)
     {
-        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
         {
             throw new ArgumentException(
-                $"Listening on the DNS name '{serverAddress.Host}' is not allowed; an IP address is required.",
-                nameof(serverAddress));
+                $"Listening on the DNS name '{transportAddress.Host}' is not allowed; an IP address is required.",
+                nameof(transportAddress));
         }
 
         _authenticationOptions = authenticationOptions?.Clone();
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
 
-        if (_authenticationOptions is not null && _authenticationOptions.ApplicationProtocols is null)
-        {
-            // Set ApplicationProtocols to "ice" or "icerpc" in the common situation where the application does not
-            // specify any application protocol. This way, a connection request that carries an ALPN protocol ID can
-            // only succeed if this protocol ID is a match.
-            _authenticationOptions.ApplicationProtocols = new List<SslApplicationProtocol>
-            {
-                new SslApplicationProtocol(serverAddress.Protocol.Name)
-            };
-        }
-
-        var address = new IPEndPoint(ipAddress, serverAddress.Port);
+        var address = new IPEndPoint(ipAddress, transportAddress.Port);
 
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
@@ -106,6 +95,6 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             throw;
         }
 
-        ServerAddress = serverAddress with { Port = (ushort)address.Port };
+        TransportAddress = transportAddress with { Port = (ushort)address.Port };
     }
 }

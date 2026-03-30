@@ -25,9 +25,6 @@ internal class IceServiceMethod : ServiceMethod
     /// <summary>The name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
     private readonly string _dispatchMethodName;
 
-    /// <summary>A value indicating whether the return value is pre-encoded by the application.</summary>
-    private readonly bool _encodedReturn;
-
     /// <summary>The exception specification of the operation.</summary>
     private readonly string[] _exceptionSpecification = [];
 
@@ -37,6 +34,9 @@ internal class IceServiceMethod : ServiceMethod
 
     /// <summary>A value indicating whether the operation is idempotent.</summary>
     private readonly bool _idempotent;
+
+    /// <summary>A value indicating whether the return value is pre-encoded by the application.</summary>
+    private readonly bool _marshaledResult;
 
     /// <summary>The arity of the operation.</summary>
     private readonly int _parameterCount;
@@ -90,7 +90,7 @@ internal class IceServiceMethod : ServiceMethod
         // We don't use the generated Response.EncodeXxx method when _returnCount is 0. So we could not generate it.
         if (_returnCount > 0)
         {
-            if (_encodedReturn)
+            if (_marshaledResult)
             {
                 dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
             }
@@ -128,7 +128,7 @@ internal class IceServiceMethod : ServiceMethod
         return codeBlock;
     }
 
-    internal IceServiceMethod(IMethodSymbol method, AttributeData attribute)
+    internal IceServiceMethod(IMethodSymbol method, AttributeData attribute, INamedTypeSymbol? pipeReaderSymbol)
     {
         ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
         Debug.Assert(
@@ -145,14 +145,6 @@ internal class IceServiceMethod : ServiceMethod
         {
             switch (namedArgument.Key)
             {
-                // TODO: we don't need this argument; we can figure it out with a PipeReader return value;
-                // see SliceServiceMethod.
-                case "EncodedReturn":
-                    if (namedArgument.Value.Value is bool encodedReturn)
-                    {
-                        _encodedReturn = encodedReturn;
-                    }
-                    break;
                 case "ExceptionSpecification":
                     if (namedArgument.Value.Values is ImmutableArray<TypedConstant> exceptionTypes)
                     {
@@ -169,6 +161,9 @@ internal class IceServiceMethod : ServiceMethod
                         _idempotent = idempotent;
                     }
                     break;
+                // TODO: issue a diagnostic if we encounter an unknown named argument
+                // An unknown argument indicates a mismatch between this version of the generator and the version
+                // of the IceRpc.Ice assembly that references this generator, which is highly unlikely.
             }
         }
 
@@ -186,7 +181,7 @@ internal class IceServiceMethod : ServiceMethod
             decodeArgsMethod is not null,
             $"Cannot find decode method for operation {OperationName} in interface {interfaceSymbol.Name}.");
 
-        // Analyze the return type of the decode method (ValueTask or ValueTask<T>)
+        // Analyze the return type of the Decode method (ValueTask or ValueTask<T>) for the parameters.
 
         if (decodeArgsMethod!.ReturnType is INamedTypeSymbol returnType &&
             returnType.IsGenericType &&
@@ -222,24 +217,32 @@ internal class IceServiceMethod : ServiceMethod
                 _returnCount = returnElements.Length;
                 _returnFieldNames = returnElements.Select(e => e.Name).ToArray();
             }
+            else if (pipeReaderSymbol is not null &&
+                SymbolEqualityComparer.Default.Equals(methodReturnTypeArg.OriginalDefinition, pipeReaderSymbol))
+            {
+                _returnCount = 1;
+                _marshaledResult = true;
+            }
             else
             {
                 // It's a simple return type
                 _returnCount = 1;
             }
         }
+        // else it's a ValueTask and _returnCount stays 0
     }
 }
 
 internal class IceServiceMethodFactory : ServiceMethodFactory
 {
+    private readonly INamedTypeSymbol? _pipeReaderSymbol;
+
     internal IceServiceMethodFactory(Compilation compilation)
-        : base(compilation.GetTypeByMetadataName("IceRpc.Ice.Operations.IceOperationAttribute"))
-    {
-    }
+        : base(compilation.GetTypeByMetadataName("IceRpc.Ice.Operations.IceOperationAttribute")) =>
+        _pipeReaderSymbol = compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
 
     private protected override ServiceMethod CreateServiceMethod(
         IMethodSymbol methodSymbol,
         AttributeData attribute) =>
-        new IceServiceMethod(methodSymbol, attribute);
+        new IceServiceMethod(methodSymbol, attribute, _pipeReaderSymbol);
 }

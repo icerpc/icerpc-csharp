@@ -22,7 +22,8 @@ struct GeneratedFile {
 
 enum Symbol {
     Interface(v: Interface)
-    Enum(v: Enum)
+    BasicEnum(v: BasicEnum)
+    VariantEnum(v: VariantEnum)
     Struct(v: Struct)
     CustomType(v: CustomType)
     SequenceType(v: SequenceType)

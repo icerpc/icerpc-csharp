@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using ZeroC.Slice.Symbols;
 
 using Attribute = ZeroC.Slice.Symbols.Attribute;
-using Compiler = ZeroC.Slice.Symbols.Compiler;
 
 namespace ZeroC.Slice.Generator;
 
@@ -30,9 +29,9 @@ internal static class CsAttributeValidator
     }
 
     /// <summary>Validates all CS attributes across the given files and returns any diagnostics.</summary>
-    internal static List<Compiler.Diagnostic> Validate(ImmutableList<SliceFile> files)
+    internal static List<Diagnostic> Validate(ImmutableList<SliceFile> files)
     {
-        var diagnostics = new List<Compiler.Diagnostic>();
+        var diagnostics = new List<Diagnostic>();
 
         foreach (SliceFile file in files)
         {
@@ -48,7 +47,7 @@ internal static class CsAttributeValidator
         return diagnostics;
     }
 
-    private static void ValidateSymbol(ISymbol symbol, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateSymbol(ISymbol symbol, List<Diagnostic> diagnostics)
     {
         switch (symbol)
         {
@@ -60,9 +59,9 @@ internal static class CsAttributeValidator
                 }
                 break;
 
-            case EnumWithFields e:
+            case VariantEnum e:
                 ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
-                foreach (EnumWithFields.Enumerator en in e.Enumerators)
+                foreach (VariantEnum.Variant en in e.Variants)
                 {
                     ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
                     foreach (Field field in en.Fields)
@@ -72,9 +71,9 @@ internal static class CsAttributeValidator
                 }
                 break;
 
-            case EnumWithUnderlying e:
+            case BasicEnum e:
                 ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
-                ValidateEnumWithUnderlyingEnumerators(e, diagnostics);
+                ValidateEnumerators(e, diagnostics);
                 break;
 
             case Interface i:
@@ -101,53 +100,51 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateEnumWithUnderlyingEnumerators(
-        EnumWithUnderlying e,
-        List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateEnumerators(
+        BasicEnum e,
+        List<Diagnostic> diagnostics)
     {
-        // TODO will be better to refactor EnumWithUnderlying to avoid the need for this switch,
-        // We can have Enumerators and TypedEnumerators and only used the typed one to access the value.
         switch (e)
         {
-            case EnumWithUnderlying<sbyte> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<sbyte> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<byte> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<byte> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<short> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<short> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<ushort> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<ushort> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<int> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<int> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<uint> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<uint> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<long> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<long> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
-            case EnumWithUnderlying<ulong> enumWithUnderlying:
-                ValidateEnumerators(enumWithUnderlying, diagnostics);
+            case BasicEnum<ulong> basicEnum:
+                ValidateEnumerators(basicEnum, diagnostics);
                 break;
         }
 
         static void ValidateEnumerators<T>(
-            EnumWithUnderlying<T> e,
-            List<Compiler.Diagnostic> diagnostics)
+            BasicEnum<T> e,
+            List<Diagnostic> diagnostics)
             where T : struct, System.Numerics.INumber<T>
         {
-            foreach (EnumWithUnderlying<T>.Enumerator en in e.Enumerators)
+            foreach (BasicEnum<T>.Enumerator en in e.Enumerators)
             {
                 ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
             }
         }
     }
 
-    private static void ValidateOperation(Operation op, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateOperation(Operation op, List<Diagnostic> diagnostics)
     {
         ValidateAttributes(op.Attributes, Target.Operation, diagnostics);
 
@@ -176,13 +173,13 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ValidateField(Field field, Target target, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateField(Field field, Target target, List<Diagnostic> diagnostics)
     {
         ValidateAttributes(field.Attributes, target, diagnostics);
         ValidateTypeRef(field.DataType, diagnostics);
     }
 
-    private static void ValidateTypeRef(TypeRef typeRef, List<Compiler.Diagnostic> diagnostics)
+    private static void ValidateTypeRef(TypeRef typeRef, List<Diagnostic> diagnostics)
     {
         Target target = typeRef.Type switch
         {
@@ -196,7 +193,7 @@ internal static class CsAttributeValidator
     private static void ValidateAttributes(
         ImmutableList<Attribute> attributes,
         Target target,
-        List<Compiler.Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics)
     {
         foreach (Attribute attr in attributes)
         {
@@ -210,7 +207,7 @@ internal static class CsAttributeValidator
     private static void ValidateCSAttribute(
         Attribute attr,
         Target target,
-        List<Compiler.Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics)
     {
         switch (attr.Directive)
         {
@@ -295,7 +292,7 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void RequireArgs(Attribute attr, int expected, List<Compiler.Diagnostic> diagnostics)
+    private static void RequireArgs(Attribute attr, int expected, List<Diagnostic> diagnostics)
     {
         if (attr.Args.Count != expected)
         {
@@ -304,9 +301,9 @@ internal static class CsAttributeValidator
         }
     }
 
-    private static void ReportUnexpected(Attribute attr, List<Compiler.Diagnostic> diagnostics) =>
+    private static void ReportUnexpected(Attribute attr, List<Diagnostic> diagnostics) =>
         diagnostics.Add(Error($"Unexpected attribute '{attr.Directive}' on this target."));
 
-    private static Compiler.Diagnostic Error(string message) =>
-        new(Compiler.DiagnosticLevel.Error, message, null);
+    private static Diagnostic Error(string message) =>
+        new() { Level = DiagnosticLevel.Error, Message = message };
 }

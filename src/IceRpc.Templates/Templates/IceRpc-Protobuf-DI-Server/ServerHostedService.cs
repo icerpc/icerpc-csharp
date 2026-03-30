@@ -4,7 +4,11 @@ using Microsoft.Extensions.Hosting;
 namespace IceRpc_Protobuf_DI_Server;
 
 /// <summary>The server hosted service is ran and managed by the .NET Generic Host.</summary>
-public class ServerHostedService : IHostedService
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "This class is instantiated dynamically by the dependency injection container.")]
+internal class ServerHostedService : IHostedService
 {
     // The IceRPC server accepts connections from IceRPC clients.
     private readonly Server _server;

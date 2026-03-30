@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports.Quic;
-using System.Net.Quic;
 using System.Net.Security;
 using System.Runtime.Versioning;
 
@@ -18,15 +17,10 @@ public interface IMultiplexedServerTransport
         {
             if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
             {
-                if (QuicListener.IsSupported)
-                {
-                    return _quicServerTransport;
-                }
-                throw new NotSupportedException(
-                    "The default QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
+                return _quicServerTransport;
             }
             throw new PlatformNotSupportedException(
-                "The default QUIC server transport is not supported on this platform.");
+                "The default multiplexed server transport, QUIC, is only available on Linux, macOS, and Windows.");
         }
     }
 
@@ -35,18 +29,20 @@ public interface IMultiplexedServerTransport
     [SupportedOSPlatform("windows")]
     private static readonly QuicServerTransport _quicServerTransport = new();
 
-    /// <summary>Gets the transport's name.</summary>
-    /// <value>The transport name.</value>
-    string Name { get; }
+    /// <summary>Gets the default transport name.</summary>
+    /// <value>The transport accepts transport addresses that use this name as the
+    /// <see cref="TransportAddress.TransportName"/>. Some transports may accept additional names beyond this default.
+    /// </value>
+    string DefaultName { get; }
 
-    /// <summary>Starts listening on a server address.</summary>
-    /// <param name="serverAddress">The server address of the listener.</param>
+    /// <summary>Starts listening on a transport address.</summary>
+    /// <param name="transportAddress">The transport address to listen on.</param>
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
     /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions);
 }

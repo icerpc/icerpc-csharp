@@ -34,10 +34,6 @@ internal static class EntityExtensions
         /// <summary>Gets the C# namespace for this entity (respects cs::namespace attribute on the module).</summary>
         internal string Namespace => entity.Module.Namespace;
 
-        /// <summary>Gets a value indicating whether this entity type uses a generated extensions class
-        /// for encoding/decoding (as opposed to instance Encode/Decode methods).</summary>
-        internal bool UsesExtensionsClass => entity is EnumWithUnderlying or EnumWithFields or CustomType;
-
         /// <summary>Gets the camelCase parameter name (checks cs::identifier attribute).</summary>
         internal string ParameterName
         {
@@ -47,5 +43,9 @@ internal static class EntityExtensions
                 return csIdentifier is { } attr ? attr.Args[0] : entity.Identifier.ToCamelCase();
             }
         }
+
+        /// <summary>Gets a value indicating whether this entity type uses a generated extensions class
+        /// for encoding/decoding (as opposed to instance Encode/Decode methods).</summary>
+        internal bool UsesExtensionsClass => entity is BasicEnum or VariantEnum or CustomType;
     }
 }

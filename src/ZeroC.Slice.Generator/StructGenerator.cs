@@ -22,11 +22,12 @@ internal static class StructGenerator
 
         string scopedId = structDef.ScopedIdentifier;
 
-        // TODO: format doc comment from structDef.Comment
         return new ContainerBuilder(declaration, identifier)
+            .AddDocCommentSummary(structDef.Comment, currentNamespace)
             .AddComment(
                 "remarks",
                 $"The Slice compiler generated this record struct from the Slice struct <c>{scopedId}</c>.")
+            .AddDocCommentSeeAlso(structDef.Comment, currentNamespace)
             .AddBlock(CodeBlock.FromBlocks(
                 structDef.Fields.Select(
                     f => FieldDeclaration(f, currentNamespace, accessModifier, isReadonly))))
@@ -132,6 +133,8 @@ internal static class StructGenerator
         bool parentReadonly)
     {
         var code = new CodeBlock();
+
+        code.WriteDocCommentSummary(field.Comment, currentNamespace);
 
         // cs::attribute
         code.WriteCSAttributes(field.Attributes);

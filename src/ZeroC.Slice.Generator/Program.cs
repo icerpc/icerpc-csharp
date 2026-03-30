@@ -7,8 +7,8 @@ await GeneratorDriver.RunAsync(
     generateCode: (symbol, currentNamespace) => symbol switch
     {
         Struct s => StructGenerator.Generate(s),
-        EnumWithUnderlying e => EnumWithUnderlyingGenerator.Generate(e),
-        EnumWithFields e => EnumWithFieldsGenerator.Generate(e),
+        BasicEnum e => BasicEnumGenerator.Generate(e),
+        VariantEnum e => VariantEnumGenerator.Generate(e),
         _ => null,
     },
     mapOutputPath: path => Path.ChangeExtension(path, ".cs"),

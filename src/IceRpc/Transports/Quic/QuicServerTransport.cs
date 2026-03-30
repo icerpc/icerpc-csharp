@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Quic;
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
-    public string Name => "quic";
+    public string DefaultName => "quic";
 
     private readonly QuicServerTransportOptions _quicOptions;
 
@@ -30,7 +30,7 @@ public class QuicServerTransport : IMultiplexedServerTransport
 
     /// <inheritdoc/>
     public IListener<IMultiplexedConnection> Listen(
-        ServerAddress serverAddress,
+        TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
@@ -40,11 +40,16 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 "The QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
-        if ((serverAddress.Transport is string transport && transport != Name) || serverAddress.Params.Count > 0)
+        if (transportAddress.TransportName is string name && name != DefaultName)
+        {
+            throw new NotSupportedException($"The QUIC server transport does not support transport '{name}'.");
+        }
+
+        if (transportAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the QUIC server transport.",
-                nameof(serverAddress));
+                "The transport address contains parameters that are not valid for the QUIC server transport.",
+                nameof(transportAddress));
         }
 
         if (serverAuthenticationOptions is null)
@@ -54,11 +59,14 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 "The QUIC server transport requires the SSL server authentication options to be set.");
         }
 
-        if (serverAddress.Transport is null)
+        if (serverAuthenticationOptions.ApplicationProtocols
+            is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
         {
-            serverAddress = serverAddress with { Transport = Name };
+            throw new ArgumentException(
+                "The QUIC server transport requires ApplicationProtocols to be set in the SSL server authentication options.",
+                nameof(serverAuthenticationOptions));
         }
 
-        return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
+        return new QuicMultiplexedListener(transportAddress, options, _quicOptions, serverAuthenticationOptions);
     }
 }

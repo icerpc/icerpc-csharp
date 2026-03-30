@@ -75,6 +75,7 @@ public class TaggedTests
             MyEnum.Two,
             new byte[] { 1, 2, 3 },
             new int[] { 4, 5, 6 },
+            new int[][] { [7, 8, 9] },
             "hello world!"),
         new ClassWithTaggedFields(),
         new ClassWithTaggedFields(
@@ -87,7 +88,8 @@ public class TaggedTests
             MyEnum.Two,
             null,
             new int[] { 4, 5, 6 },
-            null)
+            null,
+            "hello world!")
     };
 
     [Test, TestCaseSource(nameof(DecodeTaggedFieldsSource))]
@@ -99,13 +101,15 @@ public class TaggedTests
         bool hasTaggedFields =
             expected.A is not null ||
             expected.B is not null ||
+            expected.C is not null ||
             expected.D is not null ||
             expected.E is not null ||
             expected.F is not null ||
             expected.G is not null ||
             expected.H is not null ||
             expected.I is not null ||
-            expected.J is not null;
+            expected.J is not null ||
+            expected.K is not null;
 
         encoder.EncodeSize(1); // Instance marker
         byte flags = (byte)IceEncodingDefinitions.TypeIdKind.String | (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice;
@@ -201,8 +205,19 @@ public class TaggedTests
         {
             encoder.EncodeTagged(
                 10,
-                TagFormat.OptimizedVSize,
+                TagFormat.FSize,
                 expected.J,
+                (ref IceEncoder encoder, IList<IList<int>> value) => encoder.EncodeSequence(
+                    value,
+                    (ref IceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value)));
+        }
+
+        if (expected.K is not null)
+        {
+            encoder.EncodeTagged(
+                11,
+                TagFormat.OptimizedVSize,
+                expected.K,
                 (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
         }
 
@@ -228,6 +243,7 @@ public class TaggedTests
         Assert.That(c.H, Is.EqualTo(expected.H));
         Assert.That(c.I, Is.EqualTo(expected.I));
         Assert.That(c.J, Is.EqualTo(expected.J));
+        Assert.That(c.K, Is.EqualTo(expected.K));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -245,13 +261,15 @@ public class TaggedTests
         bool hasTaggedFields =
             c.A is not null ||
             c.B is not null ||
+            c.C is not null ||
             c.D is not null ||
             c.E is not null ||
             c.F is not null ||
             c.G is not null ||
             c.H is not null ||
             c.I is not null ||
-            c.J is not null;
+            c.J is not null ||
+            c.K is not null;
 
         var decoder = new IceDecoder(buffer.WrittenMemory);
 
@@ -269,48 +287,42 @@ public class TaggedTests
             decoder.DecodeTagged(
                 1,
                 TagFormat.F1,
-                (ref IceDecoder decoder) => decoder.DecodeByte() as byte?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeByte() as byte?),
             Is.EqualTo(c.A));
 
         Assert.That(
             decoder.DecodeTagged(
                 2,
                 TagFormat.F2,
-                (ref IceDecoder decoder) => decoder.DecodeShort() as short?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeShort() as short?),
             Is.EqualTo(c.B));
 
         Assert.That(
             decoder.DecodeTagged(
                 3,
                 TagFormat.F4,
-                (ref IceDecoder decoder) => decoder.DecodeInt() as int?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeInt() as int?),
             Is.EqualTo(c.C));
 
         Assert.That(
             decoder.DecodeTagged(
                 4,
                 TagFormat.F8,
-                (ref IceDecoder decoder) => decoder.DecodeLong() as long?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeLong() as long?),
             Is.EqualTo(c.D));
 
         Assert.That(
             decoder.DecodeTagged(
                 5,
                 TagFormat.VSize,
-                (ref IceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?),
             Is.EqualTo(c.E));
 
         Assert.That(
             decoder.DecodeTagged(
                 6,
                 TagFormat.FSize,
-                (ref IceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?,
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?),
             Is.EqualTo(c.F));
 
         Assert.That(
@@ -318,33 +330,37 @@ public class TaggedTests
                 7,
                 TagFormat.Size,
                 (ref IceDecoder decoder) =>
-                    MyEnumIceDecoderExtensions.DecodeMyEnum(ref decoder) as MyEnum?,
-                useTagEndMarker: false),
+                    MyEnumIceDecoderExtensions.DecodeMyEnum(ref decoder) as MyEnum?),
             Is.EqualTo(c.G));
 
         Assert.That(
             decoder.DecodeTagged(
                 8,
                 TagFormat.OptimizedVSize,
-                (ref IceDecoder decoder) => decoder.DecodeSequence<byte>(),
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeSequence<byte>()),
             Is.EqualTo(c.H));
 
         Assert.That(
             decoder.DecodeTagged(
                 9,
                 TagFormat.VSize,
-                (ref IceDecoder decoder) => decoder.DecodeSequence<int>(),
-                useTagEndMarker: false),
+                (ref IceDecoder decoder) => decoder.DecodeSequence<int>()),
             Is.EqualTo(c.I));
 
         Assert.That(
             decoder.DecodeTagged(
                 10,
-                TagFormat.OptimizedVSize,
-                (ref IceDecoder decoder) => decoder.DecodeString(),
-                useTagEndMarker: false),
+                TagFormat.FSize,
+                (ref IceDecoder decoder) => decoder.DecodeSequence(
+                    (ref IceDecoder decoder) => (IList<int>)decoder.DecodeSequence<int>())),
             Is.EqualTo(c.J));
+
+        Assert.That(
+            decoder.DecodeTagged(
+                11,
+                TagFormat.OptimizedVSize,
+                (ref IceDecoder decoder) => decoder.DecodeString()),
+            Is.EqualTo(c.K));
 
         if (hasTaggedFields)
         {
