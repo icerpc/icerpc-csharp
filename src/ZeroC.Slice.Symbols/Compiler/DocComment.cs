@@ -15,15 +15,15 @@ using ZeroC.Slice.Codec;
 namespace ZeroC.Slice.Symbols.Compiler;
 
 /// <remarks>The Slice compiler generated this record struct from the Slice struct <c>Compiler::DocComment</c>.</remarks>
-public partial record struct DocComment
+internal partial record struct DocComment
 {
-    public required global::System.Collections.Generic.IList<MessageComponent> Overview { get; set; }
+    internal required global::System.Collections.Generic.IList<MessageComponent> Overview { get; set; }
 
-    public required global::System.Collections.Generic.IList<string> SeeTags { get; set; }
+    internal required global::System.Collections.Generic.IList<string> SeeTags { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="DocComment" />.</summary>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public DocComment(
+    internal DocComment(
         global::System.Collections.Generic.IList<MessageComponent> overview,
         global::System.Collections.Generic.IList<string> seeTags)
     {
@@ -34,7 +34,7 @@ public partial record struct DocComment
     /// <summary>Constructs a new instance of <see cref="DocComment" /> and decodes its fields from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-    public DocComment(ref SliceDecoder decoder)
+    internal DocComment(ref SliceDecoder decoder)
     {
         this.Overview = decoder.DecodeSequence(
             (ref SliceDecoder decoder) => MessageComponentSliceDecoderExtensions.DecodeMessageComponent(ref decoder));
@@ -45,7 +45,7 @@ public partial record struct DocComment
 
     /// <summary>Encodes the fields of this struct with a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    public readonly void Encode(ref SliceEncoder encoder)
+    internal readonly void Encode(ref SliceEncoder encoder)
     {
         encoder.EncodeSequence(
             this.Overview,
@@ -59,7 +59,7 @@ public partial record struct DocComment
 
 /// <remarks>The Slice compiler generated this discriminated union from the Slice enum <c>Compiler::MessageComponent</c>.</remarks>
 [Dunet.Union]
-public abstract partial record class MessageComponent
+internal abstract partial record class MessageComponent
 {
     public partial record class Text(string V) : MessageComponent
     {
@@ -95,12 +95,12 @@ public abstract partial record class MessageComponent
 
 /// <summary>Provides an extension method for encoding a <see cref="MessageComponent" /> using a <see cref="SliceEncoder" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::MessageComponent</c>.</remarks>
-public static class MessageComponentSliceEncoderExtensions
+internal static class MessageComponentSliceEncoderExtensions
 {
     /// <summary>Encodes a <see cref="MessageComponent" /> enum.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The <see cref="MessageComponent" /> enumerator value to encode.</param>
-    public static void EncodeMessageComponent(
+    internal static void EncodeMessageComponent(
         this ref SliceEncoder encoder,
         MessageComponent value) =>
         value.Encode(ref encoder);
@@ -108,12 +108,12 @@ public static class MessageComponentSliceEncoderExtensions
 
 /// <summary>Provides an extension method for decoding a <see cref="MessageComponent" /> using a <see cref="SliceDecoder" />.</summary>
 /// <remarks>The Slice compiler generated this static class from the Slice enum <c>Compiler::MessageComponent</c>.</remarks>
-public static class MessageComponentSliceDecoderExtensions
+internal static class MessageComponentSliceDecoderExtensions
 {
     /// <summary>Decodes a <see cref="MessageComponent" /> enum.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded <see cref="MessageComponent" /> enumerator value.</returns>
-    public static MessageComponent DecodeMessageComponent(this ref SliceDecoder decoder)
+    internal static MessageComponent DecodeMessageComponent(this ref SliceDecoder decoder)
     {
         return decoder.DecodeVarInt32() switch
         {
