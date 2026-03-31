@@ -107,7 +107,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         IProtocolConnection connection;
         if (serverAddress.Protocol == Protocol.Ice)
         {
-            SslClientAuthenticationOptions? authenticationOptions = _iceClientAuthenticationOptions?.Clone();
+            SslClientAuthenticationOptions? authenticationOptions = _iceClientAuthenticationOptions;
             if (authenticationOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
             {
                 authenticationOptions = new SslClientAuthenticationOptions
@@ -130,7 +130,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         }
         else
         {
-            SslClientAuthenticationOptions? authenticationOptions = _iceRpcClientAuthenticationOptions?.Clone();
+            SslClientAuthenticationOptions? authenticationOptions = _iceRpcClientAuthenticationOptions;
             if (authenticationOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
             {
                 authenticationOptions = new SslClientAuthenticationOptions

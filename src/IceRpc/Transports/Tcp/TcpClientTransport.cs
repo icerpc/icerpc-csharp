@@ -40,12 +40,17 @@ public class TcpClientTransport : IDuplexClientTransport
         // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
         if (transportAddress.TransportName == "ssl")
         {
-            if (clientAuthenticationOptions?.ApplicationProtocols is not List<SslApplicationProtocol> alpnProtocols ||
+            if (clientAuthenticationOptions is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(clientAuthenticationOptions),
+                    "The SSL client transport requires the SSL client authentication options to be set.");
+            }
+            else if (clientAuthenticationOptions.ApplicationProtocols is not List<SslApplicationProtocol> alpnProtocols ||
                 alpnProtocols.Count != 1 ||
                 alpnProtocols[0] != new SslApplicationProtocol("ice"))
             {
-                throw new NotSupportedException(
-                    "The 'ssl' transport name is only supported with the Ice protocol.");
+                throw new NotSupportedException("The 'ssl' transport name is only supported with the Ice protocol.");
             }
         }
         else if (transportAddress.TransportName is string name && name != "tcp")
@@ -60,9 +65,12 @@ public class TcpClientTransport : IDuplexClientTransport
                 nameof(transportAddress));
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
-            (transportAddress.TransportName == "ssl" ? new SslClientAuthenticationOptions() : null);
-        authenticationOptions?.TargetHost ??= transportAddress.Host;
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions;
+        if (authenticationOptions is not null && authenticationOptions.TargetHost is null)
+        {
+            authenticationOptions = authenticationOptions.Clone();
+            authenticationOptions.TargetHost = transportAddress.Host;
+        }
 
         return new TcpClientConnection(
             transportAddress,

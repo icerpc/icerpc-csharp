@@ -111,8 +111,7 @@ public sealed class Server : IAsyncDisposable
         {
             IConnectorListener listener;
 
-            SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions?.Clone();
-            serverAuthenticationOptions?.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
+            options.ServerAuthenticationOptions?.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
 
             if (_serverAddress.Protocol == Protocol.Ice)
             {
@@ -123,7 +122,7 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
                     },
-                    serverAuthenticationOptions);
+                    options.ServerAuthenticationOptions);
 
                 listener = new IceConnectorListener(transportListener, _serverAddress, options.ConnectionOptions);
             }
@@ -140,7 +139,7 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool
                     },
-                    serverAuthenticationOptions);
+                    options.ServerAuthenticationOptions);
 
                 listener = new IceRpcConnectorListener(
                     transportListener,

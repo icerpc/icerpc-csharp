@@ -63,7 +63,6 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(clientAuthenticationOptions),
                 "The QUIC client transport requires the SSL client authentication options to be set.");
         }
-        clientAuthenticationOptions = clientAuthenticationOptions.Clone();
 
         if (clientAuthenticationOptions.ApplicationProtocols
             is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
@@ -73,7 +72,12 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(clientAuthenticationOptions));
         }
 
-        clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions;
+        if (authenticationOptions.TargetHost is null)
+        {
+            authenticationOptions = authenticationOptions.Clone();
+            authenticationOptions.TargetHost = transportAddress.Host;
+        }
 
         EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, transportAddress.Port) :
@@ -81,7 +85,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
 
         var quicClientOptions = new QuicClientConnectionOptions
         {
-            ClientAuthenticationOptions = clientAuthenticationOptions,
+            ClientAuthenticationOptions = authenticationOptions,
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
             HandshakeTimeout = options.HandshakeTimeout,
