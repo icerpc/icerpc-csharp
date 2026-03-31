@@ -12,7 +12,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 {
     public TransportAddress TransportAddress { get; }
 
-    private readonly SslServerAuthenticationOptions? _authenticationOptions;
+    private readonly SslServerAuthenticationOptions? _serverAuthenticationOptions;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
@@ -28,7 +28,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
             var tcpConnection = new TcpServerConnection(
                 acceptedSocket,
-                _authenticationOptions,
+                _serverAuthenticationOptions,
                 _pool,
                 _minSegmentSize);
             return (tcpConnection, acceptedSocket.RemoteEndPoint!);
@@ -55,7 +55,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     internal TcpListener(
         TransportAddress transportAddress,
         DuplexConnectionOptions options,
-        SslServerAuthenticationOptions? authenticationOptions,
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
         TcpServerTransportOptions tcpOptions)
     {
         if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
@@ -65,7 +65,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
                 nameof(transportAddress));
         }
 
-        _authenticationOptions = authenticationOptions?.Clone();
+        _serverAuthenticationOptions = serverAuthenticationOptions;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
 

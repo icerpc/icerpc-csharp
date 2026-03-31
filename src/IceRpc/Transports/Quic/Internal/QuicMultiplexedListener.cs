@@ -52,8 +52,6 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 nameof(transportAddress));
         }
 
-        serverAuthenticationOptions = serverAuthenticationOptions.Clone();
-
         // Always set by the caller QuicServerTransport.
         Debug.Assert(serverAuthenticationOptions.ApplicationProtocols is not null);
 

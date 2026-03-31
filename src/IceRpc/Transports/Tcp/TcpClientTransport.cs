@@ -37,7 +37,7 @@ public class TcpClientTransport : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
+        // "ssl" is only accepted for the ice protocol, identified by the ALPN.
         if (transportAddress.TransportName == "ssl")
         {
             if (clientAuthenticationOptions is null)
@@ -50,7 +50,7 @@ public class TcpClientTransport : IDuplexClientTransport
                 alpnProtocols.Count != 1 ||
                 alpnProtocols[0] != new SslApplicationProtocol("ice"))
             {
-                throw new NotSupportedException("The 'ssl' transport name is only supported with the Ice protocol.");
+                throw new NotSupportedException("The 'ssl' transport name is only supported with the ice protocol.");
             }
         }
         else if (transportAddress.TransportName is string name && name != "tcp")
@@ -65,16 +65,15 @@ public class TcpClientTransport : IDuplexClientTransport
                 nameof(transportAddress));
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions;
-        if (authenticationOptions is not null && authenticationOptions.TargetHost is null)
+        if (clientAuthenticationOptions is not null)
         {
-            authenticationOptions = authenticationOptions.Clone();
-            authenticationOptions.TargetHost = transportAddress.Host;
+            clientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
         }
 
         return new TcpClientConnection(
             transportAddress,
-            authenticationOptions,
+            clientAuthenticationOptions,
             options.Pool,
             options.MinSegmentSize,
             _options);

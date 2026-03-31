@@ -29,7 +29,7 @@ public class TcpServerTransport : IDuplexServerTransport
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
+        // "ssl" is only accepted for the ice protocol, identified by the ALPN.
         if (transportAddress.TransportName == "ssl")
         {
             if (serverAuthenticationOptions is null)
@@ -44,7 +44,7 @@ public class TcpServerTransport : IDuplexServerTransport
                 alpnProtocols[0] != new SslApplicationProtocol("ice"))
             {
                 throw new NotSupportedException(
-                    "The 'ssl' transport name is only supported with the Ice protocol.");
+                    "The 'ssl' transport name is only supported with the ice protocol.");
             }
         }
         else if (transportAddress.TransportName is string name && name != "tcp")
