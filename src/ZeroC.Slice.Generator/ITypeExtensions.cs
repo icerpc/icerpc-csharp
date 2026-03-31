@@ -19,8 +19,6 @@ internal static class ITypeExtensions
         {
             Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
             DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
-            BasicEnum e when e.IsUnchecked =>
-                $"({e.ToTypeString(currentNamespace)})decoder.Decode{e.Underlying.Suffix}()",
             Entity e when e.UsesExtensionsClass =>
                 $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
             ResultType r => DecodeResult(r, currentNamespace),
@@ -123,8 +121,6 @@ internal static class ITypeExtensions
         {
             Builtin builtin => $"{encoderName}.Encode{builtin.Suffix}({param})",
             DictionaryType dict => EncodeDictionary(dict, currentNamespace, param, encoderName),
-            BasicEnum e when e.IsUnchecked =>
-                $"{encoderName}.Encode{e.Underlying.Suffix}(({e.Underlying.CSType}){param})",
             Entity e when e.UsesExtensionsClass =>
                 $"{e.EncoderExtensionsClass}.Encode{e.Name}(ref {encoderName}, {param})",
             SequenceType seq => EncodeSequence(seq, currentNamespace, param, encoderName),

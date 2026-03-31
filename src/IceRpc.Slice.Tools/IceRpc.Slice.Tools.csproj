@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(MSBuildThisFileDirectory)../../build/Extract.targets" />
   <PropertyGroup>
     <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -62,16 +63,19 @@
       <PackagePath>/</PackagePath>
     </None>
     <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <!-- Include the generator outputs from source builds. -->
+    <!-- Include the ZeroC.Slice.Generator outputs from source builds. -->
     <None
-      Include="../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*"
+      Include="../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.dll;
+               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
-    <!-- Exclude shared dependencies already included by ZeroC.Slice.Generator above. -->
+    <!-- Include the IceRpc.Slice.Generator outputs from source builds, but
+         exclude shared dependencies already included by ZeroC.Slice.Generator above. -->
     <None
-      Include="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*"
+      Include="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.dll;
+               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb"
       Exclude="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/Dunet.dll;
                ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Codec.*;
                ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Symbols.*"
@@ -80,27 +84,38 @@
       <Pack>true</Pack>
     </None>
   </ItemGroup>
-  <Choose>
-    <When Condition="Exists('$(SLICEC_STAGING_PATH)')">
-      <!-- Use the pre-built compilers from SLICEC_STAGING_PATH. -->
-      <ItemGroup>
-        <Content Include="$(SLICEC_STAGING_PATH)/linux-x64/slicec">
-          <PackagePath>tools/linux-x64/</PackagePath>
-          <Pack>true</Pack>
-        </Content>
-        <Content Include="$(SLICEC_STAGING_PATH)/linux-arm64/slicec">
-          <PackagePath>tools/linux-arm64/</PackagePath>
-          <Pack>true</Pack>
-        </Content>
-        <Content Include="$(SLICEC_STAGING_PATH)/macos-arm64/slicec">
-          <PackagePath>tools/macos-arm64/</PackagePath>
-          <Pack>true</Pack>
-        </Content>
-        <Content Include="$(SLICEC_STAGING_PATH)/windows-x64/slicec.exe">
-          <PackagePath>tools/windows-x64/</PackagePath>
-          <Pack>true</Pack>
-        </Content>
-      </ItemGroup>
-    </When>
-  </Choose>
+  <Target Name="DownloadSlicec" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <SlicecPlatform Include="aarch64-apple-darwin" Prefix="macos-arm64" Exe="slicec" />
+      <SlicecPlatform Include="x86_64-unknown-linux-gnu" Prefix="linux-x64" Exe="slicec" />
+      <SlicecPlatform Include="aarch64-unknown-linux-gnu" Prefix="linux-arm64" Exe="slicec" />
+      <SlicecPlatform Include="x86_64-pc-windows-msvc" Prefix="windows-x64" Exe="slicec.exe" />
+    </ItemGroup>
+
+    <!-- Download and extract slicec binaries for all platforms. Each zip is cached in obj/. -->
+    <DownloadFile
+      SourceUrl="$(SlicecBaseUrl)/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity).zip"
+      DestinationFolder="$(MSBuildThisFileDirectory)obj"
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity).zip')" />
+
+    <!-- We use our custom ExtractTask instead of MSBuild Unzip to preserve Unix executable permissions. -->
+    <ExtractTask
+      SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity).zip"
+      DestinationFolder="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)"
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)')" />
+
+    <!-- Copy binaries to the tools directory structure expected by the props file. -->
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)/%(SlicecPlatform.Exe)"
+      DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/%(SlicecPlatform.Prefix)"
+      SkipUnchangedFiles="true" />
+
+    <!-- Include downloaded slicec binaries in the NuGet package. -->
+    <ItemGroup>
+      <Content Include="$(MSBuildThisFileDirectory)obj/tools/**" Visible="false">
+        <PackagePath>tools/</PackagePath>
+        <Pack>true</Pack>
+      </Content>
+    </ItemGroup>
+  </Target>
 </Project>

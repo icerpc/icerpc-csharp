@@ -19,7 +19,7 @@
       -->
       <PropertyGroup>
         <SliceToolsSourceBuild>true</SliceToolsSourceBuild>
-        <SliceCompilerPath>$(MSBuildThisFileDirectory)obj/tools/</SliceCompilerPath>
+        <SliceCompilerPath>$(MSBuildThisFileDirectory)obj/tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
         <SliceZeroCGenPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</SliceZeroCGenPath>
         <SliceIceRpcGenPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/</SliceIceRpcGenPath>
 

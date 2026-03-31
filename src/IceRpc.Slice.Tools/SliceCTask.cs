@@ -66,9 +66,8 @@ public class SliceCTask : ToolTask
         string zeroCGenScriptName =
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
                 "slicec-gen-zeroc-slice-csharp.bat" : "slicec-gen-zeroc-slice-csharp.sh";
-        builder.AppendSwitch("--plugin");
-        builder.AppendFileNameIfNotNull(
-            $"zeroc-slice-csharp={Path.Combine(ZeroCGenPath, zeroCGenScriptName)}");
+        builder.AppendSwitch("--generator");
+        builder.AppendFileNameIfNotNull(Path.Combine(ZeroCGenPath, zeroCGenScriptName));
 
         // Add the IceRpc.Slice.Generator plugin when Rpc is true.
         if (Rpc)
@@ -76,9 +75,8 @@ public class SliceCTask : ToolTask
             string iceRpcGenScriptName =
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
                     "slicec-gen-icerpc-slice-csharp.bat" : "slicec-gen-icerpc-slice-csharp.sh";
-            builder.AppendSwitch("--plugin");
-            builder.AppendFileNameIfNotNull(
-                $"icerpc-slice-csharp={Path.Combine(IceRpcGenPath, iceRpcGenScriptName)}");
+            builder.AppendSwitch("--generator");
+            builder.AppendFileNameIfNotNull(Path.Combine(IceRpcGenPath, iceRpcGenScriptName));
         }
 
         if (OutputDir.Length > 0)

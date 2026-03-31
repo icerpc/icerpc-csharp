@@ -25,12 +25,12 @@ internal static class VariantEnumGenerator
 
     private static CodeBlock GenerateUnknownRecord(
         VariantEnum enumDef,
-        string parentIdentifier,
-        string accessModifier)
+        string parentIdentifier)
     {
         string enumName = enumDef.Name;
+        // Nested variant records are always public to match dunet's generated partials.
         return new ContainerBuilder(
-                $"{accessModifier} partial record class",
+                "public partial record class",
                 $"Unknown(int Discriminant, global::System.ReadOnlyMemory<byte> Fields)")
             .AddBase(parentIdentifier)
             .AddComment(
@@ -103,7 +103,6 @@ internal static class VariantEnumGenerator
                     variant,
                     enumDef,
                     identifier,
-                    accessModifier,
                     currentNamespace,
                     variant.Discriminant));
         }
@@ -111,7 +110,7 @@ internal static class VariantEnumGenerator
         // For unchecked variant enums, add the Unknown variant.
         if (enumDef.IsUnchecked)
         {
-            builder.AddBlock(GenerateUnknownRecord(enumDef, identifier, accessModifier));
+            builder.AddBlock(GenerateUnknownRecord(enumDef, identifier));
         }
 
         // Abstract Encode method.
@@ -128,7 +127,6 @@ internal static class VariantEnumGenerator
         VariantEnum.Variant variant,
         VariantEnum enumDef,
         string parentIdentifier,
-        string accessModifier,
         string currentNamespace,
         int discriminant)
     {
@@ -139,7 +137,9 @@ internal static class VariantEnumGenerator
             ? $"{variantName}({BuildParameterList(variant.Fields, "")})"
             : variantName;
 
-        return new ContainerBuilder($"{accessModifier} partial record class", nameWithParams)
+        // Nested variant records are always public to match dunet's generated partials.
+        // Their effective visibility is limited by the parent type's access modifier.
+        return new ContainerBuilder("public partial record class", nameWithParams)
             .AddDocCommentSummary(variant.Comment, currentNamespace)
             .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
             .AddBase(parentIdentifier)
@@ -225,13 +225,19 @@ internal static class VariantEnumGenerator
         }
 
         // Fallback case.
-        body.AddBlock(
-            enumDef.IsUnchecked ?
-                $"    int value => new {identifier}.Unknown(value, decoder.DecodeSequence<byte>())" :
+        if (enumDef.IsUnchecked)
+        {
+            body.WriteLine(
+                $"    int value => new {identifier}.Unknown(value, decoder.DecodeSequence<byte>())");
+        }
+        else
+        {
+            body.WriteLine(
                 $$"""
-                    int value => throw new global::System.IO.InvalidDataException(
-                        $"Received invalid discriminant value '{value}' for {{identifier}}.")
-                """);
+                      int value => throw new global::System.IO.InvalidDataException(
+                          $"Received invalid discriminant value '{value}' for {{identifier}}.")
+                  """);
+        }
         body.WriteLine("};");
 
         // Local static decode functions for each variant.
