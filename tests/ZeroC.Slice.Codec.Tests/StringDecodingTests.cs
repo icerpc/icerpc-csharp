@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Codec.Tests;
@@ -41,5 +42,51 @@ public class DecodeStringTests
 
             _ = sut.DecodeString();
         }, Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_string_exceeds_max_collection_allocation(int length)
+    {
+        // Arrange
+        string testString = new('a', length);
+        var buffer = new MemoryBufferWriter(new byte[length + 256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeString(testString);
+
+        int allocationLimit = (length - 1) * Unsafe.SizeOf<char>();
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeString();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_string_within_max_collection_allocation(int length)
+    {
+        // Arrange
+        string testString = new('a', length);
+        var buffer = new MemoryBufferWriter(new byte[length + 256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeString(testString);
+
+        int allocationLimit = length * Unsafe.SizeOf<char>();
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeString();
+            },
+            Throws.Nothing);
     }
 }

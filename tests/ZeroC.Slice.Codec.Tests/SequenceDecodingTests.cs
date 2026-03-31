@@ -84,20 +84,26 @@ public class SequenceDecodingTests
         Assert.That(decoded, Is.EqualTo(expected));
     }
 
-    [Test]
-    public void Decode_sequence_with_bit_sequence_exceeds_default_max_collection_allocation()
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_sequence_with_bit_sequence_exceeds_max_collection_allocation(int count)
     {
-        var buffer = new MemoryBufferWriter(new byte[256]);
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<long?>() + 256]);
         var encoder = new SliceEncoder(buffer);
-        long?[] seq = new long?[100];
+        long?[] seq = new long?[count];
         encoder.EncodeSequenceOfOptionals(
             seq,
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
 
+        int allocationLimit = (count - 1) * Unsafe.SizeOf<long?>();
+
+        // Act/Assert
         Assert.That(
             () =>
             {
-                var sut = new SliceDecoder(buffer.WrittenMemory);
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
                 _ = sut.DecodeSequenceOfOptionals<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
             },
             Throws.InstanceOf<InvalidDataException>());
@@ -141,23 +147,75 @@ public class SequenceDecodingTests
         Assert.That(checkedValues, Is.EqualTo(expected));
     }
 
-    [Test]
-    public void Decode_sequence_with_bit_sequence_and_custom_max_collection_allocation()
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_sequence_with_bit_sequence_within_max_collection_allocation(int count)
     {
-        var buffer = new MemoryBufferWriter(new byte[256]);
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<long?>() + 256]);
         var encoder = new SliceEncoder(buffer);
-        long?[] seq = new long?[100];
+        long?[] seq = new long?[count];
         encoder.EncodeSequenceOfOptionals(
             seq,
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
 
+        int allocationLimit = count * Unsafe.SizeOf<long?>();
+
+        // Act/Assert
         Assert.That(
             () =>
             {
-                var sut = new SliceDecoder(
-                    buffer.WrittenMemory,
-                    maxCollectionAllocation: seq.Length * Unsafe.SizeOf<long?>());
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
                 _ = sut.DecodeSequenceOfOptionals<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.Nothing);
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_sequence_exceeds_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSequence(
+            Enumerable.Range(0, count),
+            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
+
+        int allocationLimit = (count - 1) * Unsafe.SizeOf<int>();
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_sequence_within_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSequence(
+            Enumerable.Range(0, count),
+            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
+
+        int allocationLimit = count * Unsafe.SizeOf<int>();
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
             },
             Throws.Nothing);
     }

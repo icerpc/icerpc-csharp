@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Codec.Tests;
@@ -33,5 +34,63 @@ public class DictionaryDecodingTests
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_dictionary_exceeds_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>()) + 256]);
+        var encoder = new SliceEncoder(buffer);
+        var dict = Enumerable.Range(0, count).ToDictionary(k => k, v => (long)v);
+        encoder.EncodeDictionary(
+            dict,
+            (ref SliceEncoder encoder, int key) => encoder.EncodeInt32(key),
+            (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
+
+        int allocationLimit = (count - 1) * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>());
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeDictionary(
+                    count => new Dictionary<int, long>(count),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_dictionary_within_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>()) + 256]);
+        var encoder = new SliceEncoder(buffer);
+        var dict = Enumerable.Range(0, count).ToDictionary(k => k, v => (long)v);
+        encoder.EncodeDictionary(
+            dict,
+            (ref SliceEncoder encoder, int key) => encoder.EncodeInt32(key),
+            (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
+
+        int allocationLimit = count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>());
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeDictionary(
+                    count => new Dictionary<int, long>(count),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.Nothing);
     }
 }
