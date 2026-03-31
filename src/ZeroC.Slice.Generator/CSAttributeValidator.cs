@@ -16,8 +16,10 @@ internal static class CsAttributeValidator
         Module,
         Struct,
         Interface,
-        Enum,
+        BasicEnum,
+        VariantEnum,
         Enumerator,
+        Variant,
         Field,
         FieldInStruct,
         Operation,
@@ -60,10 +62,10 @@ internal static class CsAttributeValidator
                 break;
 
             case VariantEnum e:
-                ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
+                ValidateAttributes(e.Attributes, Target.VariantEnum, diagnostics);
                 foreach (VariantEnum.Variant en in e.Variants)
                 {
-                    ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+                    ValidateAttributes(en.Attributes, Target.Variant, diagnostics);
                     foreach (Field field in en.Fields)
                     {
                         ValidateField(field, Target.Field, diagnostics);
@@ -72,7 +74,7 @@ internal static class CsAttributeValidator
                 break;
 
             case BasicEnum e:
-                ValidateAttributes(e.Attributes, Target.Enum, diagnostics);
+                ValidateAttributes(e.Attributes, Target.BasicEnum, diagnostics);
                 ValidateEnumerators(e, diagnostics);
                 break;
 
@@ -212,8 +214,10 @@ internal static class CsAttributeValidator
         switch (attr.Directive)
         {
             case CSAttributes.CSAttribute:
+                // The cs::attribute attribute is only allow for C# construction were adding attributes using a partial
+                // declaration is not possible,such as on enumerators and fields.
                 RequireArgs(attr, 1, diagnostics);
-                if (target is not (Target.Enum or Target.Enumerator or Target.Field or Target.FieldInStruct))
+                if (target is not (Target.BasicEnum or Target.Enumerator or Target.Field or Target.FieldInStruct))
                 {
                     ReportUnexpected(attr, diagnostics);
                 }
@@ -245,7 +249,7 @@ internal static class CsAttributeValidator
 
             case CSAttributes.CSInternal:
                 RequireArgs(attr, 0, diagnostics);
-                if (target is not (Target.Struct or Target.Interface or Target.Enum))
+                if (target is not (Target.Struct or Target.Interface or Target.BasicEnum or Target.VariantEnum))
                 {
                     ReportUnexpected(attr, diagnostics);
                 }
