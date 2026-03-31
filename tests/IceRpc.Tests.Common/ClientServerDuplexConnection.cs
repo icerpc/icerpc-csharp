@@ -35,8 +35,20 @@ public sealed class ClientServerDuplexConnection : IAsyncDisposable
     /// <summary>Connects the client connection and accepts and connects the server connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when both connections are connected.</returns>
-    public Task AcceptAndConnectAsync(CancellationToken cancellationToken = default) =>
-        Task.WhenAll(AcceptAsync(cancellationToken), Client.ConnectAsync(cancellationToken));
+    public async Task AcceptAndConnectAsync(CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task acceptTask = AcceptAsync(cts.Token);
+        Task connectTask = Client.ConnectAsync(cts.Token);
+
+        Task firstCompleted = await Task.WhenAny(acceptTask, connectTask);
+        if (firstCompleted.IsFaulted || firstCompleted.IsCanceled)
+        {
+            // Cancel the other side and propagate the failure.
+            await cts.CancelAsync();
+        }
+        await Task.WhenAll(acceptTask, connectTask);
+    }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
