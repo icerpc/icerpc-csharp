@@ -370,7 +370,7 @@ public class TcpTransportTests
            Throws.Nothing);
 
     [TestCase("foo", typeof(NotSupportedException))]
-    [TestCase("ssl", typeof(NotSupportedException))] // ssl without Ice ALPN
+    [TestCase("ssl", typeof(ArgumentNullException))] // ssl without authentication options
     public void Create_connection_to_invalid_tcp_transport_address_fails(string transportName, Type exceptionType) =>
         Assert.That(
             () => new TcpClientTransport().CreateConnection(
