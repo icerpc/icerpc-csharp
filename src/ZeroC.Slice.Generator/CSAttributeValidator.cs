@@ -214,6 +214,8 @@ internal static class CsAttributeValidator
         switch (attr.Directive)
         {
             case CSAttributes.CSAttribute:
+                // The cs::attribute attribute is only allow for C# construction were adding attributes using a partial
+                // declaration is not possible,such as on enumerators and fields.
                 RequireArgs(attr, 1, diagnostics);
                 if (target is not (Target.BasicEnum or Target.Enumerator or Target.Field or Target.FieldInStruct))
                 {
