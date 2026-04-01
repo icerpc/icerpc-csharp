@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using IceRpc.Internal; // NotFoundDispatcher
 using IceRpc.Tests.Common;
+using System.Net.Quic;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests;
@@ -21,6 +22,11 @@ public class DefaultTransportTests
         string? clientTransportName,
         string? serverTransportName)
     {
+        if (!QuicConnection.IsSupported)
+        {
+            Assert.Ignore("QUIC is not supported on this platform");
+        }
+
         // Arrange
         using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
             "../../../certs/server.p12",
@@ -28,7 +34,7 @@ public class DefaultTransportTests
             keyStorageFlags: X509KeyStorageFlags.Exportable);
 
         var serverAddressUri = serverTransportName is null ?
-            new Uri("icerpc://[::0]:0") : new Uri($"icerpc://[::0]:0?transport={serverTransportName}");
+            new Uri("icerpc://127.0.0.1:0") : new Uri($"icerpc://127.0.0.1:0?transport={serverTransportName}");
 
         await using var server = new Server(
             NotFoundDispatcher.Instance,
@@ -37,8 +43,8 @@ public class DefaultTransportTests
 
         ServerAddress serverAddress = server.Listen(); // with the port resolved
 
-        // Fix host and transport.
-        serverAddress = serverAddress with { Host = "localhost", Transport = clientTransportName };
+        // Fix transport.
+        serverAddress = serverAddress with { Transport = clientTransportName };
 
         using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../certs/cacert.der");
         await using var clientConnection = new ClientConnection(
@@ -46,14 +52,14 @@ public class DefaultTransportTests
             clientAuthenticationOptions: rootCA.ToClientAuthenticationOptions());
 
         // Act & Assert
-        Assert.That(async() => await clientConnection.ConnectAsync(), Throws.Nothing);
+        Assert.That(async () => await clientConnection.ConnectAsync(), Throws.Nothing);
 
         // Cleanup
         await clientConnection.ShutdownAsync();
         await server.ShutdownAsync();
     }
 
-    /// <summary>Verifies we can connect successfully with the transport names(s) supported by the default
+    /// <summary>Verifies we can connect successfully with the transport name(s) supported by the default
     /// duplex transports.</summary>
     [TestCase(null, null)]
     [TestCase("tcp", "tcp")]
@@ -63,18 +69,18 @@ public class DefaultTransportTests
     {
         // Arrange
         var serverAddressUri = serverTransportName is null ?
-            new Uri("ice://[::0]:0") : new Uri($"ice://[::0]:0?transport={serverTransportName}");
+            new Uri("ice://127.0.0.1:0") : new Uri($"ice://127.0.0.1:0?transport={serverTransportName}");
 
         await using var server = new Server(NotFoundDispatcher.Instance, serverAddressUri);
         ServerAddress serverAddress = server.Listen(); // with the port resolved
 
-        // Fix host and transport.
-        serverAddress = serverAddress with { Host = "localhost", Transport = clientTransportName };
+        // Fix transport.
+        serverAddress = serverAddress with { Transport = clientTransportName };
 
         await using var clientConnection = new ClientConnection(serverAddress);
 
         // Act & Assert
-        Assert.That(async() => await clientConnection.ConnectAsync(), Throws.Nothing);
+        Assert.That(async () => await clientConnection.ConnectAsync(), Throws.Nothing);
 
         // Cleanup
         await clientConnection.ShutdownAsync();
