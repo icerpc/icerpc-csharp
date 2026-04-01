@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Transports.Slic;
-using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 using TcpFallbackServer;
@@ -25,6 +23,7 @@ using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromF
 // Create two servers that share the same dispatch pipeline.
 await using var quicServer = new Server(
     router,
+    serverAddressUri: new Uri("icerpc://[::0]?transport=quic"),
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
     logger: loggerFactory.CreateLogger<Server>());
 
@@ -32,8 +31,8 @@ quicServer.Listen();
 
 await using var tcpServer = new Server(
     router,
+    serverAddressUri: new Uri("icerpc://[::0]?transport=tcp"),
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
     logger: loggerFactory.CreateLogger<Server>());
 
 tcpServer.Listen();

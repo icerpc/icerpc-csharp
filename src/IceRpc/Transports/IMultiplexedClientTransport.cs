@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports.Quic;
+using IceRpc.Transports.Internal;
 using System.Net.Security;
-using System.Runtime.Versioning;
 
 namespace IceRpc.Transports;
 
@@ -10,24 +9,10 @@ namespace IceRpc.Transports;
 public interface IMultiplexedClientTransport
 {
     /// <summary>Gets the default multiplexed client transport.</summary>
-    /// <value>The default multiplexed client transport is the <see cref="QuicClientTransport" />.</value>
-    public static IMultiplexedClientTransport Default
-    {
-        get
-        {
-            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
-            {
-                return _quicClientTransport;
-            }
-            throw new PlatformNotSupportedException(
-                "The default multiplexed client transport, QUIC, is only available on Linux, macOS, and Windows.");
-        }
-    }
+    /// <value>The default multiplexed client transport.</value>
+    public static IMultiplexedClientTransport Default => _defaultClientTransport;
 
-    [SupportedOSPlatform("linux")]
-    [SupportedOSPlatform("macos")]
-    [SupportedOSPlatform("windows")]
-    private static readonly QuicClientTransport _quicClientTransport = new();
+    private static readonly DefaultMultiplexedClientTransport _defaultClientTransport = new();
 
     /// <summary>Gets the default transport name.</summary>
     /// <value>The transport accepts transport addresses that use this name as the

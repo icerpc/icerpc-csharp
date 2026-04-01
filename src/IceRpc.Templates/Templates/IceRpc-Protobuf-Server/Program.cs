@@ -1,8 +1,4 @@
 using IceRpc;
-#if (transport == "tcp")
-using IceRpc.Transports.Slic;
-using IceRpc.Transports.Tcp;
-#endif
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 
@@ -27,18 +23,13 @@ using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromF
     keyStorageFlags: X509KeyStorageFlags.Exportable);
 
 // Create a server that logs message to a logger with category `IceRpc.Server`.
+await using var server = new Server(
+    router,
 #if (transport == "tcp")
-await using var server = new Server(
-    router,
-    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
-    logger: loggerFactory.CreateLogger<Server>());
-#else
-await using var server = new Server(
-    router,
-    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    logger: loggerFactory.CreateLogger<Server>());
+    serverAddressUri: new Uri("icerpc://[::0]?transport=tcp"),
 #endif
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
+    logger: loggerFactory.CreateLogger<Server>());
 
 server.Listen();
 
