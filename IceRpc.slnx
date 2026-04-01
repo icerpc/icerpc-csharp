@@ -51,15 +51,15 @@
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
     <Project Path="tests/IceRpc.Ice.Codec.Tests/IceRpc.Ice.Codec.Tests.csproj" />
     <Project Path="tests/ZeroC.Slice.Codec.Tests/ZeroC.Slice.Codec.Tests.csproj" />
-    <Project Path="tests/IceRpc.Ice.Generator.None.Tests/IceRpc.Ice.Generator.None.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Base.Tests/IceRpc.Ice.Generator.Base.Tests.csproj" />
     <Project Path="tests/ZeroC.Slice.Generator.Tests/ZeroC.Slice.Generator.Tests.csproj" />
     <Project Path="tests/ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
   </Folder>
   <Folder Name="/tests/assemblies/">
-    <Project Path="tests/IceRpc.Ice.Generator.None.Tests.ReferencedAssemblies/A/A.csproj" />
-    <Project Path="tests/IceRpc.Ice.Generator.None.Tests.ReferencedAssemblies/B/B.csproj" />
-    <Project Path="tests/IceRpc.Ice.Generator.None.Tests.ReferencedAssemblies/C/C.csproj" />
-    <Project Path="tests/IceRpc.Ice.Generator.None.Tests.ReferencedAssemblies/D/D.csproj" />
-    <Project Path="tests/IceRpc.Ice.Generator.None.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/A/A.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/B/B.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/C/C.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/D/D.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
   </Folder>
 </Solution>

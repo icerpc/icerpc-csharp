@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Missing XML comment for publicly visible type or member. -->
+    <NoWarn>CS1591</NoWarn>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.11.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
+    <PackageReference Include="NUnit" Version="4.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+
+    <ProjectReference Include="../IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/A/A.csproj" />
+    <ProjectReference Include="../IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/B/B.csproj" />
+    <ProjectReference Include="../IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/C/C.csproj" />
+    <ProjectReference Include="../IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/D/D.csproj" />
+    <ProjectReference Include="../IceRpc.Ice.Generator.Base.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
+  </ItemGroup>
+</Project>
