@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Transports.Slic;
-using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
@@ -16,7 +14,7 @@ using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile(".
 
 // Use our own factory method (see below) to create a client connection using QUIC with a fallback to TCP.
 await using ClientConnection connection = await CreateClientConnectionAsync(
-    new Uri("icerpc://localhost"),
+    new ServerAddress(new Uri("icerpc://localhost")),
     rootCA,
     loggerFactory.CreateLogger<ClientConnection>());
 
@@ -38,7 +36,7 @@ await connection.ShutdownAsync();
 // Creates a client connection connected to the server over QUIC if possible. If the QUIC connection establishment
 // fails, fall back to a TCP connection. The caller must dispose the returned connection.
 static async Task<ClientConnection> CreateClientConnectionAsync(
-    Uri serverAddressUri,
+    ServerAddress serverAddress,
     X509Certificate2 rootCA,
     ILogger logger)
 {
@@ -46,7 +44,7 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
     // This client connection is either returned to the caller after a successful ConnectAsync, or disposed if the
     // ConnectAsync fails.
     var quicConnection = new ClientConnection(
-        serverAddressUri,
+        serverAddress with { Transport = "quic" },
         clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
         logger: logger);
 #pragma warning restore CA2000
@@ -64,9 +62,8 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
     return new ClientConnection(
-        serverAddressUri,
+        serverAddress with { Transport = "tcp" },
         clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
-        multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()),
         logger: logger);
 #pragma warning restore CA2000
 }
