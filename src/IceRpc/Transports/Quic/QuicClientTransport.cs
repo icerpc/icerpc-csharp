@@ -63,7 +63,6 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(clientAuthenticationOptions),
                 "The QUIC client transport requires the SSL client authentication options to be set.");
         }
-        clientAuthenticationOptions = clientAuthenticationOptions.Clone();
 
         if (clientAuthenticationOptions.ApplicationProtocols
             is not List<SslApplicationProtocol> applicationProtocols || applicationProtocols.Count == 0)
@@ -73,6 +72,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(clientAuthenticationOptions));
         }
 
+        clientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
         clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
 
         EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?

@@ -37,15 +37,20 @@ public class TcpClientTransport : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        // "ssl" is only accepted for the Ice protocol, identified by the ALPN.
+        // "ssl" is only accepted for the ice protocol, identified by the ALPN.
         if (transportAddress.TransportName == "ssl")
         {
-            if (clientAuthenticationOptions?.ApplicationProtocols is not List<SslApplicationProtocol> alpnProtocols ||
+            if (clientAuthenticationOptions is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(clientAuthenticationOptions),
+                    "The SSL client transport requires the SSL client authentication options to be set.");
+            }
+            else if (clientAuthenticationOptions.ApplicationProtocols is not List<SslApplicationProtocol> alpnProtocols ||
                 alpnProtocols.Count != 1 ||
                 alpnProtocols[0] != new SslApplicationProtocol("ice"))
             {
-                throw new NotSupportedException(
-                    "The 'ssl' transport name is only supported with the Ice protocol.");
+                throw new NotSupportedException("The 'ssl' transport name is only supported with the ice protocol.");
             }
         }
         else if (transportAddress.TransportName is string name && name != "tcp")
@@ -60,13 +65,15 @@ public class TcpClientTransport : IDuplexClientTransport
                 nameof(transportAddress));
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
-            (transportAddress.TransportName == "ssl" ? new SslClientAuthenticationOptions() : null);
-        authenticationOptions?.TargetHost ??= transportAddress.Host;
+        if (clientAuthenticationOptions is not null)
+        {
+            clientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
+            clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
+        }
 
         return new TcpClientConnection(
             transportAddress,
-            authenticationOptions,
+            clientAuthenticationOptions,
             options.Pool,
             options.MinSegmentSize,
             _options);

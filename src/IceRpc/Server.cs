@@ -111,8 +111,12 @@ public sealed class Server : IAsyncDisposable
         {
             IConnectorListener listener;
 
-            SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions?.Clone();
-            serverAuthenticationOptions?.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
+            SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions;
+            if (serverAuthenticationOptions is not null)
+            {
+                serverAuthenticationOptions = serverAuthenticationOptions.ShallowClone();
+                serverAuthenticationOptions.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
+            }
 
             if (_serverAddress.Protocol == Protocol.Ice)
             {

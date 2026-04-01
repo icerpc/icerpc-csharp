@@ -78,10 +78,10 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         // Clone and set ALPN for each protocol.
         if (clientAuthenticationOptions is not null)
         {
-            _iceClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceClientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
             _iceClientAuthenticationOptions.ApplicationProtocols = [Protocol.Ice.AlpnProtocol];
 
-            _iceRpcClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceRpcClientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
             _iceRpcClientAuthenticationOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
         }
 
@@ -107,10 +107,10 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         IProtocolConnection connection;
         if (serverAddress.Protocol == Protocol.Ice)
         {
-            SslClientAuthenticationOptions? authenticationOptions = _iceClientAuthenticationOptions?.Clone();
-            if (authenticationOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
+            SslClientAuthenticationOptions? clientAuthenticationOptions = _iceClientAuthenticationOptions;
+            if (clientAuthenticationOptions is null && _duplexClientTransport.IsSslRequired(serverAddress.Transport))
             {
-                authenticationOptions = new SslClientAuthenticationOptions
+                clientAuthenticationOptions = new SslClientAuthenticationOptions
                 {
                     ApplicationProtocols = [Protocol.Ice.AlpnProtocol]
                 };
@@ -124,23 +124,23 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
             };
 
             connection = new IceProtocolConnection(
-                _duplexClientTransport.CreateConnection(transportAddress, _duplexConnectionOptions, authenticationOptions),
+                _duplexClientTransport.CreateConnection(transportAddress, _duplexConnectionOptions, clientAuthenticationOptions),
                 transportConnectionInformation: null,
                 _connectionOptions);
         }
         else
         {
-            SslClientAuthenticationOptions? authenticationOptions = _iceRpcClientAuthenticationOptions?.Clone();
-            if (authenticationOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
+            SslClientAuthenticationOptions? clientAuthenticationOptions = _iceRpcClientAuthenticationOptions;
+            if (clientAuthenticationOptions is null && _multiplexedClientTransport.IsSslRequired(serverAddress.Transport))
             {
-                authenticationOptions = new SslClientAuthenticationOptions
+                clientAuthenticationOptions = new SslClientAuthenticationOptions
                 {
                     ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol]
                 };
             }
 
             connection = new IceRpcProtocolConnection(
-                _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, authenticationOptions),
+                _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, clientAuthenticationOptions),
                 transportConnectionInformation: null,
                 _connectionOptions,
                 taskExceptionObserver: _logger == NullLogger.Instance ? null :
