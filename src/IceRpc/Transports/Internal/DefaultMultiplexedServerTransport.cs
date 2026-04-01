@@ -4,6 +4,7 @@ using IceRpc.Transports.Quic;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
 using System.Net.Security;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Internal;
 
@@ -14,6 +15,24 @@ internal class DefaultMultiplexedServerTransport : IMultiplexedServerTransport
     /// <inheritdoc/>
     public string DefaultName => _quicTransport.DefaultName;
 
+    internal static DefaultMultiplexedServerTransport Instance
+    {
+        get
+        {
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
+            {
+                return _instance;
+            }
+            throw new PlatformNotSupportedException(
+                "The default multiplexed server transport, QUIC, is only available on Linux, macOS, and Windows.");
+        }
+    }
+
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("macos")]
+    [SupportedOSPlatform("windows")]
+    private static readonly DefaultMultiplexedServerTransport _instance = new();
+
     private readonly IMultiplexedServerTransport _quicTransport;
     private readonly IMultiplexedServerTransport _tcpTransport = new SlicServerTransport(new TcpServerTransport());
 
@@ -21,29 +40,23 @@ internal class DefaultMultiplexedServerTransport : IMultiplexedServerTransport
     public IListener<IMultiplexedConnection> Listen(
         TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions) =>
-        Resolve(transportAddress.TransportName).Listen(transportAddress, options, serverAuthenticationOptions);
-
-    internal DefaultMultiplexedServerTransport()
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
-        {
-            _quicTransport = new QuicServerTransport();
-        }
-        else
-        {
-            throw new PlatformNotSupportedException(
-                "The default multiplexed server transport, QUIC, is only available on Linux, macOS, and Windows.");
-        }
+        return Resolve(transportAddress.TransportName).Listen(transportAddress, options, serverAuthenticationOptions);
+
+        IMultiplexedServerTransport Resolve(string? transportName) =>
+            transportName switch
+            {
+                null => _quicTransport,
+                "quic" => _quicTransport,
+                "tcp" => _tcpTransport,
+                _ => throw new NotSupportedException(
+                    $"The default multiplexed server transport does not support transport '{transportName}'.")
+            };
     }
 
-    private IMultiplexedServerTransport Resolve(string? transportName) =>
-        transportName switch
-        {
-            null => _quicTransport,
-            "quic" => _quicTransport,
-            "tcp" => _tcpTransport,
-            _ => throw new NotSupportedException(
-                $"The default multiplexed server transport does not support transport '{transportName}'.")
-        };
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("macos")]
+    [SupportedOSPlatform("windows")]
+    private DefaultMultiplexedServerTransport() => _quicTransport = new QuicServerTransport();
 }

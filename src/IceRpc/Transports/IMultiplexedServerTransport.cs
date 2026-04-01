@@ -10,9 +10,7 @@ public interface IMultiplexedServerTransport
 {
     /// <summary>Gets the default multiplexed server transport.</summary>
     /// <value>The default multiplexed server transport.</value>
-    public static IMultiplexedServerTransport Default => _defaultServerTransport;
-
-    private static readonly DefaultMultiplexedServerTransport _defaultServerTransport = new();
+    public static IMultiplexedServerTransport Default => DefaultMultiplexedServerTransport.Instance;
 
     /// <summary>Gets the default transport name.</summary>
     /// <value>The transport accepts transport addresses that use this name as the
