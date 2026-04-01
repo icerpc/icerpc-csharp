@@ -78,10 +78,10 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         // Clone and set ALPN for each protocol.
         if (clientAuthenticationOptions is not null)
         {
-            _iceClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceClientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
             _iceClientAuthenticationOptions.ApplicationProtocols = [Protocol.Ice.AlpnProtocol];
 
-            _iceRpcClientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            _iceRpcClientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
             _iceRpcClientAuthenticationOptions.ApplicationProtocols = [Protocol.IceRpc.AlpnProtocol];
         }
 

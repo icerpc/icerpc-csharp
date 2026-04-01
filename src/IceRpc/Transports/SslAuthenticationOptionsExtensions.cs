@@ -11,7 +11,7 @@ public static class SslAuthenticationOptionsExtensions
     /// <summary>Makes a shallow copy of an SSL client authentication options.</summary>
     /// <param name="value">The options to copy.</param>
     /// <returns>The shallow copy.</returns>
-    public static SslClientAuthenticationOptions Clone(this SslClientAuthenticationOptions value) =>
+    public static SslClientAuthenticationOptions ShallowClone(this SslClientAuthenticationOptions value) =>
         new()
         {
             AllowRenegotiation = value.AllowRenegotiation,
@@ -36,7 +36,7 @@ public static class SslAuthenticationOptionsExtensions
     /// <summary>Makes a shallow copy of an SSL server authentication options.</summary>
     /// <param name="value">The options to copy.</param>
     /// <returns>The shallow copy.</returns>
-    public static SslServerAuthenticationOptions Clone(this SslServerAuthenticationOptions value) =>
+    public static SslServerAuthenticationOptions ShallowClone(this SslServerAuthenticationOptions value) =>
         new()
         {
             AllowRenegotiation = value.AllowRenegotiation,

@@ -72,7 +72,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
                 nameof(clientAuthenticationOptions));
         }
 
-        clientAuthenticationOptions = clientAuthenticationOptions.Clone();
+        clientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
         clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
 
         EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?

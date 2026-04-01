@@ -67,7 +67,7 @@ public class TcpClientTransport : IDuplexClientTransport
 
         if (clientAuthenticationOptions is not null)
         {
-            clientAuthenticationOptions = clientAuthenticationOptions.Clone();
+            clientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
             clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
         }
 

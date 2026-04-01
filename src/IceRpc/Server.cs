@@ -114,7 +114,7 @@ public sealed class Server : IAsyncDisposable
             SslServerAuthenticationOptions? serverAuthenticationOptions = options.ServerAuthenticationOptions;
             if (serverAuthenticationOptions is not null)
             {
-                serverAuthenticationOptions = serverAuthenticationOptions.Clone();
+                serverAuthenticationOptions = serverAuthenticationOptions.ShallowClone();
                 serverAuthenticationOptions.ApplicationProtocols = [_serverAddress.Protocol.AlpnProtocol];
             }
 
