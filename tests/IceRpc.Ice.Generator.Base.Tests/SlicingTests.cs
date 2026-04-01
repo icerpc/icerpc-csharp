@@ -24,7 +24,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             // Create an activator that excludes 'SlicingMostDerivedClass' type ID and ensure that the class is
-            // sliced and the Slices are preserved.
+            // sliced and the slices are preserved.
             slicingActivator = new SlicingActivator(
                 IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedClass).GetIceTypeId());
@@ -41,7 +41,7 @@ public class SlicingTests
         // Act
 
         // Decode again using an activator that knows all the type IDs, the decoded class should contain the preserved
-        // Slices.
+        // slices.
         decoder = new IceDecoder(
             buffer.WrittenMemory,
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
@@ -84,7 +84,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             // Create an activator that excludes 'SlicingMostDerivedClassWithCompactId' type ID and ensure that the class is
-            // sliced and the Slices are preserved.
+            // sliced and the slices are preserved.
             slicingActivator = new SlicingActivator(
                 IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
                 excludeTypeId: $"{typeof(SlicingMostDerivedClassWithCompactId).GetCompactIceTypeId()}");
@@ -101,7 +101,7 @@ public class SlicingTests
         // Act
 
         // Decode again using an activator that knows all the type IDs, the decoded class should contain the preserved
-        // Slices.
+        // slices.
         decoder = new IceDecoder(
             buffer.WrittenMemory,
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
@@ -138,7 +138,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             // Create an activator that excludes 'SlicingClassWithTaggedFields' type ID and ensure that the class is
-            // sliced and the Slices are preserved.
+            // sliced and the slices are preserved.
             slicingActivator = new SlicingActivator(
                 IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly),
                 excludeTypeId: typeof(SlicingClassWithTaggedFields).GetIceTypeId());
@@ -155,7 +155,7 @@ public class SlicingTests
         // Act
 
         // Decode again using an activator that knows all the type IDs, the decoded class should contain the preserved
-        // Slices.
+        // slices.
         decoder = new IceDecoder(
             buffer.WrittenMemory,
             activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));

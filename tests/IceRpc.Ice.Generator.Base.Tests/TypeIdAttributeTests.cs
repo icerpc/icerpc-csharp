@@ -7,7 +7,7 @@ namespace IceRpc.Ice.Generator.Base.Tests.TypeIdAttributeTestNamespace;
 
 public sealed class TypeIdAttributeTests
 {
-    /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>
+    /// <summary>Verifies that types generated from Ice definitions have the expected type ID.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(MyClass), "::IceRpc::Ice::Generator::Base::Tests::TypeIdAttributeTestNamespace::MyClass")]

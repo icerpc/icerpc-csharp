@@ -5,7 +5,7 @@ using IceRpc.Ice.Codec;
 
 namespace IceRpc.Ice.Generator.Base.Tests.Identifiers;
 
-/// <summary>These tests verify that the cs::identifier attribute will cause the Ice Slice compiler to generate C#
+/// <summary>These tests verify that the cs::identifier attribute will cause the Ice compiler to generate C#
 /// with the specified identifiers.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentifierAttributeTests
