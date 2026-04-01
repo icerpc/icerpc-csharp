@@ -29,7 +29,7 @@ public class DefaultTransportTests
 
         // Arrange
         using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
-            "../../../certs/server.p12",
+            "server.p12",
             password: null,
             keyStorageFlags: X509KeyStorageFlags.Exportable);
 
@@ -46,7 +46,7 @@ public class DefaultTransportTests
         // Fix transport.
         serverAddress = serverAddress with { Transport = clientTransportName };
 
-        using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../certs/cacert.der");
+        using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("cacert.der");
         await using var clientConnection = new ClientConnection(
             serverAddress,
             clientAuthenticationOptions: rootCA.ToClientAuthenticationOptions());
