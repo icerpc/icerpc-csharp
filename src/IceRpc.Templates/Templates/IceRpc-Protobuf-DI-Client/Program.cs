@@ -1,6 +1,5 @@
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
-using IceRpc.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
