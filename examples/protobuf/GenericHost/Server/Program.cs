@@ -27,7 +27,7 @@ services.AddHostedService<ServerHostedService>();
 services.AddSingleton(_ => new ActivitySource("IceRpc"));
 
 // Load and register the server certificate as a singleton so it stays alive and gets disposed.
-services.AddSingleton<X509Certificate2>(sp =>
+services.AddSingleton<X509Certificate2>(_ =>
     X509CertificateLoader.LoadPkcs12FromFile(
         Path.Combine(
             hostBuilder.Environment.ContentRootPath,
