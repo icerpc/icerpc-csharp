@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Codec.Tests;
@@ -33,5 +34,63 @@ public class DictionaryDecodingTests
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_dictionary_exceeds_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>()) + 256]);
+        var encoder = new IceEncoder(buffer);
+        var dict = Enumerable.Range(0, count).ToDictionary(k => k, v => (long)v);
+        encoder.EncodeDictionary(
+            dict,
+            (ref IceEncoder encoder, int key) => encoder.EncodeInt(key),
+            (ref IceEncoder encoder, long value) => encoder.EncodeLong(value));
+
+        int allocationLimit = (count - 1) * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>());
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new IceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeDictionary(
+                    count => new Dictionary<int, long>(count),
+                    (ref IceDecoder decoder) => decoder.DecodeInt(),
+                    (ref IceDecoder decoder) => decoder.DecodeLong());
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_dictionary_within_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>()) + 256]);
+        var encoder = new IceEncoder(buffer);
+        var dict = Enumerable.Range(0, count).ToDictionary(k => k, v => (long)v);
+        encoder.EncodeDictionary(
+            dict,
+            (ref IceEncoder encoder, int key) => encoder.EncodeInt(key),
+            (ref IceEncoder encoder, long value) => encoder.EncodeLong(value));
+
+        int allocationLimit = count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>());
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new IceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeDictionary(
+                    count => new Dictionary<int, long>(count),
+                    (ref IceDecoder decoder) => decoder.DecodeInt(),
+                    (ref IceDecoder decoder) => decoder.DecodeLong());
+            },
+            Throws.Nothing);
     }
 }
