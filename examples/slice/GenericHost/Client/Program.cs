@@ -25,7 +25,7 @@ var services = hostBuilder.Services;
 services.AddHostedService<ClientHostedService>();
 
 // Load and register the root CA certificate as a singleton so it stays alive and gets disposed.
-services.AddSingleton<X509Certificate2>(sp =>
+services.AddSingleton<X509Certificate2>(_ =>
     X509CertificateLoader.LoadCertificateFromFile(
         Path.Combine(
             hostBuilder.Environment.ContentRootPath,
