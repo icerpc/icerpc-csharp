@@ -3,8 +3,8 @@
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-// Provides helper methods to create the authentication options used by the examples.
-public static partial class Program
+/// <summary>Provides helper methods to create the authentication options used by the examples.</summary>
+internal static partial class Program
 {
     /// <summary>Creates client authentication options with a custom certificate validation callback that uses the
     /// specified root CA.</summary>
@@ -36,7 +36,6 @@ public static partial class Program
     /// <returns>The server authentication options.</returns>
     /// <remarks>Do not dispose the server certificate during the lifetime of the returned server authentication
     /// options.</remarks>
-    /// <seealso cref="SslStreamCertificateContext.Create(X509Certificate2, X509Certificate2[])"/>
     public static SslServerAuthenticationOptions CreateServerAuthenticationOptions(
         X509Certificate2 serverCertificate) =>
         new()
