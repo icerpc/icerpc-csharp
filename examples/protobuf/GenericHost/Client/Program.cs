@@ -42,8 +42,8 @@ services
 services
     // The activity source used by the telemetry interceptor.
     .AddSingleton(_ => new ActivitySource("IceRpc"))
-    // Add a ClientConnection singleton. This ClientConnections uses the ClientConnectionOptions provided by the
-    // the IOptions<ClientConnectionOptions> configured/bound above.
+    // Add a ClientConnection singleton. This ClientConnection uses the ClientConnectionOptions provided by the
+    // IOptions<ClientConnectionOptions> configured/bound above.
     .AddIceRpcClientConnection()
     // Add an invoker singleton; this invoker corresponds to the invocation pipeline. This invocation pipeline
     // flows into the ClientConnection singleton.
