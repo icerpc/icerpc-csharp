@@ -18,7 +18,7 @@ HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(
         ContentRootPath = AppContext.BaseDirectory,
     });
 
-var services = hostBuilder.Services;
+IServiceCollection services = hostBuilder.Services;
 
 // Add the ServerHostedService to the hosted services of the .NET Generic Host.
 services.AddHostedService<ServerHostedService>();
