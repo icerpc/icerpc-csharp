@@ -1,0 +1,177 @@
+// Copyright (c) ZeroC, Inc.
+
+using IceRpc.Ice.Codec;
+using NUnit.Framework;
+using ZeroC.Tests.Common;
+
+namespace IceRpc.Ice.Generator.Base.Tests;
+
+[Parallelizable(ParallelScope.All)]
+public sealed class ExceptionTests
+{
+    [Test]
+    public void Decode_derived_exception()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(buffer);
+
+        encoder.StartSlice(typeof(MyDerivedException).GetIceTypeId()!);
+        encoder.EncodeInt(30);
+        encoder.EncodeInt(40);
+        encoder.EndSlice(lastSlice: false);
+
+        encoder.StartSlice(typeof(MyException).GetIceTypeId()!);
+        encoder.EncodeInt(10);
+        encoder.EncodeInt(20);
+        encoder.EndSlice(lastSlice: true);
+
+        var decoder = new IceDecoder(
+            buffer.WrittenMemory,
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
+
+        var value = decoder.DecodeException() as MyDerivedException;
+
+        Assert.That(value, Is.Not.Null);
+        Assert.That(value!.I, Is.EqualTo(10));
+        Assert.That(value.J, Is.EqualTo(20));
+        Assert.That(value.K, Is.EqualTo(30));
+        Assert.That(value.L, Is.EqualTo(40));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Decode_exception([Values(10, null)] int? taggedValue)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(buffer);
+        encoder.StartSlice(typeof(MyException).GetIceTypeId()!);
+        encoder.EncodeInt(10);
+        encoder.EncodeInt(20);
+        if (taggedValue is not null)
+        {
+            // Ensure that a tagged value not declared in the Ice definition is correctly skipped
+            encoder.EncodeTagged(
+                10,
+                TagFormat.F4,
+                taggedValue.Value,
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
+        }
+        encoder.EndSlice(lastSlice: true);
+        var decoder = new IceDecoder(
+            buffer.WrittenMemory,
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
+
+        var value = decoder.DecodeException() as MyException;
+
+        Assert.That(value, Is.Not.Null);
+        Assert.That(value!.I, Is.EqualTo(10));
+        Assert.That(value.J, Is.EqualTo(20));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Decode_exception_with_tagged_fields(
+        [Values(10, null)] int? k,
+        [Values(20, null)] int? l)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(buffer);
+        encoder.StartSlice(typeof(MyExceptionWithTaggedFields).GetIceTypeId()!);
+        encoder.EncodeInt(10);
+        encoder.EncodeInt(20);
+        if (k is not null)
+        {
+            encoder.EncodeTagged(
+                1,
+                TagFormat.F4,
+                k.Value,
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
+        }
+        if (l is not null)
+        {
+            encoder.EncodeTagged(
+                255,
+                TagFormat.F4,
+                l.Value,
+                (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
+        }
+        encoder.EndSlice(lastSlice: true);
+        var decoder = new IceDecoder(
+            buffer.WrittenMemory,
+            activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
+
+        var value = decoder.DecodeException() as MyExceptionWithTaggedFields;
+
+        Assert.That(value, Is.Not.Null);
+        Assert.That(value!.I, Is.EqualTo(10));
+        Assert.That(value.J, Is.EqualTo(20));
+        Assert.That(value.K, Is.EqualTo(k));
+        Assert.That(value.L, Is.EqualTo(l));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    // Encode
+
+    [Test]
+    public void Encode_derived_exception()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(buffer);
+        var expected = new MyDerivedException(10, 20, 30, 40);
+
+        expected.Encode(ref encoder);
+
+        var decoder = new IceDecoder(
+            buffer.WrittenMemory,
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
+
+        var decoded = decoder.DecodeException() as MyDerivedException;
+        Assert.That(decoded, Is.Not.Null);
+        Assert.That(decoded!.I, Is.EqualTo(expected.I));
+        Assert.That(decoded.J, Is.EqualTo(expected.J));
+        Assert.That(decoded.K, Is.EqualTo(expected.K));
+        Assert.That(decoded.L, Is.EqualTo(expected.L));
+    }
+
+    [Test]
+    public void Encode_exception()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(buffer);
+        var expected = new MyException(10, 20);
+
+        expected.Encode(ref encoder);
+
+        var decoder = new IceDecoder(
+            buffer.WrittenMemory,
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
+        var value = decoder.DecodeException() as MyException;
+        Assert.That(value, Is.Not.Null);
+        Assert.That(value!.I, Is.EqualTo(expected.I));
+        Assert.That(value.J, Is.EqualTo(expected.J));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Encode_exception_with_tagged_fields(
+        [Values(10, null)] int? k,
+        [Values(20, null)] int? l)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(buffer);
+        var expected = new MyExceptionWithTaggedFields(10, 20, k, l);
+
+        expected.Encode(ref encoder);
+
+        var decoder = new IceDecoder(
+            buffer.WrittenMemory,
+            activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
+        var value = decoder.DecodeException() as MyExceptionWithTaggedFields;
+        Assert.That(value, Is.Not.Null);
+        Assert.That(value!.I, Is.EqualTo(10));
+        Assert.That(value.J, Is.EqualTo(20));
+        Assert.That(value.K, Is.EqualTo(k));
+        Assert.That(value.L, Is.EqualTo(l));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+}
