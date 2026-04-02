@@ -11,53 +11,47 @@ using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
 // Configure the host.
-IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
-    // Set the content root path to the build directory of the server (e.g.: Server/bin/Debug/net10.0)
-    .UseContentRoot(AppContext.BaseDirectory)
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-    // Configure the .NET Generic Host services.
-    .ConfigureServices((hostContext, services) =>
-    {
-        // Add the ServerHostedService to the hosted services of the .NET Generic Host.
-        services.AddHostedService<ServerHostedService>();
+// Set the content root path to the build directory of the server (e.g.: Server/bin/Debug/net10.0)
+hostBuilder.Environment.ContentRootPath = AppContext.BaseDirectory;
 
-        // The activity source used by the telemetry interceptor.
-        services.AddSingleton(sp => new ActivitySource("IceRpc"));
+var services = hostBuilder.Services;
 
-        string workingDirectory = Directory.GetCurrentDirectory();
-        Console.WriteLine(workingDirectory);
+// Add the ServerHostedService to the hosted services of the .NET Generic Host.
+services.AddHostedService<ServerHostedService>();
 
-        // Load and register the server certificate as a singleton so it stays alive and gets disposed.
-        services.AddSingleton<X509Certificate2>(sp =>
-            X509CertificateLoader.LoadPkcs12FromFile(
-                Path.Combine(
-                    hostContext.HostingEnvironment.ContentRootPath,
-                    hostContext.Configuration.GetValue<string>("Certificate:File")!),
-                password: null,
-                keyStorageFlags: X509KeyStorageFlags.Exportable));
+// The activity source used by the telemetry interceptor.
+services.AddSingleton(_ => new ActivitySource("IceRpc"));
 
-        // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
-        // callback to configure its authentication options.
-        services
-            .AddOptions<ServerOptions>()
-            .Bind(hostContext.Configuration.GetSection("Server"))
-            .Configure<X509Certificate2>((options, serverCertificate) =>
-                options.ServerAuthenticationOptions = CreateServerAuthenticationOptions(serverCertificate));
+// Load and register the server certificate as a singleton so it stays alive and gets disposed.
+services.AddSingleton<X509Certificate2>(sp =>
+    X509CertificateLoader.LoadPkcs12FromFile(
+        Path.Combine(
+            hostBuilder.Environment.ContentRootPath,
+            hostBuilder.Configuration.GetValue<string>("Certificate:File")!),
+        password: null,
+        keyStorageFlags: X509KeyStorageFlags.Exportable));
 
-        // Add the Chatbot service, which implements the Protobuf `Greeter` service, as a singleton.
-        services.AddSingleton<IGreeterService, Chatbot>();
+// Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
+// callback to configure its authentication options.
+services
+    .AddOptions<ServerOptions>()
+    .Bind(hostBuilder.Configuration.GetSection("Server"))
+    .Configure<X509Certificate2>((options, serverCertificate) =>
+        options.ServerAuthenticationOptions = CreateServerAuthenticationOptions(serverCertificate));
 
-        // Add a server and configure the dispatcher using a dispatcher builder. The server uses the ServerOptions
-        // provided by the IOptions<ServerOptions> singleton configured/bound above.
-        services.AddIceRpcServer(
-            builder => builder
-                .UseTelemetry()
-                .UseLogger()
-                .Map<IGreeterService>());
-    });
+// Add the Chatbot service, which implements the Protobuf `Greeter` service, as a singleton.
+services.AddSingleton<IGreeterService, Chatbot>();
 
-// Build the host.
+// Add a server and configure the dispatcher using a dispatcher builder. The server uses the ServerOptions
+// provided by the IOptions<ServerOptions> singleton configured/bound above.
+services.AddIceRpcServer(
+    builder => builder
+        .UseTelemetry()
+        .UseLogger()
+        .Map<IGreeterService>());
+
+// Build and run the host.
 using IHost host = hostBuilder.Build();
-
-// Run hosted program.
 host.Run();
