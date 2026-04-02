@@ -3,7 +3,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- Import Tasks -->
   <UsingTask
-    TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+    TaskName="IceRpc.Slice.Tools.SliceCTask"
     TaskFactory="$(SliceToolsTaskFactory)"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
@@ -11,6 +11,9 @@
   <ItemGroup Condition="'$(SliceToolsSourceBuild)' == 'true'">
     <!-- Add a reference to the Tools project to ensure it's built before we use its tasks-->
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
+    <!-- Add references to the generator projects to ensure they're built before we use them -->
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
@@ -55,11 +58,13 @@
   <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(SliceFile.OutputDir)" />
     <!-- Compile the Slice files -->
-    <SliceCCSharpTask
+    <SliceCTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="%(SliceFile.OutputDir)"
       References="@(SliceDirectory->'%(FullPath)')"
       ToolsPath="$(SliceCompilerPath)"
+      ZeroCGenPath="$(SliceZeroCGenPath)"
+      IceRpcGenPath="$(SliceIceRpcGenPath)"
       Rpc="%(SliceFile.Rpc)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
@@ -89,7 +94,7 @@
       />
 
       <Compile
-        Condition="'%(SliceFile.Rpc)' == 'icerpc'"
+        Condition="'%(SliceFile.Rpc)' == 'true'"
         Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"

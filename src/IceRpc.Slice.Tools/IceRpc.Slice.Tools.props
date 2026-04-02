@@ -3,7 +3,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <EnableDefaultSliceFileItems Condition="'$(EnableDefaultSliceFileItems)' == ''">true</EnableDefaultSliceFileItems>
-    <!-- Internal properties used to compute the slicec-cs compiler location for the current platform. -->
+    <!-- Internal properties used to compute the slicec compiler location for the current platform. -->
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRpcOSName>
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
@@ -13,12 +13,15 @@
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
   </PropertyGroup>
   <Choose>
-    <When Condition="Exists('$(MSBuildThisFileDirectory)../../tools/slicec-cs')">
-      <!-- Use the Slice compiler from this source build -->
+    <When Condition="Exists('$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator')">
+      <!--
+        Use the slicec compiler from the obj/tools directory and the generator assemblies from source builds.
+      -->
       <PropertyGroup>
         <SliceToolsSourceBuild>true</SliceToolsSourceBuild>
-        <SliceCompilerPath Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)../../tools/slicec-cs/target/debug</SliceCompilerPath>
-        <SliceCompilerPath Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)../../tools/slicec-cs/target/release</SliceCompilerPath>
+        <SliceCompilerPath>$(MSBuildThisFileDirectory)obj/tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
+        <SliceZeroCGenPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</SliceZeroCGenPath>
+        <SliceIceRpcGenPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/</SliceIceRpcGenPath>
 
         <!-- Use tools assembly built from source -->
         <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</SliceToolsTaskAssembliesPath>
@@ -28,9 +31,11 @@
       </PropertyGroup>
     </When>
     <Otherwise>
-      <!-- Use the Slice compiler from this NuGet package -->
+      <!-- Use the slicec compiler and generators from this NuGet package -->
       <PropertyGroup>
         <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
+        <SliceZeroCGenPath>$(MSBuildThisFileDirectory)../tools/</SliceZeroCGenPath>
+        <SliceIceRpcGenPath>$(MSBuildThisFileDirectory)../tools/</SliceIceRpcGenPath>
         <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</SliceToolsTaskAssembliesPath>
 
          <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->
@@ -43,7 +48,7 @@
   <ItemDefinitionGroup>
     <SliceFile>
       <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
-      <Rpc>icerpc</Rpc>
+      <Rpc>true</Rpc>
       <Pack>false</Pack>
       <PackagePath>slice</PackagePath>
     </SliceFile>

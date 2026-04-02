@@ -92,7 +92,7 @@ internal static class GeneratorDriver
                     generatedFiles.Add(new GeneratedFile
                     {
                         Path = mapOutputPath(file.Path),
-                        Contents = fileCode.ToString(),
+                        Contents = fileCode.ToString() + "\n",
                     });
                 }
             }

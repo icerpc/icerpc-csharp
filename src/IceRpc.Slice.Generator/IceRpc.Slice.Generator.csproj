@@ -20,5 +20,11 @@
     <PackageReference Include="dunet" Version="1.11.3" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj" />
+    <None Include="slicec-gen-icerpc-slice-csharp.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="slicec-gen-icerpc-slice-csharp.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

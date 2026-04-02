@@ -247,7 +247,7 @@ internal static class CsAttributeValidator
                 }
                 break;
 
-            case CSAttributes.CSInternal:
+            case CSAttributes.CSPublic:
                 RequireArgs(attr, 0, diagnostics);
                 if (target is not (Target.Struct or Target.Interface or Target.BasicEnum or Target.VariantEnum))
                 {

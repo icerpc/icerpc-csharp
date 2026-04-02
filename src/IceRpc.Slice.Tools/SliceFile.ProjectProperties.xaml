@@ -36,10 +36,7 @@
     </StringProperty.DataSource>
   </StringProperty>
 
-  <EnumProperty Name="Rpc" DisplayName="RPC Provider" Description="Generate code for the specified RPC framework.">
-    <EnumValue Name="none" DisplayName="None" />
-    <EnumValue Name="icerpc" DisplayName="IceRPC" />
-  </EnumProperty>
+  <BoolProperty Name="Rpc" DisplayName="RPC Provider" Description="Generate IceRPC service and proxy code." />
 
   <StringListProperty
     DisplayName="Additional Options"

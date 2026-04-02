@@ -13,7 +13,7 @@ internal static class EntityExtensions
     {
         /// <summary>Gets the access modifier for this entity ("public" or "internal").</summary>
         internal string AccessModifier =>
-            entity.Attributes.HasAttribute(CSAttributes.CSInternal) ? "internal" : "public";
+            entity.Attributes.HasAttribute(CSAttributes.CSPublic) ? "public" : "internal";
 
         /// <summary>Gets the name of the generated SliceDecoder extensions class for this entity.</summary>
         internal string DecoderExtensionsClass => $"{entity.Name}SliceDecoderExtensions";
