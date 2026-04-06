@@ -63,19 +63,24 @@
       <PackagePath>/</PackagePath>
     </None>
     <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <!-- Include the ZeroC.Slice.Generator outputs from source builds. -->
+    <!-- cspell:ignore runtimeconfig -->
+    <!-- Include the ZeroC.Slice.Generator outputs and scripts from source builds. -->
     <None
       Include="../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.dll;
-               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb"
+               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb;
+               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.runtimeconfig.json;
+               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/slicec-csharp-generator.*"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
-    <!-- Include the IceRpc.Slice.Generator outputs from source builds, but
+    <!-- Include the IceRpc.Slice.Generator outputs and scripts from source builds, but
          exclude shared dependencies already included by ZeroC.Slice.Generator above. -->
     <None
       Include="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.dll;
-               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb"
+               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb;
+               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.runtimeconfig.json;
+               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/slicec-icerpc-csharp-generator.*"
       Exclude="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/Dunet.dll;
                ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Codec.*;
                ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Symbols.*"
