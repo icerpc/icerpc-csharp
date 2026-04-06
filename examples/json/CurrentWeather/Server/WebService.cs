@@ -2,7 +2,6 @@
 
 using IceRpc;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 
