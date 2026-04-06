@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Codec.Tests;
@@ -78,5 +79,53 @@ public class SequenceDecodingTests
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(checkedValues, Is.EqualTo(expected));
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_sequence_exceeds_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var encoder = new IceEncoder(buffer);
+        encoder.EncodeSequence(
+            Enumerable.Range(0, count),
+            (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
+
+        int allocationLimit = (count - 1) * Unsafe.SizeOf<int>();
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new IceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeSequence((ref IceDecoder decoder) => decoder.DecodeInt());
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [TestCase(10)]
+    [TestCase(50)]
+    [TestCase(100)]
+    public void Decode_sequence_within_max_collection_allocation(int count)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var encoder = new IceEncoder(buffer);
+        encoder.EncodeSequence(
+            Enumerable.Range(0, count),
+            (ref IceEncoder encoder, int value) => encoder.EncodeInt(value));
+
+        int allocationLimit = count * Unsafe.SizeOf<int>();
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new IceDecoder(buffer.WrittenMemory, maxCollectionAllocation: allocationLimit);
+                _ = sut.DecodeSequence((ref IceDecoder decoder) => decoder.DecodeInt());
+            },
+            Throws.Nothing);
     }
 }
