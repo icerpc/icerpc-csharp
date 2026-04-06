@@ -21,24 +21,11 @@ if ($version) {
 }
 
 function Build($config) {
-    Push-Location "tools\slicec-cs"
-    $arguments = @('build')
-    if ($config -eq 'release') {
-        $arguments += '--release'
-    }
-    RunCommand 'cargo' $arguments
-    Pop-Location
-
     $dotnetConfiguration = DotnetConfiguration($config)
-
     RunCommand "dotnet" @('build', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function Clean($config) {
-    Push-Location "tools\slicec-cs"
-    RunCommand "cargo" "clean"
-    Pop-Location
-
     $dotnetConfiguration = DotnetConfiguration($config)
 
     RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)

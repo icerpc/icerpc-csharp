@@ -13,7 +13,7 @@ internal static class EntityExtensions
     {
         /// <summary>Gets the access modifier for this entity ("public" or "internal").</summary>
         internal string AccessModifier =>
-            entity.Attributes.HasAttribute(CSAttributes.CSInternal) ? "internal" : "public";
+            entity.Attributes.HasAttribute(CSAttributes.CSPublic) ? "public" : "internal";
 
         /// <summary>Gets the name of the generated SliceDecoder extensions class for this entity.</summary>
         internal string DecoderExtensionsClass => $"{entity.Name}SliceDecoderExtensions";
@@ -42,6 +42,16 @@ internal static class EntityExtensions
                 Attribute? csIdentifier = entity.Attributes.FindAttribute(CSAttributes.CSIdentifier);
                 return csIdentifier is { } attr ? attr.Args[0] : entity.Identifier.ToCamelCase();
             }
+        }
+
+        /// <summary>Gets the fully-qualified name of the encoder or decoder extensions class, using
+        /// <c>global::</c> prefix when the entity is in a different namespace.</summary>
+        internal string ScopedExtensionsClass(string currentNamespace, bool decoder)
+        {
+            string className = decoder ? entity.DecoderExtensionsClass : entity.EncoderExtensionsClass;
+            return currentNamespace == entity.Namespace
+                ? className
+                : $"global::{entity.Namespace}.{className}";
         }
 
         /// <summary>Gets a value indicating whether this entity type uses a generated extensions class

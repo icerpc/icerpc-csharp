@@ -9,67 +9,56 @@ using System.Text.Json;
 
 namespace IceRpc.Slice.Tools;
 
-/// <summary>A MSBuild task to compile Slice files to C# using the IceRPC <c>slicec-cs</c> compiler.</summary>
-public class SliceCCSharpTask : ToolTask
+/// <summary>A MSBuild task to compile Slice files using the <c>slicec</c> compiler with configured generator
+/// plugins.</summary>
+public class SliceCTask : ToolTask
 {
-    /// <summary>Additional options to pass to the <c>slicec-cs</c> compiler.</summary>
+    /// <summary>Additional options to pass to the <c>slicec</c> compiler.</summary>
     public string[] AdditionalOptions { get; set; } = [];
 
+    /// <summary>The code-generator plugins to run after parsing and validation. Each entry is the full path to a
+    /// generator script.</summary>
+    [Required]
+    public string[] Generators { get; set; } = [];
+
     /// <summary>The output directory for the generated code; corresponds to the <c>--output-dir</c> option of the
-    /// <c>slicec-cs</c> compiler.</summary>
+    /// <c>slicec</c> compiler.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
 
     /// <summary>The files that are needed for referencing, but that no code should be generated for them, corresponds
-    /// to <c>-R</c> slicec-cs compiler option.</summary>
+    /// to <c>-R</c> slicec compiler option.</summary>
     public string[] References { get; set; } = [];
 
-    /// <summary>
-    /// The RPC provider to generate code for, corresponds to the <c>--rpc</c> slicec-cs compiler option.
-    /// </summary>
-    [Required]
-    public string Rpc { get; set; } = "";
-
-    /// <summary>The Slice files to compile, these are the input files pass to the slicec-cs compiler.</summary>
+    /// <summary>The Slice files to compile, these are the input files pass to the slicec compiler.</summary>
     [Required]
     public ITaskItem[] Sources { get; set; } = [];
 
-    /// <summary>The directory containing the slicec-cs compiler.</summary>
+    /// <summary>The directory containing the slicec compiler.</summary>
     [Required]
     public string ToolsPath { get; set; } = "";
 
-    /// <summary>The working directory for executing the slicec-cs compiler from.</summary>
+    /// <summary>The working directory for executing the slicec compiler from.</summary>
     [Required]
     [SuppressMessage("Naming", "CA1721:PropertyNamesShouldNotMatchGetMethods", Justification = "Part of the public API")]
     public string WorkingDirectory { get; set; } = "";
 
     /// <inheritdoc/>
     protected override string ToolName =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec.exe" : "slicec";
 
     private readonly JsonSerializerOptions _jsonSerializeOptions = new() { PropertyNameCaseInsensitive = true };
-
-    protected override bool ValidateParameters()
-    {
-        string[] validRpcValues = ["icerpc", "none"];
-
-        if (!validRpcValues.Contains(Rpc, StringComparer.OrdinalIgnoreCase))
-        {
-            Log.LogError($"Invalid Rpc value '{Rpc}'. Valid values are 'icerpc' and 'none'.");
-            return false;
-        }
-
-#pragma warning disable CA1308 // Normalize strings to uppercase
-        Rpc = Rpc.ToLowerInvariant();
-#pragma warning restore CA1308 // Normalize strings to uppercase
-
-        return base.ValidateParameters();
-    }
 
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
         var builder = new CommandLineBuilder(false);
+
+        foreach (string generator in Generators)
+        {
+            builder.AppendSwitch("--generator");
+            builder.AppendFileNameIfNotNull(generator);
+        }
 
         if (OutputDir.Length > 0)
         {
@@ -88,7 +77,6 @@ public class SliceCCSharpTask : ToolTask
             builder.AppendTextUnquoted(option);
         }
         builder.AppendSwitch("--diagnostic-format=json");
-        builder.AppendSwitch($"--rpc={Rpc}");
         builder.AppendFileNamesIfNotNull(
             Sources.Select(item => item.GetMetadata("FullPath").ToString()).ToArray(),
             " ");
@@ -110,7 +98,7 @@ public class SliceCCSharpTask : ToolTask
     /// <inheritdoc/>
     protected override string GetWorkingDirectory() => WorkingDirectory;
 
-    /// <summary> Process the diagnostics emitted by the slicec-cs compiler and log them with the MSBuild logger.
+    /// <summary> Process the diagnostics emitted by the slicec compiler and log them with the MSBuild logger.
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {

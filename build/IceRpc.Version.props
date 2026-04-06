@@ -2,6 +2,9 @@
   <PropertyGroup>
     <!-- The version of all assembly files built in this repository -->
     <Version Condition="'$(Version)' == ''">0.6.0-preview.1</Version>
+    <!-- The slicec compiler version -->
+    <SlicecMMVersion>0.4</SlicecMMVersion>
+    <SlicecBaseUrl>https://zeroc.com/download/icerpc/slicec/nightly/$(SlicecMMVersion)</SlicecBaseUrl>
     <!-- The Protobuf version used by IceRpc.Protobuf -->
     <ProtobufVersion>33.1</ProtobufVersion>
     <NuGetProtobufVersion>3.$(ProtobufVersion)</NuGetProtobufVersion>

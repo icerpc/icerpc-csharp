@@ -32,7 +32,11 @@ internal static class GeneratorDriver
         GeneratorResponse RunCore(ImmutableList<SliceFile> symbolFiles)
         {
             // Validate CS attributes before generation.
-            List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
+            //
+            // List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
+            // TODO: enable validation once slicec correctly handles the diagnostics reported by the
+            // generators.
+            var diagnostics = new List<Diagnostic>();
 
             // Use the informational version (e.g., "0.6.0-preview.1") which is the semver string from
             // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
@@ -44,6 +48,29 @@ internal static class GeneratorDriver
                     assembly)?.InformationalVersion
                 ?? assembly.GetName().Version?.ToString()
                 ?? "unknown";
+
+            // Check for duplicate file basenames — two files with the same basename would produce the
+            // same output file, with the second silently overwriting the first.
+            var seenBasenames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (SliceFile file in symbolFiles)
+            {
+                string basename = Path.GetFileName(file.Path);
+                if (seenBasenames.TryGetValue(basename, out string? previousPath))
+                {
+                    diagnostics.Add(new Diagnostic
+                    {
+                        Level = DiagnosticLevel.Error,
+                        Message =
+                            $"Multiple source files have the same filename '{basename}': " +
+                            $"'{previousPath}' and '{file.Path}'. " +
+                            "Generated files are written to a common directory, so source files must have unique filenames.",
+                    });
+                }
+                else
+                {
+                    seenBasenames[basename] = file.Path;
+                }
+            }
 
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
@@ -92,7 +119,7 @@ internal static class GeneratorDriver
                     generatedFiles.Add(new GeneratedFile
                     {
                         Path = mapOutputPath(file.Path),
-                        Contents = fileCode.ToString(),
+                        Contents = fileCode.ToString() + "\n",
                     });
                 }
             }

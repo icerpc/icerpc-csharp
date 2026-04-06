@@ -48,6 +48,7 @@ internal static class BasicEnumGenerator
                 "remarks",
                 $"The Slice compiler generated this enum from the Slice enum <c>{enumDef.ScopedIdentifier}</c>.")
             .AddDocCommentSeeAlso(enumDef.Comment, enumDef.Namespace)
+            .AddDeprecatedAttribute(enumDef.Attributes)
             .AddCSAttributes(enumDef.Attributes)
             .AddBase(enumDef.Underlying.CSType);
 
@@ -57,6 +58,7 @@ internal static class BasicEnumGenerator
             var code = new CodeBlock();
             code.WriteDocCommentSummary(enumerator.Comment, enumDef.Namespace);
             code.WriteCSAttributes(enumerator.Attributes);
+            code.WriteDeprecatedAttribute(enumerator.Attributes);
             code.WriteLine($"{enumerator.Name} = {FormatValue(enumerator)},");
             builder.AddBlock(code);
         }

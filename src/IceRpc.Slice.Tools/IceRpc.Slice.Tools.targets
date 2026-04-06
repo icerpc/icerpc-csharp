@@ -3,7 +3,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- Import Tasks -->
   <UsingTask
-    TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+    TaskName="IceRpc.Slice.Tools.SliceCTask"
     TaskFactory="$(SliceToolsTaskFactory)"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
@@ -11,6 +11,9 @@
   <ItemGroup Condition="'$(SliceToolsSourceBuild)' == 'true'">
     <!-- Add a reference to the Tools project to ensure it's built before we use its tasks-->
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
+    <!-- Add references to the generator projects to ensure they're built before we use them -->
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
@@ -54,13 +57,21 @@
   </ItemGroup>
   <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(SliceFile.OutputDir)" />
+    <!-- Build the generator list: always include the base C# generator, conditionally include the IceRPC generator. -->
+    <ItemGroup>
+      <_SliceGenerators Remove="@(_SliceGenerators)" />
+      <_SliceGenerators Include="$(SliceZeroCGenPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)" />
+      <_SliceGenerators
+        Condition="'%(SliceFile.Rpc)' == 'true'"
+        Include="$(SliceIceRpcGenPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)" />
+    </ItemGroup>
     <!-- Compile the Slice files -->
-    <SliceCCSharpTask
+    <SliceCTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="%(SliceFile.OutputDir)"
       References="@(SliceDirectory->'%(FullPath)')"
       ToolsPath="$(SliceCompilerPath)"
-      Rpc="%(SliceFile.Rpc)"
+      Generators="@(_SliceGenerators)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
     />
@@ -89,7 +100,7 @@
       />
 
       <Compile
-        Condition="'%(SliceFile.Rpc)' == 'icerpc'"
+        Condition="'%(SliceFile.Rpc)' == 'true'"
         Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"

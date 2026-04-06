@@ -29,12 +29,16 @@ internal static class DispatchGenerator
                 Your service implementation must implement this interface.
                 """)
             .AddDocCommentSeeAlso(interfaceDef.Comment, currentNamespace)
+            .AddDeprecatedAttribute(interfaceDef.Attributes)
             .AddAttribute($"IceRpc.DefaultServicePath(\"{defaultServicePath}\")");
 
         // Inherit from base service interfaces
         foreach (Interface baseInterface in interfaceDef.Bases)
         {
-            builder.AddBase($"I{baseInterface.Name}Service");
+            string baseName = currentNamespace == baseInterface.Namespace
+                ? $"I{baseInterface.Name}Service"
+                : $"global::{baseInterface.Namespace}.I{baseInterface.Name}Service";
+            builder.AddBase(baseName);
         }
 
         if (interfaceDef.Operations.Count > 0)
@@ -144,7 +148,9 @@ internal static class DispatchGenerator
                 {
                     body.WriteLine("var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(request);");
                     string streamElemType = streamParam.DataType.FieldTypeString(streamParam.DataTypeIsOptional, currentNamespace);
-                    string decodeLambda = streamParam.DataType.Type.GetDecodeLambda(streamParam.DataTypeIsOptional, currentNamespace);
+                    string decodeLambda = streamParam.DataTypeIsOptional
+                        ? OperationExtensions.GetStreamDecodeLambda(streamParam, currentNamespace)
+                        : streamParam.DataType.Type.GetDecodeLambda(false, currentNamespace);
 
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
                     {
@@ -199,7 +205,7 @@ internal static class DispatchGenerator
 
             string opName = op.Name;
             ImmutableList<Field> nonStreamedReturns = op.NonStreamedReturns;
-            CodeBlock? encodeBody = nonStreamedReturns.GenerateEncodeBody(currentNamespace);
+            CodeBlock? encodeBody = nonStreamedReturns.GenerateEncodeBody(currentNamespace, useReadOnlyMemory: true);
 
             if (encodeBody is null)
             {
@@ -231,7 +237,7 @@ internal static class DispatchGenerator
                 foreach (Field ret in nonStreamedReturns)
                 {
                     encodeBuilder.AddParameter(
-                        ret.DataType.FieldTypeString(ret.DataTypeIsOptional, currentNamespace),
+                        ret.DataType.OutgoingParameterTypeString(ret.DataTypeIsOptional, currentNamespace),
                         ret.ParameterName);
                 }
 
@@ -259,12 +265,13 @@ internal static class DispatchGenerator
         string returnType = op.GetServiceReturnType(currentNamespace);
 
         var operationBuilder = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration)
-            .AddDocCommentSummary(op.Comment, currentNamespace);
+            .AddDocCommentSummary(op.Comment, currentNamespace)
+            .AddDeprecatedAttribute(op.Attributes);
 
         foreach (Field param in nonStreamedParams)
         {
             operationBuilder.AddParameter(
-                param.DataType.FieldTypeString(param.DataTypeIsOptional, currentNamespace),
+                param.DataType.IncomingParameterTypeString(param.DataTypeIsOptional, currentNamespace),
                 param.ParameterName,
                 docComment: DocCommentFormatter.FormatOverview(param.Comment, currentNamespace));
         }

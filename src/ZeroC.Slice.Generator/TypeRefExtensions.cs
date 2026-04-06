@@ -83,6 +83,7 @@ internal static class TypeRefExtensions
 
         if (typeRef.Type is SequenceType seq
             && !typeRef.Attributes.HasAttribute(CSAttributes.CSType)
+            && !seq.ElementTypeIsOptional
             && seq.ElementType.FixedSize is not null)
         {
             // Fixed-size primitive sequences use ReadOnlyMemory; the mapping is the same for
@@ -115,14 +116,17 @@ internal static class TypeRefExtensions
         /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
         internal int? FixedSize => value.Type switch
         {
-            Builtin b => b.Kind switch
-            {
-                BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
-                BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
-                BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
-                BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
-                _ => null,
-            },
+            Builtin b => BuiltinFixedSize(b.Kind),
+            BasicEnum e => BuiltinFixedSize(e.Underlying.Kind),
+            _ => null,
+        };
+
+        private static int? BuiltinFixedSize(BuiltinKind kind) => kind switch
+        {
+            BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
+            BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
+            BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
+            BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
             _ => null,
         };
 

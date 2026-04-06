@@ -11,7 +11,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <SliceFile>
-      <Rpc>none</Rpc>
+      <Rpc>false</Rpc>
     </SliceFile>
   </ItemDefinitionGroup>
   <ItemGroup>

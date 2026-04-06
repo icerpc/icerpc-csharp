@@ -19,10 +19,8 @@ internal static class ITypeExtensions
         {
             Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
             DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
-            BasicEnum e when e.IsUnchecked =>
-                $"({e.ToTypeString(currentNamespace)})decoder.Decode{e.Underlying.Suffix}()",
             Entity e when e.UsesExtensionsClass =>
-                $"{e.DecoderExtensionsClass}.Decode{e.Name}(ref decoder)",
+                $"{e.ScopedExtensionsClass(currentNamespace, decoder: true)}.Decode{e.Name}(ref decoder)",
             ResultType r => DecodeResult(r, currentNamespace),
             SequenceType seq => DecodeSequence(seq, currentNamespace, concreteType),
             _ => $"new {type.ToTypeString(currentNamespace)}(ref decoder)",
@@ -70,6 +68,28 @@ internal static class ITypeExtensions
         static string DecodeSequence(SequenceType seq, string currentNamespace, string? concreteType)
         {
             IType elemType = seq.ElementType.Type;
+            bool useFixedSizePath = !seq.ElementTypeIsOptional
+                && elemType is Builtin builtin
+                && builtin.IsFixedSize;
+
+            // Fixed-size primitives use the optimized DecodeSequence<T> overload (memcpy path).
+            if (useFixedSizePath && concreteType is null)
+            {
+                string csType = elemType.ToTypeString(currentNamespace);
+                string checkElement = ((Builtin)elemType).Kind == BuiltinKind.Bool
+                    ? "checkElement: SliceDecoder.CheckBoolValue"
+                    : "";
+
+                if (string.IsNullOrEmpty(checkElement))
+                {
+                    return $"decoder.DecodeSequence<{csType}>()";
+                }
+                return $$"""
+                    decoder.DecodeSequence<{{csType}}>(
+                        {{checkElement}})
+                    """;
+            }
+
             string method = seq.ElementTypeIsOptional
                 ? "decoder.DecodeSequenceOfOptionals"
                 : "decoder.DecodeSequence";
@@ -78,6 +98,12 @@ internal static class ITypeExtensions
             if (concreteType is not null)
             {
                 string factory = $"sequenceFactory: (size) => new {concreteType}(size)";
+                if (useFixedSizePath)
+                {
+                    // cs::type on fixed-size primitives: wrap the fixed-size decode in the factory.
+                    string csElemType = elemType.ToTypeString(currentNamespace);
+                    return $"new {concreteType}(decoder.DecodeSequence<{csElemType}>())";
+                }
                 return $$"""
                     {{method}}(
                         {{factory}},
@@ -123,10 +149,8 @@ internal static class ITypeExtensions
         {
             Builtin builtin => $"{encoderName}.Encode{builtin.Suffix}({param})",
             DictionaryType dict => EncodeDictionary(dict, currentNamespace, param, encoderName),
-            BasicEnum e when e.IsUnchecked =>
-                $"{encoderName}.Encode{e.Underlying.Suffix}(({e.Underlying.CSType}){param})",
             Entity e when e.UsesExtensionsClass =>
-                $"{e.EncoderExtensionsClass}.Encode{e.Name}(ref {encoderName}, {param})",
+                $"{e.ScopedExtensionsClass(currentNamespace, decoder: false)}.Encode{e.Name}(ref {encoderName}, {param})",
             SequenceType seq => EncodeSequence(seq, currentNamespace, param, encoderName),
             ResultType result => EncodeResult(result, currentNamespace, param, encoderName),
             _ => $"{param}.Encode(ref {encoderName})",
@@ -174,16 +198,23 @@ internal static class ITypeExtensions
             string encoderName)
         {
             IType elemType = seq.ElementType.Type;
-            if (seq.ElementTypeIsOptional && (seq.ElementType.IsValueType || elemType is CustomType))
+            if (seq.ElementTypeIsOptional)
             {
                 string csOptType = seq.ElementType.FieldTypeString(true, currentNamespace);
-                string lambda = EncodeOptionalValueLambda(elemType, csOptType);
+                string lambda = EncodeOptionalValueLambda(elemType, csOptType, currentNamespace);
                 return $$"""
                     {{encoderName}}.EncodeSequenceOfOptionals(
                         {{param}},
                         {{lambda}})
                     """;
             }
+
+            // Fixed-size primitives use the optimized EncodeSequence<T> overload (no lambda).
+            if (!seq.ElementTypeIsOptional && elemType is Builtin builtin && builtin.IsFixedSize)
+            {
+                return $"{encoderName}.EncodeSequence({param})";
+            }
+
             CodeBlock elementEncodeLambda = seq.ElementType.GetEncodeLambda(seq.ElementTypeIsOptional, currentNamespace);
             return $$"""
                 {{encoderName}}.EncodeSequence(
@@ -191,19 +222,14 @@ internal static class ITypeExtensions
                     {{elementEncodeLambda.Indent()}})
                 """;
 
-            static string EncodeOptionalValueLambda(IType elemType, string csOptType)
+            static string EncodeOptionalValueLambda(IType elemType, string csOptType, string currentNamespace)
             {
                 // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
                 string valueExpr = elemType is CustomType
                     ? "(value ?? default!)"
-                    : elemType is Struct or BasicEnum ? "value!.Value" : "value!";
-                if (elemType is Entity entity && entity.UsesExtensionsClass)
-                {
-                    string extClass = entity.EncoderExtensionsClass;
-                    string name = entity.Name;
-                    return $"(ref SliceEncoder encoder, {csOptType} value) => {extClass}.Encode{name}(ref encoder, {valueExpr})";
-                }
-                return $"(ref SliceEncoder encoder, {csOptType} value) => {valueExpr}.Encode(ref encoder)";
+                    : elemType is Struct or BasicEnum or Builtin { IsValueType: true } ? "value!.Value" : "value!";
+                string encodeExpr = elemType.EncodeExpression(currentNamespace, valueExpr);
+                return $"(ref SliceEncoder encoder, {csOptType} value) => {encodeExpr}";
             }
         }
 
