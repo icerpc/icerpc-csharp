@@ -89,6 +89,7 @@
       <SlicecPlatform Include="aarch64-apple-darwin" Prefix="macos-arm64" Exe="slicec" />
       <SlicecPlatform Include="x86_64-unknown-linux-gnu" Prefix="linux-x64" Exe="slicec" />
       <SlicecPlatform Include="aarch64-unknown-linux-gnu" Prefix="linux-arm64" Exe="slicec" />
+      <!-- cspell:disable-next-line -->
       <SlicecPlatform Include="x86_64-pc-windows-msvc" Prefix="windows-x64" Exe="slicec.exe" />
     </ItemGroup>
 
@@ -108,11 +109,6 @@
     <Copy
       SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)/%(SlicecPlatform.Exe)"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/%(SlicecPlatform.Prefix)"
-      SkipUnchangedFiles="true" />
-
-    <Copy
-      SourceFiles="/Users/jose/Documents/IceRPC/slicec/target/debug/slicec"
-      DestinationFolder="/Users/jose/Documents/IceRPC/icerpc-csharp/src/IceRpc.Slice.Tools/obj/tools/macos-arm64/"
       SkipUnchangedFiles="true" />
 
     <!-- Include downloaded slicec binaries in the NuGet package. -->

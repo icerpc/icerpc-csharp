@@ -29,49 +29,10 @@ on:
         default: false
 
 jobs:
-  build-compiler:
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        include:
-          - os: macos-26
-            target: x86_64-apple-darwin
-            compiler-exe: slicec-cs
-          - os: macos-26
-            target: aarch64-apple-darwin
-            compiler-exe: slicec-cs
-          - os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            compiler-exe: slicec-cs
-          - os: ubuntu-24.04
-            target: aarch64-unknown-linux-gnu
-            compiler-exe: slicec-cs
-          - os: windows-2025
-            target: x86_64-pc-windows-msvc
-            compiler-exe: slicec-cs.exe
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Build
-        uses: ./.github/actions/build-compiler
-        with:
-          cargo-build-args: --release
-          target: ${{ matrix.target }}
-
-      - name: Archive Build
-        uses: actions/upload-artifact@v6
-        with:
-          name: slicec-cs-${{ matrix.target }}
-          path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
-
   build-packages:
     runs-on: windows-2025
     timeout-minutes: 10
-    needs: build-compiler
     env:
-      SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
       VERSION: ${{ inputs.icerpc_version }}
     steps:
       - uses: actions/setup-dotnet@v5
@@ -79,22 +40,6 @@ jobs:
           dotnet-version: 10.0.x
 
       - uses: actions/checkout@v6
-
-      - name: Download slicec-cs compiler artifacts
-        uses: actions/download-artifact@v6
-
-      - name: Copy slicec-cs binaries to staging path
-        run: |
-          @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
-          Copy-Item "slicec-cs-x86_64-apple-darwin\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\macos-x64"
-          Copy-Item "slicec-cs-aarch64-apple-darwin\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\macos-arm64"
-          Copy-Item "slicec-cs-x86_64-unknown-linux-gnu\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\linux-x64"
-          Copy-Item "slicec-cs-aarch64-unknown-linux-gnu\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\linux-arm64"
-          Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\windows-x64"
-
-          # Copy the compiler to the expected location to avoid rebuilding it when creating the NuGet packages
-          New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
-          Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
 
       - name: Build IceRPC
         run: dotnet build --configuration Release
@@ -116,7 +61,7 @@ jobs:
         if: inputs.authenticode_sign
         run: dotnet build-server shutdown
 
-      - name: Sign .NET Assemblies and slicec-cs.exe compiler
+      - name: Sign .NET Assemblies
         if: inputs.authenticode_sign
         uses: azure/trusted-signing-action@v1
         with:

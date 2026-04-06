@@ -2,10 +2,6 @@ name: Build Dist
 description: "Builds IceRPC"
 
 inputs:
-  cargo-build-args:
-    description: "Cargo Build Args"
-    required: false
-    default: ""
   dotnet-build-args:
     description: ".NET Build Args"
     required: false
@@ -14,18 +10,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/cache@v5
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          tools/slicec-cs/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-
     - uses: actions/cache@v5
       with:
         path: ~/.nuget/packages
@@ -54,11 +38,6 @@ runs:
       run: |
         brew install libmsquic
         echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
-
-    - name: 🔨 Build Slice Compiler
-      run: |
-        cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
-      shell: bash
 
     - name: 🔨 Build IceRPC
       run: dotnet build ${{ inputs.dotnet-build-args }}

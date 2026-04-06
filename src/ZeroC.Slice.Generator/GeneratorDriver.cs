@@ -49,26 +49,26 @@ internal static class GeneratorDriver
                 ?? assembly.GetName().Version?.ToString()
                 ?? "unknown";
 
-            // Check for duplicate file basenames — two files with the same basename would produce the
-            // same output file, with the second silently overwriting the first.
-            var seenBasenames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // Check for duplicate file names — two files with the same name would produce the same
+            // output file, with the second silently overwriting the first.
+            var seenFileNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (SliceFile file in symbolFiles)
             {
-                string basename = Path.GetFileName(file.Path);
-                if (seenBasenames.TryGetValue(basename, out string? previousPath))
+                string fileName = Path.GetFileName(file.Path);
+                if (seenFileNames.TryGetValue(fileName, out string? previousPath))
                 {
                     diagnostics.Add(new Diagnostic
                     {
                         Level = DiagnosticLevel.Error,
                         Message =
-                            $"Multiple source files have the same filename '{basename}': " +
+                            $"Multiple source files have the same filename '{fileName}': " +
                             $"'{previousPath}' and '{file.Path}'. " +
                             "Generated files are written to a common directory, so source files must have unique filenames.",
                     });
                 }
                 else
                 {
-                    seenBasenames[basename] = file.Path;
+                    seenFileNames[fileName] = file.Path;
                 }
             }
 
