@@ -45,7 +45,7 @@ jobs:
       matrix:
         include:
         - language: csharp
-          build-mode: manual
+          build-mode: autobuild
         # CodeQL supports the following values keywords for 'language': 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -57,10 +57,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
-
-    - uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: 10.0.x
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -74,16 +70,6 @@ jobs:
 
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
-
-    # If the analyze step fails for one of the languages you are analyzing with
-    # "We were unable to automatically build your code", modify the matrix above
-    # to set the build mode to "manual" for that language. Then modify this step
-    # to build your code.
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - if: matrix.build-mode == 'manual'
-      shell: bash
-      run: dotnet build IceRpc.slnx
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
