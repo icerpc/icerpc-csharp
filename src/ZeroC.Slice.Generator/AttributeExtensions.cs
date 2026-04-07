@@ -16,7 +16,7 @@ internal static class AttributeExtensions
         /// <summary>Gets whether the entity has the <c>deprecated</c> attribute.</summary>
         internal bool IsDeprecated => attributes.Any(a => a.Directive == "deprecated");
 
-        /// <summary>Gets the deprecation message, or null if not deprecated or no message provided.</summary>
+        /// <summary>Gets the deprecation message, or null if not deprecated or no was message provided.</summary>
         internal string? DeprecatedMessage
         {
             get
