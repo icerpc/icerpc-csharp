@@ -62,7 +62,7 @@
       <_SliceGenerators Remove="@(_SliceGenerators)" />
       <_SliceGenerators Include="$(SliceZeroCGenPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)" />
       <_SliceGenerators
-        Condition="'%(SliceFile.Rpc)' == 'true'"
+        Condition="'%(SliceFile.IceRpc)' == 'true'"
         Include="$(SliceIceRpcGenPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)" />
     </ItemGroup>
     <!-- Compile the Slice files -->
@@ -100,7 +100,7 @@
       />
 
       <Compile
-        Condition="'%(SliceFile.Rpc)' == 'true'"
+        Condition="'%(SliceFile.IceRpc)' == 'true'"
         Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"

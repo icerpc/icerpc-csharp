@@ -57,7 +57,7 @@ public class SliceCTask : ToolTask
         foreach (string generator in Generators)
         {
             builder.AppendSwitch("--generator");
-	    // TODO: replace \ with / to workaround slicec treating \ as escape characters
+            // TODO: remove this workaround once slicec correctly handles backslashes.
             builder.AppendFileNameIfNotNull(generator.Replace('\\', '/'));
         }
 
