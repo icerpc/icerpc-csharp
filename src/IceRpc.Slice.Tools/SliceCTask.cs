@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace IceRpc.Slice.Tools;
 
-/// <summary>A MSBuild task to compile Slice files using the <c>slicec</c> compiler with configured generator
+/// <summary>An MSBuild task to compile Slice files using the <c>slicec</c> compiler with configured generator
 /// plugins.</summary>
 public class SliceCTask : ToolTask
 {
