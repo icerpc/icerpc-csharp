@@ -65,13 +65,12 @@
       </_SliceFile>
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
         <Generators>%(Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
+        <GeneratedPath>%(GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
     </ItemGroup>
 
     <MakeDir Directories="%(_SliceFile.OutputDir)" />
 
-    <!-- Compile the Slice files -->
     <SliceCTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="%(_SliceFile.OutputDir)"
@@ -82,22 +81,11 @@
       Sources="@(_SliceFile)"
     />
 
-    <!--
-      Include all C# generated source items that have not been already included. We delay this until we are
-      running the SliceC target so that default includes are already processed.
-    -->
     <ItemGroup>
       <Compile
-        Include="@(_SliceFile->'%(GeneratedPath)')"
+        Include="%(_SliceFile.GeneratedPath)"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;Generators;PackagePath;Pack"
-      />
-
-      <Compile
-        Condition="'%(_SliceFile.IceRpc)' == 'true'"
-        Include="@(_SliceFile->'%(IceRpcGeneratedPath)')"
-        Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;Generators;PackagePath;Pack"
+        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;Generators;PackagePath;Pack"
       />
     </ItemGroup>
   </Target>
