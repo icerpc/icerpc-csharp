@@ -128,9 +128,9 @@ internal static class DispatchGenerator
                 else
                 {
                     string decodeLambda = nonStreamedParams.GenerateDecodeLambda(currentNamespace);
-                    string varName = nonStreamedParams.Count == 1
-                        ? $"sliceP_{nonStreamedParams[0].ParameterName}"
-                        : $"({string.Join(", ", nonStreamedParams.Select(p => $"sliceP_{p.ParameterName}"))})";
+                    string varName = nonStreamedParams.Count == 1 ?
+                        $"sliceP_{nonStreamedParams[0].ParameterName}" :
+                        $"({string.Join(", ", nonStreamedParams.Select(p => $"sliceP_{p.ParameterName}"))})";
                     body.WriteLine($$"""
                         var {{varName}} = await request.DecodeArgsAsync(
                             {{decodeLambda}},
@@ -149,9 +149,9 @@ internal static class DispatchGenerator
                     string streamElemType = streamParam.DataType.FieldTypeString(
                         streamParam.DataTypeIsOptional,
                         currentNamespace);
-                    string decodeLambda = streamParam.DataTypeIsOptional
-                        ? OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace)
-                        : streamParam.DataType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
+                    string decodeLambda = streamParam.DataTypeIsOptional ?
+                        OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace) :
+                        streamParam.DataType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
 
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
                     {
@@ -210,9 +210,9 @@ internal static class DispatchGenerator
 
             if (encodeBody is null)
             {
-                string emptyPayload = op.HasStreamedReturn
-                    ? "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()"
-                    : "IceRpc.EmptyPipeReader.Instance";
+                string emptyPayload = op.HasStreamedReturn ?
+                    "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()" :
+                    "IceRpc.EmptyPipeReader.Instance";
 
                 response.AddBlock(
                     new FunctionBuilder(
@@ -220,7 +220,9 @@ internal static class DispatchGenerator
                         "global::System.IO.Pipelines.PipeReader",
                         $"Encode{opName}",
                         FunctionType.ExpressionBody)
-                        .AddComment("summary", $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.")
+                        .AddComment(
+                            "summary",
+                            $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.")
                         .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
                         .SetBody(emptyPayload)
@@ -233,7 +235,9 @@ internal static class DispatchGenerator
                     "global::System.IO.Pipelines.PipeReader",
                     $"Encode{opName}",
                     FunctionType.BlockBody)
-                    .AddComment("summary", $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.");
+                    .AddComment(
+                        "summary",
+                        $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.");
 
                 foreach (Field ret in nonStreamedReturns)
                 {
@@ -243,7 +247,8 @@ internal static class DispatchGenerator
                 }
 
                 response.AddBlock(
-                    encodeBuilder.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                    encodeBuilder
+                        .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
                         .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
                         .Build());
