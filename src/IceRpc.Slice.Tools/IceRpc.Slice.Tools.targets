@@ -55,20 +55,21 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
-    <!-- Create internal _SliceFile items with per-file generator list and generated path metadata. -->
+  <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
-        <Generators>$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+        <Generators>%(Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
       </_SliceFile>
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
         <Generators>%(Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
         <GeneratedPath>%(GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
     </ItemGroup>
+  </Target>
 
+  <Target Name="SliceC" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(_SliceFile.OutputDir)" />
 
     <SliceCTask
@@ -90,8 +91,8 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="SliceCClean" BeforeTargets="Clean">
-    <Delete Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')" />
+  <Target Name="SliceCClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
+    <Delete Files="%(_SliceFile.GeneratedPath)" />
   </Target>
 
   <!-- Package SliceFile items -->
