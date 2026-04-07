@@ -10,9 +10,6 @@
     <_IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</_IceRpcOSArch>
     <_SliceGeneratorScriptExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.bat</_SliceGeneratorScriptExtension>
     <_SliceGeneratorScriptExtension Condition="!$([MSBuild]::IsOSPlatform('Windows'))">.sh</_SliceGeneratorScriptExtension>
-
-    <!-- Report build telemetry by default -->
-    <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
   </PropertyGroup>
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator')">
@@ -20,28 +17,28 @@
         Use the slicec compiler from the obj/tools directory and the generator assemblies from source builds.
       -->
       <PropertyGroup>
-        <SliceToolsSourceBuild>true</SliceToolsSourceBuild>
-        <SliceCompilerPath>$(MSBuildThisFileDirectory)obj/tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</SliceCompilerPath>
-        <SliceZeroCGenPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</SliceZeroCGenPath>
-        <SliceIceRpcGenPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/</SliceIceRpcGenPath>
+        <_IceRpcSliceToolsSourceBuild>true</_IceRpcSliceToolsSourceBuild>
+        <_SliceCPath>$(MSBuildThisFileDirectory)obj/tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
+        <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</_ZeroCSliceGeneratorPath>
+        <_IceRpcSliceGeneratorPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/</_IceRpcSliceGeneratorPath>
 
         <!-- Use tools assembly built from source -->
-        <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</SliceToolsTaskAssembliesPath>
+        <_IceRpcSliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</_IceRpcSliceToolsTaskAssembliesPath>
 
         <!-- Force task to run out of process to avoid issues with files in use -->
-        <SliceToolsTaskFactory>TaskHostFactory</SliceToolsTaskFactory>
+        <_IceRpcSliceToolsTaskFactory>TaskHostFactory</_IceRpcSliceToolsTaskFactory>
       </PropertyGroup>
     </When>
     <Otherwise>
       <!-- Use the slicec compiler and generators from this NuGet package -->
       <PropertyGroup>
-        <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</SliceCompilerPath>
-        <SliceZeroCGenPath>$(MSBuildThisFileDirectory)../tools/</SliceZeroCGenPath>
-        <SliceIceRpcGenPath>$(MSBuildThisFileDirectory)../tools/</SliceIceRpcGenPath>
-        <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</SliceToolsTaskAssembliesPath>
+        <_SliceCPath>$(MSBuildThisFileDirectory)../tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
+        <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../tools/</_ZeroCSliceGeneratorPath>
+        <_IceRpcSliceGeneratorPath>$(MSBuildThisFileDirectory)../tools/</_IceRpcSliceGeneratorPath>
+        <_IceRpcSliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</_IceRpcSliceToolsTaskAssembliesPath>
 
          <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->
-         <SliceToolsTaskFactory>AssemblyTaskFactory</SliceToolsTaskFactory>
+         <_IceRpcSliceToolsTaskFactory>AssemblyTaskFactory</_IceRpcSliceToolsTaskFactory>
       </PropertyGroup>
     </Otherwise>
   </Choose>
