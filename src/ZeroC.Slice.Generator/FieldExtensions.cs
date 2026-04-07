@@ -45,7 +45,7 @@ internal static class FieldExtensions
             string sizeExpr = $"SliceEncoder.GetSizeLength({param}.Length) + {elemSize} * {param}.Length";
             return new CodeBlock(
                 $$"""
-                if ({{param}}.Span != null)
+                if ({{param}}.Span != default)
                 {
                     {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{param}}, (ref SliceEncoder encoder, {{romType}} value) => encoder.EncodeSpan(value.Span));
                 }
@@ -196,13 +196,13 @@ internal static class FieldExtensions
             }
             else if (field.DataTypeIsOptional)
             {
-                // ReadOnlyMemory<T> is a value type: use .Span != null for the null check
+                // ReadOnlyMemory<T> is a value type: use .Span != default for the null check
                 // and EncodeSpan for the encode.
                 if (isReadOnlyMemory)
                 {
                     body.WriteLine($$"""
-                        bitSequenceWriter.Write({{param}}.Span != null);
-                        if ({{param}}.Span != null)
+                        bitSequenceWriter.Write({{param}}.Span != default);
+                        if ({{param}}.Span != default)
                         {
                             {{encoderName}}.EncodeSpan({{param}}.Span);
                         }
