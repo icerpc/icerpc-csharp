@@ -151,7 +151,7 @@ internal static class DispatchGenerator
                         currentNamespace);
                     string decodeLambda = streamParam.DataTypeIsOptional
                         ? OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace)
-                        : streamParam.DataType.Type.GetDecodeLambda(false, currentNamespace);
+                        : streamParam.DataType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
 
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
                     {

@@ -10,7 +10,8 @@ internal static class ITypeExtensions
 {
     /// <summary>Generates decode expression for a type.</summary>
     /// <param name="type">The type to decode.</param>
-    /// <param name="currentNamespace">The current C# namespace for resolving type names.</param>
+    /// <param name="currentNamespace">The current C# namespace for resolving type names. The types from
+    /// other namespaces will be fully qualified.</param>
     /// <param name="concreteType">Optional concrete type override from a cs::type attribute on the TypeRef.
     /// Used as the factory type for dictionary/sequence decoding instead of the default.</param>
     internal static string DecodeExpression(this IType type, string currentNamespace, string? concreteType = null)
@@ -28,7 +29,7 @@ internal static class ITypeExtensions
 
         static string DecodeDictionary(DictionaryType dict, string currentNamespace, string? concreteType)
         {
-            CodeBlock keyDecodeLambda = dict.KeyType.Type.GetDecodeLambda(false, currentNamespace);
+            CodeBlock keyDecodeLambda = dict.KeyType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
             CodeBlock valueDecodeLambda = dict.ValueType.Type.GetDecodeLambda(
                 dict.ValueTypeIsOptional,
                 currentNamespace,
@@ -76,18 +77,9 @@ internal static class ITypeExtensions
             if (useFixedSizePath && concreteType is null)
             {
                 string csType = elemType.ToTypeString(currentNamespace);
-                string checkElement = ((Builtin)elemType).Kind == BuiltinKind.Bool
-                    ? "checkElement: SliceDecoder.CheckBoolValue"
-                    : "";
-
-                if (string.IsNullOrEmpty(checkElement))
-                {
-                    return $"decoder.DecodeSequence<{csType}>()";
-                }
-                return $$"""
-                    decoder.DecodeSequence<{{csType}}>(
-                        {{checkElement}})
-                    """;
+                return ((Builtin)elemType).Kind == BuiltinKind.Bool ?
+                    $"decoder.DecodeSequence<{csType}>(checkElement: SliceDecoder.CheckBoolValue)" :
+                    $"decoder.DecodeSequence<{csType}>()";
             }
 
             string method = seq.ElementTypeIsOptional
@@ -122,15 +114,15 @@ internal static class ITypeExtensions
                 """;
         }
 
-        // Returns a decode lambda for a result success/failure type, handling optional inner types with an
-        // inline bool marker (decoder.DecodeBool()) rather than the bit-sequence pattern used for struct fields.
+        // Returns a decode lambda for a result success/failure type, handling optional inner types
+        // with a one bit bit-sequence.
         static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace)
         {
             IType type = typeRef.Type;
 
             if (!isOptional)
             {
-                return type.GetDecodeLambda(false, currentNamespace, withCast: true);
+                return type.GetDecodeLambda(isOptional: false, currentNamespace, withCast: true);
             }
             string csType = type.ToTypeString(currentNamespace);
             string decodeExpr = type.DecodeExpression(currentNamespace);
@@ -162,7 +154,7 @@ internal static class ITypeExtensions
             string param,
             string encoderName)
         {
-            CodeBlock keyEncodeLambda = dict.KeyType.GetEncodeLambda(false, currentNamespace);
+            CodeBlock keyEncodeLambda = dict.KeyType.GetEncodeLambda(isOptional: false, currentNamespace);
             CodeBlock valueEncodeLambda = dict.ValueType.GetEncodeLambda(dict.ValueTypeIsOptional, currentNamespace);
             string method = dict.ValueTypeIsOptional
                 ? "EncodeDictionaryWithOptionalValueType"
@@ -233,15 +225,15 @@ internal static class ITypeExtensions
             }
         }
 
-        // Returns an encode lambda for a result success/failure type, handling optional inner types with an
-        // inline bool marker (encoder.EncodeBool()) rather than the bit-sequence pattern used for struct fields.
+        // Returns an encode lambda for a result success/failure type, handling optional inner types with a
+        // one bit bit-sequence.
         static string ResultEncodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace)
         {
             IType type = typeRef.Type;
 
             if (!isOptional)
             {
-                return typeRef.GetEncodeLambda(false, currentNamespace);
+                return typeRef.GetEncodeLambda(isOptional: false, currentNamespace);
             }
             string csType = typeRef.FieldTypeString(true, currentNamespace);
             string valueParam = typeRef.IsValueType ? "value!.Value" : "value!";

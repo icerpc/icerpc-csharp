@@ -361,7 +361,7 @@ internal static class ProxyGenerator
                         currentNamespace);
                     string decodeLambda = streamReturn.DataTypeIsOptional
                         ? OperationExtensions.GetStreamOfOptionalDecodeLambda(streamReturn, currentNamespace)
-                        : streamReturn.DataType.Type.GetDecodeLambda(false, currentNamespace);
+                        : streamReturn.DataType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
 
                     if (streamReturn.DataType.FixedSize is int fixedSize && !streamReturn.DataTypeIsOptional)
                     {
