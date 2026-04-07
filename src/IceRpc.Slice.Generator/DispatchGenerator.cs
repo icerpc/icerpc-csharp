@@ -206,7 +206,7 @@ internal static class DispatchGenerator
 
             string opName = op.Name;
             ImmutableList<Field> nonStreamedReturns = op.NonStreamedReturns;
-            CodeBlock? encodeBody = nonStreamedReturns.GenerateEncodeBody(currentNamespace, useReadOnlyMemory: true);
+            CodeBlock? encodeBody = nonStreamedReturns.GenerateEncodeBody(currentNamespace);
 
             if (encodeBody is null)
             {

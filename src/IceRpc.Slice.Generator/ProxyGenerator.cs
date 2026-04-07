@@ -194,7 +194,7 @@ internal static class ProxyGenerator
             ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
             string opName = op.Name;
 
-            CodeBlock? encodeBody = nonStreamedParams.GenerateEncodeBody(currentNamespace, useReadOnlyMemory: true);
+            CodeBlock? encodeBody = nonStreamedParams.GenerateEncodeBody(currentNamespace);
 
             if (encodeBody is null)
             {

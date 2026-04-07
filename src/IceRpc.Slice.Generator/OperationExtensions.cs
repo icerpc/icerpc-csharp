@@ -163,16 +163,14 @@ internal static class OperationExtensions
         /// <summary>Generates the encode body for operation parameters. Returns null for operations with no
         /// non-streamed fields to encode.</summary>
         /// <param name="currentNamespace">The current C# namespace.</param>
-        /// <param name="useReadOnlyMemory">When true, fixed-size sequences encode via EncodeSpan (proxy
-        /// Request.Encode). When false, uses EncodeSequence (service Response.Encode).</param>
-        internal CodeBlock? GenerateEncodeBody(string currentNamespace, bool useReadOnlyMemory = false) =>
+        internal CodeBlock? GenerateEncodeBody(string currentNamespace) =>
             fields.Count == 0 ?
                 null :
                 fields.GenerateEncodeBody(
                     currentNamespace,
                     paramPrefix: "",
                     encoderName: "encoder_",
-                    useReadOnlyMemory: useReadOnlyMemory);
+                    useReadOnlyMemory: true);
 
         /// <summary>Generates a decode lambda expression for decoding operation fields (parameters or return values).
         /// For a single non-optional, non-tagged field, returns a simple lambda. Otherwise returns a block body
