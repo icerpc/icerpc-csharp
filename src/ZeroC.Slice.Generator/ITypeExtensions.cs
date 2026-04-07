@@ -21,7 +21,7 @@ internal static class ITypeExtensions
             Builtin builtin => $"decoder.Decode{builtin.Suffix}()",
             DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
             Entity e when e.UsesExtensionsClass =>
-                $"{e.ScopedExtensionsClass(currentNamespace, decoder: true)}.Decode{e.Name}(ref decoder)",
+                $"{e.ExtensionsClass(currentNamespace, decoder: true)}.Decode{e.Name}(ref decoder)",
             ResultType r => DecodeResult(r, currentNamespace),
             SequenceType seq => DecodeSequence(seq, currentNamespace, concreteType),
             _ => $"new {type.ToTypeString(currentNamespace)}(ref decoder)",
@@ -142,7 +142,7 @@ internal static class ITypeExtensions
             Builtin builtin => $"{encoderName}.Encode{builtin.Suffix}({param})",
             DictionaryType dict => EncodeDictionary(dict, currentNamespace, param, encoderName),
             Entity e when e.UsesExtensionsClass =>
-                $"{e.ScopedExtensionsClass(currentNamespace, decoder: false)}.Encode{e.Name}(ref {encoderName}, {param})",
+                $"{e.ExtensionsClass(currentNamespace, decoder: false)}.Encode{e.Name}(ref {encoderName}, {param})",
             SequenceType seq => EncodeSequence(seq, currentNamespace, param, encoderName),
             ResultType result => EncodeResult(result, currentNamespace, param, encoderName),
             _ => $"{param}.Encode(ref {encoderName})",

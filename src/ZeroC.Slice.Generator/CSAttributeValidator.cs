@@ -247,17 +247,17 @@ internal static class CsAttributeValidator
                 }
                 break;
 
-            case CSAttributes.CSPublic:
-                RequireArgs(attr, 0, diagnostics);
-                if (target is not (Target.Struct or Target.Interface or Target.BasicEnum or Target.VariantEnum))
+            case CSAttributes.CSNamespace:
+                RequireArgs(attr, 1, diagnostics);
+                if (target is not Target.Module)
                 {
                     ReportUnexpected(attr, diagnostics);
                 }
                 break;
 
-            case CSAttributes.CSNamespace:
-                RequireArgs(attr, 1, diagnostics);
-                if (target is not Target.Module)
+            case CSAttributes.CSPublic:
+                RequireArgs(attr, 0, diagnostics);
+                if (target is not (Target.Struct or Target.Interface or Target.BasicEnum or Target.VariantEnum))
                 {
                     ReportUnexpected(attr, diagnostics);
                 }

@@ -32,9 +32,9 @@ internal static class EntityExtensions
         internal string ParameterName => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr ?
             attr.Args[0] : entity.Identifier.ToCamelCase();
 
-        /// <summary>Gets the fully-qualified name of the encoder or decoder extensions class, using
-        /// <c>global::</c> prefix when the entity is in a different namespace.</summary>
-        internal string ScopedExtensionsClass(string currentNamespace, bool decoder)
+        /// <summary>Gets the name of the encoder or decoder extensions class. The returned name is fully qualified when
+        /// the entity is in a different namespace.</summary>
+        internal string ExtensionsClass(string currentNamespace, bool decoder)
         {
             string className = decoder ? entity.DecoderExtensionsClass : entity.EncoderExtensionsClass;
             return currentNamespace == entity.Namespace
