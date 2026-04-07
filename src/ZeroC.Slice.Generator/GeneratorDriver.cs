@@ -29,7 +29,7 @@ internal static class GeneratorDriver
 
         await Symbols.Generator.RunAsync(reader, writer, RunCore).ConfigureAwait(false);
 
-        GeneratorResponse RunCore(ImmutableList<SliceFile> symbolFiles)
+        GeneratorResponse RunCore(ImmutableList<SliceFile> symbolFiles, Dictionary<string, string> options)
         {
             // Validate CS attributes before generation.
             //

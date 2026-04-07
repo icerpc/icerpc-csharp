@@ -4,9 +4,11 @@
 module Compiler
 
 interface CodeGenerator {
-    generateCode(sourceFiles: Sequence<SliceFile>, referenceFiles: Sequence<SliceFile>) ->
+    generateCode(sourceFiles: Sequence<SliceFile>, referenceFiles: Sequence<SliceFile>, args: Arguments) ->
         (generatedFiles: Sequence<GeneratedFile>, diagnostics: Sequence<Diagnostic>)
 }
+
+typealias Arguments = Dictionary<string, string>
 
 struct SliceFile {
     path: string

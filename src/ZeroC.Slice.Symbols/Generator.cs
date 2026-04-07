@@ -15,12 +15,12 @@ public static class Generator
     /// response to <paramref name="output"/>.</summary>
     /// <param name="input">The pipe reader to read the Slice-encoded request from.</param>
     /// <param name="output">The pipe writer to write the Slice-encoded response to.</param>
-    /// <param name="transform">A function that receives the converted source files and returns the generator
-    /// response.</param>
+    /// <param name="transform">A function that receives the converted source files and the options dictionary, and
+    /// returns the generator response.</param>
     public static async Task RunAsync(
         PipeReader input,
         PipeWriter output,
-        Func<ImmutableList<SliceFile>, GeneratorResponse> transform)
+        Func<ImmutableList<SliceFile>, Dictionary<string, string>, GeneratorResponse> transform)
     {
         // Read all data from input.
         ReadResult readResult;
@@ -43,6 +43,11 @@ public static class Generator
         Compiler.SliceFile[] referenceFiles =
             decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
 
+        Dictionary<string, string> options = decoder.DecodeDictionary(
+            count => new Dictionary<string, string>(count),
+            (ref decoder) => decoder.DecodeString(),
+            (ref decoder) => decoder.DecodeString());
+
         input.AdvanceTo(readResult.Buffer.End);
         input.Complete();
 
@@ -50,17 +55,17 @@ public static class Generator
         ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
         // Invoke the transform.
-        GeneratorResponse response = transform(symbolFiles);
+        GeneratorResponse response = transform(symbolFiles, options);
 
         // Convert public types to internal compiler types and encode the response.
         var encoder = new SliceEncoder(output);
         encoder.EncodeSequence(
             response.GeneratedFiles,
-            (ref SliceEncoder encoder, GeneratedFile file) =>
+            (ref encoder, file) =>
                 new Compiler.GeneratedFile(file.Path, file.Contents).Encode(ref encoder));
         encoder.EncodeSequence(
             response.Diagnostics,
-            (ref SliceEncoder encoder, Diagnostic diagnostic) =>
+            (ref encoder, diagnostic) =>
                 new Compiler.Diagnostic(
                     (Compiler.DiagnosticLevel)(byte)diagnostic.Level,
                     diagnostic.Message,
