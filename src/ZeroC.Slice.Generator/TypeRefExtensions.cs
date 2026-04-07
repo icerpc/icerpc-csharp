@@ -13,7 +13,7 @@ internal static class TypeRefExtensions
     internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace)
     {
         if (typeRef.Type is DictionaryType or SequenceType
-            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } csTypeAttr)
+            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr)
         {
             return typeRef.Type.DecodeExpression(currentNamespace, concreteType: csTypeAttr.Args[0]);
         }
@@ -60,11 +60,11 @@ internal static class TypeRefExtensions
     {
         string baseType = typeRef.Type switch
         {
-            SequenceType seq when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } attr =>
+            SequenceType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
                 attr.Args[0],
             SequenceType seq =>
                 $"{seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[]",
-            DictionaryType dict when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } attr =>
+            DictionaryType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
                 attr.Args[0],
             DictionaryType dict =>
                 $"global::System.Collections.Generic.Dictionary<{dict.KeyType.FieldTypeString(false, currentNamespace)}, {dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace)}>",

@@ -77,22 +77,21 @@ internal static class OperationExtensions
             {
                 // Other streams: use ToPipeReader with encode lambda
                 string encodeLambda;
-                bool containsOptionals;
+                bool useSegments;
                 if (streamParam.DataTypeIsOptional)
                 {
-                    // Optional stream elements need inline bool markers
-                    encodeLambda = GetStreamEncodeLambda(streamParam, currentNamespace);
-                    containsOptionals = true;
+                    encodeLambda = GetStreamOfOptionalEncodeLambda(streamParam, currentNamespace);
+                    useSegments = true;
                 }
                 else
                 {
                     encodeLambda = streamParam.DataType.GetEncodeLambda(false, currentNamespace);
-                    containsOptionals = streamParam.DataType.FixedSize is null;
+                    useSegments = streamParam.DataType.FixedSize is null;
                 }
                 fn.SetBody($$"""
                     {{streamParam.ParameterName}}.ToPipeReader(
                         {{encodeLambda}},
-                        {{(containsOptionals ? "true" : "false")}},
+                        {{(useSegments ? "true" : "false")}},
                         encodeOptions)
                     """);
             }
@@ -304,8 +303,8 @@ internal static class OperationExtensions
         return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
     }
 
-    /// <summary>Returns an encode lambda for an optional stream element with inline bool markers.</summary>
-    internal static string GetStreamEncodeLambda(Field streamField, string currentNamespace)
+    /// <summary>Returns an encode lambda for an optional stream element with a one bit bit-sequence.</summary>
+    internal static string GetStreamOfOptionalEncodeLambda(Field streamField, string currentNamespace)
     {
         IType elemType = streamField.DataType.Type;
         string csType = streamField.DataType.FieldTypeString(true, currentNamespace);
@@ -323,8 +322,8 @@ internal static class OperationExtensions
             """;
     }
 
-    /// <summary>Returns a decode lambda for an optional stream element with inline bool markers.</summary>
-    internal static string GetStreamDecodeLambda(Field streamField, string currentNamespace)
+    /// <summary>Returns a decode lambda for an optional stream element with a one bit bit-sequence.</summary>
+    internal static string GetStreamOfOptionalDecodeLambda(Field streamField, string currentNamespace)
     {
         IType elemType = streamField.DataType.Type;
         string csType = elemType.ToTypeString(currentNamespace);

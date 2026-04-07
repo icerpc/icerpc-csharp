@@ -76,7 +76,7 @@ internal static class DispatchGenerator
             if (streamParam is null)
             {
                 // Non-streaming: expression body
-                var decodeBuilder = new FunctionBuilder(
+                FunctionBuilder decodeBuilder = new FunctionBuilder(
                     "public static",
                     returnType,
                     $"Decode{opName}Async",
@@ -101,7 +101,6 @@ internal static class DispatchGenerator
                             cancellationToken)
                         """));
                 }
-
                 request.AddBlock(decodeBuilder.Build());
             }
             else
@@ -147,9 +146,11 @@ internal static class DispatchGenerator
                 else
                 {
                     body.WriteLine("var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(request);");
-                    string streamElemType = streamParam.DataType.FieldTypeString(streamParam.DataTypeIsOptional, currentNamespace);
+                    string streamElemType = streamParam.DataType.FieldTypeString(
+                        streamParam.DataTypeIsOptional,
+                        currentNamespace);
                     string decodeLambda = streamParam.DataTypeIsOptional
-                        ? OperationExtensions.GetStreamDecodeLambda(streamParam, currentNamespace)
+                        ? OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace)
                         : streamParam.DataType.Type.GetDecodeLambda(false, currentNamespace);
 
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
@@ -310,8 +311,8 @@ internal static class DispatchGenerator
             attrParts.Add("EncodedReturn = true");
         }
         // Check for [compress(Return)] attribute
-        if (op.Attributes.FindAttribute("compress") is { } compressAttr
-            && compressAttr.Args.Any(a => a == "Return"))
+        if (op.Attributes.FindAttribute("compress") is ZeroC.Slice.Symbols.Attribute compressAttr &&
+            compressAttr.Args.Any(a => a == "Return"))
         {
             attrParts.Add("CompressReturn = true");
         }

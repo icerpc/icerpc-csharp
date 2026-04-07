@@ -360,7 +360,7 @@ internal static class ProxyGenerator
                         streamReturn.DataTypeIsOptional,
                         currentNamespace);
                     string decodeLambda = streamReturn.DataTypeIsOptional
-                        ? OperationExtensions.GetStreamDecodeLambda(streamReturn, currentNamespace)
+                        ? OperationExtensions.GetStreamOfOptionalDecodeLambda(streamReturn, currentNamespace)
                         : streamReturn.DataType.Type.GetDecodeLambda(false, currentNamespace);
 
                     if (streamReturn.DataType.FixedSize is int fixedSize && !streamReturn.DataTypeIsOptional)
@@ -409,7 +409,7 @@ internal static class ProxyGenerator
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
         Field? streamParam = op.StreamedParameter;
 
-        bool compressArgs = op.Attributes.FindAttribute("compress") is { } compressAttr
+        bool compressArgs = op.Attributes.FindAttribute("compress") is ZeroC.Slice.Symbols.Attribute compressAttr
             && compressAttr.Args.Any(a => a == "Args");
 
         FunctionBuilder builder = new FunctionBuilder(

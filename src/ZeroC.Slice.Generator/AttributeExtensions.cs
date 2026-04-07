@@ -17,10 +17,13 @@ internal static class AttributeExtensions
         internal bool IsDeprecated => attributes.Any(a => a.Directive == "deprecated");
 
         /// <summary>Gets the deprecation message, or null if not deprecated or no message provided.</summary>
-        internal string? DeprecatedMessage =>
-            attributes.FirstOrDefault(a => a.Directive == "deprecated") is { Directive: not null } attr
-                && attr.Args.Count > 0
-                ? attr.Args[0]
-                : null;
+        internal string? DeprecatedMessage
+        {
+            get
+            {
+                Attribute deprecated = attributes.FirstOrDefault(a => a.Directive == "deprecated");
+                return deprecated != default && deprecated.Args.Count > 0 ? deprecated.Args[0] : null;
+            }
+        }
     }
 }

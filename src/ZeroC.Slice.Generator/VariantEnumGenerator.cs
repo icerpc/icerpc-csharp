@@ -234,7 +234,7 @@ internal static class VariantEnumGenerator
             body.WriteLine(
                 $$"""
                       int value => throw new global::System.IO.InvalidDataException(
-                          $"Received invalid discriminant value '{value}' for {{identifier}}.")
+                          $"Received invalid discriminant value '{value}' for {{scopedId}}.")
                   """);
         }
         body.WriteLine("};");
