@@ -25,6 +25,7 @@ build.cmd -help
     - [Visual Studio Code](#visual-studio-code)
   - [Running the tests](#running-the-tests)
   - [Creating and publishing NuGet packages](#creating-and-publishing-nuget-packages)
+    - [Slice tools](#slice-tools)
   - [Generating the API reference](#generating-the-api-reference)
   - [Generating the code coverage reports](#generating-the-code-coverage-reports)
   - [Updating Slice files](#updating-slice-files)
