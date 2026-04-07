@@ -3,6 +3,12 @@
 using ZeroC.Slice.Generator;
 using ZeroC.Slice.Symbols;
 
+if (args.Length > 0)
+{
+    Console.Error.WriteLine("ZeroC.Slice.Generator does not accept any command-line arguments.");
+    return 1;
+}
+
 await GeneratorDriver.RunAsync(
     generateCode: (symbol, currentNamespace) => symbol switch
     {

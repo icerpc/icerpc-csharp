@@ -7,5 +7,5 @@ set -ue
 # executed from a symlink.
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# We forward the arguments to ZeroC.Slice.Generator, even though it currently ignores all arguments.
+# We forward the arguments to ZeroC.Slice.Generator, even though it currently rejects all arguments.
 dotnet ZeroC.Slice.Generator.dll -- "$@"
