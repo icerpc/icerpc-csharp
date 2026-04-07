@@ -17,3 +17,5 @@ await GeneratorDriver.RunAsync(
         : null,
     mapOutputPath: path => Path.ChangeExtension(Path.GetFileName(path), ".IceRpc.cs"),
     usings: ["IceRpc.Slice", "IceRpc.Slice.Operations", "ZeroC.Slice.Codec"]).ConfigureAwait(false);
+
+return 0;

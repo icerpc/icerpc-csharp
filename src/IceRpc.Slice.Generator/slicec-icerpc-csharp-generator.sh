@@ -7,5 +7,4 @@ set -ue
 # executed from a symlink.
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# We forward the arguments to IceRpc.Slice.Generator, even though it currently rejects all arguments.
-dotnet IceRpc.Slice.Generator.dll -- "$@"
+dotnet IceRpc.Slice.Generator.dll

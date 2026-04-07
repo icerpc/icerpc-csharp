@@ -59,12 +59,12 @@
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
-        <Generators>%(Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>%(GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+        <Generators>%(_SliceFile.Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
       </_SliceFile>
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
-        <Generators>%(Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>%(GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
     </ItemGroup>
   </Target>
