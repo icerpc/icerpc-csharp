@@ -1,7 +1,0 @@
-// Copyright (c) ZeroC, Inc.
-
-module IceRpc::Slice::Generator::Tests
-
-interface NamespaceOperations {
-    op1(p: WithNamespace::S1) -> WithNamespace::S1
-}
