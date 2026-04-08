@@ -234,22 +234,8 @@ internal static class CsAttributeValidator
 
             case CSAttributes.CSIdentifier:
                 RequireArgs(attr, 1, diagnostics);
-                if (target is Target.Module)
-                {
-                    diagnostics.Add(Error(
-                        $"Unexpected attribute '{attr.Directive}' on module. " +
-                        $"To map a module to a different C# namespace, use '{CSAttributes.CSNamespace}' instead."));
-                }
-                else if (target is Target.File or Target.TypeAlias or Target.TypeRef
+                if (target is Target.File or Target.TypeAlias or Target.TypeRef
                     or Target.TypeRefSequence or Target.TypeRefDictionary)
-                {
-                    ReportUnexpected(attr, diagnostics);
-                }
-                break;
-
-            case CSAttributes.CSNamespace:
-                RequireArgs(attr, 1, diagnostics);
-                if (target is not Target.Module)
                 {
                     ReportUnexpected(attr, diagnostics);
                 }

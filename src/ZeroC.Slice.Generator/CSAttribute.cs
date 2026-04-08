@@ -14,9 +14,6 @@ internal static class CSAttributes
     /// <summary>The directive for the <c>cs::identifier</c> attribute.</summary>
     internal const string CSIdentifier = "cs::identifier";
 
-    /// <summary>The directive for the <c>cs::namespace</c> attribute.</summary>
-    internal const string CSNamespace = "cs::namespace";
-
     /// <summary>The directive for the <c>cs::public</c> attribute.</summary>
     internal const string CSPublic = "cs::public";
 

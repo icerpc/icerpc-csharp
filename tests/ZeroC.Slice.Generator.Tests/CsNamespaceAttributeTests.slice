@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.Generator.Tests.CustomNamespace.MyNamespace")]
+[cs::identifier("ZeroC.Slice.Generator.Tests.CustomNamespace.MyNamespace")]
 module MyNamespace
 
 struct S1 {

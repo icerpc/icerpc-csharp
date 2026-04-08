@@ -10,7 +10,7 @@ namespace IceRpc.Slice.Generator.Tests;
 public partial class NamespaceAttributeTests
 {
     [Test]
-    public async Task Operation_with_types_using_cs_namespace_attribute()
+    public async Task Operation_with_types_using_cs_identifier_attribute()
     {
         // Arrange
         var invoker = new ColocInvoker(new NamespaceOperationsService());

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.Codec")]
+[cs::identifier("ZeroC.Slice.Codec")]
 module WellKnownTypes
 
 /// Represents a specific point in time, encoded as an int64.
