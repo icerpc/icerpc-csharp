@@ -11,7 +11,7 @@ namespace IceRpc.Slice.Tools;
 
 /// <summary>An MSBuild task to compile Slice files using the <c>slicec</c> compiler with configured generator
 /// plugins.</summary>
-public class SliceCTask : ToolTask
+public class SlicecTask : ToolTask
 {
     /// <summary>Additional options to pass to the <c>slicec</c> compiler.</summary>
     public string[] AdditionalOptions { get; set; } = [];
