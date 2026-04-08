@@ -82,6 +82,14 @@
       Sources="@(_SliceFile)"
     />
 
+    <!--
+      Include all C# generated source items that have not been already included. We delay this until we are
+      running the SliceC target so that default includes are already processed.
+
+      The Exclude is required to avoid including generated files twice for projects that have EnableDefaultItems,
+      when the generated files already exists and match the default includes patterns, or for projects that
+      manually included the generated files as Compile items.
+    -->
     <ItemGroup>
       <Compile
         Include="%(_SliceFile.GeneratedPath)"
