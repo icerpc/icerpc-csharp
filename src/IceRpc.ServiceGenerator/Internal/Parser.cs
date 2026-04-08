@@ -86,9 +86,10 @@ internal sealed class Parser
                 // Suppress duplicates, if any.
                 serviceMethods = serviceMethods.Distinct();
 
+                string containingNamespace = classSymbol.ContainingNamespace.GetFullName();
                 var serviceClass = new ServiceClass(
                     classSymbol.Name,
-                    classSymbol.ContainingNamespace.GetFullName(),
+                    containingNamespace.Length > 0 ? containingNamespace : null,
                     classDeclaration.Keyword.ValueText,
                     serviceMethods.ToList(),
                     hasBaseServiceClass: baseServiceClass is not null,
