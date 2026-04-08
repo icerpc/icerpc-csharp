@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace ZeroC.Slice.Generator.Tests.CustomNamespace.MyNamespace;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class CsNamespaceAttributeTests
+public class NamespaceMappingTests
 {
     [Test]
     public void Slice_module_using_cs_identifier_attribute() =>
