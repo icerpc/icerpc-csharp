@@ -10,7 +10,7 @@ namespace IceRpc.Slice.Generator.Tests;
 public partial class ModuleIdentifierTests
 {
     [Test]
-    public async Task Operation_with_types_using_cs_identifier_attribute()
+    public async Task Operation_with_types_from_module_with_cs_identifier()
     {
         // Arrange
         var invoker = new ColocInvoker(new IdentifierOperationsService());
