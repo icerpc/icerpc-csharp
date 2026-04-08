@@ -3,7 +3,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- Import Tasks -->
   <UsingTask
-    TaskName="IceRpc.Slice.Tools.SliceCTask"
+    TaskName="IceRpc.Slice.Tools.SlicecTask"
     TaskFactory="$(_IceRpcSliceToolsTaskFactory)"
     AssemblyFile="$(_IceRpcSliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
@@ -69,10 +69,10 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="SliceC" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+  <Target Name="Slicec" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(_SliceFile.OutputDir)" />
 
-    <SliceCTask
+    <SlicecTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="%(_SliceFile.OutputDir)"
       References="@(SliceDirectory->'%(FullPath)')"
@@ -84,7 +84,7 @@
 
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
-      running the SliceC target so that default includes are already processed.
+      running the Slicec target so that default includes are already processed.
 
       The Exclude is required to avoid including generated files twice for projects that have EnableDefaultItems,
       when the generated files already exists and match the default includes patterns, or for projects that
@@ -99,7 +99,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="SliceCClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
+  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
     <Delete Files="%(_SliceFile.GeneratedPath)" />
   </Target>
 
