@@ -29,5 +29,18 @@ internal static class CodeBlockExtensions
                 code.WriteLine($"[{attr.Args[0]}]");
             }
         }
+
+        /// <summary>Writes the <c>[Obsolete]</c> attribute if the entity has the <c>deprecated</c> Slice
+        /// attribute.</summary>
+        internal void WriteDeprecatedAttribute(IList<Attribute> attributes)
+        {
+            if (attributes.IsDeprecated)
+            {
+                string? message = attributes.DeprecatedMessage;
+                code.WriteLine(message is not null
+                    ? $"[global::System.Obsolete(\"{message}\")]"
+                    : "[global::System.Obsolete]");
+            }
+        }
     }
 }

@@ -28,10 +28,14 @@ internal static class StructGenerator
                 "remarks",
                 $"The Slice compiler generated this record struct from the Slice struct <c>{scopedId}</c>.")
             .AddDocCommentSeeAlso(structDef.Comment, currentNamespace)
+            .AddDeprecatedAttribute(structDef.Attributes)
             .AddBlock(CodeBlock.FromBlocks(
                 structDef.Fields.Select(
                     f => FieldDeclaration(f, currentNamespace, accessModifier, isReadonly))))
-            .AddBlock(GenerateMainConstructor(structDef, currentNamespace, identifier, accessModifier))
+            // Don't generate a parameterless constructor — the implicit public one is sufficient.
+            .AddBlock(structDef.Fields.Count > 0
+                ? GenerateMainConstructor(structDef, currentNamespace, identifier, accessModifier)
+                : new CodeBlock())
             .AddBlock(GenerateDecodeConstructor(structDef, currentNamespace, identifier, accessModifier))
             .AddBlock(GenerateEncodeMethod(structDef, currentNamespace, accessModifier))
             .Build();
@@ -138,6 +142,7 @@ internal static class StructGenerator
 
         // cs::attribute
         code.WriteCSAttributes(field.Attributes);
+        code.WriteDeprecatedAttribute(field.Attributes);
 
         string typeString = field.DataType.FieldTypeString(field.DataTypeIsOptional, currentNamespace);
         string fieldName = field.Name;

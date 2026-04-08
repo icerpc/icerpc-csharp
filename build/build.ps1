@@ -21,24 +21,11 @@ if ($version) {
 }
 
 function Build($config) {
-    Push-Location "tools\slicec-cs"
-    $arguments = @('build')
-    if ($config -eq 'release') {
-        $arguments += '--release'
-    }
-    RunCommand 'cargo' $arguments
-    Pop-Location
-
     $dotnetConfiguration = DotnetConfiguration($config)
-
     RunCommand "dotnet" @('build', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function Clean($config) {
-    Push-Location "tools\slicec-cs"
-    RunCommand "cargo" "clean"
-    Pop-Location
-
     $dotnetConfiguration = DotnetConfiguration($config)
 
     RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)
@@ -68,7 +55,7 @@ function Get-Help() {
     Write-Host "Usage: build [actions] [arguments]"
     Write-Host ""
     Write-Host "Actions (defaults to -build):"
-    Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
+    Write-Host "  -build                    Build the IceRPC assemblies."
     Write-Host "  -publish                  Creates and publishes the IceRPC NuGet packages to the local global-packages source."
     Write-Host "  -clean                    Clean all build artifacts."
     Write-Host "  -coverage                 Generate code coverage report from the tests runs."

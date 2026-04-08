@@ -23,14 +23,34 @@ internal static class FieldExtensions
     /// <param name="currentNamespace">The current C# namespace.</param>
     /// <param name="paramPrefix">Prefix for the parameter name ("this." for struct fields, "" for operation params).</param>
     /// <param name="encoderName">The name of the encoder variable in the generated code.</param>
+    /// <param name="useReadOnlyMemory">When true, generates ReadOnlyMemory/EncodeSpan encoding for fixed-size
+    /// sequences.</param>
     internal static string EncodeTaggedField(
         this Field field,
         string currentNamespace,
         string paramPrefix = "this.",
-        string encoderName = "encoder")
+        string encoderName = "encoder",
+        bool useReadOnlyMemory = false)
     {
-        string param = $"{paramPrefix}{field.Name}";
+        bool isOperationParam = paramPrefix.Length == 0;
+        string param = isOperationParam ? field.ParameterName : $"{paramPrefix}{field.Name}";
         int tag = field.Tag!.Value;
+
+        // ReadOnlyMemory<T> outgoing params need special handling: .Span null check,
+        // .Length for size, and EncodeSpan in the lambda.
+        if (useReadOnlyMemory && field.IsReadOnlyMemoryParam)
+        {
+            string romType = field.DataType.OutgoingParameterTypeString(false, currentNamespace);
+            int elemSize = ((SequenceType)field.DataType.Type).ElementType.FixedSize!.Value;
+            string sizeExpr = $"SliceEncoder.GetSizeLength({param}.Length) + {elemSize} * {param}.Length";
+            return new CodeBlock(
+                $$"""
+                if ({{param}}.Span != default)
+                {
+                    {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{param}}, (ref SliceEncoder encoder, {{romType}} value) => encoder.EncodeSpan(value.Span));
+                }
+                """).ToString();
+        }
 
         string csType = field.DataType.FieldTypeString(false, currentNamespace);
         string varName = $"{field.ParameterName}_";
@@ -51,7 +71,7 @@ internal static class FieldExtensions
         }
         else if (GetCollectionElementSize(field.DataType.Type) is int elemSize)
         {
-            string sizeExpr = $"{encoderName}.GetSizeLength(count_) + {elemSize} * count_";
+            string sizeExpr = $"SliceEncoder.GetSizeLength(count_) + {elemSize} * count_";
             return new CodeBlock(
                 $$"""
                 if ({{param}} is {{csType}} {{varName}})
@@ -89,18 +109,35 @@ internal static class FieldExtensions
         fields.Count(f => !f.IsTagged && f.DataTypeIsOptional);
 
     /// <summary>Gets the full decode expression for a field, handling tagged, optional, and regular fields.</summary>
-    internal static string GetFieldDecodeExpression(this Field field, string currentNamespace)
+    /// <param name="field">The field to decode.</param>
+    /// <param name="currentNamespace">The current C# namespace.</param>
+    /// <param name="useIncomingType">When true, uses IncomingParameterTypeString for casts (arrays for sequences).
+    /// When false, uses FieldTypeString (IList for sequences). Use true for operation decode, false for struct
+    /// decode.</param>
+    internal static string GetFieldDecodeExpression(
+        this Field field,
+        string currentNamespace,
+        bool useIncomingType = false)
     {
         if (field.IsTagged)
         {
             int tag = field.Tag!.Value;
             string decodeExpr = field.DataType.DecodeExpression(currentNamespace);
-            string csType = field.DataType.FieldTypeString(false, currentNamespace);
+            string csType = useIncomingType
+                ? field.DataType.IncomingParameterTypeString(false, currentNamespace)
+                : field.DataType.FieldTypeString(false, currentNamespace);
             return $"decoder.DecodeTagged({tag}, (ref SliceDecoder decoder) => ({csType}?){decodeExpr})";
         }
         else if (field.DataTypeIsOptional)
         {
             string decodeExpr = field.DecodeField(currentNamespace);
+            if (field.DataType.IsValueType)
+            {
+                string csType = useIncomingType
+                    ? field.DataType.IncomingParameterTypeString(false, currentNamespace)
+                    : field.DataType.FieldTypeString(false, currentNamespace);
+                return $"bitSequenceReader.Read() ? ({csType}?){decodeExpr} : null";
+            }
             return $"bitSequenceReader.Read() ? {decodeExpr} : null";
         }
         else
@@ -126,12 +163,16 @@ internal static class FieldExtensions
     /// <param name="paramPrefix">Prefix for field access ("this." for struct/enum fields, "" for operation params).</param>
     /// <param name="includeTagEndMarker">Whether to append the Slice tag end marker.</param>
     /// <param name="encoderName">The name of the encoder variable in the generated code.</param>
+    /// <param name="useReadOnlyMemory">When true, fixed-size sequence params use ReadOnlyMemory/EncodeSpan encoding
+    /// (for proxy Request.Encode). When false, uses standard IList/EncodeSequence (for struct fields and service
+    /// Response.Encode).</param>
     internal static CodeBlock GenerateEncodeBody(
         this ImmutableList<Field> fields,
         string currentNamespace,
         string paramPrefix = "this.",
         bool includeTagEndMarker = true,
-        string encoderName = "encoder")
+        string encoderName = "encoder",
+        bool useReadOnlyMemory = false)
     {
         IReadOnlyList<Field> sortedFields = fields.GetSortedFields();
         var body = new CodeBlock();
@@ -142,30 +183,57 @@ internal static class FieldExtensions
             body.WriteLine($"var bitSequenceWriter = {encoderName}.GetBitSequenceWriter({bitSequenceSize});");
         }
 
+        bool isOperationParam = paramPrefix.Length == 0;
+
         foreach (Field field in sortedFields)
         {
-            string param = $"{paramPrefix}{field.Name}";
+            string param = isOperationParam ? field.ParameterName : $"{paramPrefix}{field.Name}";
+            bool isReadOnlyMemory = useReadOnlyMemory && field.IsReadOnlyMemoryParam;
 
             if (field.IsTagged)
             {
-                body.WriteLine(field.EncodeTaggedField(currentNamespace, paramPrefix, encoderName));
+                body.WriteLine(field.EncodeTaggedField(currentNamespace, paramPrefix, encoderName, useReadOnlyMemory));
             }
             else if (field.DataTypeIsOptional)
             {
-                string valueParam = field.DataType.IsValueType ? $"{param}.Value" : param;
-                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam, encoderName);
-                body.WriteLine($$"""
-                    bitSequenceWriter.Write({{param}} != null);
-                    if ({{param}} != null)
-                    {
-                        {{encodeExpr.Indent()}};
-                    }
-                    """);
+                // ReadOnlyMemory<T> is a value type: use .Span != default for the null check
+                // and EncodeSpan for the encode.
+                if (isReadOnlyMemory)
+                {
+                    body.WriteLine($$"""
+                        bitSequenceWriter.Write({{param}}.Span != default);
+                        if ({{param}}.Span != default)
+                        {
+                            {{encoderName}}.EncodeSpan({{param}}.Span);
+                        }
+                        """);
+                }
+                else
+                {
+                    string valueParam = field.DataType.Type is CustomType
+                        ? $"({param} ?? default!)"
+                        : field.DataType.IsValueType ? $"{param}.Value" : param;
+                    CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam, encoderName);
+                    body.WriteLine($$"""
+                        bitSequenceWriter.Write({{param}} != null);
+                        if ({{param}} != null)
+                        {
+                            {{encodeExpr.Indent()}};
+                        }
+                        """);
+                }
             }
             else
             {
-                CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, param, encoderName);
-                body.WriteLine($"{encodeExpr};");
+                if (isReadOnlyMemory)
+                {
+                    body.WriteLine($"{encoderName}.EncodeSpan({param}.Span);");
+                }
+                else
+                {
+                    CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, param, encoderName);
+                    body.WriteLine($"{encodeExpr};");
+                }
             }
         }
 
@@ -185,6 +253,14 @@ internal static class FieldExtensions
 
         /// <summary>Gets a value indicating whether this field has the cs::readonly attribute.</summary>
         internal bool IsReadonly => value.Attributes.HasAttribute(CSAttributes.CSReadonly);
+
+        /// <summary>Gets a value indicating whether this field maps to <c>ReadOnlyMemory&lt;T&gt;</c> for outgoing
+        /// parameters (fixed-size primitive sequences without cs::type).</summary>
+        internal bool IsReadOnlyMemoryParam =>
+            value.DataType.Type is SequenceType seq
+            && !value.DataType.Attributes.HasAttribute(CSAttributes.CSType)
+            && !seq.ElementTypeIsOptional
+            && seq.ElementType.FixedSize is not null;
 
         /// <summary>Gets a value indicating whether this field should have the C# 'required' keyword
         /// (non-optional reference type).</summary>

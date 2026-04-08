@@ -38,4 +38,9 @@ internal static class BuilderExtensions
         }
         return builder;
     }
+
+    /// <summary>Adds the <c>[Obsolete]</c> attribute if the entity has the <c>deprecated</c> Slice attribute.</summary>
+    internal static T AddDeprecatedAttribute<T>(this T builder, IList<Attribute> attributes)
+        where T : IAttributeBuilder<T> =>
+        builder.AddObsoleteAttribute(condition: attributes.IsDeprecated, message: attributes.DeprecatedMessage);
 }

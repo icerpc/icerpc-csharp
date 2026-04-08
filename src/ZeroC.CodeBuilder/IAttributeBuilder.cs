@@ -28,7 +28,16 @@ public static class AttributeBuilderExtensions
     /// <typeparam name="T">The concrete builder type for fluent chaining.</typeparam>
     /// <param name="builder">The builder instance.</param>
     /// <param name="condition">Whether to add the Obsolete attribute.</param>
+    /// <param name="message">An optional deprecation message.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public static T AddObsoleteAttribute<T>(this T builder, bool condition = true) where T : IAttributeBuilder<T> =>
-        condition ? builder.AddAttribute("global::System.Obsolete") : builder;
+    public static T AddObsoleteAttribute<T>(
+        this T builder,
+        bool condition = true,
+        string? message = null) where T : IAttributeBuilder<T> =>
+        condition
+            ? builder.AddAttribute(
+                message is not null
+                    ? $"global::System.Obsolete(\"{message}\")"
+                    : "global::System.Obsolete")
+            : builder;
 }

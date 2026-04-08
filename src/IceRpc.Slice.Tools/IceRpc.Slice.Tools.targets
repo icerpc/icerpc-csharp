@@ -3,14 +3,17 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- Import Tasks -->
   <UsingTask
-    TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
-    TaskFactory="$(SliceToolsTaskFactory)"
-    AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
+    TaskName="IceRpc.Slice.Tools.SliceCTask"
+    TaskFactory="$(_IceRpcSliceToolsTaskFactory)"
+    AssemblyFile="$(_IceRpcSliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />
-  <ItemGroup Condition="'$(SliceToolsSourceBuild)' == 'true'">
+  <ItemGroup Condition="'$(_IceRpcSliceToolsSourceBuild)' == 'true'">
     <!-- Add a reference to the Tools project to ensure it's built before we use its tasks-->
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
+    <!-- Add references to the generator projects to ensure they're built before we use them -->
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
@@ -52,53 +55,52 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
-    <MakeDir Directories="%(SliceFile.OutputDir)" />
-    <!-- Compile the Slice files -->
-    <SliceCCSharpTask
+  <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+    <ItemGroup>
+      <_SliceFile Include="@(SliceFile)" />
+      <_SliceFile>
+        <Generators>%(_SliceFile.Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+      </_SliceFile>
+      <_SliceFile Condition="'%(IceRpc)' == 'true'">
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
+      </_SliceFile>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="SliceC" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+    <MakeDir Directories="%(_SliceFile.OutputDir)" />
+
+    <SliceCTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      OutputDir="%(SliceFile.OutputDir)"
+      OutputDir="%(_SliceFile.OutputDir)"
       References="@(SliceDirectory->'%(FullPath)')"
-      ToolsPath="$(SliceCompilerPath)"
-      Rpc="%(SliceFile.Rpc)"
-      AdditionalOptions="%(SliceFile.AdditionalOptions)"
-      Sources="@(SliceFile)"
+      ToolsPath="$(_SliceCPath)"
+      Generators="%(_SliceFile.Generators)"
+      AdditionalOptions="%(_SliceFile.AdditionalOptions)"
+      Sources="@(_SliceFile)"
     />
 
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
       running the SliceC target so that default includes are already processed.
+
+      The Exclude is required to avoid including generated files twice for projects that have EnableDefaultItems,
+      when the generated files already exists and match the default includes patterns, or for projects that
+      manually included the generated files as Compile items.
     -->
     <ItemGroup>
-      <SliceFile>
-        <!--
-          Add GeneratedPath and IceRpcGeneratedPath metadata with the normalized path, this is required for
-          excludes below to work with different path separators.
-        -->
-        <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
-        <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
-      </SliceFile>
-      <!--
-        Create a Compile item for each SliceFile item, representing the generated C# files.
-        Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
-      -->
       <Compile
-        Include="@(SliceFile->'%(GeneratedPath)')"
+        Include="%(_SliceFile.GeneratedPath)"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
-      />
-
-      <Compile
-        Condition="'%(SliceFile.Rpc)' == 'icerpc'"
-        Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
-        Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
+        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;Generators;PackagePath;Pack"
       />
     </ItemGroup>
   </Target>
 
-  <Target Name="SliceCClean" BeforeTargets="Clean">
-    <Delete Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')" />
+  <Target Name="SliceCClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
+    <Delete Files="%(_SliceFile.GeneratedPath)" />
   </Target>
 
   <!-- Package SliceFile items -->

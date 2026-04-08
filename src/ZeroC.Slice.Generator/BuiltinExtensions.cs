@@ -37,5 +37,13 @@ internal static class BuiltinExtensions
 
         /// <summary>The encoder/decoder method suffix for this built-in (e.g. "Int32", "String").</summary>
         internal string Suffix => builtin.Kind.ToString();
+
+        /// <summary>Whether this built-in has a fixed wire size (i.e. can be memcpy'd in sequences).</summary>
+        internal bool IsFixedSize => builtin.Kind is not (
+            BuiltinKind.String or
+            BuiltinKind.VarInt32 or
+            BuiltinKind.VarUInt32 or
+            BuiltinKind.VarInt62 or
+            BuiltinKind.VarUInt62);
     }
 }

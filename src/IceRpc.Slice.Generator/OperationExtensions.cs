@@ -76,10 +76,18 @@ internal static class OperationExtensions
             else
             {
                 // Other streams: use ToPipeReader with encode lambda
-                string encodeLambda = streamParam.DataType.GetEncodeLambda(
-                    streamParam.DataTypeIsOptional,
-                    currentNamespace);
-                bool useSegments = streamParam.DataType.FixedSize is null;
+                string encodeLambda;
+                bool useSegments;
+                if (streamParam.DataTypeIsOptional)
+                {
+                    encodeLambda = GetStreamOfOptionalEncodeLambda(streamParam, currentNamespace);
+                    useSegments = true;
+                }
+                else
+                {
+                    encodeLambda = streamParam.DataType.GetEncodeLambda(false, currentNamespace);
+                    useSegments = streamParam.DataType.FixedSize is null;
+                }
                 fn.SetBody($$"""
                     {{streamParam.ParameterName}}.ToPipeReader(
                         {{encodeLambda}},
@@ -94,12 +102,26 @@ internal static class OperationExtensions
         /// <summary>Returns the C# return type for an operation (Task, Task&lt;T&gt;, or Task&lt;tuple&gt;).
         /// Stream returns are included in the tuple with their stream type.</summary>
         internal string GetClientReturnType(string currentNamespace) =>
-            BuildReturnType("global::System.Threading.Tasks.Task", op, currentNamespace, fieldType: true);
+            BuildReturnType("global::System.Threading.Tasks.Task", op, currentNamespace, fieldType: false);
 
-        /// <summary>Returns the C# return type for a service operation (ValueTask, ValueTask&lt;T&gt;, or
-        /// ValueTask&lt;tuple&gt;). Stream returns are included with their outgoing stream type.</summary>
-        internal string GetServiceReturnType(string currentNamespace) =>
-            BuildReturnType("global::System.Threading.Tasks.ValueTask", op, currentNamespace, fieldType: true);
+        /// <summary>Returns the C# return type for a service operation. For operations with
+        /// <c>cs::encodedReturn</c>, returns <c>PipeReader</c> (or a tuple with PipeReader for streamed returns).
+        /// Otherwise returns the standard return type with arrays for sequences.</summary>
+        internal string GetServiceReturnType(string currentNamespace)
+        {
+            if (op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn))
+            {
+                if (op.StreamedReturn is Field streamReturn)
+                {
+                    string streamType = GetStreamTypeString(streamReturn, currentNamespace);
+                    return $"global::System.Threading.Tasks.ValueTask<(global::System.IO.Pipelines.PipeReader Payload, {streamType} {streamReturn.Name})>";
+                }
+                return op.NonStreamedReturns.Count > 0
+                    ? "global::System.Threading.Tasks.ValueTask<global::System.IO.Pipelines.PipeReader>"
+                    : "global::System.Threading.Tasks.ValueTask";
+            }
+            return BuildServiceReturnTypeCore("global::System.Threading.Tasks.ValueTask", op, currentNamespace);
+        }
 
         /// <summary>Returns the ValueTask return type for a proxy response decode method.</summary>
         internal string GetProxyResponseReturnType(string currentNamespace) =>
@@ -138,32 +160,54 @@ internal static class OperationExtensions
 
     extension(ImmutableList<Field> fields)
     {
-        /// <summary>Generates the encode body for operation parameters (used in proxy Request.Encode and service
-        /// Response.Encode). Returns null for operations with no non-streamed fields to encode.</summary>
+        /// <summary>Generates the encode body for operation parameters. Returns null for operations with no
+        /// non-streamed fields to encode.</summary>
+        /// <param name="currentNamespace">The current C# namespace.</param>
         internal CodeBlock? GenerateEncodeBody(string currentNamespace) =>
             fields.Count == 0 ?
                 null :
-                fields.GenerateEncodeBody(currentNamespace, paramPrefix: "", encoderName: "encoder_");
+                fields.GenerateEncodeBody(
+                    currentNamespace,
+                    paramPrefix: "",
+                    encoderName: "encoder_",
+                    useReadOnlyMemory: true);
 
         /// <summary>Generates a decode lambda expression for decoding operation fields (parameters or return values).
-        /// For a single field, returns a simple lambda. For multiple fields, returns a lambda with a block body
-        /// that decodes each field and returns a tuple.</summary>
+        /// For a single non-optional, non-tagged field, returns a simple lambda. Otherwise returns a block body
+        /// with bit sequence reader and tagged field handling as needed.</summary>
         internal string GenerateDecodeLambda(string currentNamespace)
         {
-            if (fields.Count == 1)
+            // Single non-optional, non-tagged field: simple expression lambda
+            if (fields.Count == 1 && !fields[0].IsTagged && !fields[0].DataTypeIsOptional)
             {
                 Field field = fields[0];
                 string decodeExpr = field.DataType.DecodeExpression(currentNamespace);
                 return $"(ref SliceDecoder decoder) => {decodeExpr}";
             }
 
+            IReadOnlyList<Field> sortedFields = fields.GetSortedFields();
             var body = new CodeBlock();
-            foreach (Field field in fields)
+
+            int bitSequenceSize = fields.GetBitSequenceSize();
+            if (bitSequenceSize > 0)
             {
-                string decodeExpr = field.DataType.DecodeExpression(currentNamespace);
+                body.WriteLine($"var bitSequenceReader = decoder.GetBitSequenceReader({bitSequenceSize});");
+            }
+
+            foreach (Field field in sortedFields)
+            {
+                string decodeExpr = field.GetFieldDecodeExpression(currentNamespace, useIncomingType: true);
                 body.WriteLine($"var sliceP_{field.ParameterName} = {decodeExpr};");
             }
-            body.WriteLine($"return ({string.Join(", ", fields.Select(f => $"sliceP_{f.ParameterName}"))});");
+
+            if (fields.Count == 1)
+            {
+                body.WriteLine($"return sliceP_{sortedFields[0].ParameterName};");
+            }
+            else
+            {
+                body.WriteLine($"return ({string.Join(", ", fields.Select(f => $"sliceP_{f.ParameterName}"))});");
+            }
 
             return $$"""
                 (ref SliceDecoder decoder) =>
@@ -228,5 +272,60 @@ internal static class OperationExtensions
 
             return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
         }
+    }
+
+    /// <summary>Builds a service return type using OutgoingParameterTypeString for non-streamed returns.</summary>
+    private static string BuildServiceReturnTypeCore(string taskType, Operation op, string currentNamespace)
+    {
+        int count = op.NonStreamedReturns.Count + (op.StreamedReturn is not null ? 1 : 0);
+        if (count == 0)
+        {
+            return taskType;
+        }
+
+        bool includeNames = count > 1;
+        var parts = op.NonStreamedReturns
+            .Select(r =>
+            {
+                string type = r.DataType.OutgoingParameterTypeString(r.DataTypeIsOptional, currentNamespace);
+                return includeNames ? $"{type} {r.Name}" : type;
+            })
+            .ToList();
+
+        if (op.StreamedReturn is Field streamReturn)
+        {
+            string streamType = OperationExtensions.GetStreamTypeString(streamReturn, currentNamespace);
+            parts.Add(includeNames ? $"{streamType} {streamReturn.Name}" : streamType);
+        }
+
+        return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
+    }
+
+    /// <summary>Returns an encode lambda for an optional stream element with a one bit bit-sequence.</summary>
+    internal static string GetStreamOfOptionalEncodeLambda(Field streamField, string currentNamespace)
+    {
+        IType elemType = streamField.DataType.Type;
+        string csType = streamField.DataType.FieldTypeString(true, currentNamespace);
+        string valueExpr = streamField.DataType.IsValueType ? "value!.Value" : "value!";
+        string encodeExpr = elemType.EncodeExpression(currentNamespace, valueExpr);
+        return $$"""
+            (ref SliceEncoder encoder, {{csType}} value) =>
+            {
+                encoder.EncodeBool(value is not null);
+                if (value is not null)
+                {
+                    {{encodeExpr}};
+                }
+            }
+            """;
+    }
+
+    /// <summary>Returns a decode lambda for an optional stream element with a one bit bit-sequence.</summary>
+    internal static string GetStreamOfOptionalDecodeLambda(Field streamField, string currentNamespace)
+    {
+        IType elemType = streamField.DataType.Type;
+        string csType = elemType.ToTypeString(currentNamespace);
+        string decodeExpr = elemType.DecodeExpression(currentNamespace);
+        return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}?){decodeExpr} : null";
     }
 }

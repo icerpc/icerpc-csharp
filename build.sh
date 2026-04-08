@@ -15,7 +15,7 @@ usage()
     echo "Usage: ./build.sh [actions] [arguments]"
     echo ""
     echo "Actions (defaults to --build):"
-    echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
+    echo "  --build                Build the IceRPC assemblies."
     echo "  --publish              Creates and publishes the IceRPC NuGet packages to the local global-packages source."
     echo "  --clean                Clean all build artifacts."
     echo "  --coverage             Generate code coverage report from the tests runs."
@@ -36,19 +36,11 @@ build()
     if [ "$config" == "release" ]; then
         arguments+=("--release")
     fi
-    pushd tools/slicec-cs
-    run_command cargo "${arguments[@]}"
-    popd
-
     run_command dotnet "build"$version_property "-c" "$dotnet_config"
 }
 
 clean()
 {
-    pushd tools/slicec-cs
-    run_command cargo clean
-    popd
-
     run_command dotnet "clean"$version_property
 
     pushd src/IceRpc.Templates
@@ -76,7 +68,7 @@ publish()
 
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
-    run_command rm "-rf" "$global_packages/zeroc.slice/$version" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
+    run_command rm "-rf" "$global_packages"/zeroc.slice.*/"$version" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
 }
 

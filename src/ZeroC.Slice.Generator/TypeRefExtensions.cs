@@ -13,7 +13,7 @@ internal static class TypeRefExtensions
     internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace)
     {
         if (typeRef.Type is DictionaryType or SequenceType
-            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } csTypeAttr)
+            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr)
         {
             return typeRef.Type.DecodeExpression(currentNamespace, concreteType: csTypeAttr.Args[0]);
         }
@@ -60,11 +60,11 @@ internal static class TypeRefExtensions
     {
         string baseType = typeRef.Type switch
         {
-            SequenceType seq when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } attr =>
+            SequenceType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
                 attr.Args[0],
             SequenceType seq =>
                 $"{seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[]",
-            DictionaryType dict when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is { } attr =>
+            DictionaryType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
                 attr.Args[0],
             DictionaryType dict =>
                 $"global::System.Collections.Generic.Dictionary<{dict.KeyType.FieldTypeString(false, currentNamespace)}, {dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace)}>",
@@ -83,6 +83,7 @@ internal static class TypeRefExtensions
 
         if (typeRef.Type is SequenceType seq
             && !typeRef.Attributes.HasAttribute(CSAttributes.CSType)
+            && !seq.ElementTypeIsOptional
             && seq.ElementType.FixedSize is not null)
         {
             // Fixed-size primitive sequences use ReadOnlyMemory; the mapping is the same for
@@ -115,14 +116,17 @@ internal static class TypeRefExtensions
         /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
         internal int? FixedSize => value.Type switch
         {
-            Builtin b => b.Kind switch
-            {
-                BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
-                BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
-                BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
-                BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
-                _ => null,
-            },
+            Builtin b => BuiltinFixedSize(b.Kind),
+            BasicEnum e => BuiltinFixedSize(e.Underlying.Kind),
+            _ => null,
+        };
+
+        private static int? BuiltinFixedSize(BuiltinKind kind) => kind switch
+        {
+            BuiltinKind.Bool or BuiltinKind.Int8 or BuiltinKind.UInt8 => 1,
+            BuiltinKind.Int16 or BuiltinKind.UInt16 => 2,
+            BuiltinKind.Int32 or BuiltinKind.UInt32 or BuiltinKind.Float32 => 4,
+            BuiltinKind.Int64 or BuiltinKind.UInt64 or BuiltinKind.Float64 => 8,
             _ => null,
         };
 

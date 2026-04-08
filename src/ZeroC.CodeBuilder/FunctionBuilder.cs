@@ -15,6 +15,7 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
     private readonly string _returnType;
     private CodeBlock _body = new();
     private bool _inheritDoc;
+    private bool _useThisConstructorChain;
 
     /// <summary>Initializes a new instance of the <see cref="FunctionBuilder"/> class.</summary>
     /// <param name="access">The access modifier (e.g., "public", "private").</param>
@@ -36,12 +37,22 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
         return this;
     }
 
-    /// <summary>Adds arguments to pass to the base constructor.</summary>
+    /// <summary>Adds arguments to pass to the base constructor (<c>: base(...)</c>).</summary>
     /// <param name="arguments">The arguments to pass to base.</param>
     /// <returns>This builder instance for method chaining.</returns>
     public FunctionBuilder AddBaseParameters(IEnumerable<string> arguments)
     {
         _baseArguments.AddRange(arguments);
+        return this;
+    }
+
+    /// <summary>Adds arguments to pass to another constructor on the same type (<c>: this(...)</c>).</summary>
+    /// <param name="arguments">The arguments to pass to this.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public FunctionBuilder AddThisParameters(IEnumerable<string> arguments)
+    {
+        _baseArguments.AddRange(arguments);
+        _useThisConstructorChain = true;
         return this;
     }
 
@@ -132,7 +143,8 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
         // Add base constructor call if present
         if (_baseArguments.Count > 0)
         {
-            code.Write($"\n    : base({string.Join(", ", _baseArguments)})");
+            string keyword = _useThisConstructorChain ? "this" : "base";
+            code.Write($"\n    : {keyword}({string.Join(", ", _baseArguments)})");
         }
 
         // Add the body based on function type

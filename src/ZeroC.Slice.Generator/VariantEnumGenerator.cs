@@ -25,12 +25,11 @@ internal static class VariantEnumGenerator
 
     private static CodeBlock GenerateUnknownRecord(
         VariantEnum enumDef,
-        string parentIdentifier,
-        string accessModifier)
+        string parentIdentifier)
     {
         string enumName = enumDef.Name;
         return new ContainerBuilder(
-                $"{accessModifier} partial record class",
+                "partial record class",
                 $"Unknown(int Discriminant, global::System.ReadOnlyMemory<byte> Fields)")
             .AddBase(parentIdentifier)
             .AddComment(
@@ -93,6 +92,7 @@ internal static class VariantEnumGenerator
                 "remarks",
                 @$"The Slice compiler generated this discriminated union from the Slice enum <c>{scopedId}</c>.")
             .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
+            .AddDeprecatedAttribute(enumDef.Attributes)
             .AddAttribute("Dunet.Union");
 
         // Generate nested record classes for each variant.
@@ -103,7 +103,6 @@ internal static class VariantEnumGenerator
                     variant,
                     enumDef,
                     identifier,
-                    accessModifier,
                     currentNamespace,
                     variant.Discriminant));
         }
@@ -111,7 +110,7 @@ internal static class VariantEnumGenerator
         // For unchecked variant enums, add the Unknown variant.
         if (enumDef.IsUnchecked)
         {
-            builder.AddBlock(GenerateUnknownRecord(enumDef, identifier, accessModifier));
+            builder.AddBlock(GenerateUnknownRecord(enumDef, identifier));
         }
 
         // Abstract Encode method.
@@ -128,7 +127,6 @@ internal static class VariantEnumGenerator
         VariantEnum.Variant variant,
         VariantEnum enumDef,
         string parentIdentifier,
-        string accessModifier,
         string currentNamespace,
         int discriminant)
     {
@@ -139,9 +137,10 @@ internal static class VariantEnumGenerator
             ? $"{variantName}({BuildParameterList(variant.Fields, "")})"
             : variantName;
 
-        return new ContainerBuilder($"{accessModifier} partial record class", nameWithParams)
+        return new ContainerBuilder("partial record class", nameWithParams)
             .AddDocCommentSummary(variant.Comment, currentNamespace)
             .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
+            .AddDeprecatedAttribute(variant.Attributes)
             .AddBase(parentIdentifier)
             .AddCSAttributes(variant.Attributes)
             .AddBlock(
@@ -225,13 +224,19 @@ internal static class VariantEnumGenerator
         }
 
         // Fallback case.
-        body.AddBlock(
-            enumDef.IsUnchecked ?
-                $"    int value => new {identifier}.Unknown(value, decoder.DecodeSequence<byte>())" :
+        if (enumDef.IsUnchecked)
+        {
+            body.WriteLine(
+                $"    int value => new {identifier}.Unknown(value, decoder.DecodeSequence<byte>())");
+        }
+        else
+        {
+            body.WriteLine(
                 $$"""
-                    int value => throw new global::System.IO.InvalidDataException(
-                        $"Received invalid discriminant value '{value}' for {{identifier}}.")
-                """);
+                      int value => throw new global::System.IO.InvalidDataException(
+                          $"Received invalid discriminant value '{value}' for {{scopedId}}.")
+                  """);
+        }
         body.WriteLine("};");
 
         // Local static decode functions for each variant.

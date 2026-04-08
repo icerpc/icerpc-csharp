@@ -19,4 +19,4 @@ jobs:
           python-version: "3.13"
 
       - name: Verify Slice files match slice.toml
-        run: python tools/sync-slice.py --verify
+        run: python build/sync-slice.py --verify

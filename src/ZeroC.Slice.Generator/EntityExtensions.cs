@@ -13,7 +13,7 @@ internal static class EntityExtensions
     {
         /// <summary>Gets the access modifier for this entity ("public" or "internal").</summary>
         internal string AccessModifier =>
-            entity.Attributes.HasAttribute(CSAttributes.CSInternal) ? "internal" : "public";
+            entity.Attributes.HasAttribute(CSAttributes.CSPublic) ? "public" : "internal";
 
         /// <summary>Gets the name of the generated SliceDecoder extensions class for this entity.</summary>
         internal string DecoderExtensionsClass => $"{entity.Name}SliceDecoderExtensions";
@@ -22,26 +22,24 @@ internal static class EntityExtensions
         internal string EncoderExtensionsClass => $"{entity.Name}SliceEncoderExtensions";
 
         /// <summary>Gets the C# identifier (checks cs::identifier attribute, applies PascalCase).</summary>
-        internal string Name
-        {
-            get
-            {
-                Attribute? csIdentifier = entity.Attributes.FindAttribute(CSAttributes.CSIdentifier);
-                return csIdentifier is { } attr ? attr.Args[0] : entity.Identifier.ToPascalCase();
-            }
-        }
+        internal string Name => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr ?
+            attr.Args[0] : entity.Identifier.ToPascalCase();
 
         /// <summary>Gets the C# namespace for this entity (respects cs::namespace attribute on the module).</summary>
         internal string Namespace => entity.Module.Namespace;
 
         /// <summary>Gets the camelCase parameter name (checks cs::identifier attribute).</summary>
-        internal string ParameterName
+        internal string ParameterName => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr ?
+            attr.Args[0] : entity.Identifier.ToCamelCase();
+
+        /// <summary>Gets the name of the encoder or decoder extensions class. The returned name is fully qualified when
+        /// the entity is in a different namespace.</summary>
+        internal string ExtensionsClass(string currentNamespace, bool decoder)
         {
-            get
-            {
-                Attribute? csIdentifier = entity.Attributes.FindAttribute(CSAttributes.CSIdentifier);
-                return csIdentifier is { } attr ? attr.Args[0] : entity.Identifier.ToCamelCase();
-            }
+            string className = decoder ? entity.DecoderExtensionsClass : entity.EncoderExtensionsClass;
+            return currentNamespace == entity.Namespace
+                ? className
+                : $"global::{entity.Namespace}.{className}";
         }
 
         /// <summary>Gets a value indicating whether this entity type uses a generated extensions class
