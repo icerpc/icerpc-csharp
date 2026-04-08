@@ -23,17 +23,27 @@
     <SliceFile
       Include="../../slice/IceRpc/Internal/IceRpcDefinitions.slice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+      LinkBase="Internal"
     />
     <SliceFile
       Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
       OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated"
+      LinkBase="Transports/Slic/Internal"
     />
     <SliceDirectory Include="../../slice/IceRpc/" />
 
     <SliceCompile
-      Include="../../slice/IceRpc/Internal/*.ice;../../slice/Ice/OperationMode.ice;../../slice/Ice/ReplyStatus.ice"
+      Include="../../slice/Ice/OperationMode.ice;../../slice/Ice/ReplyStatus.ice"
       IncludeDirectories="../../slice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+      LinkBase="Ice"
+    />
+
+    <SliceCompile
+      Include="../../slice/IceRpc/Internal/*.ice"
+      IncludeDirectories="../../slice"
+      OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+      LinkBase="Internal"
     />
   </ItemGroup>
   <ItemGroup>
