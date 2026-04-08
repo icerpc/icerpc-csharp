@@ -25,7 +25,7 @@ internal static class EntityExtensions
         internal string Name => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr ?
             attr.Args[0] : entity.Identifier.ToPascalCase();
 
-        /// <summary>Gets the C# namespace for this entity (respects cs::namespace attribute on the module).</summary>
+        /// <summary>Gets the C# namespace for this entity (respects cs::identifier attribute on the module).</summary>
         internal string Namespace => entity.Module.Namespace;
 
         /// <summary>Gets the camelCase parameter name (checks cs::identifier attribute).</summary>

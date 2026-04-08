@@ -12,13 +12,13 @@ include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ic
 
 [source.icerpc]
 repo    = "https://github.com/icerpc/icerpc-slice"
-rev     = "8eb06182068babf62713852b68985bedafe1c178"
+rev     = "51966675fc9380309ce08a627beed98fbdde89e4"
 dest    = "slice"
 include = ["**/*.slice", "**/*.ice"]
 
 [source.compiler]
 repo    = "https://github.com/icerpc/slicec"
-rev     = "d44dd9851e875c34c9262a397053db5fd3675e60"
+rev     = "efb4a8e00fd3befe69512587d134d8eb0aae3fd5"
 source  = "slice"
 dest    = "slice"
 include = ["**/*.slice"]

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.Symbols.Compiler")]
+[cs::identifier("ZeroC.Slice.Symbols.Compiler")]
 module Compiler
 
 struct DocComment {

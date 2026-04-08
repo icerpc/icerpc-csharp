@@ -9,12 +9,12 @@ internal static class ModuleExtensions
 {
     extension(Module module)
     {
-        /// <summary>Gets the mapped C# namespace for this module (respects cs::namespace attribute).</summary>
+        /// <summary>Gets the mapped C# namespace for this module (respects cs::identifier attribute).</summary>
         internal string Namespace
         {
             get
             {
-                if (module.Attributes.FindAttribute(CSAttributes.CSNamespace) is Symbols.Attribute attr)
+                if (module.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Symbols.Attribute attr)
                 {
                     return attr.Args[0];
                 }

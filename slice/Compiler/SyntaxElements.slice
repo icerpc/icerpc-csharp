@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.Symbols.Compiler")]
+[cs::identifier("ZeroC.Slice.Symbols.Compiler")]
 module Compiler
 
 /// A unique identifier for a Slice entity. This is always a fully-scoped identifier.

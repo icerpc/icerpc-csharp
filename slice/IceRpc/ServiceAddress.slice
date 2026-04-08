@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("IceRpc.Slice")]
+[cs::identifier("IceRpc.Slice")]
 module IceRpc
 
 /// Represents the address of an RPC service that can be called using ice or icerpc.

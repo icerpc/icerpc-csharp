@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Generator::Tests
+
+interface IdentifierOperations {
+    op1(p: WithIdentifier::S1) -> WithIdentifier::S1
+}
