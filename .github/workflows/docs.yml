@@ -16,6 +16,7 @@ jobs:
 
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
+
       - name: Build
         run: dotnet build
         shell: bash
