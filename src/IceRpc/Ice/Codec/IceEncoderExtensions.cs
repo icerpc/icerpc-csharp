@@ -80,7 +80,7 @@ public static class IceEncoderExtensions
     {
         if (!v.TryGetNonEnumeratedCount(out int count))
         {
-            T[] array = v.ToArray();
+            var array = v.ToArray();
             count = array.Length;
             v = array;
         }

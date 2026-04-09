@@ -65,7 +65,7 @@ public static class IceDecoderExtensions
         int count = decoder.DecodeSize();
         if (count == 0)
         {
-            return Array.Empty<T>();
+            return [];
         }
         else
         {
@@ -96,7 +96,7 @@ public static class IceDecoderExtensions
         int count = decoder.DecodeSize();
         if (count == 0)
         {
-            return Array.Empty<T>();
+            return [];
         }
         else
         {
@@ -110,32 +110,80 @@ public static class IceDecoderExtensions
         }
     }
 
-    /// <summary>Decodes a sequence.</summary>
-    /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
-    /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+    /// <summary>Decodes an Ice sequence mapped to a custom collection.</summary>
+    /// <typeparam name="TCollection">The type of the returned collection.</typeparam>
+    /// <typeparam name="TElement">The type of the elements in the collection.</typeparam>
     /// <param name="decoder">The Ice decoder.</param>
-    /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
-    /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-    /// <returns>A TSequence.</returns>
-    public static TSequence DecodeSequence<TSequence, TElement>(
+    /// <param name="collectionFactory">A delegate used to create the collection with the specified capacity.</param>
+    /// <param name="addElement">A delegate used to add each decoded element to the collection.</param>
+    /// <param name="decodeFunc">The decode function for each element of the collection.</param>
+    /// <returns>The decoded collection.</returns>
+    public static TCollection DecodeCollection<TCollection, TElement>(
         this ref IceDecoder decoder,
-        Func<int, TSequence> sequenceFactory,
-        DecodeFunc<TElement> decodeFunc) where TSequence : ICollection<TElement>
+        Func<int, TCollection> collectionFactory,
+        Action<TCollection, TElement> addElement,
+        DecodeFunc<TElement> decodeFunc)
     {
         int count = decoder.DecodeSize();
-        if (count == 0)
-        {
-            return sequenceFactory(0);
-        }
-        else
+        var collection = collectionFactory(count);
+        if (count > 0)
         {
             decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<TElement>());
-            TSequence sequence = sequenceFactory(count);
             for (int i = 0; i < count; ++i)
             {
-                sequence.Add(decodeFunc(ref decoder));
+                addElement(collection, decodeFunc(ref decoder));
             }
-            return sequence;
+            return collection;
         }
+        return collection;
+    }
+
+    /// <summary>Decodes an Ice sequence mapped to a <see cref="LinkedList{T}" />.</summary>
+    /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+    /// <param name="decoder">The Ice decoder.</param>
+    /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
+    /// <returns>A <see cref="LinkedList{T}" />.</returns>
+    public static LinkedList<TElement> DecodeLinkedList<TElement>(
+        this ref IceDecoder decoder,
+        DecodeFunc<TElement> decodeFunc) =>
+        decoder.DecodeCollection<LinkedList<TElement>, TElement>(
+            collectionFactory: _ => new LinkedList<TElement>(),
+            (list, element) => list.AddLast(element),
+            decodeFunc);
+
+    /// <summary>Decodes an Ice sequence mapped to a <see cref="List{T}" />.</summary>
+    /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+    /// <param name="decoder">The Ice decoder.</param>
+    /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
+    /// <returns>A <see cref="List{T}" />.</returns>
+    public static List<TElement> DecodeList<TElement>(
+        this ref IceDecoder decoder,
+        DecodeFunc<TElement> decodeFunc) =>
+        decoder.DecodeCollection<List<TElement>, TElement>(
+            collectionFactory: count => new List<TElement>(count),
+            (list, element) => list.Add(element),
+            decodeFunc);
+
+    /// <summary>Decodes an Ice sequence mapped to a <see cref="Queue{T}" />.</summary>
+    /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+    /// <param name="decoder">The Ice decoder.</param>
+    /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
+    /// <returns>A <see cref="Queue{T}" />.</returns>
+    public static Queue<TElement> DecodeQueue<TElement>(this ref IceDecoder decoder, DecodeFunc<TElement> decodeFunc) =>
+        decoder.DecodeCollection<Queue<TElement>, TElement>(
+            collectionFactory: count => new Queue<TElement>(count),
+            (queue, element) => queue.Enqueue(element),
+            decodeFunc);
+
+    /// <summary>Decodes an Ice sequence mapped to a <see cref="Stack{T}" />.</summary>
+    /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+    /// <param name="decoder">The Ice decoder.</param>
+    /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
+    /// <returns>A <see cref="Stack{T}" />.</returns>
+    public static Stack<TElement> DecodeStack<TElement>(this ref IceDecoder decoder, DecodeFunc<TElement> decodeFunc)
+    {
+        var array = decoder.DecodeSequence(decodeFunc);
+        Array.Reverse(array);
+        return new Stack<TElement>(array);
     }
 }

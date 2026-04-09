@@ -2,7 +2,7 @@
 
 using System.Collections;
 
-namespace IceRpc.Ice.Generator.Tests;
+namespace IceRpc.Ice.Generator.Base.Tests;
 
 public class CustomSequence<T> : IEnumerable<T>
 {
