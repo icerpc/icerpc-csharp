@@ -100,19 +100,19 @@
 
     <!-- Download and extract slicec binaries for all platforms. Each zip is cached in obj/. -->
     <DownloadFile
-      SourceUrl="$(SlicecBaseUrl)/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity).zip"
+      SourceUrl="$(SlicecBaseUrl)/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity).zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity).zip')" />
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity).zip')" />
 
     <!-- We use our custom ExtractTask instead of MSBuild Unzip to preserve Unix executable permissions. -->
     <ExtractTask
-      SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity).zip"
-      DestinationFolder="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)')" />
+      SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity).zip"
+      DestinationFolder="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity)"
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity)')" />
 
     <!-- Copy binaries to the tools directory structure expected by the props file. -->
     <Copy
-      SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecMMVersion)-%(SlicecPlatform.Identity)/%(SlicecPlatform.Exe)"
+      SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity)/%(SlicecPlatform.Exe)"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/%(SlicecPlatform.Prefix)"
       SkipUnchangedFiles="true" />
 
