@@ -35,9 +35,8 @@ jobs:
     env:
       VERSION: ${{ inputs.icerpc_version }}
     steps:
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
 
       - uses: actions/checkout@v6
 

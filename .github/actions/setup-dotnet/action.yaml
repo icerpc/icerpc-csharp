@@ -1,11 +1,5 @@
-name: Build Dist
-description: "Builds IceRPC"
-
-inputs:
-  dotnet-build-args:
-    description: ".NET Build Args"
-    required: false
-    default: ""
+name: Setup .NET
+description: "Setup .NET and install libmsquic"
 
 runs:
   using: "composite"
@@ -38,7 +32,3 @@ runs:
       run: |
         brew install libmsquic
         echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
-
-    - name: 🔨 Build IceRPC
-      run: dotnet build ${{ inputs.dotnet-build-args }}
-      shell: bash
