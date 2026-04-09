@@ -28,7 +28,7 @@ public class CustomSequence<T> : IEnumerable<T>
     public override bool Equals(object? obj) =>
         obj is CustomSequence<T> other && _list.SequenceEqual(other._list);
 
-    public override int GetHashCode() => base.GetHashCode();
+    public override int GetHashCode() => _list.GetHashCode();
 
     // Helper method for the tests.
     internal static CustomSequence<T> Create(IEnumerable<T> elements) => new(elements);

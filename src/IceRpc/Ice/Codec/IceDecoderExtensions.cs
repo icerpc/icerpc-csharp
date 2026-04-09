@@ -125,17 +125,20 @@ public static class IceDecoderExtensions
         DecodeFunc<TElement> decodeFunc)
     {
         int count = decoder.DecodeSize();
-        var collection = collectionFactory(count);
-        if (count > 0)
+        if (count == 0)
+        {
+            return collectionFactory(0);
+        }
+        else
         {
             decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<TElement>());
+            TCollection collection = collectionFactory(count);
             for (int i = 0; i < count; ++i)
             {
                 addElement(collection, decodeFunc(ref decoder));
             }
             return collection;
         }
-        return collection;
     }
 
     /// <summary>Decodes an Ice sequence mapped to a <see cref="LinkedList{T}" />.</summary>
