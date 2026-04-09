@@ -1,17 +1,9 @@
 # Building from source
 
-Use the `build` shell script to build the source code in this repository:
-
-Linux or macOS
+Use the `dotnet` command to build the source code in this repository:
 
 ```shell
-./build.sh --help
-```
-
-Windows
-
-```shell
-build.cmd -help
+dotnet build
 ```
 
 ## Table of contents
@@ -24,11 +16,9 @@ build.cmd -help
     - [Command line](#command-line)
     - [Visual Studio Code](#visual-studio-code)
   - [Running the tests](#running-the-tests)
-  - [Creating and publishing NuGet packages](#creating-and-publishing-nuget-packages)
-    - [Slice tools](#slice-tools)
-  - [Generating the API reference](#generating-the-api-reference)
   - [Generating the code coverage reports](#generating-the-code-coverage-reports)
-  - [Updating Slice files](#updating-slice-files)
+  - [Generating the API reference](#generating-the-api-reference)
+  - [Updating vendored Slice files](#updating-vendored-slice-files)
 
 ## Prerequisites
 
@@ -55,33 +45,23 @@ install ReportGenerator as follows:
 
 ```mermaid
 flowchart LR
-    compiler(slicec + generators) --> icerpc(ZeroC.Slice.Codec<br>IceRpc.*)
+    compiler(slicec) --> icerpc(ZeroC.*<br>IceRpc.*)
     icerpc -- doc --> api(API reference)
     icerpc -- publish --> nuget(NuGet packages) --> examples(Examples)
     icerpc --> tests(Tests) -- coverage --> cov(Code coverage reports)
 ```
 
-The Slice compiler (slicec) compiles Slice files and invokes C# code-generator plugins to produce the generated code.
+The Slice compiler ([slicec]) compiles Slice files and invokes C# code-generator plugins to produce the generated code.
 
 ## Building IceRpc
 
 ### Command line
 
-Linux or macOS
-
 ```shell
-./build.sh --build
-```
-
-Windows
-
-```shell
-build.cmd -build
+dotnet build
 ```
 
 This command builds all the tools, sources and tests with the default config (debug).
-
-The -build/--build action is optional since it's the default build action.
 
 ### Visual Studio Code
 
@@ -96,113 +76,34 @@ dotnet test
 This command executes all tests known to the `IceRpc.slnx` solution. See
 [dotnet-test](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for additional options.
 
-## Creating and publishing NuGet packages
-
-Linux or macOS
+## Generating the code coverage reports
 
 ```shell
-./build.sh --publish
+dotnet test --collect:"XPlat Code Coverage" -p:RunSettingsFilePath=build/Coverlet.runsettings
 ```
-
-Windows
-
-```shell
-build.cmd -publish
-```
-
-This command creates all the NuGet packages and publishes them to your local `global-packages` source.
-
-> **Note**
-> This is an essential step if you want to use a local build with the [examples](examples).
-
-### Slice tools
-
-The NuGet package `IceRpc.Slice.Tools` includes the `slicec` compiler and the C# code-generator plugins. The `slicec`
-binaries for all supported platforms are automatically downloaded during the build.
 
 ## Generating the API reference
 
-Linux or macOS
-
 ```shell
-./build.sh --doc
-```
-
-Windows
-
-```shell
-build.cmd -doc
+cd docfx
+docfx metadata --property Configuration=Debug
+docfx build
 ```
 
 This command generates the API reference into the `docfx\_site` directory. Start a local web server to view this
 API reference:
 
 ```shell
-docfx serve docfx/_site
+docfx serve _site
 ```
 
-## Generating the code coverage reports
+## Updating vendored Slice files
 
-Linux or macOS
+The Slice files used to build IceRPC for C# are shared across repositories and originate from different source
+repositories. These vendored files must be updated in their source repositories first and then synced back to the
+`icerpc-csharp` repository.
 
-```shell
-./build.sh --coverage
-```
+The `slice.toml` file defines which files are copied from which repositories. The `build/sync-slice.py` script can
+be used to sync the vendored Slice files and to verify that they are in sync with their source repositories.
 
-Windows
-
-```shell
-build.cmd -coverage
-```
-
-## Updating Slice files
-
-The [slice](./slice) sub-directory is managed by a Git subtree and contains the contents of the [icerpc-slice]
-repository. Updates to the files in this sub-directory must be done in the icerpc-slice repository first and then the
-changes can be pulled.
-
-The procedure to upgrade these files is as follows:
-
-1. Open a PR (pull request) in the icerpc-slice repository with the desired changes. Once approved merge the
-   PR in the icerpc-slice repository.
-
-2. Create a companion PR for the required changes in the icerpc-csharp repository. Start by creating a branch
-   for the PR and pulling the changes from icerpc-slice:
-
-   ```shell
-   git checkout -b my-branch --track origin/main
-   git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
-   git push <remote> my-branch
-   ```
-
-3. Make the necessary C# updates, open the PR in icerpc-csharp, and iterate until it's ready for merging. The "Check
-   Slice Subtree Updates" workflow job is expected to fail at this point. This is the workflow ensuring that the
-   contents of slice sub-directory are not updated with a PR.
-
-4. Once you are ready to merge you need to first merge the icerpc-slice changes into the icerpc-csharp's main branch
-
-   ```shell
-   git checkout -b main --track origin/main
-   git pull
-   git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
-   git push origin main
-   ```
-
-5. Then merge the main branch into your PR
-
-   ```shell
-   git checkout my-branch
-   git merge origin/main
-   git push <remote> my-branch
-   ```
-
-6. Ensure that "Check Slice Subtree Updates" workflow job passes, and that no files under slice sub-directory are
-   modified by the PR.
-
-7. Finally merge your PR as usual.
-
-Please ensure to replace `<remote>` with the appropriate remote repository name where you want to push your changes.
-Also, make sure to follow the instructions carefully, and adjust any repository and branch names as needed for your
-specific setup.
-
-[icerpc-slice]: https://github.com/icerpc/icerpc-slice
+[slicec]: https://github.com/icerpc/slicec
