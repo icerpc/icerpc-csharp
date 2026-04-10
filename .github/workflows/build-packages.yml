@@ -35,10 +35,10 @@ jobs:
     env:
       VERSION: ${{ inputs.icerpc_version }}
     steps:
+      - uses: actions/checkout@v6
+
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
-
-      - uses: actions/checkout@v6
 
       - name: Build IceRPC
         run: dotnet build --configuration Release
