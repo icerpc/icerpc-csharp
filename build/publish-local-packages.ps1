@@ -11,16 +11,18 @@ try {
     Get-Content .\build\IceRpc.Version.props -Raw | Where-Object { $_ -match "<Version .*>(.*)</Version>" } | Out-Null
     $version = $Matches.1
 
-    Write-Host "Publishing IceRPC $version to local global-packages..."
+    $buildConfiguration = if ($env:CONFIGURATION) { $env:CONFIGURATION } else { "Debug" }
 
-    dotnet build
+    Write-Host "Publishing IceRPC $version ($buildConfiguration) to local global-packages..."
+
+    dotnet build -c $buildConfiguration
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-    dotnet pack
+    dotnet pack --no-build -c $buildConfiguration
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     Push-Location "src\IceRpc.Templates"
-    dotnet pack
+    dotnet pack -c $buildConfiguration
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Pop-Location
 
@@ -35,7 +37,7 @@ try {
         Remove-Item "$global_packages\$package_name\$version" -Recurse -Force -ErrorAction Ignore
     }
 
-    dotnet nuget push "src\**\Debug\*.$version.nupkg" --source $global_packages
+    dotnet nuget push "src\**\$buildConfiguration\*.$version.nupkg" --source $global_packages
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location

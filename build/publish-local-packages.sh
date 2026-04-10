@@ -10,13 +10,15 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 # Read version from build/IceRpc.Version.props
 version=$(sed -n 's/.*<Version[^>]*>\(.*\)<\/Version>.*/\1/p' build/IceRpc.Version.props)
 
-echo "Publishing IceRPC $version to local global-packages..."
+build_configuration=${CONFIGURATION:-Debug}
 
-dotnet build
-dotnet pack
+echo "Publishing IceRPC $version ($build_configuration) to local global-packages..."
+
+dotnet build -c "$build_configuration"
+dotnet pack --no-build -c "$build_configuration"
 
 pushd src/IceRpc.Templates
-dotnet pack
+dotnet pack -c "$build_configuration"
 popd
 
 global_packages=$(dotnet nuget locals -l global-packages)
@@ -26,4 +28,4 @@ rm -rf "$global_packages"/zeroc.slice.*/"$version" \
        "$global_packages/icerpc/$version" \
        "$global_packages"/icerpc.*/"$version"
 
-dotnet nuget push "src/**/Debug/*.$version.nupkg" --source "$global_packages"
+dotnet nuget push "src/**/$build_configuration/*.$version.nupkg" --source "$global_packages"

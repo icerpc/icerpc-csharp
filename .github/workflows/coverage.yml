@@ -20,7 +20,7 @@ jobs:
         shell: bash
 
       - name: Generate Coverage Reports
-        run: dotnet test --collect:"XPlat Code Coverage" -p:RunSettingsFilePath=${{ github.workspace }}/build/Coverlet.runsettings
+        run: dotnet test --collect:"XPlat Code Coverage"
         shell: bash
 
       - name: Coveralls
