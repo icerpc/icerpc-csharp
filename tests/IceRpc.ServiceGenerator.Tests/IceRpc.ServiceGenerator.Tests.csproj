@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../../src/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.props" />
+  <PropertyGroup>
+    <!-- Missing XML comment for publicly visible type or member. -->
+    <NoWarn>CS1591</NoWarn>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.11.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
+    <PackageReference Include="NUnit" Version="4.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Ice/IceRpc.Ice.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
+    <ProjectReference Include="../../src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
+    <!-- Reference the built-in Slice files -->
+    <SliceDirectory Include="../../slice" />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Project="../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../../src/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.targets" />
+</Project>

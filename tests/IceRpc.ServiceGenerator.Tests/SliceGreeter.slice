@@ -1,0 +1,8 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::ServiceGenerator::Tests
+
+interface SliceGreeter {
+    opSlice()
+    opSliceWithArgs(message: string) -> string
+}
