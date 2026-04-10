@@ -131,8 +131,8 @@ internal static class ProxyGenerator
             .AddDeprecatedAttribute(interfaceDef.Attributes)
             .AddBase($"I{name}")
             .AddBase("ISliceProxy")
-            .AddBlock(BuildProxyRequestClass(interfaceDef, scopedId, currentNamespace))
-            .AddBlock(BuildProxyResponseClass(interfaceDef, scopedId, currentNamespace))
+            .AddBlock(BuildProxyRequestClass(interfaceDef, scopedId, accessModifier, currentNamespace))
+            .AddBlock(BuildProxyResponseClass(interfaceDef, scopedId, accessModifier, currentNamespace))
             .AddBlock(BuildProxyProperties(scopedId, defaultServicePath));
 
         // Implicit conversion operators for base interfaces
@@ -156,7 +156,7 @@ internal static class ProxyGenerator
                     .Build());
         }
 
-        builder.AddBlock(BuildProxyConstructors(proxyName));
+        builder.AddBlock(BuildProxyConstructors(proxyName, accessModifier));
 
         // Generate inherited operations by delegating to the base proxy
         foreach (Interface baseInterface in interfaceDef.AllBases)
@@ -176,9 +176,13 @@ internal static class ProxyGenerator
         return builder.Build();
     }
 
-    private static CodeBlock BuildProxyRequestClass(Interface interfaceDef, string scopedId, string currentNamespace)
+    private static CodeBlock BuildProxyRequestClass(
+        Interface interfaceDef,
+        string scopedId,
+        string accessModifier,
+        string currentNamespace)
     {
-        ContainerBuilder request = new ContainerBuilder("public static class", "Request")
+        ContainerBuilder request = new ContainerBuilder($"{accessModifier} static class", "Request")
             .AddComment("summary", "Provides static methods that encode operation arguments into request payloads.")
             .AddComment(
                 "remarks",
@@ -202,7 +206,7 @@ internal static class ProxyGenerator
 
                 request.AddBlock(
                     new FunctionBuilder(
-                        "public static",
+                        $"{accessModifier} static",
                         "global::System.IO.Pipelines.PipeReader",
                         $"Encode{opName}",
                         FunctionType.ExpressionBody)
@@ -217,7 +221,7 @@ internal static class ProxyGenerator
             else
             {
                 FunctionBuilder fn = new FunctionBuilder(
-                    "public static",
+                    $"{accessModifier} static",
                     "global::System.IO.Pipelines.PipeReader",
                     $"Encode{opName}",
                     FunctionType.BlockBody)
@@ -249,9 +253,13 @@ internal static class ProxyGenerator
         return request.Build();
     }
 
-    private static CodeBlock BuildProxyResponseClass(Interface interfaceDef, string scopedId, string currentNamespace)
+    private static CodeBlock BuildProxyResponseClass(
+        Interface interfaceDef,
+        string scopedId,
+        string accessModifier,
+        string currentNamespace)
     {
-        ContainerBuilder response = new ContainerBuilder("public static class", "Response")
+        ContainerBuilder response = new ContainerBuilder($"{accessModifier} static class", "Response")
             .AddComment(
                 "summary",
                 $"Provides a <see cref=\"ResponseDecodeFunc{{T}}\" /> for each operation defined in Slice interface {scopedId}.")
@@ -270,7 +278,7 @@ internal static class ProxyGenerator
             {
                 // Non-streaming: expression body
                 FunctionBuilder decodeBuilder = new FunctionBuilder(
-                    "public static",
+                    $"{accessModifier} static",
                     returnType,
                     $"Decode{opName}Async",
                     FunctionType.ExpressionBody)
@@ -308,7 +316,7 @@ internal static class ProxyGenerator
             {
                 // Streaming: async block body
                 FunctionBuilder decodeBuilder = new FunctionBuilder(
-                    "public static async",
+                    $"{accessModifier} static async",
                     returnType,
                     $"Decode{opName}Async",
                     FunctionType.BlockBody)
@@ -590,16 +598,16 @@ internal static class ProxyGenerator
             new(IceRpc.Protocol.IceRpc) { Path = DefaultServicePath };
         """;
 
-    private static CodeBlock BuildProxyConstructors(string proxyName)
+    private static CodeBlock BuildProxyConstructors(string proxyName, string accessModifier)
     {
-        CodeBlock fromPath = new FunctionBuilder("public static", proxyName, "FromPath", FunctionType.ExpressionBody)
+        CodeBlock fromPath = new FunctionBuilder($"{accessModifier} static", proxyName, "FromPath", FunctionType.ExpressionBody)
             .AddComment("summary", "Creates a relative proxy from a path.")
             .AddParameter("string", "path", docComment: "The path.")
             .AddComment("returns", "The new relative proxy.")
             .SetBody("new(IceRpc.InvalidInvoker.Instance, new IceRpc.ServiceAddress { Path = path })")
             .Build();
 
-        CodeBlock mainCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
+        CodeBlock mainCtor = new FunctionBuilder(accessModifier, "", proxyName, FunctionType.BlockBody)
             .AddComment("summary", "Constructs a proxy from an invoker, a service address and encode options.")
             .AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.")
             .AddParameter(
@@ -623,7 +631,7 @@ internal static class ProxyGenerator
                 """))
             .Build();
 
-        CodeBlock uriCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
+        CodeBlock uriCtor = new FunctionBuilder(accessModifier, "", proxyName, FunctionType.BlockBody)
             .AddComment("summary", "Constructs a proxy from an invoker, a service address URI and encode options.")
             .AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.")
             .AddParameter("System.Uri", "serviceAddressUri", docComment: "A URI that represents a service address.")
@@ -636,6 +644,7 @@ internal static class ProxyGenerator
             .AddThisParameters(["invoker", "new IceRpc.ServiceAddress(serviceAddressUri)", "encodeOptions"])
             .Build();
 
+        // The parameterless struct constructor must be public (CS8958).
         CodeBlock defaultCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
             .AddComment(
                 "summary",
