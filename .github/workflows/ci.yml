@@ -35,8 +35,8 @@ jobs:
       - name: Build
         run: dotnet build
         shell: bash
-      - name: Publish Packages Locally
-        run: ./build.sh --publish
+      - name: Publish Local Packages
+        run: ./build/publish-local-packages.sh
         shell: bash
       - name: Run Tests
         uses: ./.github/actions/test

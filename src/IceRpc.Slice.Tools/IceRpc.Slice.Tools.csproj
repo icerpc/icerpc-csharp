@@ -116,7 +116,10 @@
       DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/%(SlicecPlatform.Prefix)"
       SkipUnchangedFiles="true" />
 
-    <!-- Include downloaded slicec binaries in the NuGet package. -->
+  </Target>
+  <!-- Include the tools directory in the package, using a separate target so that dotnet pack compute this after
+      the files have been downloaded and copied. -->
+  <Target Name="IncludeSlicecInPackage" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
       <Content Include="$(MSBuildThisFileDirectory)obj/tools/**" Visible="false">
         <PackagePath>tools/</PackagePath>
