@@ -1,24 +1,11 @@
-# Building from source
+# Building IceRPC from source <!-- omit in toc -->
 
-Use the `dotnet` command to build the source code in this repository:
-
-```shell
-dotnet build
-```
-
-## Table of contents
-
-- [Building from source](#building-from-source)
-  - [Table of contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [Build roadmap](#build-roadmap)
-  - [Building IceRpc](#building-icerpc)
-    - [Command line](#command-line)
-    - [Visual Studio Code](#visual-studio-code)
-  - [Running the tests](#running-the-tests)
-  - [Generating the code coverage reports](#generating-the-code-coverage-reports)
-  - [Generating the API reference](#generating-the-api-reference)
-  - [Updating vendored Slice files](#updating-vendored-slice-files)
+- [Prerequisites](#prerequisites)
+- [Building IceRpc](#building-icerpc)
+- [Running the tests](#running-the-tests)
+- [Generating the code coverage reports](#generating-the-code-coverage-reports)
+- [Generating the API reference](#generating-the-api-reference)
+- [Updating vendored Slice files](#updating-vendored-slice-files)
 
 ## Prerequisites
 
@@ -41,31 +28,13 @@ install ReportGenerator as follows:
    dotnet tool install -g dotnet-reportgenerator-globaltool
    ```
 
-## Build roadmap
-
-```mermaid
-flowchart LR
-    compiler(slicec) --> icerpc(ZeroC.*<br>IceRpc.*)
-    icerpc -- doc --> api(API reference)
-    icerpc -- publish --> nuget(NuGet packages) --> examples(Examples)
-    icerpc --> tests(Tests) -- coverage --> cov(Code coverage reports)
-```
-
-The Slice compiler ([slicec]) compiles Slice files and invokes C# code-generator plugins to produce the generated code.
-
 ## Building IceRpc
-
-### Command line
 
 ```shell
 dotnet build
 ```
 
 This command builds all the tools, sources and tests with the default config (debug).
-
-### Visual Studio Code
-
-Select `Tasks: Run Build Task...` from the command palette to run the build script from Visual Studio Code.
 
 ## Running the tests
 
