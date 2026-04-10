@@ -9,4 +9,9 @@ package icerpc.service_generator.tests;
 
 service ProtobufGreeter {
     rpc OpProto(google.protobuf.Empty) returns (google.protobuf.Empty);
+    rpc OpProtoWithArgs(ProtoMessage) returns (ProtoMessage);
+}
+
+message ProtoMessage {
+    string message = 1;
 }

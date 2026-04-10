@@ -25,8 +25,13 @@ public partial class MixedServiceTests
 
         // Act/Assert
         Assert.That(async () => await iceProxy.OpIceAsync(), Throws.Nothing);
+        Assert.That(await iceProxy.OpIceWithArgsAsync("Ice"), Is.EqualTo("Ice"));
         Assert.That(async () => await sliceProxy.OpSliceAsync(), Throws.Nothing);
+        Assert.That(await sliceProxy.OpSliceWithArgsAsync("Slice"), Is.EqualTo("Slice"));
         Assert.That(async () => await protobufClient.OpProtoAsync(new Empty()), Throws.Nothing);
+        Assert.That(
+            (await protobufClient.OpProtoWithArgsAsync(new ProtoMessage { Message = "Proto" })).Message,
+            Is.EqualTo("Proto"));
     }
 
     [Service]
@@ -34,11 +39,26 @@ public partial class MixedServiceTests
     {
         public ValueTask OpIceAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
+        public ValueTask<string> OpIceWithArgsAsync(
+            string message,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(message);
+
         public ValueTask OpSliceAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+
+        public ValueTask<string> OpSliceWithArgsAsync(
+            string message,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(message);
 
         public ValueTask<Empty> OpProtoAsync(
             Empty message,
             IFeatureCollection? features,
             CancellationToken cancellationToken) => new(new Empty());
+
+        public ValueTask<ProtoMessage> OpProtoWithArgsAsync(
+            ProtoMessage message,
+            IFeatureCollection? features,
+            CancellationToken cancellationToken) => new(message);
     }
 }
