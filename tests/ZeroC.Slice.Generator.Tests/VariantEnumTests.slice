@@ -46,12 +46,12 @@ compact enum CompactShape {
 }
 
 enum ShapeWithAttribute {
-    [cs::attribute("MyEnumeratorName(\"MyCircle\")")]
+    [cs::attribute("MyVariantName(\"MyCircle\")")]
     Circle(radius: uint32)
 
-    [cs::attribute("MyEnumeratorName(\"MyRectangle\")")]
+    [cs::attribute("MyVariantName(\"MyRectangle\")")]
     Rectangle(width: uint32, height: uint32)
 
-    [cs::attribute("MyEnumeratorName(\"MyTriangle\")")]
+    [cs::attribute("MyVariantName(\"MyTriangle\")")]
     Triangle(side1: uint32, side2: uint32, side3: uint32)
 }
