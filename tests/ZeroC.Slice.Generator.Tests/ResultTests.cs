@@ -9,7 +9,7 @@ namespace ZeroC.Slice.Generator.Tests;
 public class ResultTests
 {
     [Test]
-    public void String_int32_result_encoded_like_compact_enum_with_fields([Values] bool success)
+    public void String_int32_result_encoded_like_compact_variant_enum([Values] bool success)
     {
         // Arrange
         const string successValue = "hello";
@@ -45,7 +45,7 @@ public class ResultTests
 
     [TestCase(null)]
     [TestCase(123)]
-    public void String_opt_int32_result_encoded_like_compact_enum_with_fields(int? failureValue)
+    public void String_opt_int32_result_encoded_like_compact_variant_enum(int? failureValue)
     {
         // Arrange
 

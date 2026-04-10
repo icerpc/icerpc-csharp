@@ -6,7 +6,7 @@ using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Generator.Tests;
 
-public class EnumWithFieldsTests
+public class VariantEnumTests
 {
     [Test]
     public void Decode_enum_ignores_unknown_tagged_fields()
@@ -32,7 +32,7 @@ public class EnumWithFieldsTests
 
     [TestCase("canary", (ushort)7)]
     [TestCase("lemon", null)]
-    public void Decode_enum_with_optional_field(string shade, ushort? code)
+    public void Decode_variant_enum_with_optional_field(string shade, ushort? code)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -99,7 +99,7 @@ public class EnumWithFieldsTests
 
     [TestCase("foo", 8u, 4u)]
     [TestCase(null, 7u, 3u)]
-    public void Decode_enum_with_optional_field(string? name, uint major, uint minor)
+    public void Decode_variant_enum_with_optional_field(string? name, uint major, uint minor)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -138,7 +138,7 @@ public class EnumWithFieldsTests
 
     [TestCase("foo", 8u, 4u)]
     [TestCase(null, 7u, 3u)]
-    public void Decode_compact_enum_with_optional_field(string? name, uint major, uint minor)
+    public void Decode_compact_variant_enum_with_optional_field(string? name, uint major, uint minor)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -168,20 +168,20 @@ public class EnumWithFieldsTests
     }
 
     [Test]
-    public void Enumerator_with_fields_gets_attribute()
+    public void Variant_gets_attribute()
     {
         var attribute = typeof(ShapeWithAttribute.Rectangle)
-            .GetCustomAttributes(typeof(MyEnumeratorNameAttribute), false)
-            .Cast<MyEnumeratorNameAttribute>()
+            .GetCustomAttributes(typeof(MyVariantNameAttribute), false)
+            .Cast<MyVariantNameAttribute>()
             .Single();
         Assert.That(attribute.Name, Is.EqualTo("MyRectangle"));
     }
 }
 
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class MyEnumeratorNameAttribute : Attribute
+public sealed class MyVariantNameAttribute : Attribute
 {
     public string Name { get; }
 
-    public MyEnumeratorNameAttribute(string name) => Name = name;
+    public MyVariantNameAttribute(string name) => Name = name;
 }

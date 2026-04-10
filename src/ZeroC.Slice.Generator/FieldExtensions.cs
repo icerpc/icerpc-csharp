@@ -155,7 +155,7 @@ internal static class FieldExtensions
         return nonTagged;
     }
 
-    /// <summary>Generates the encode body for a list of fields. Used by struct, enum-with-fields, and operation
+    /// <summary>Generates the encode body for a list of fields. Used by struct, variant enum, and operation
     /// encode methods. The logic is the same: bit sequence for optionals, tagged fields, regular fields, and
     /// an optional tag end marker.</summary>
     /// <param name="fields">The fields to encode.</param>
