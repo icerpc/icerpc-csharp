@@ -1,9 +1,0 @@
-name: Publish Packages
-description: "Publishes IceRPC packages locally"
-
-runs:
-  using: "composite"
-  steps:
-  - name: 📦 Publish Packages
-    run: ./build.sh --publish
-    shell: bash
