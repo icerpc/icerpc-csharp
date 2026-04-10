@@ -11,6 +11,7 @@
     <PackageTags>IceRPC;RPC;MSBuild;Protobuf</PackageTags>
     <PackageType>Dependency</PackageType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>NU5100</NoWarn>
   </PropertyGroup>
