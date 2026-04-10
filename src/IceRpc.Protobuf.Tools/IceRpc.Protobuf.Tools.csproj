@@ -11,6 +11,7 @@
     <PackageTags>IceRPC;RPC;MSBuild;Protobuf</PackageTags>
     <PackageType>Dependency</PackageType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>NU5100</NoWarn>
   </PropertyGroup>
@@ -121,7 +122,10 @@
       DestinationFiles="@(ProtocCompiler->'$(MSBuildThisFileDirectory)obj/tools/%(Prefix)/%(Filename)%(Extension)')"
       SkipUnchangedFiles="true" />
 
-    <!-- Include downloaded protoc binaries and Google.Protobuf files in the NuGet package. -->
+  </Target>
+  <!-- Include the tools directory in the package, using a separate target so that dotnet pack compute this after
+       the files have been downloaded and copied. -->
+  <Target Name="IncludeProtocInPackage" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
       <None Include="$(MSBuildThisFileDirectory)obj/tools/**" Visible="false">
         <PackagePath>tools/</PackagePath>

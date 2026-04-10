@@ -60,6 +60,7 @@
     "slnx",
     "srcdist",
     "structs",
+    "targetdir",
     "SYSLIB",
     "testhost",
     "traceparent",

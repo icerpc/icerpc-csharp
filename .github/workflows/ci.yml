@@ -30,10 +30,14 @@ jobs:
         run: ulimit -a
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
       - name: Build
-        uses: ./.github/actions/build
-      - name: Publish
-        uses: ./.github/actions/publish
+        run: dotnet build
+        shell: bash
+      - name: Publish Local Packages
+        run: ./build/publish-local-packages.sh
+        shell: bash
       - name: Run Tests
         uses: ./.github/actions/test
       - name: Install Templates

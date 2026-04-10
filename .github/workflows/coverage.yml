@@ -13,11 +13,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
       - name: Build
-        uses: ./.github/actions/build
+        run: dotnet build
+        shell: bash
 
       - name: Generate Coverage Reports
-        run: dotnet test --collect:"XPlat Code Coverage" -p:RunSettingsFilePath=${{ github.workspace }}/build/Coverlet.runsettings
+        run: dotnet test --collect:"XPlat Code Coverage"
         shell: bash
 
       - name: Coveralls

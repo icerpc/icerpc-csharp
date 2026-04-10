@@ -14,13 +14,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+
       - name: Build
-        uses: ./.github/actions/build
+        run: dotnet build
+        shell: bash
 
       - name: Build Docs
         run: |
             dotnet tool install --global docfx
-            ./build.sh --doc
+            cd docfx
+            docfx metadata --property Configuration=Debug
+            docfx build
 
       - name: Sync to S3
         if: github.repository == 'icerpc/icerpc-csharp' && github.event_name == 'push'
