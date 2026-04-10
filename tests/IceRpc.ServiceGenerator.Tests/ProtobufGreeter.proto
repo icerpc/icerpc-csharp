@@ -1,0 +1,12 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+option csharp_namespace = "IceRpc.ServiceGenerator.Tests";
+
+import "google/protobuf/empty.proto";
+
+package icerpc.service_generator.tests;
+
+service ProtobufGreeter {
+    rpc OpProto(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
