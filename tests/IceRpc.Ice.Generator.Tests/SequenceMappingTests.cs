@@ -206,14 +206,14 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<int>(value)));
+        Assert.That(decodedValue, Is.EqualTo(CustomSequence<int>.Create(value)));
     }
 
     [Test]
     public async Task Operation_sending_a_custom_sequence_of_int()
     {
         // Arrange
-        var value = new CustomSequence<int>(new int[] { 1, 2, 3 });
+        var value = CustomSequence<int>.Create(new int[] { 1, 2, 3 });
 
         // Act
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfInt(value);
@@ -224,6 +224,50 @@ public class SequenceMappingTests
             Payload = requestPayload
         };
         var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfIntAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_stack_of_int()
+    {
+        // Arrange
+        var value = new Stack<int>([1, 2, 3]);
+        PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnStackOfInt(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Stack<int> decodedValue =
+            await SequenceMappingOperationsProxy.Response.DecodeReturnStackOfIntAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_stack_of_int()
+    {
+        // Arrange
+        var value = new Stack<int>([1, 2, 3]);
+
+        // Act
+        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendStackOfInt(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        Stack<int> decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendStackOfIntAsync(
             request,
             default);
         Assert.That(decodedValue, Is.EqualTo(value));
@@ -251,14 +295,14 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<string>(value)));
+        Assert.That(decodedValue, Is.EqualTo(CustomSequence<string>.Create(value)));
     }
 
     [Test]
     public async Task Operation_sending_a_custom_sequence_of_string()
     {
         // Arrange
-        var value = new CustomSequence<string>(new string[] { "one", "two", "three" });
+        var value = CustomSequence<string>.Create(new string[] { "one", "two", "three" });
 
         // Act
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfString(value);
@@ -295,15 +339,14 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<MyEnum>(value)));
+        Assert.That(decodedValue, Is.EqualTo(CustomSequence<MyEnum>.Create(value)));
     }
 
     [Test]
     public async Task Operation_sending_a_custom_sequence_of_enum()
     {
         // Arrange
-        var value = new CustomSequence<MyEnum>(
-            new MyEnum[] { MyEnum.Enum1, MyEnum.Enum2, MyEnum.Enum3 });
+        var value = CustomSequence<MyEnum>.Create(new MyEnum[] { MyEnum.Enum1, MyEnum.Enum2, MyEnum.Enum3 });
 
         // Act
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyEnum(value);
@@ -447,7 +490,7 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(returnValue, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
-        Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 4, 5, 6 })));
+        Assert.That(returnValue, Is.EqualTo(CustomSequence<int>.Create(new int[] { 1, 2, 3 })));
+        Assert.That(r1, Is.EqualTo(CustomSequence<int>.Create(new int[] { 4, 5, 6 })));
     }
 }

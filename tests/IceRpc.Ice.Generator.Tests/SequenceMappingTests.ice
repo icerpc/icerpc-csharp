@@ -8,6 +8,7 @@ module IceRpc::Ice::Generator::Tests
     sequence<int> IntSeq;
     ["cs:generic:IceRpc.Ice.Generator.Tests.CustomSequence"] sequence<int> CustomIntSeq;
     ["cs:generic:System.Collections.Generic.HashSet"] sequence<int> HashIntSet;
+    ["cs:generic:Stack"] sequence<int> IntStack;
 
     sequence<string> StringSeq;
     ["cs:generic:IceRpc.Ice.Generator.Tests.CustomSequence"] sequence<string> CustomStringSeq;
@@ -39,6 +40,9 @@ module IceRpc::Ice::Generator::Tests
 
         CustomIntSeq returnCustomSequenceOfInt();
         void sendCustomSequenceOfInt(CustomIntSeq p);
+
+        IntStack returnStackOfInt();
+        void sendStackOfInt(IntStack p);
 
         CustomStringSeq returnCustomSequenceOfString();
         void sendCustomSequenceOfString(CustomStringSeq p);
