@@ -9,7 +9,7 @@ namespace ZeroC.Slice.Generator.Tests;
 public class VariantEnumTests
 {
     [Test]
-    public void Decode_enum_ignores_unknown_tagged_fields()
+    public void Decode_variant_enum_ignores_unknown_tagged_fields()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -51,7 +51,7 @@ public class VariantEnumTests
     }
 
     [Test]
-    public void Decode_unchecked_enum_returns_unknown()
+    public void Decode_unchecked_variant_enum_returns_unknown()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -71,7 +71,7 @@ public class VariantEnumTests
     }
 
     [Test]
-    public void Decode_unchecked_enum_preserves_fields()
+    public void Decode_unchecked_variant_enum_preserves_fields()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -118,7 +118,7 @@ public class VariantEnumTests
     }
 
     [Test]
-    public void Decode_compact_enum()
+    public void Decode_compact_variant_enum()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
