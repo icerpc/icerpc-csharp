@@ -48,7 +48,7 @@ internal static class DispatchGenerator
 
             foreach (Operation op in interfaceDef.Operations)
             {
-                builder.AddBlock(BuildServiceOperationDeclaration(op, accessModifier, currentNamespace));
+                builder.AddBlock(BuildServiceOperationDeclaration(op, currentNamespace));
             }
         }
 
@@ -258,7 +258,7 @@ internal static class DispatchGenerator
                     encodeBuilder
                         .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
-                        .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
+                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody))
                         .Build());
             }
 
@@ -272,16 +272,13 @@ internal static class DispatchGenerator
         return response.Build();
     }
 
-    private static CodeBlock BuildServiceOperationDeclaration(
-        Operation op,
-        string accessModifier,
-        string currentNamespace)
+    private static CodeBlock BuildServiceOperationDeclaration(Operation op, string currentNamespace)
     {
         string opName = op.Name;
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
         string returnType = op.GetServiceReturnType(currentNamespace);
 
-        var operationBuilder = new FunctionBuilder(accessModifier, returnType, $"{opName}Async", FunctionType.Declaration)
+        var operationBuilder = new FunctionBuilder(access: "", returnType, $"{opName}Async", FunctionType.Declaration)
             .AddDocCommentSummary(op.Comment, currentNamespace)
             .AddDeprecatedAttribute(op.Attributes);
 

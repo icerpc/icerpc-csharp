@@ -199,7 +199,7 @@ internal static class ProxyGenerator
             if (encodeBody is null)
             {
                 // Stream operations with no non-streamed params use CreateEmptySliceStructPayload
-                // (encodes an empty Slice2 struct). Truly void operations use EmptyPipeReader.Instance.
+                // (encodes an empty Slice struct). Truly void operations use EmptyPipeReader.Instance.
                 string emptyPayload = op.HasStreamedParameter ?
                     "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()" :
                     "IceRpc.EmptyPipeReader.Instance";
@@ -239,7 +239,7 @@ internal static class ProxyGenerator
                 request.AddBlock(
                     fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                         .AddComment("returns", "The Slice-encoded payload.")
-                        .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
+                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody))
                         .Build());
             }
 
@@ -645,12 +645,12 @@ internal static class ProxyGenerator
             .Build();
 
         // The parameterless struct constructor must be public (CS8958).
-        CodeBlock defaultCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
+        CodeBlock parameterlessCtor = new FunctionBuilder("public", "", proxyName, FunctionType.BlockBody)
             .AddComment(
                 "summary",
                 @"Constructs a proxy with an icerpc service address with path <see cref=""DefaultServicePath"" />.")
             .Build();
 
-        return CodeBlock.FromBlocks([fromPath, mainCtor, uriCtor, defaultCtor]);
+        return CodeBlock.FromBlocks([fromPath, mainCtor, uriCtor, parameterlessCtor]);
     }
 }
