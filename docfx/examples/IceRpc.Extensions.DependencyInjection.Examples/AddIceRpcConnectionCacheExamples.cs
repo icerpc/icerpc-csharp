@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 namespace IceRpc.Extensions.DependencyInjection.Examples;
 
 // This class provides code snippets used by the doc-comments of the AddIceRpcConnectionCache
-//examples.
+// examples.
 public static class AddIceRpcConnectionCacheExamples
 {
     public static void AddDefaultConnectionCache(string[] args)
