@@ -55,7 +55,7 @@ host.Run();
 ```
 
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Extensions.DependencyInjection.html
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GenericHost
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [ms_di]: https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection
 [package]: https://www.nuget.org/packages/IceRpc.Extensions.DependencyInjection

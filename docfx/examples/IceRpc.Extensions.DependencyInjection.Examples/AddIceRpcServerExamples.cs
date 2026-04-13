@@ -28,15 +28,16 @@ public static class AddIceRpcServerExamples
         var router = new Router(); // the dispatch pipeline
 
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
-        builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
-        {
-            services
-                .AddOptions<ServerOptions>()
-                // Read the server options from configuration.
-                .Bind(hostContext.Configuration.GetSection("Server"));
+        builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices(
+            (hostContext, services) =>
+            {
+                services
+                    .AddOptions<ServerOptions>()
+                    // Read the server options from configuration.
+                    .Bind(hostContext.Configuration.GetSection("Server"));
 
-            services.AddIceRpcServer(router);
-        });
+                services.AddIceRpcServer(router);
+            });
         #endregion
     }
 
@@ -75,22 +76,25 @@ public static class AddIceRpcServerExamples
         var router = new Router(); // the dispatch pipeline
 
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
-        builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
-        {
-            // The server options for the icerpc server
-            services
-                .AddOptions<ServerOptions>("IceRpcGreeter") // named option
-                .Bind(hostContext.Configuration.GetSection("IceRpcGreeter"));
+        builder
+            .UseContentRoot(AppContext.BaseDirectory)
+            .ConfigureServices((hostContext, services) =>
+            {
+                // The server options for the icerpc server
+                services
+                    .AddOptions<ServerOptions>("IceRpcGreeter") // named option
+                    .Bind(hostContext.Configuration.GetSection("IceRpcGreeter"));
 
-            // The server options for the ice server
-            services
-                .AddOptions<ServerOptions>("IceGreeter")
-                .Bind(hostContext.Configuration.GetSection("IceGreeter"));
+                // The server options for the ice server
+                services
+                    .AddOptions<ServerOptions>("IceGreeter")
+                    .Bind(hostContext.Configuration.GetSection("IceGreeter"));
 
-            // We pass the named server options to get the correct server options for each server.
-            services.AddIceRpcServer("IceRpcGreeter", router);
-            services.AddIceRpcServer("IceGreeter", router);
-        });
+                // We pass the named server options to get the correct server options for each
+                // server.
+                services.AddIceRpcServer("IceRpcGreeter", router);
+                services.AddIceRpcServer("IceGreeter", router);
+            });
         #endregion
     }
 }
