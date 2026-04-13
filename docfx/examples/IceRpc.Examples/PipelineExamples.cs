@@ -50,8 +50,10 @@ public static class PipelineExamples
                 // Add some logic before processing the request
                 Console.WriteLine("before next.InvokeAsync");
                 // Call the next invoker on the invocation pipeline.
-                IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
-                Console.WriteLine($"after next.InvokerAsync; the response status code is {response.StatusCode}");
+                IncomingResponse response =
+                    await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                Console.WriteLine(
+                    $"after next.InvokeAsync; the response status code is {response.StatusCode}");
                 // Add some logic after receiving the response.
                 return response;
             }));

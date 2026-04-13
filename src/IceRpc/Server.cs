@@ -576,7 +576,10 @@ public sealed class Server : IAsyncDisposable
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully once the shutdown of all connections accepted by the server has
     /// completed. This includes connections that were active when this method is called and connections whose shutdown
-    /// was initiated prior to this call. This task can also complete with one of the following exceptions:
+    /// was initiated prior to this call.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
+    /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" /> if the
     /// server is disposed while being shut down.</description></item>
@@ -584,9 +587,7 @@ public sealed class Server : IAsyncDisposable
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" /> if the shutdown timed out.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
+    /// </remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)

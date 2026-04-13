@@ -148,22 +148,22 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
-    /// once this connection is established. This task can also complete with one of the following exceptions:
+    /// once this connection is established.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this client connection is shut down or shutting down.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
+    /// <remarks><para>This method can be called multiple times and concurrently. If the connection is not established,
+    /// it will be connected or reconnected.</para>
+    /// <para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="AuthenticationException" /> if authentication failed.</description></item>
-    /// <item><description><see cref="IceRpcException" /> if the connection establishment failed.</description>
-    /// </item>
+    /// <item><description><see cref="IceRpcException" /> if the connection establishment failed.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" /> if this connection attempt or a previous attempt exceeded
     /// <see cref="ClientConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if this client connection is shut down or shutting down.
-    /// </exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
-    /// <remarks>This method can be called multiple times and concurrently. If the connection is not established, it
-    /// will be connected or reconnected.</remarks>
+    /// </remarks>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         Task<TransportConnectionInformation> connectTask;
@@ -379,8 +379,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gracefully shuts down the connection. The shutdown waits for pending invocations and dispatches to
     /// complete.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
-    /// following exceptions:
+    /// <returns>A task that completes once the shutdown is complete.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this connection is already shut down or shutting down.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the connection shutdown failed.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
@@ -388,10 +391,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <item><description><see cref="TimeoutException" /> if this shutdown attempt or a previous attempt exceeded <see
     /// cref="ClientConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if this connection is already shut down or shutting down.
-    /// </exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// </remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)

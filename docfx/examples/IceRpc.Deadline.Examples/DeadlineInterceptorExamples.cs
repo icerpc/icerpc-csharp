@@ -22,7 +22,8 @@ public static class DeadlineInterceptorExamples
         #region UseDeadlineWithDefaultTimeout
         await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-        // Create an invocation pipeline, that uses the deadline interceptor and has a default timeout of 500 ms.
+        // Create an invocation pipeline, that uses the deadline interceptor and has a default
+        // timeout of 500 ms.
         Pipeline pipeline = new Pipeline()
             .UseDeadline(defaultTimeout: TimeSpan.FromMilliseconds(500))
             .Into(connection);
