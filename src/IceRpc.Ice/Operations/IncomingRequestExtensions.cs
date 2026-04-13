@@ -11,21 +11,6 @@ namespace IceRpc.Ice.Operations;
 /// </summary>
 public static class IncomingRequestExtensions
 {
-    /// <summary>The generated code calls this method to ensure that when an operation is not declared idempotent,
-    /// the request is not marked idempotent. If the request is marked idempotent, it means the caller incorrectly
-    /// believes this operation is idempotent.</summary>
-    /// <param name="request">The request to check.</param>
-    /// <exception cref="InvalidDataException">Thrown if the request contains the <see cref="RequestFieldKey.Idempotent"/>
-    /// field.</exception>
-    public static void CheckNonIdempotent(this IncomingRequest request)
-    {
-        if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
-        {
-            throw new InvalidDataException(
-                $"Invocation mode mismatch for operation '{request.Operation}': received idempotent field for an operation not marked as idempotent.");
-        }
-    }
-
     /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with an Ice
     /// exception payload.</summary>
     /// <param name="request">The incoming request.</param>
