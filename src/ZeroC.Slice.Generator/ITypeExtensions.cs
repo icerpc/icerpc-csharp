@@ -61,7 +61,7 @@ internal static class ITypeExtensions
                 currentNamespace);
             return $$"""
                 decoder.DecodeResult(
-                    {{decodeLambda.Indent()}}, 
+                    {{decodeLambda.Indent()}},
                     {{decodeFailureLambda.Indent()}})
                 """;
         }
@@ -330,7 +330,7 @@ internal static class ITypeExtensions
         {
             string successType = result.SuccessType.FieldTypeString(result.SuccessTypeIsOptional, currentNamespace);
             string failureType = result.FailureType.FieldTypeString(result.FailureTypeIsOptional, currentNamespace);
-            return $"Result<{successType}, {failureType}>";
+            return $"ZeroC.Slice.Result<{successType}, {failureType}>";
         }
 
         static string SequenceToTypeString(SequenceType seq, string currentNamespace)

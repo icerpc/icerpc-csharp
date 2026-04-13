@@ -3,7 +3,7 @@
 using IceRpc;
 using IceRpc.Features;
 using VisitorCenter;
-using ZeroC.Slice.Codec; // for the Result<TSuccess, TFailure> generic type
+using ZeroC.Slice; // for the Result<TSuccess, TFailure> generic type
 
 namespace CustomErrorServer;
 
