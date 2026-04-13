@@ -53,13 +53,13 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Clone_cs_readonly_struct()
+    public void Cs_readonly_on_struct()
     {
-        var keyValuePair = new KeyValuePair(5, "foo");
-        keyValuePair = keyValuePair with { Value = "bar" };
-
         // Assert
-        Assert.That(keyValuePair.Key, Is.EqualTo(5));
-        Assert.That(keyValuePair.Value, Is.EqualTo("bar"));
+        Assert.That(
+            typeof(KeyValuePair).GetCustomAttributes(
+                typeof(System.Runtime.CompilerServices.IsReadOnlyAttribute),
+                inherit: false),
+            Is.Not.Empty);
     }
 }
