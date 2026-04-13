@@ -133,7 +133,7 @@ internal static class ProxyGenerator
             .AddBase("ISliceProxy")
             .AddBlock(BuildProxyRequestClass(interfaceDef, scopedId, accessModifier, currentNamespace))
             .AddBlock(BuildProxyResponseClass(interfaceDef, scopedId, accessModifier, currentNamespace))
-            .AddBlock(BuildProxyProperties(scopedId, defaultServicePath));
+            .AddBlock(BuildProxyProperties(scopedId, accessModifier, defaultServicePath));
 
         // Implicit conversion operators for base interfaces
         foreach (Interface baseInterface in interfaceDef.AllBases)
@@ -579,11 +579,11 @@ internal static class ProxyGenerator
             .Build();
     }
 
-    private static CodeBlock BuildProxyProperties(string scopedId, string defaultServicePath) =>
+    private static CodeBlock BuildProxyProperties(string scopedId, string accessModifier, string defaultServicePath) =>
         $$"""
         /// <summary>Represents the default path for IceRPC services that implement Slice interface
         /// <c>{{scopedId}}</c>.</summary>
-        public const string DefaultServicePath = "{{defaultServicePath}}";
+        {{accessModifier}} const string DefaultServicePath = "{{defaultServicePath}}";
 
         /// <inheritdoc/>
         public SliceEncodeOptions? EncodeOptions { get; init; }
