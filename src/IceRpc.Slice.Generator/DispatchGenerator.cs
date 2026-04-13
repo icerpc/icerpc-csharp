@@ -43,8 +43,8 @@ internal static class DispatchGenerator
 
         if (interfaceDef.Operations.Count > 0)
         {
-            builder.AddBlock(BuildServiceRequestClass(interfaceDef, scopedId, currentNamespace));
-            builder.AddBlock(BuildServiceResponseClass(interfaceDef, scopedId, currentNamespace));
+            builder.AddBlock(BuildServiceRequestClass(interfaceDef, scopedId, accessModifier, currentNamespace));
+            builder.AddBlock(BuildServiceResponseClass(interfaceDef, scopedId, accessModifier, currentNamespace));
 
             foreach (Operation op in interfaceDef.Operations)
             {
@@ -55,11 +55,15 @@ internal static class DispatchGenerator
         return builder.Build();
     }
 
-    private static CodeBlock BuildServiceRequestClass(Interface interfaceDef, string scopedId, string currentNamespace)
+    private static CodeBlock BuildServiceRequestClass(
+        Interface interfaceDef,
+        string scopedId,
+        string accessModifier,
+        string currentNamespace)
     {
         // Use "new" keyword when the interface inherits operations from a base (to hide base's Request class)
         bool hasInheritedOps = interfaceDef.AllBases.Any(b => b.Operations.Count > 0);
-        string classModifier = hasInheritedOps ? "public static new class" : "public static class";
+        string classModifier = hasInheritedOps ? $"{accessModifier} static new class" : $"{accessModifier} static class";
         ContainerBuilder request = new ContainerBuilder(classModifier, "Request")
             .AddComment("summary", "Provides static methods that decode request payloads.")
             .AddComment(
@@ -77,7 +81,7 @@ internal static class DispatchGenerator
             {
                 // Non-streaming: expression body
                 FunctionBuilder decodeBuilder = new FunctionBuilder(
-                    "public static",
+                    $"{accessModifier} static",
                     returnType,
                     $"Decode{opName}Async",
                     FunctionType.ExpressionBody)
@@ -107,7 +111,7 @@ internal static class DispatchGenerator
             {
                 // Streaming: async block body
                 FunctionBuilder decodeBuilder = new FunctionBuilder(
-                    "public static async",
+                    $"{accessModifier} static async",
                     returnType,
                     $"Decode{opName}Async",
                     FunctionType.BlockBody)
@@ -191,10 +195,14 @@ internal static class DispatchGenerator
         return request.Build();
     }
 
-    private static CodeBlock BuildServiceResponseClass(Interface interfaceDef, string scopedId, string currentNamespace)
+    private static CodeBlock BuildServiceResponseClass(
+        Interface interfaceDef,
+        string scopedId,
+        string accessModifier,
+        string currentNamespace)
     {
         bool hasInheritedOps = interfaceDef.AllBases.Any(b => b.Operations.Count > 0);
-        string classModifier = hasInheritedOps ? "public static new class" : "public static class";
+        string classModifier = hasInheritedOps ? $"{accessModifier} static new class" : $"{accessModifier} static class";
         ContainerBuilder response = new ContainerBuilder(classModifier, "Response")
             .AddComment("summary", "Provides static methods that encode return values into response payloads.")
             .AddComment(
@@ -216,7 +224,7 @@ internal static class DispatchGenerator
 
                 response.AddBlock(
                     new FunctionBuilder(
-                        "public static",
+                        $"{accessModifier} static",
                         "global::System.IO.Pipelines.PipeReader",
                         $"Encode{opName}",
                         FunctionType.ExpressionBody)
@@ -231,7 +239,7 @@ internal static class DispatchGenerator
             else
             {
                 FunctionBuilder encodeBuilder = new FunctionBuilder(
-                    "public static",
+                    $"{accessModifier} static",
                     "global::System.IO.Pipelines.PipeReader",
                     $"Encode{opName}",
                     FunctionType.BlockBody)
@@ -250,7 +258,7 @@ internal static class DispatchGenerator
                     encodeBuilder
                         .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
-                        .SetBody(InterfaceGenerator.BuildPipeEncodeBody(encodeBody))
+                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody))
                         .Build());
             }
 
@@ -270,7 +278,7 @@ internal static class DispatchGenerator
         ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
         string returnType = op.GetServiceReturnType(currentNamespace);
 
-        var operationBuilder = new FunctionBuilder("public", returnType, $"{opName}Async", FunctionType.Declaration)
+        var operationBuilder = new FunctionBuilder(access: "", returnType, $"{opName}Async", FunctionType.Declaration)
             .AddDocCommentSummary(op.Comment, currentNamespace)
             .AddDeprecatedAttribute(op.Attributes);
 

@@ -5,10 +5,10 @@ using ZeroC.CodeBuilder;
 namespace IceRpc.Slice.Generator;
 
 /// <summary>Shared helpers used by both <see cref="ProxyGenerator"/> and <see cref="DispatchGenerator"/>.</summary>
-internal static class InterfaceGenerator
+internal static class EncodeHelper
 {
     /// <summary>Wraps an encode body in the standard pipe creation/size-placeholder boilerplate.</summary>
-    internal static CodeBlock BuildPipeEncodeBody(CodeBlock encodeBody)
+    internal static CodeBlock BuildEncodeBody(CodeBlock encodeBody)
     {
         return new CodeBlock($$"""
             var pipe_ = new global::System.IO.Pipelines.Pipe(
