@@ -13,7 +13,7 @@ if (args.Length > 0)
 
 await GeneratorDriver.RunAsync(
     generateCode: (symbol, currentNamespace) => symbol is Interface interfaceDef
-        ? CodeBlock.FromBlocks([ProxyGenerator.Generate(interfaceDef), DispatchGenerator.Generate(interfaceDef)])
+        ? CodeBlock.FromBlocks([ProxyGenerator.Generate(interfaceDef), ServiceGenerator.Generate(interfaceDef)])
         : null,
     mapOutputPath: path => Path.ChangeExtension(Path.GetFileName(path), ".IceRpc.cs"),
     usings: ["IceRpc.Slice", "IceRpc.Slice.Operations", "ZeroC.Slice.Codec"]).ConfigureAwait(false);

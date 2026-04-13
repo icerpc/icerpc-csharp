@@ -4,7 +4,7 @@ using ZeroC.CodeBuilder;
 
 namespace IceRpc.Slice.Generator;
 
-/// <summary>Shared helpers used by both <see cref="ProxyGenerator"/> and <see cref="DispatchGenerator"/>.</summary>
+/// <summary>Shared helpers used by both <see cref="ProxyGenerator"/> and <see cref="ServiceGenerator"/>.</summary>
 internal static class EncodeHelper
 {
     /// <summary>Wraps an encode body in the standard pipe creation/size-placeholder boilerplate.</summary>

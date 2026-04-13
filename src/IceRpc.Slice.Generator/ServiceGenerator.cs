@@ -9,7 +9,7 @@ namespace IceRpc.Slice.Generator;
 
 /// <summary>Generates C# server-side code from a Slice interface: the service interface with nested Request/Response
 /// classes and operation declarations.</summary>
-internal static class DispatchGenerator
+internal static class ServiceGenerator
 {
     /// <summary>Generates all dispatch-side code blocks for the given interface.</summary>
     internal static CodeBlock Generate(Interface interfaceDef)
