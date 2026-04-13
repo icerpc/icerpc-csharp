@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.IO.Pipelines;
 using IceRpc.Features;
 using IceRpc.Ice.Derived.Generator.Tests;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Ice.Generator.Tests;
 
