@@ -31,21 +31,22 @@ public interface IDuplexConnection : IDisposable
     /// <summary>Connects this connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully with transport connection information when the connection is
-    /// established. This task can also complete with one of the following exceptions:
+    /// established.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this connection is connected, connecting or if a previous
+    /// connection attempt failed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <remarks><para>When you call this method on a client connection, the returned task can complete successfully
+    /// before the server accepts the connection with <see cref="IListener{T}.AcceptAsync" />: a connected client
+    /// connection may be in the server-side listen backlog when the transport has such a backlog. See for example
+    /// <see cref="Tcp.TcpServerTransportOptions.ListenBacklog"/>.</para>
+    /// <para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="AuthenticationException" /> if authentication failed.</description></item>
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if this connection is connected, connecting or if a previous
-    /// connection attempt failed.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
-    /// <remarks>When you call this method on a client connection, the returned task can complete successfully before
-    /// the server accepts the connection with <see cref="IListener{T}.AcceptAsync" />: a connected client connection
-    /// may be in the server-side listen backlog when the transport has such a backlog. See for example
-    /// <see cref="Tcp.TcpServerTransportOptions.ListenBacklog"/>.</remarks>
+    /// </remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Reads data from the connection.</summary>
@@ -53,50 +54,50 @@ public interface IDuplexConnection : IDisposable
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes successfully with the number of bytes read into <paramref name="buffer" />.
     /// This number is <c>0</c> when no data is available and the peer has called <see cref="ShutdownWriteAsync"/>;
-    /// otherwise, it is always greater than <c>0</c>. This value task can also complete with one of the following
-    /// exceptions:
+    /// otherwise, it is always greater than <c>0</c>.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected or if a read operation is
+    /// already in progress.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <remarks><para>The returned value task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected or if a read operation is
-    /// already in progress.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// </remarks>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
     /// <summary>Shuts down the write side of the connection to notify the peer that no more data will be sent.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes successfully when the shutdown completes successfully. This task can also
-    /// complete with one of the following exceptions:
+    /// <returns>A task that completes successfully when the shutdown completes successfully.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
+    /// shutting down, or a write operation is in progress.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
-    /// shutting down, or a write operation is in progress.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// </remarks>
     Task ShutdownWriteAsync(CancellationToken cancellationToken);
 
     /// <summary>Writes data over the connection.</summary>
     /// <param name="buffer">The buffer containing the data to write.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A value task that completes successfully when the data is written successfully. This value task can
-    /// also complete with one of the following exceptions:
+    /// <returns>A value task that completes successfully when the data is written successfully.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
+    /// shutting down, or a write operation is already in progress.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <remarks><para>The returned value task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
-    /// shutting down, or a write operation is already in progress.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// </remarks>
     ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken);
 }

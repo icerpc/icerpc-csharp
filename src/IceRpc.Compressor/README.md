@@ -133,7 +133,7 @@ They work well with Slice but don't require Slice.
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Compressor.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Compress
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Compressor
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Compressor

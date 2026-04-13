@@ -139,12 +139,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
     /// <exception cref="InvalidOperationException">Thrown if no <see cref="IServerAddressFeature" /> feature is set and
     /// the request's service address has no server addresses.</exception>
-    /// <exception cref="IceRpcException">Thrown with one of the following error:
-    /// <list type="bullet"><item><term><see cref="IceRpcError.InvocationRefused" /></term><description>This error
-    /// indicates that the connection cache is shutdown.</description></item>
-    /// <item><term><see cref="IceRpcError.NoConnection" /></term><description>This error indicates that the request
-    /// <see cref="IServerAddressFeature" /> feature has no server addresses.</description></item></list>.
-    /// </exception>
+    /// <exception cref="IceRpcException">Thrown with <see cref="IceRpcError.InvocationRefused" /> if the connection
+    /// cache is shutdown, or with <see cref="IceRpcError.NoConnection" /> if the request's
+    /// <see cref="IServerAddressFeature" /> feature has no server addresses.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection cache is disposed.</exception>
     /// <remarks><para>If the request <see cref="IServerAddressFeature" /> feature is not set, the cache sets it from
     /// the server addresses of the target service.</para>
@@ -249,7 +246,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully once the shutdown of all connections created by this cache has
     /// completed. This includes connections that were active when this method is called and connections whose shutdown
-    /// was initiated prior to this call. This task can also complete with one of the following exceptions:
+    /// was initiated prior to this call.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection cache is disposed.</exception>
+    /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" /> if the
     /// connection cache is disposed while being shut down.</description></item>
@@ -257,9 +257,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" /> if the shutdown timed out.</description></item>
     /// </list>
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection cache is disposed.</exception>
+    /// </remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
