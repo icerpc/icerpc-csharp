@@ -62,7 +62,7 @@ internal class SliceServiceMethod : ServiceMethod
         var codeBlock = new CodeBlock();
         if (!_idempotent)
         {
-            codeBlock.WriteLine("request.CheckNonIdempotent();");
+            codeBlock.WriteLine("IceRpc.Slice.Operations.IncomingRequestExtensions.CheckNonIdempotent(request);");
         }
         if (_compressReturn)
         {

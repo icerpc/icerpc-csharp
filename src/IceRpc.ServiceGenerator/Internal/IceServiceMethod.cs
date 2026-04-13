@@ -58,7 +58,7 @@ internal class IceServiceMethod : ServiceMethod
         var codeBlock = new CodeBlock();
         if (!_idempotent)
         {
-            codeBlock.WriteLine("request.CheckNonIdempotent();");
+            codeBlock.WriteLine("IceRpc.Ice.Operations.IncomingRequestExtensions.CheckNonIdempotent(request);");
         }
 
         string thisInterface = $"((global::{_fullInterfaceName})this)";
