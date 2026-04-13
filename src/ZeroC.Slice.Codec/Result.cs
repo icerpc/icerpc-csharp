@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace ZeroC.Slice.Codec;
+namespace ZeroC.Slice;
 
 /// <summary>A discriminated union that represents either a success or a failure. It is typically used as the return
 /// type of Slice operations.</summary>

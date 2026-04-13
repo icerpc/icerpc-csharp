@@ -3,7 +3,7 @@
 using IceRpc;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
-using ZeroC.Slice.Codec; // for the Result<TSuccess, TFailure> generic type
+using ZeroC.Slice; // for the Result<TSuccess, TFailure> generic type
 
 // Load the test root CA certificate in order to connect to the server that uses a test server certificate.
 using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
