@@ -53,7 +53,7 @@ public static class PipelineExamples
                 IncomingResponse response =
                     await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                 Console.WriteLine(
-                    $"after next.InvokerAsync; the response status code is {response.StatusCode}");
+                    $"after next.InvokeAsync; the response status code is {response.StatusCode}");
                 // Add some logic after receiving the response.
                 return response;
             }));
