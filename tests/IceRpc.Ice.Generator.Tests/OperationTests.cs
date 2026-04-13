@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.IO.Pipelines;
 using IceRpc.Features;
 using IceRpc.Ice.Derived.Generator.Tests;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Ice.Generator.Tests;
 
@@ -100,6 +100,50 @@ public partial class OperationTests
                 cancel: 1,
                 features: 2),
             Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Operation_with_oneway_attribute()
+    {
+        // Arrange
+        bool isOneway = false;
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
+                {
+                    isOneway = request.IsOneway;
+                    return next.InvokeAsync(request, cancellationToken);
+                }))
+            .Into(new ColocInvoker(new MyOperationsAService()));
+
+        var proxy = new MyOperationsAProxy(pipeline);
+
+        // Act
+        await proxy.OpWithOnewayAttributeAsync(42);
+
+        // Assert
+        Assert.That(isOneway, Is.True);
+    }
+
+    [Test]
+    public async Task Operation_without_oneway_attribute()
+    {
+        // Arrange
+        bool isOneway = true; // Initialize to true to verify that it gets set to false by the interceptor.
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
+                {
+                    isOneway = request.IsOneway;
+                    return next.InvokeAsync(request, cancellationToken);
+                }))
+            .Into(new ColocInvoker(new MyOperationsAService()));
+
+        var proxy = new MyOperationsAProxy(pipeline);
+
+        // Act
+        await proxy.OpWithoutParametersAndVoidReturnAsync();
+
+        // Assert
+        Assert.That(isOneway, Is.False);
     }
 
     [Test]
@@ -307,6 +351,11 @@ public partial class OperationTests
             CancellationToken cancellationToken) => new((p1, p2));
 
         public ValueTask IdempotentOpAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => default;
+
+        public ValueTask OpWithOnewayAttributeAsync(
+            int p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => default;
 
