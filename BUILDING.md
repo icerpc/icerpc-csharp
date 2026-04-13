@@ -5,7 +5,7 @@
 - [Running the tests](#running-the-tests)
 - [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Generating the API reference](#generating-the-api-reference)
-- [Building examples against a local source build](#building-examples-against-a-local-source-build)
+- [Building examples with a local source build](#building-examples-with-a-local-source-build)
   - [1. Publish the packages locally](#1-publish-the-packages-locally)
   - [2. Build the example with the local package version](#2-build-the-example-with-the-local-package-version)
 
@@ -75,7 +75,7 @@ This generates the API reference into the `docfx/_site` directory. Start a local
 docfx serve _site
 ```
 
-## Building examples against a local source build
+## Building examples with a local source build
 
 By default, the examples restore published IceRPC packages:
 
