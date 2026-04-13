@@ -7,7 +7,8 @@ using Microsoft.Extensions.Hosting;
 
 namespace IceRpc.Extensions.DependencyInjection.Examples;
 
-// This class provides code snippets used by the doc-comments of the AddIceRpcClientConnection examples.
+// This class provides code snippets used by the doc-comments of the AddIceRpcClientConnection
+// examples.
 public static class AddIceRpcClientConnectionExamples
 {
     public static void AddClientConnectionWithOptions(string[] args)
@@ -21,8 +22,9 @@ public static class AddIceRpcClientConnectionExamples
                 // We need to set at least ServerAddress in the options.
                 .Configure(options =>
                     options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
-                // options.ClientAuthenticationOptions remains null: this client connection uses the Trusted Root CAs
-                // to validate the server certificate when establishing the underlying secure QUIC connection.
+                // options.ClientAuthenticationOptions remains null: this client connection uses
+                // the system Trusted Root CAs to validate the server certificate when establishing
+                // the underlying secure QUIC connection.
 
             services.AddIceRpcClientConnection();
         });
@@ -43,7 +45,8 @@ public static class AddIceRpcClientConnectionExamples
             services
                 // The IMultiplexedClientTransport singleton is implemented by Slic.
                 .AddSingleton<IMultiplexedClientTransport>(
-                    provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
+                    provider => new SlicClientTransport(
+                        provider.GetRequiredService<IDuplexClientTransport>()))
                 .AddIceRpcClientConnection();
         });
         #endregion

@@ -7,7 +7,8 @@ using Microsoft.Extensions.Hosting;
 
 namespace IceRpc.Extensions.DependencyInjection.Examples;
 
-// This class provides code snippets used by the doc-comments of the AddIceRpcConnectionCache examples.
+// This class provides code snippets used by the doc-comments of the AddIceRpcConnectionCache
+//examples.
 public static class AddIceRpcConnectionCacheExamples
 {
     public static void AddDefaultConnectionCache(string[] args)
@@ -28,8 +29,9 @@ public static class AddIceRpcConnectionCacheExamples
                 .AddOptions<ConnectionCacheOptions>()
                 .Configure(options =>
                     options.ConnectTimeout = TimeSpan.FromSeconds(30));
-                // options.ClientAuthenticationOptions remains null: this cache uses the Trusted Root CAs to validate
-                // the server certificates when establishing secure QUIC connections.
+                // options.ClientAuthenticationOptions remains null: this cache uses the system
+                // Trusted Root CAs to validate the server certificates when establishing secure
+                // QUIC connections.
 
             services.AddIceRpcConnectionCache();
         });
@@ -44,7 +46,8 @@ public static class AddIceRpcConnectionCacheExamples
             services
                 // The IMultiplexedClientTransport singleton is implemented by Slic.
                 .AddSingleton<IMultiplexedClientTransport>(
-                    provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
+                    provider => new SlicClientTransport(
+                        provider.GetRequiredService<IDuplexClientTransport>()))
                 .AddIceRpcConnectionCache());
         #endregion
     }
