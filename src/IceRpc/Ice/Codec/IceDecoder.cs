@@ -315,13 +315,13 @@ public ref partial struct IceDecoder
                 $"The {nameof(byteCount)} argument must be greater than or equal to 0.",
                 nameof(byteCount));
         }
-        long newAllocation = _currentCollectionAllocation + byteCount;
-        if (newAllocation > _maxCollectionAllocation)
+        int remainingAllocation = _maxCollectionAllocation - _currentCollectionAllocation;
+        if (byteCount > remainingAllocation)
         {
             throw new InvalidDataException(
                 $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
         }
-        _currentCollectionAllocation = (int)newAllocation;
+        _currentCollectionAllocation += (int)byteCount;
     }
 
     /// <summary>Skip the given number of bytes.</summary>
