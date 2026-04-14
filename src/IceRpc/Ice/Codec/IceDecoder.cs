@@ -2,7 +2,6 @@
 
 using IceRpc.Ice.Codec.Internal;
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -304,12 +303,19 @@ public ref partial struct IceDecoder
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
     /// <param name="byteCount">The number of bytes to add. Must be greater than 0.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="byteCount" /> is less than or equal to 0.
+    /// </exception>
     /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
     /// allocation.</exception>
     /// <seealso cref="IceDecoder(ReadOnlySequence{byte}, object?, int, IActivator?, int)" />
     public void IncreaseCollectionAllocation(long byteCount)
     {
-        Debug.Assert(byteCount > 0);
+        if (byteCount <= 0)
+        {
+            throw new ArgumentException(
+                $"The {nameof(byteCount)} argument must be greater than 0.",
+                nameof(byteCount));
+        }
         long newAllocation = _currentCollectionAllocation + byteCount;
         if (newAllocation > _maxCollectionAllocation)
         {
