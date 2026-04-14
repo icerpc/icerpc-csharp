@@ -219,4 +219,47 @@ public class SequenceDecodingTests
             },
             Throws.Nothing);
     }
+
+    /// <summary>Verifies that a crafted count near int.MaxValue / elementSize that would overflow int arithmetic
+    /// is correctly rejected by the allocation check.</summary>
+    [Test]
+    public void Decode_sequence_with_overflowing_allocation_cost_is_rejected()
+    {
+        // Arrange
+        // count * sizeof(int) would overflow in unchecked int arithmetic, wrapping to a small positive number.
+        int count = (int.MaxValue / Unsafe.SizeOf<int>()) + 1;
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(count);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: 1024);
+                _ = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
+            },
+            Throws.InstanceOf<InvalidDataException>().With.Message.Contains("max collection allocation"));
+    }
+
+    /// <summary>Verifies that a crafted count near int.MaxValue / elementSize that would overflow int arithmetic
+    /// is correctly rejected by the allocation check for sequences of optionals.</summary>
+    [Test]
+    public void Decode_sequence_of_optionals_with_overflowing_allocation_cost_is_rejected()
+    {
+        // Arrange
+        int count = (int.MaxValue / Unsafe.SizeOf<long?>()) + 1;
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(count);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: 1024);
+                _ = sut.DecodeSequenceOfOptionals<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>().With.Message.Contains("max collection allocation"));
+    }
 }

@@ -815,7 +815,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
 
             // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
-            if (count * 2 > decoder.Remaining)
+            if ((long)count * 2 > decoder.Remaining)
             {
                 throw new InvalidDataException("Too many fields.");
             }

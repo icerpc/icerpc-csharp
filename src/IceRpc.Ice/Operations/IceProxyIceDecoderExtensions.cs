@@ -124,7 +124,7 @@ public static class IceProxyIceDecoderExtensions
                             decoder.CopyTo(span);
                             string value = Convert.ToBase64String(span);
                             builder.Add("v", value);
-                            decoder.IncreaseCollectionAllocation(value.Length * Unsafe.SizeOf<char>());
+                            decoder.IncreaseCollectionAllocation((long)value.Length * Unsafe.SizeOf<char>());
                         }
 
                         serverAddress = new ServerAddress(
@@ -218,7 +218,7 @@ public static class IceProxyIceDecoderExtensions
             {
                 // An Ice-encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
                 // bytes for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
-                decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
+                decoder.IncreaseCollectionAllocation((long)count * Unsafe.SizeOf<ServerAddress>());
 
                 var serverAddressArray = new ServerAddress[count - 1];
                 for (int i = 0; i < count - 1; ++i)

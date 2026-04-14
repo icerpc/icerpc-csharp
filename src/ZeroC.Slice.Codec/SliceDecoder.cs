@@ -204,7 +204,7 @@ public ref partial struct SliceDecoder
 
             // We can only compute the new allocation _after_ decoding the string. For dictionaries and sequences,
             // we perform this check before the allocation.
-            IncreaseCollectionAllocation(result.Length * Unsafe.SizeOf<char>());
+            IncreaseCollectionAllocation((long)result.Length * Unsafe.SizeOf<char>());
             return result;
         }
     }
@@ -419,18 +419,20 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
-    /// <param name="byteCount">The number of bytes to add.</param>
+    /// <param name="byteCount">The number of bytes to add. Must be greater than 0.</param>
     /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
     /// allocation.</exception>
     /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, object?, int)" />
-    public void IncreaseCollectionAllocation(int byteCount)
+    public void IncreaseCollectionAllocation(long byteCount)
     {
-        _currentCollectionAllocation += byteCount;
-        if (_currentCollectionAllocation > _maxCollectionAllocation)
+        Debug.Assert(byteCount > 0);
+        long newAllocation = _currentCollectionAllocation + byteCount;
+        if (newAllocation > _maxCollectionAllocation)
         {
             throw new InvalidDataException(
                 $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
         }
+        _currentCollectionAllocation = (int)newAllocation;
     }
 
     /// <summary>Skip the given number of bytes.</summary>
