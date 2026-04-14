@@ -7,7 +7,8 @@ using Microsoft.Extensions.Hosting;
 
 namespace IceRpc.Extensions.DependencyInjection.Examples;
 
-// This class provides code snippets used by the doc-comments of the AddIceRpcClientConnection examples.
+// This class provides code snippets used by the doc-comments of the AddIceRpcClientConnection
+// examples.
 public static class AddIceRpcClientConnectionExamples
 {
     public static void AddClientConnectionWithOptions(string[] args)
@@ -35,8 +36,8 @@ public static class AddIceRpcClientConnectionExamples
         {
             services
                 .AddOptions<ClientConnectionOptions>()
-                // options.ClientAuthenticationOptions remains null which means we'll use the system certificates for this
-                // secure QUIC connection.
+                // options.ClientAuthenticationOptions remains null which means we'll use the
+                // system certificates for this secure QUIC connection.
                 .Configure(options =>
                     options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
             services

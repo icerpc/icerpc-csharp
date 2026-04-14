@@ -31,7 +31,8 @@ public static class RequestContextInterceptorExamples
 
         {
         #region UseRequestContextWithSliceProxy
-        // The request context interceptor encodes the request context feature into the request context field.
+        // The request context interceptor encodes the request context feature into the request
+        // context field.
         var greeter = new GreeterProxy(pipeline);
         string greeting = await greeter.GreetAsync(Environment.UserName, features);
         #endregion
@@ -39,9 +40,11 @@ public static class RequestContextInterceptorExamples
 
         {
         #region UseRequestContextWithProtobufClient
-        // The request context interceptor encodes the request context feature into the request context field.
+        // The request context interceptor encodes the request context feature into the request
+        // context field.
         var greeter = new GreeterClient(pipeline);
-        GreetResponse response = await greeter.GreetAsync(new GreetRequest { Name = Environment.UserName }, features);
+        GreetResponse response = await greeter.GreetAsync(
+            new GreetRequest { Name = Environment.UserName }, features);
         #endregion
         }
     }
