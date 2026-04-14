@@ -21,6 +21,7 @@
     <Project Path="src/IceRpc.Ice/IceRpc.Ice.csproj" />
     <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
     <Project Path="src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" />
+    <Project Path="src/IceRpc.Slice.BuildTelemetry/IceRpc.Slice.BuildTelemetry.csproj" />
     <Project Path="src/IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" />
     <Project Path="src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" />
     <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />

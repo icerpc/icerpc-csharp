@@ -2,6 +2,8 @@
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <!-- Report build telemetry by default. The default is overridden to 'false' in the source-build branch below. -->
+    <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
     <EnableDefaultSliceFileItems Condition="'$(EnableDefaultSliceFileItems)' == ''">true</EnableDefaultSliceFileItems>
     <!-- Internal properties used to compute the slicec compiler location for the current platform. -->
     <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_IceRpcOSName>
@@ -11,6 +13,7 @@
     <_SliceGeneratorScriptExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.bat</_SliceGeneratorScriptExtension>
     <_SliceGeneratorScriptExtension Condition="!$([MSBuild]::IsOSPlatform('Windows'))">.sh</_SliceGeneratorScriptExtension>
   </PropertyGroup>
+
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator')">
       <!--
@@ -21,6 +24,7 @@
         <_SliceCPath>$(MSBuildThisFileDirectory)obj/tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
         <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</_ZeroCSliceGeneratorPath>
         <_IceRpcSliceGeneratorPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/</_IceRpcSliceGeneratorPath>
+        <_IceRpcSliceBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/</_IceRpcSliceBuildTelemetryPath>
 
         <!-- Use tools assembly built from source -->
         <_IceRpcSliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</_IceRpcSliceToolsTaskAssembliesPath>
@@ -35,6 +39,7 @@
         <_SliceCPath>$(MSBuildThisFileDirectory)../tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
         <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../tools/</_ZeroCSliceGeneratorPath>
         <_IceRpcSliceGeneratorPath>$(MSBuildThisFileDirectory)../tools/</_IceRpcSliceGeneratorPath>
+        <_IceRpcSliceBuildTelemetryPath>$(MSBuildThisFileDirectory)../tools/</_IceRpcSliceBuildTelemetryPath>
         <_IceRpcSliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</_IceRpcSliceToolsTaskAssembliesPath>
 
          <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->

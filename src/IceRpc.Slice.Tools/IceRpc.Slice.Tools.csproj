@@ -26,6 +26,12 @@
   <ItemGroup>
     <ProjectReference Include="../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
+    <!--
+      IceRpc.Slice.BuildTelemetry imports this project's props/targets (to compile its BuildTelemetry.slice), so a
+      ProjectReference from here back to it would create a cycle. Release packaging expects a prior
+      `dotnet build` on the solution so its outputs exist in ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/
+      when the None Include glob below is evaluated.
+    -->
     <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
   </ItemGroup>
@@ -84,6 +90,21 @@
       Exclude="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/Dunet.dll;
                ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Codec.*;
                ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Symbols.*"
+      Visible="false">
+      <PackagePath>tools/</PackagePath>
+      <Pack>true</Pack>
+    </None>
+    <!-- Include the IceRpc.Slice.BuildTelemetry plug-in outputs and scripts from source builds. We list only the
+         files unique to this plug-in plus its IceRPC runtime dependencies - the generator entries above already
+         contribute the shared Slice deps. -->
+    <None
+      Include="../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.BuildTelemetry.*;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/slicec-gen-icerpc-build-telemetry.*;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.dll;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.pdb;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.dll;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.pdb;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/Microsoft.Extensions.*.dll"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
