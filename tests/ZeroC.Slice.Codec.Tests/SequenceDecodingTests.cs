@@ -226,7 +226,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_with_overflowing_allocation_cost_is_rejected()
     {
         // Arrange
-        // count * sizeof(int) would overflow in unchecked int arithmetic, wrapping to a small positive number.
+        // count * sizeof(int) would overflow in unchecked int arithmetic.
         int count = (int.MaxValue / Unsafe.SizeOf<int>()) + 1;
         var buffer = new MemoryBufferWriter(new byte[16]);
         var encoder = new SliceEncoder(buffer);
