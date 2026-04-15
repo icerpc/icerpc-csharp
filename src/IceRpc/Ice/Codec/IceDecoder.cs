@@ -212,6 +212,10 @@ public ref partial struct IceDecoder
         }
         else
         {
+            // In the worse case scenario, each byte becomes a new character. We'll adjust this allocation increase
+            // after decoding the string.
+            IncreaseCollectionAllocation(size, Unsafe.SizeOf<char>());
+
             string result;
             if (_reader.UnreadSpan.Length >= size)
             {
@@ -249,9 +253,9 @@ public ref partial struct IceDecoder
 
             _reader.Advance(size);
 
-            // We can only compute the new allocation _after_ decoding the string. For dictionaries and sequences,
-            // we perform this check before the allocation.
-            IncreaseCollectionAllocation(result.Length, Unsafe.SizeOf<char>());
+            // Make the adjustment. Note that `result.Length - size` can be negative. The overall increase is
+            // result.Length * SizeOf<char>().
+            IncreaseCollectionAllocation(result.Length - size, Unsafe.SizeOf<char>());
             return result;
         }
     }
