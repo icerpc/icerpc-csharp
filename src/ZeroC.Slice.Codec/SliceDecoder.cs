@@ -428,6 +428,7 @@ public ref partial struct SliceDecoder
     /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, object?, int)" />
     public void IncreaseCollectionAllocation(int count, int elementSize)
     {
+        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
         Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
 
         // Widen count to long to avoid overflow when multiplying by elementSize.
@@ -476,6 +477,20 @@ public ref partial struct SliceDecoder
 
     // Applies to all var type: varint62, varuint62 etc.
     internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
+
+    /// <summary>Decreases the number of bytes in the decoder's collection allocation.</summary>
+    /// <param name="count">The number of elements.</param>
+    /// <param name="elementSize">The size of each element in bytes.</param>
+    private void DecreaseCollectionAllocation(int count, int elementSize)
+    {
+        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
+        Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
+
+        checked
+        {
+            _currentCollectionAllocation -= count * elementSize;
+        }
+    }
 
     private readonly byte PeekByte() =>
         _reader.TryPeek(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
