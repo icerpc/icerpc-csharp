@@ -145,7 +145,7 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
             case FunctionType.ExpressionBody:
                 if (_body.IsEmpty)
                 {
-                    code.WriteLine(" => { };");
+                    code.WriteLine(" { }");
                 }
                 else
                 {
