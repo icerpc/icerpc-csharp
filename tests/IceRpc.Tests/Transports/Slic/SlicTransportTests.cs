@@ -928,7 +928,6 @@ public class SlicTransportTests
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
-        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act - Write an Initialize frame header that declares a body larger than MaxControlFrameBodySize (16,383).
         await WriteOversizedFrameAsync(duplexClientConnection, FrameType.Initialize, 16_384);
@@ -961,7 +960,6 @@ public class SlicTransportTests
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
-        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
         await WriteFrameAsync(duplexClientConnection, FrameType.Initialize, (ref SliceEncoder encoder) => { });
@@ -997,7 +995,6 @@ public class SlicTransportTests
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
         using var _ = duplexServerConnection;
-        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
         await WriteFrameAsync(duplexServerConnection, frameType, (ref SliceEncoder encoder) => { });
