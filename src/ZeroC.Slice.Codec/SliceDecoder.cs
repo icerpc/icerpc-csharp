@@ -419,28 +419,16 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
-    /// <param name="count">The number of elements. Must be greater than or equal to 0.</param>
-    /// <param name="elementSize">The size of each element in bytes. Must be greater than 0.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count" /> is negative or
-    /// <paramref name="elementSize" /> is not greater than 0.</exception>
-    /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
-    /// allocation.</exception>
+    /// <param name="count">The number of elements.</param>
+    /// <param name="elementSize">The size of each element in bytes.</param>
     /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, object?, int)" />
     public void IncreaseCollectionAllocation(int count, int elementSize)
     {
-        if (count < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(count),
-                $"The {nameof(count)} argument must be greater than or equal to 0.");
-        }
-        if (elementSize <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(elementSize),
-                $"The {nameof(elementSize)} argument must be greater than 0.");
-        }
+        Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
+
+        // Widen count to long to avoid overflow when multiplying by elementSize.
         long byteCount = (long)count * elementSize;
+
         int remainingAllocation = _maxCollectionAllocation - _currentCollectionAllocation;
         if (byteCount > remainingAllocation)
         {

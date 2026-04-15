@@ -359,14 +359,13 @@ public ref partial struct IceDecoder
     }
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
-    /// <param name="count">The number of elements. Must be greater than or equal to 0.</param>
-    /// <param name="elementSize">The size of each element in bytes. Must be greater than 0.</param>
+    /// <param name="count">The number of elements.</param>
+    /// <param name="elementSize">The size of each element in bytes.</param>
     /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
     /// allocation.</exception>
     /// <seealso cref="IceDecoder(ReadOnlySequence{byte}, object?, int, IActivator?, int)" />
     internal void IncreaseCollectionAllocation(int count, int elementSize)
     {
-        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
         Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
 
         long byteCount = (long)count * elementSize;
