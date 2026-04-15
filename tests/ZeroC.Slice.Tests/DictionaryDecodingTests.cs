@@ -114,4 +114,33 @@ public class DictionaryDecodingTests
             },
             Throws.Nothing);
     }
+
+    /// <summary>Verifies that a crafted count near int.MaxValue / entrySize that would overflow int arithmetic
+    /// is correctly rejected by the allocation check.</summary>
+    [Test]
+    public void Decode_dictionary_with_overflowing_allocation_cost_is_rejected()
+    {
+        // Arrange
+        // count * (sizeof(int) + sizeof(long)) would overflow in unchecked int arithmetic.
+        int entrySize = Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>();
+        int count = (int.MaxValue / entrySize) + 1;
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        encoder.EncodeSize(count);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice2,
+                    maxCollectionAllocation: 1024);
+                _ = sut.DecodeDictionary(
+                    count => new Dictionary<int, long>(count),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>().With.Message.Contains("max collection allocation"));
+    }
 }

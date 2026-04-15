@@ -445,6 +445,96 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.Nothing);
     }
 
+    /// <summary>Verifies that a request with a field count large enough that count * 2 would overflow int arithmetic
+    /// is correctly rejected.</summary>
+    [Test]
+    public async Task Request_with_overflowing_field_count_is_rejected()
+    {
+        // Arrange
+        var taskExceptionObserver = new TestTaskExceptionObserver();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator()
+            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        IMultiplexedConnection clientTransportConnection = clientTransport.LastCreatedConnection;
+        IMultiplexedStream stream = await clientTransportConnection.CreateStreamAsync(bidirectional: true, default);
+
+        // Encode a request header with a minimal path and operation, followed by a huge field count.
+        var writer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+        int startPos = encoder.EncodedByteCount;
+        encoder.EncodeString("/"); // path
+        encoder.EncodeString("op"); // operation
+        // Field count: int.MaxValue / 2 + 1 causes count * 2 to overflow in unchecked int arithmetic.
+        encoder.EncodeVarUInt62((int.MaxValue / 2) + 1);
+        SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+
+        // Act
+        stream.Output.Write(writer.WrittenMemory.Span);
+        await stream.Output.FlushAsync();
+        stream.Output.CompleteOutput(success: true);
+
+        // Assert
+        Assert.That(
+            async () => await taskExceptionObserver.DispatchRefusedException,
+            Is.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError)
+                .And.InnerException.InstanceOf<InvalidDataException>()
+                .And.InnerException.Message.Contains("Too many fields"));
+    }
+
+    /// <summary>Verifies that a response with a field count large enough that count * 2 would overflow int arithmetic
+    /// is correctly rejected.</summary>
+    [Test]
+    public async Task Response_with_overflowing_field_count_is_rejected()
+    {
+        // Arrange
+
+        // Pre-encode a response header with StatusCode.Ok and a huge field count.
+        var responseWriter = new MemoryBufferWriter(new byte[256]);
+        var responseEncoder = new SliceEncoder(responseWriter, SliceEncoding.Slice2);
+        Span<byte> sizePlaceholder = responseEncoder.GetPlaceholderSpan(4);
+        int startPos = responseEncoder.EncodedByteCount;
+        responseEncoder.EncodeStatusCode(StatusCode.Ok);
+        // Field count: int.MaxValue / 2 + 1 causes count * 2 to overflow in unchecked int arithmetic.
+        responseEncoder.EncodeVarUInt62((int.MaxValue / 2) + 1);
+        SliceEncoder.EncodeVarUInt62((ulong)(responseEncoder.EncodedByteCount - startPos), sizePlaceholder);
+        ReadOnlyMemory<byte> responseBytes = responseWriter.WrittenMemory;
+
+        bool invalidRead = false;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator(
+                clientOperationsOptions: new MultiplexedTransportOperationsOptions()
+                {
+                    StreamInputDecorator = decoratee =>
+                        invalidRead ? PipeReader.Create(new ReadOnlySequence<byte>(responseBytes)) : decoratee
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        invalidRead = true; // Use the crafted response bytes for the incoming response.
+
+        // Act/Assert
+        Assert.That(
+            () => sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError)
+                .And.InnerException.InstanceOf<InvalidDataException>()
+                .And.InnerException.Message.Contains("Too many fields"));
+    }
+
     [Test]
     public async Task Invocation_cancellation_triggers_dispatch_cancellation()
     {

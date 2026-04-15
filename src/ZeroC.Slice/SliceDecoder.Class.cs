@@ -188,7 +188,7 @@ public ref partial struct SliceDecoder
         {
             throw new InvalidDataException("Invalid empty indirection table.");
         }
-        IncreaseCollectionAllocation(size * Unsafe.SizeOf<SliceClass>());
+        IncreaseCollectionAllocation(size, Unsafe.SizeOf<SliceClass>());
         var indirectionTable = new SliceClass[size];
         for (int i = 0; i < indirectionTable.Length; ++i)
         {
