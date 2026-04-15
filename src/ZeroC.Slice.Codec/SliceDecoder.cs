@@ -206,9 +206,8 @@ public ref partial struct SliceDecoder
 
             _reader.Advance(size);
 
-            // Make the adjustment. Note that `result.Length - size` can be negative. The overall increase is
-            // result.Length * SizeOf<char>().
-            IncreaseCollectionAllocation(result.Length - size, Unsafe.SizeOf<char>());
+            // Make the adjustment. The overall increase in allocation is result.Length * SizeOf<char>().
+            DecreaseCollectionAllocation(size - result.Length, Unsafe.SizeOf<char>());
             return result;
         }
     }
@@ -486,10 +485,11 @@ public ref partial struct SliceDecoder
         Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
         Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
 
-        checked
-        {
-            _currentCollectionAllocation -= count * elementSize;
-        }
+        // Widen count to long to avoid overflow when multiplying by elementSize.
+        long byteCount = (long)count * elementSize;
+
+        Debug.Assert(byteCount <= _currentCollectionAllocation, "Decreasing more than the current collection allocation.");
+        _currentCollectionAllocation -= (int)byteCount;
     }
 
     private readonly byte PeekByte() =>
