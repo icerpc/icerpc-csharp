@@ -42,7 +42,7 @@ public static class IceDecoderExtensions
         }
         else
         {
-            decoder.IncreaseCollectionAllocation(count * (Unsafe.SizeOf<TKey>() + Unsafe.SizeOf<TValue>()));
+            decoder.IncreaseCollectionAllocation(count, Unsafe.SizeOf<TKey>() + Unsafe.SizeOf<TValue>());
             TDictionary dictionary = dictionaryFactory(count);
             for (int i = 0; i < count; ++i)
             {
@@ -70,7 +70,7 @@ public static class IceDecoderExtensions
         else
         {
             int elementSize = Unsafe.SizeOf<T>();
-            decoder.IncreaseCollectionAllocation(count * elementSize);
+            decoder.IncreaseCollectionAllocation(count, elementSize);
             var value = new T[count];
             Span<byte> destination = MemoryMarshal.Cast<T, byte>(value.AsSpan());
             decoder.CopyTo(destination);
@@ -100,7 +100,7 @@ public static class IceDecoderExtensions
         }
         else
         {
-            decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<T>());
+            decoder.IncreaseCollectionAllocation(count, Unsafe.SizeOf<T>());
             var array = new T[count];
             for (int i = 0; i < count; ++i)
             {
@@ -131,7 +131,7 @@ public static class IceDecoderExtensions
         }
         else
         {
-            decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<TElement>());
+            decoder.IncreaseCollectionAllocation(count, Unsafe.SizeOf<TElement>());
             TCollection collection = collectionFactory(count);
             for (int i = 0; i < count; ++i)
             {
