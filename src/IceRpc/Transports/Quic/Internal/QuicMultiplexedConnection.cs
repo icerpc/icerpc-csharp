@@ -113,14 +113,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
         if (_connection is not null)
         {
-            try
-            {
-                await _connection.DisposeAsync().ConfigureAwait(false);
-            }
-            catch
-            {
-                // Workaround for https://github.com/dotnet/runtime/issues/78641.
-            }
+            await _connection.DisposeAsync().ConfigureAwait(false);
         }
     }
 
