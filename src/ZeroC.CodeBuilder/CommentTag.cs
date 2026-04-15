@@ -7,6 +7,18 @@ namespace ZeroC.CodeBuilder;
 /// <summary>Represents an XML documentation comment tag.</summary>
 public sealed class CommentTag
 {
+    /// <summary>Escapes XML-special characters (<c>&amp;</c>, <c>&lt;</c>, <c>&gt;</c>, <c>"</c>) in the given text
+    /// so it can be safely spliced into an XML doc comment.</summary>
+    /// <param name="text">The text to escape.</param>
+    /// <returns>The escaped text.</returns>
+#pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
+    public static string XmlEscape(string text) =>
+        text.Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;");
+#pragma warning restore CA1307
+
     /// <summary>Gets the tag name (e.g., "summary", "param", "returns").</summary>
     public string Tag { get; }
 
@@ -48,7 +60,7 @@ public sealed class CommentTag
         var sb = new StringBuilder();
 
         string attribute = AttributeName is not null
-            ? $" {AttributeName}=\"{EscapeAttributeValue(AttributeValue)}\""
+            ? $" {AttributeName}=\"{XmlEscape(AttributeValue ?? string.Empty)}\""
             : string.Empty;
 
 #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
@@ -72,13 +84,4 @@ public sealed class CommentTag
 
         return sb.ToString();
     }
-
-#pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
-    private static string EscapeAttributeValue(string? value) =>
-        value is null ? string.Empty :
-            value.Replace("&", "&amp;")
-                 .Replace("<", "&lt;")
-                 .Replace(">", "&gt;")
-                 .Replace("\"", "&quot;");
-#pragma warning restore CA1307
 }
