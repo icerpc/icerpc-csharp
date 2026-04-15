@@ -198,12 +198,21 @@ internal abstract class TcpConnection : IDuplexConnection
                 {
                     if (buffer.IsSingleSegment)
                     {
-                        _ = await Socket.SendAsync(buffer.First, SocketFlags.None, cancellationToken)
-                            .ConfigureAwait(false);
+                        int bytesSent = await Socket.SendAsync(
+                            buffer.First,
+                            SocketFlags.None,
+                            cancellationToken).ConfigureAwait(false);
+
+                        if (bytesSent != buffer.First.Length)
+                        {
+                            throw new InvalidOperationException(
+                                $"Short write on TCP socket: expected {buffer.First.Length} bytes but sent {bytesSent}.");
+                        }
                     }
                     else
                     {
                         _segments.Clear();
+                        long totalBytes = buffer.Length;
                         foreach (ReadOnlyMemory<byte> memory in buffer)
                         {
                             if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
@@ -218,16 +227,23 @@ internal abstract class TcpConnection : IDuplexConnection
                             }
                         }
 
-                        Task sendTask = Socket.SendAsync(_segments, SocketFlags.None);
+                        Task<int> sendTask = Socket.SendAsync(_segments, SocketFlags.None);
 
+                        int bytesSent;
                         try
                         {
-                            await sendTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            bytesSent = await sendTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
                             await AbortAndObserveAsync(sendTask).ConfigureAwait(false);
                             throw;
+                        }
+
+                        if (bytesSent != totalBytes)
+                        {
+                            throw new InvalidOperationException(
+                                $"Short write on TCP socket: expected {totalBytes} bytes but sent {bytesSent}.");
                         }
                     }
                 }
