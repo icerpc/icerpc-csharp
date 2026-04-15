@@ -139,7 +139,8 @@ public class RetryInterceptor : IInvoker
                             Debug.Assert(exception is not null);
 
                             // It's always safe to retry InvocationCanceled.
-                            // With the icerpc protocol, this exception is thrown only before the request is sent.
+                            // With the icerpc protocol, this exception is thrown only before the request is accepted by
+                            // the peer.
                             // With the ice protocol, this exception is thrown either before the request is sent, or
                             // when we receive a CloseConnection frame from the peer. Per the ice protocol,
                             // CloseConnection guarantees the peer has already sent responses for all two-way requests
