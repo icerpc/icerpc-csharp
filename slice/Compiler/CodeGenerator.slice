@@ -4,11 +4,11 @@
 module Compiler
 
 interface CodeGenerator {
-    generateCode(sourceFiles: Sequence<SliceFile>, referenceFiles: Sequence<SliceFile>, args: Arguments) ->
+    generateCode(sourceFiles: Sequence<SliceFile>, referenceFiles: Sequence<SliceFile>, options: Options) ->
         (generatedFiles: Sequence<GeneratedFile>, diagnostics: Sequence<Diagnostic>)
 }
 
-typealias Arguments = Dictionary<string, string>
+typealias Options = Dictionary<string, string>
 
 struct SliceFile {
     path: string
@@ -28,9 +28,9 @@ enum Symbol {
     VariantEnum(v: VariantEnum)
     Struct(v: Struct)
     CustomType(v: CustomType)
+    ResultType(v: ResultType)
     SequenceType(v: SequenceType)
     DictionaryType(v: DictionaryType)
-    ResultType(v: ResultType)
     TypeAlias(v: TypeAlias)
 }
 
