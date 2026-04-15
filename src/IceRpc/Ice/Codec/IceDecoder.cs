@@ -2,6 +2,7 @@
 
 using IceRpc.Ice.Codec.Internal;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -301,38 +302,6 @@ public ref partial struct IceDecoder
         }
     }
 
-    /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
-    /// <param name="count">The number of elements. Must be greater than or equal to 0.</param>
-    /// <param name="elementSize">The size of each element in bytes. Must be greater than 0.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count" /> is negative or
-    /// <paramref name="elementSize" /> is not greater than 0.</exception>
-    /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
-    /// allocation.</exception>
-    /// <seealso cref="IceDecoder(ReadOnlySequence{byte}, object?, int, IActivator?, int)" />
-    public void IncreaseCollectionAllocation(int count, int elementSize)
-    {
-        if (count < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(count),
-                $"The {nameof(count)} argument must be greater than or equal to 0.");
-        }
-        if (elementSize <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(elementSize),
-                $"The {nameof(elementSize)} argument must be greater than 0.");
-        }
-        long byteCount = (long)count * elementSize;
-        int remainingAllocation = _maxCollectionAllocation - _currentCollectionAllocation;
-        if (byteCount > remainingAllocation)
-        {
-            throw new InvalidDataException(
-                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
-        }
-        _currentCollectionAllocation += (int)byteCount;
-    }
-
     /// <summary>Skip the given number of bytes.</summary>
     /// <param name="count">The number of bytes to skip.</param>
     public void Skip(int count)
@@ -387,6 +356,27 @@ public ref partial struct IceDecoder
         {
             Skip(4);
         }
+    }
+
+    /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
+    /// <param name="count">The number of elements. Must be greater than or equal to 0.</param>
+    /// <param name="elementSize">The size of each element in bytes. Must be greater than 0.</param>
+    /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
+    /// allocation.</exception>
+    /// <seealso cref="IceDecoder(ReadOnlySequence{byte}, object?, int, IActivator?, int)" />
+    internal void IncreaseCollectionAllocation(int count, int elementSize)
+    {
+        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
+        Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
+
+        long byteCount = (long)count * elementSize;
+        int remainingAllocation = _maxCollectionAllocation - _currentCollectionAllocation;
+        if (byteCount > remainingAllocation)
+        {
+            throw new InvalidDataException(
+                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
+        }
+        _currentCollectionAllocation += (int)byteCount;
     }
 
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat)
