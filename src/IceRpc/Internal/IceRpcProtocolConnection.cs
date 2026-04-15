@@ -812,11 +812,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // large (24).
             // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
             // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
-            // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
+            // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1, 4 + 24), we'll exceed
             // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
 
             // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
-            if (count * 2 > decoder.Remaining)
+            if ((long)count * 2 > decoder.Remaining)
             {
                 throw new InvalidDataException("Too many fields.");
             }
