@@ -16,7 +16,8 @@ public sealed class CommentTag
     /// <summary>Gets the optional attribute value.</summary>
     public string? AttributeValue { get; }
 
-    /// <summary>Gets the tag content.</summary>
+    /// <summary>Gets the tag content. This is treated as raw XML; callers are responsible for escaping
+    /// interpolated text.</summary>
     public string Content { get; }
 
     /// <summary>Initializes a new instance of the <see cref="CommentTag"/> class.</summary>
@@ -47,7 +48,7 @@ public sealed class CommentTag
         var sb = new StringBuilder();
 
         string attribute = AttributeName is not null
-            ? $" {AttributeName}=\"{AttributeValue}\""
+            ? $" {AttributeName}=\"{EscapeAttributeValue(AttributeValue)}\""
             : string.Empty;
 
 #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
@@ -71,4 +72,13 @@ public sealed class CommentTag
 
         return sb.ToString();
     }
+
+#pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
+    private static string EscapeAttributeValue(string? value) =>
+        value is null ? string.Empty :
+            value.Replace("&", "&amp;")
+                 .Replace("<", "&lt;")
+                 .Replace(">", "&gt;")
+                 .Replace("\"", "&quot;");
+#pragma warning restore CA1307
 }
