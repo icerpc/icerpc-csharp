@@ -369,6 +369,7 @@ public ref partial struct IceDecoder
     /// <seealso cref="IceDecoder(ReadOnlySequence{byte}, object?, int, IActivator?, int)" />
     internal void IncreaseCollectionAllocation(int count, int elementSize)
     {
+        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
         Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
 
         long byteCount = (long)count * elementSize;
