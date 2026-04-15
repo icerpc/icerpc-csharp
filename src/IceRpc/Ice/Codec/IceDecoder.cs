@@ -212,7 +212,7 @@ public ref partial struct IceDecoder
         }
         else
         {
-            // In the worse case scenario, each byte becomes a new character. We'll adjust this allocation increase
+            // In the worst-case scenario, each byte becomes a new character. We'll adjust this allocation increase
             // after decoding the string.
             IncreaseCollectionAllocation(size, Unsafe.SizeOf<char>());
 
