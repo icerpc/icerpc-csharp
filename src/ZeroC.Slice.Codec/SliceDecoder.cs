@@ -412,6 +412,10 @@ public ref partial struct SliceDecoder
         }
 
         int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
+        if (_reader.Remaining < size)
+        {
+            throw new InvalidDataException(EndOfBufferMessage);
+        }
         ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
         _reader.Advance(size);
         Debug.Assert(bitSequence.Length == size);

@@ -109,6 +109,26 @@ public class SequenceDecodingTests
             Throws.InstanceOf<InvalidDataException>());
     }
 
+    [Test]
+    public void Decode_sequence_of_optionals_with_truncated_bit_sequence()
+    {
+        // Arrange: encode count = 8 (which requires 1 bit-sequence byte) with no bit-sequence bytes following.
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(8);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                // Pass an explicit maxCollectionAllocation so the collection-allocation check doesn't fire first.
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: 1024);
+                _ = sut.DecodeSequenceOfOptionals<long?>(
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
     private enum TestEnum : short
     {
         A = 1,
