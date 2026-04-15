@@ -205,7 +205,9 @@ internal abstract class TcpConnection : IDuplexConnection
 
                         if (bytesSent != buffer.First.Length)
                         {
-                            throw new InvalidOperationException(
+                            // This should never happen.
+                            throw new IceRpcException(
+                                IceRpcError.IceRpcError,
                                 $"Short write on TCP socket: expected {buffer.First.Length} bytes but sent {bytesSent}.");
                         }
                     }
@@ -242,7 +244,9 @@ internal abstract class TcpConnection : IDuplexConnection
 
                         if (bytesSent != totalBytes)
                         {
-                            throw new InvalidOperationException(
+                            // This should never happen.
+                            throw new IceRpcException(
+                                IceRpcError.IceRpcError,
                                 $"Short write on TCP socket: expected {totalBytes} bytes but sent {bytesSent}.");
                         }
                     }
