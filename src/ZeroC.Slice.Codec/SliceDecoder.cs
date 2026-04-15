@@ -204,7 +204,7 @@ public ref partial struct SliceDecoder
 
             // We can only compute the new allocation _after_ decoding the string. For dictionaries and sequences,
             // we perform this check before the allocation.
-            IncreaseCollectionAllocation((long)result.Length * Unsafe.SizeOf<char>());
+            IncreaseCollectionAllocation(result.Length, Unsafe.SizeOf<char>());
             return result;
         }
     }
@@ -419,19 +419,28 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
-    /// <param name="byteCount">The number of bytes to add. Must be greater than or equal to 0.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="byteCount" /> is negative.</exception>
+    /// <param name="count">The number of elements. Must be greater than or equal to 0.</param>
+    /// <param name="elementSize">The size of each element in bytes. Must be greater than 0.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count" /> is negative or
+    /// <paramref name="elementSize" /> is not greater than 0.</exception>
     /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
     /// allocation.</exception>
     /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, object?, int)" />
-    public void IncreaseCollectionAllocation(long byteCount)
+    public void IncreaseCollectionAllocation(int count, int elementSize)
     {
-        if (byteCount < 0)
+        if (count < 0)
         {
-            throw new ArgumentException(
-                $"The {nameof(byteCount)} argument must be greater than or equal to 0.",
-                nameof(byteCount));
+            throw new ArgumentOutOfRangeException(
+                nameof(count),
+                $"The {nameof(count)} argument must be greater than or equal to 0.");
         }
+        if (elementSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(elementSize),
+                $"The {nameof(elementSize)} argument must be greater than 0.");
+        }
+        long byteCount = (long)count * elementSize;
         int remainingAllocation = _maxCollectionAllocation - _currentCollectionAllocation;
         if (byteCount > remainingAllocation)
         {

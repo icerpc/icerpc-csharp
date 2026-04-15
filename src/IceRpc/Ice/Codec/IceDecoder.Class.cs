@@ -161,7 +161,7 @@ public ref partial struct IceDecoder
         {
             throw new InvalidDataException("Invalid empty indirection table.");
         }
-        IncreaseCollectionAllocation((long)size * Unsafe.SizeOf<IceClass>());
+        IncreaseCollectionAllocation(size, Unsafe.SizeOf<IceClass>());
         var indirectionTable = new IceClass[size];
         for (int i = 0; i < indirectionTable.Length; ++i)
         {
