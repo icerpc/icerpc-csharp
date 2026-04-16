@@ -48,7 +48,7 @@ public ref partial struct SliceDecoder
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
-    /// length.</param>
+    /// length, clamped to <see cref="int.MaxValue" />.</param>
     public SliceDecoder(ReadOnlySequence<byte> buffer, object? decodingContext = null, int maxCollectionAllocation = -1)
     {
         DecodingContext = decodingContext;
@@ -68,7 +68,7 @@ public ref partial struct SliceDecoder
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
-    /// length.</param>
+    /// length, clamped to <see cref="int.MaxValue" />.</param>
     public SliceDecoder(ReadOnlyMemory<byte> buffer, object? decodingContext = null, int maxCollectionAllocation = -1)
         : this(new ReadOnlySequence<byte>(buffer), decodingContext, maxCollectionAllocation)
     {

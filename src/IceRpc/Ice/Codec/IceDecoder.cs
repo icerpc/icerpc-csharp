@@ -62,7 +62,7 @@ public ref partial struct IceDecoder
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
-    /// length.</param>
+    /// length, clamped to <see cref="int.MaxValue" />.</param>
     /// <param name="activator">The activator for decoding classes and exceptions.</param>
     /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public IceDecoder(
@@ -96,7 +96,7 @@ public ref partial struct IceDecoder
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
-    /// length.</param>
+    /// length, clamped to <see cref="int.MaxValue" />.</param>
     /// <param name="activator">The activator for decoding classes and exceptions.</param>
     /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public IceDecoder(
