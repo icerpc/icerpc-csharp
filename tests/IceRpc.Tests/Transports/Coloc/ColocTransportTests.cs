@@ -27,12 +27,18 @@ public class ColocTransportTests
         await firstListener.DisposeAsync();
 
         // Act/Assert
+        IListener<IDuplexConnection>? secondListener = null;
         Assert.That(
-            () => colocTransport.ServerTransport.Listen(
+            () => secondListener = colocTransport.ServerTransport.Listen(
                 transportAddress,
                 new DuplexConnectionOptions(),
                 null),
             Throws.Nothing);
+
+        if (secondListener is not null)
+        {
+            await secondListener.DisposeAsync();
+        }
     }
 
     [Test]
