@@ -23,7 +23,7 @@ public sealed class DeadlineFeature : IDeadlineFeature
         if (deadline != DateTime.MaxValue && deadline.Kind != DateTimeKind.Utc)
         {
             throw new ArgumentException(
-                $"The deadline must have {nameof(DateTimeKind)}.{nameof(DateTimeKind.Utc)}.",
+                $"The {nameof(deadline)}.{nameof(DateTime.Kind)} must be {nameof(DateTimeKind)}.{nameof(DateTimeKind.Utc)}, or {nameof(deadline)} must be {nameof(DateTime)}.{nameof(DateTime.MaxValue)}.",
                 nameof(deadline));
         }
         Value = deadline;
