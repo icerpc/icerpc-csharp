@@ -10,7 +10,7 @@ namespace IceRpc.Features;
 public interface IDeadlineFeature
 {
     /// <summary>Gets the value of deadline.</summary>
-    /// <value>The deadline value. <see cref="DateTime.MaxValue" /> means no deadline. Otherwise a Coordinated
-    /// Universal Time (UTC) object representing the request expiration time.</value>
+    /// <value>The deadline value. <see cref="DateTime.MaxValue" /> means no deadline. Otherwise a
+    /// <see cref="DateTime" /> with <c>Kind == DateTimeKind.Utc</c> representing the request expiration time.</value>
     DateTime Value { get; }
 }
