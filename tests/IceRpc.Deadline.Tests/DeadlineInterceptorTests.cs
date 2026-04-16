@@ -162,6 +162,27 @@ public sealed class DeadlineInterceptorTests
         Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
     }
 
+    /// <summary>Verifies that <see cref="DeadlineFeature" /> rejects a deadline whose
+    /// <see cref="DateTime.Kind" /> is not <see cref="DateTimeKind.Utc" />. See issue #4421 — non-UTC deadlines
+    /// cause the client-side enforced timeout to diverge from the wire-encoded deadline by the local UTC offset.
+    /// </summary>
+    [TestCase(DateTimeKind.Local)]
+    [TestCase(DateTimeKind.Unspecified)]
+    public void DeadlineFeature_rejects_non_utc_deadline(DateTimeKind kind)
+    {
+        DateTime deadline = DateTime.SpecifyKind(DateTime.UtcNow + TimeSpan.FromMinutes(1), kind);
+
+        Assert.Throws<ArgumentException>(() => new DeadlineFeature(deadline));
+    }
+
+    /// <summary>Verifies that <see cref="DeadlineFeature" /> accepts <see cref="DateTime.MaxValue" /> (no deadline)
+    /// despite its <see cref="DateTimeKind.Unspecified" /> kind.</summary>
+    [Test]
+    public void DeadlineFeature_accepts_max_value()
+    {
+        Assert.DoesNotThrow(() => new DeadlineFeature(DateTime.MaxValue));
+    }
+
     private static DateTime ReadDeadline(OutgoingFieldValue field)
     {
         var pipe = new Pipe();

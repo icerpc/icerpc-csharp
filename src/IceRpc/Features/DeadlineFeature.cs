@@ -14,6 +14,18 @@ public sealed class DeadlineFeature : IDeadlineFeature
     public DateTime Value { get; }
 
     /// <summary>Constructs a deadline feature.</summary>
-    /// <param name="deadline">The deadline value.</param>
-    public DeadlineFeature(DateTime deadline) => Value = deadline;
+    /// <param name="deadline">The deadline value. Must have <see cref="DateTime.Kind" /> equal to
+    /// <see cref="DateTimeKind.Utc" />, or be <see cref="DateTime.MaxValue" /> (no deadline).</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="deadline" /> is not UTC and is not
+    /// <see cref="DateTime.MaxValue" />.</exception>
+    public DeadlineFeature(DateTime deadline)
+    {
+        if (deadline != DateTime.MaxValue && deadline.Kind != DateTimeKind.Utc)
+        {
+            throw new ArgumentException(
+                $"The deadline must have {nameof(DateTimeKind)}.{nameof(DateTimeKind.Utc)}.",
+                nameof(deadline));
+        }
+        Value = deadline;
+    }
 }
