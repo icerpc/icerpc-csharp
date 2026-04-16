@@ -25,23 +25,15 @@ public class RequestContextMiddleware : IDispatcher
         // Decode Context from Fields and set corresponding feature.
         if (request.Fields.TryGetValue(RequestFieldKey.Context, out ReadOnlySequence<byte> value))
         {
-            Dictionary<string, string> context;
-            if (request.Protocol == Protocol.Ice)
-            {
-                var decoder = new IceDecoder(value);
-                context = decoder.DecodeDictionary(
+            Dictionary<string, string> context = request.Protocol == Protocol.Ice ?
+                value.DecodeIceBuffer((ref IceDecoder decoder) => decoder.DecodeDictionary(
                     size => new Dictionary<string, string>(size),
                     keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),
-                    valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString());
-            }
-            else
-            {
-                var decoder = new SliceDecoder(value);
-                context = decoder.DecodeDictionary(
+                    valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString())) :
+                value.DecodeSliceBuffer((ref SliceDecoder decoder) => decoder.DecodeDictionary(
                     size => new Dictionary<string, string>(size),
                     keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
-                    valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString());
-            }
+                    valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()));
             if (context.Count > 0)
             {
                 request.Features = request.Features.With<IRequestContextFeature>(new RequestContextFeature(context));
