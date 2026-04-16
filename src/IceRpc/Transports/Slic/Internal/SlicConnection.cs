@@ -42,6 +42,11 @@ internal class SlicConnection : IMultiplexedConnection
     /// cref="FrameType.StreamWindowUpdate" /> frame is sent.</summary>
     internal int StreamWindowUpdateThreshold => InitialStreamWindowSize / StreamWindowUpdateRatio;
 
+    // The maximum body size for non-stream frames (Initialize, InitializeAck, Version, Close, Ping, Pong). This
+    // value is the maximum value that can be encoded as a 2-byte varuint62, which allows WriteFrame to use a 2-byte
+    // size placeholder. Stream data frames are not subject to this limit; they are gated by per-stream flow control.
+    private const int MaxControlFrameBodySize = 16_383;
+
     // The ratio used to compute the StreamWindowUpdateThreshold. For now, the stream window update is sent when the
     // window size grows over InitialStreamWindowSize / StreamWindowUpdateRatio.
     private const int StreamWindowUpdateRatio = 2;
@@ -1299,6 +1304,13 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new InvalidDataException("The frame size can't be larger than int.MaxValue.", exception);
             }
 
+            // Reject oversized control frame bodies before any buffering occurs.
+            if (header.FrameType < FrameType.Stream && header.FrameSize > MaxControlFrameBodySize)
+            {
+                throw new InvalidDataException(
+                    $"The {header.FrameType} frame body size ({header.FrameSize}) exceeds the maximum allowed size ({MaxControlFrameBodySize}).");
+            }
+
             // If it's a stream frame, try to decode the stream ID
             if (header.FrameType >= FrameType.Stream)
             {
@@ -1560,7 +1572,9 @@ internal class SlicConnection : IMultiplexedConnection
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter);
         encoder.EncodeFrameType(frameType);
-        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+        // 2 bytes is sufficient: control frame bodies are limited to MaxControlFrameBodySize (16,383) and the
+        // stream frames encoded by WriteFrame carry at most a stream ID + a small body (e.g., StreamWindowUpdate).
+        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
         int startPos = encoder.EncodedByteCount;
         if (streamId is not null)
         {
