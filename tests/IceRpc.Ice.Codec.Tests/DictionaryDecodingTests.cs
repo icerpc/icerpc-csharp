@@ -94,6 +94,35 @@ public class DictionaryDecodingTests
             Throws.Nothing);
     }
 
+    /// <summary>Verifies that an encoded dictionary containing a duplicate key is rejected with
+    /// <see cref="InvalidDataException" /> rather than surfacing the underlying <see cref="ArgumentException" />
+    /// from <see cref="Dictionary{TKey,TValue}" />.</summary>
+    [Test]
+    public void Decode_dictionary_with_duplicate_key()
+    {
+        // Arrange: encode a "dictionary" with two entries sharing the same key.
+        var buffer = new MemoryBufferWriter(new byte[64]);
+        var encoder = new IceEncoder(buffer);
+        encoder.EncodeSize(2);
+        encoder.EncodeInt(42);
+        encoder.EncodeString("first");
+        encoder.EncodeInt(42);
+        encoder.EncodeString("second");
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new IceDecoder(buffer.WrittenMemory);
+                _ = sut.DecodeDictionary(
+                    count => new Dictionary<int, string>(count),
+                    (ref IceDecoder decoder) => decoder.DecodeInt(),
+                    (ref IceDecoder decoder) => decoder.DecodeString());
+            },
+            Throws.InstanceOf<InvalidDataException>()
+                .With.Message.EqualTo("Received dictionary with duplicate key '42'."));
+    }
+
     /// <summary>Verifies that a crafted count near int.MaxValue / entrySize that would overflow int arithmetic
     /// is correctly rejected by the allocation check.</summary>
     [Test]

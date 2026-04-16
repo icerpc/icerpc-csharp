@@ -48,7 +48,16 @@ public static class IceDecoderExtensions
             {
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue value = valueDecodeFunc(ref decoder);
-                dictionary.Add(new KeyValuePair<TKey, TValue>(key, value));
+                try
+                {
+                    dictionary.Add(new KeyValuePair<TKey, TValue>(key, value));
+                }
+                catch (ArgumentException exception)
+                {
+                    throw new InvalidDataException(
+                        $"Received dictionary with duplicate key '{key}'.",
+                        exception);
+                }
             }
             return dictionary;
         }
