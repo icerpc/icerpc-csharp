@@ -57,4 +57,43 @@ public sealed class RequestContextMiddlewareTests
             return pipe.Reader;
         }
     }
+
+    /// <summary>Verifies that a context field with trailing bytes is rejected with
+    /// <see cref="InvalidDataException" />.</summary>
+    [TestCase("icerpc")]
+    [TestCase("ice")]
+    public void Context_field_with_trailing_bytes_is_rejected(string protocolName)
+    {
+        Protocol protocol = Protocol.Parse(protocolName);
+        var pipe = new Pipe();
+        var encoder = new SliceEncoder(
+            pipe.Writer,
+            protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2);
+        encoder.EncodeDictionary(
+            new Dictionary<string, string> { ["Foo"] = "Bar" },
+            (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
+            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+        // Append 4 trailing bytes.
+        pipe.Writer.Write(new byte[] { 0, 0, 0, 0 });
+        pipe.Writer.Complete();
+        pipe.Reader.TryRead(out var readResult);
+
+        using var request = new IncomingRequest(protocol, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.Context] = readResult.Buffer
+            }
+        };
+
+        var sut = new RequestContextMiddleware(
+            new InlineDispatcher((request, cancellationToken) =>
+                new(new OutgoingResponse(request))));
+
+        Assert.That(
+            async () => await sut.DispatchAsync(request, default),
+            Throws.InstanceOf<InvalidDataException>());
+
+        pipe.Reader.Complete();
+    }
 }

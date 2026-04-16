@@ -32,6 +32,14 @@ public class RequestContextMiddleware : IDispatcher
                 size => new Dictionary<string, string>(size),
                 keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
                 valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString());
+
+            // The context field's buffer must be fully consumed; reject trailing bytes after the dictionary.
+            if (decoder.Remaining != 0)
+            {
+                throw new InvalidDataException(
+                    $"Unexpected trailing {decoder.Remaining} byte(s) in request context field.");
+            }
+
             if (context.Count > 0)
             {
                 request.Features = request.Features.With<IRequestContextFeature>(new RequestContextFeature(context));
