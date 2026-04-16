@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
@@ -15,7 +14,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     public TransportAddress TransportAddress { get; }
 
     private readonly CancellationTokenSource _disposeCts = new();
-    private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
+    private readonly Action _onDispose;
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
 
@@ -73,10 +72,8 @@ internal class ColocListener : IListener<IDuplexConnection>
             return default;
         }
 
-        // Remove this listener from the shared dictionary so the address can be reused.
-        _listeners.TryRemove(new KeyValuePair<(string, ushort), ColocListener>(
-            (TransportAddress.Host, TransportAddress.Port),
-            this));
+        // Notify the owner (e.g. the server transport) so it can release its reference to this listener.
+        _onDispose();
 
         // Cancel pending AcceptAsync.
         _disposeCts.Cancel();
@@ -98,13 +95,13 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     internal ColocListener(
         TransportAddress transportAddress,
-        ConcurrentDictionary<(string Host, ushort Port), ColocListener> listeners,
+        Action onDispose,
         ColocTransportOptions colocTransportOptions,
         DuplexConnectionOptions duplexConnectionOptions)
     {
         TransportAddress = transportAddress;
 
-        _listeners = listeners;
+        _onDispose = onDispose;
         _networkAddress = new ColocEndPoint(transportAddress);
         _pipeOptions = new PipeOptions(
             pool: duplexConnectionOptions.Pool,

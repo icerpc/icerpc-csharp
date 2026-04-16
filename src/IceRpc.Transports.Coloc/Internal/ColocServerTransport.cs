@@ -37,13 +37,16 @@ internal class ColocServerTransport : IDuplexServerTransport
                 nameof(transportAddress));
         }
 
-        var listener = new ColocListener(
+        var key = (transportAddress.Host, transportAddress.Port);
+        ColocListener? listener = null;
+        listener = new ColocListener(
             transportAddress,
-            _listeners,
+            onDispose: () => _listeners.TryRemove(
+                new KeyValuePair<(string, ushort), ColocListener>(key, listener!)),
             colocTransportOptions: _options,
             duplexConnectionOptions: options);
 
-        if (!_listeners.TryAdd((transportAddress.Host, transportAddress.Port), listener))
+        if (!_listeners.TryAdd(key, listener))
         {
             throw new IceRpcException(IceRpcError.AddressInUse);
         }
