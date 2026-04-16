@@ -910,6 +910,38 @@ public class SlicTransportTests
     }
 
     [Test]
+    public async Task Reject_slic_control_frame_with_oversized_body()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+
+        // Act - Write an Initialize frame header that declares a body larger than MaxControlFrameBodySize (16,383).
+        await WriteOversizedFrameAsync(duplexClientConnection, FrameType.Initialize, 16_384);
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+            async () => await multiplexedServerConnection.ConnectAsync(default));
+        Assert.That(exception!.InnerException, Is.InstanceOf<InvalidDataException>());
+        Assert.That(
+            exception.InnerException!.Message,
+            Does.Contain("exceeds the maximum allowed size"));
+    }
+
+    [Test]
     public async Task Write_initialize_frame_with_empty_body()
     {
         // Arrange
@@ -928,7 +960,6 @@ public class SlicTransportTests
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
-        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
         await WriteFrameAsync(duplexClientConnection, FrameType.Initialize, (ref SliceEncoder encoder) => { });
@@ -964,7 +995,6 @@ public class SlicTransportTests
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
         using var _ = duplexServerConnection;
-        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
         await WriteFrameAsync(duplexServerConnection, frameType, (ref SliceEncoder encoder) => { });
@@ -1270,6 +1300,24 @@ public class SlicTransportTests
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction?.Invoke(ref encoder);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        }
+    }
+
+    /// <summary>Writes a frame with a body of the specified size. Used to test oversized frame rejection.</summary>
+    private static Task WriteOversizedFrameAsync(IDuplexConnection connection, FrameType frameType, int bodySize)
+    {
+        var writer = new MemoryBufferWriter(new byte[bodySize + 5]); // header takes 5 bytes
+        Encode(writer);
+        return connection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default).AsTask();
+
+        void Encode(IBufferWriter<byte> writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeFrameType(frameType);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encoder.WriteByteSpan(new byte[bodySize]);
             SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
         }
     }
