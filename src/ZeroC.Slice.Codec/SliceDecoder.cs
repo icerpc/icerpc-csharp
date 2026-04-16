@@ -54,7 +54,7 @@ public ref partial struct SliceDecoder
         DecodingContext = decodingContext;
 
         _currentCollectionAllocation = 0;
-        _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
+        _maxCollectionAllocation = maxCollectionAllocation == -1 ? (int)Math.Min(int.MaxValue, 8L * buffer.Length) :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                 throw new ArgumentException(
                     $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
