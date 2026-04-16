@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Security;
 using System.Text;
 
 namespace ZeroC.CodeBuilder;
@@ -7,6 +8,12 @@ namespace ZeroC.CodeBuilder;
 /// <summary>Represents an XML documentation comment tag.</summary>
 public sealed class CommentTag
 {
+    /// <summary>Escapes XML-special characters in the given text so it can be safely spliced into an XML
+    /// doc comment.</summary>
+    /// <param name="text">The text to escape.</param>
+    /// <returns>The escaped text.</returns>
+    public static string XmlEscape(string text) => SecurityElement.Escape(text);
+
     /// <summary>Gets the tag name (e.g., "summary", "param", "returns").</summary>
     public string Tag { get; }
 
@@ -16,7 +23,8 @@ public sealed class CommentTag
     /// <summary>Gets the optional attribute value.</summary>
     public string? AttributeValue { get; }
 
-    /// <summary>Gets the tag content.</summary>
+    /// <summary>Gets the tag content. This is treated as raw XML; callers are responsible for escaping
+    /// interpolated text.</summary>
     public string Content { get; }
 
     /// <summary>Initializes a new instance of the <see cref="CommentTag"/> class.</summary>
@@ -47,7 +55,7 @@ public sealed class CommentTag
         var sb = new StringBuilder();
 
         string attribute = AttributeName is not null
-            ? $" {AttributeName}=\"{AttributeValue}\""
+            ? $" {AttributeName}=\"{XmlEscape(AttributeValue ?? string.Empty)}\""
             : string.Empty;
 
 #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0

@@ -19,7 +19,7 @@ internal static class DocCommentFormatter
 
         return string.Concat(overview.Select(c => c switch
         {
-            CommentText t => XmlEscape(t.Value),
+            CommentText t => CommentTag.XmlEscape(t.Value),
             CommentInlineLink l => FormatInlineLink(l.Target, currentNamespace),
             _ => ""
         })).TrimEnd();
@@ -46,9 +46,9 @@ internal static class DocCommentFormatter
     private static string FormatInlineLink(CommentLink link, string currentNamespace) => link switch
     {
         // Type aliases don't generate C# types, so output the identifier as plain text.
-        ResolvedCommentLink { Entity: TypeAlias } r => $"<c>{XmlEscape(r.Entity.Identifier)}</c>",
+        ResolvedCommentLink { Entity: TypeAlias } r => $"<c>{CommentTag.XmlEscape(r.Entity.Identifier)}</c>",
         ResolvedCommentLink r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
-        UnresolvedCommentLink u => $"<c>{XmlEscape(u.Identifier)}</c>",
+        UnresolvedCommentLink u => $"<c>{CommentTag.XmlEscape(u.Identifier)}</c>",
         _ => ""
     };
 
@@ -78,9 +78,4 @@ internal static class DocCommentFormatter
         return $"global::{entityNamespace}.{name}";
     }
 
-    private static string XmlEscape(string text) =>
-        text.Replace("&", "&amp;", StringComparison.Ordinal)
-            .Replace("<", "&lt;", StringComparison.Ordinal)
-            .Replace(">", "&gt;", StringComparison.Ordinal)
-            .Replace("\"", "&quot;", StringComparison.Ordinal);
 }
