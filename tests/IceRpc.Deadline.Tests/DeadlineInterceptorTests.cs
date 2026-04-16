@@ -162,25 +162,47 @@ public sealed class DeadlineInterceptorTests
         Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
     }
 
-    /// <summary>Verifies that <see cref="DeadlineFeature" /> rejects a deadline whose
-    /// <see cref="DateTime.Kind" /> is not <see cref="DateTimeKind.Utc" />. See issue #4421 — non-UTC deadlines
-    /// cause the client-side enforced timeout to diverge from the wire-encoded deadline by the local UTC offset.
-    /// </summary>
+    /// <summary>Verifies that the interceptor encodes and enforces the same UTC instant regardless of the
+    /// deadline feature value's <see cref="DateTime.Kind" /> (see issue #4421).</summary>
+    [TestCase(DateTimeKind.Utc)]
     [TestCase(DateTimeKind.Local)]
     [TestCase(DateTimeKind.Unspecified)]
-    public void DeadlineFeature_rejects_non_utc_deadline(DateTimeKind kind)
+    public async Task Deadline_feature_is_normalized_to_utc(DateTimeKind kind)
     {
-        DateTime deadline = DateTime.SpecifyKind(DateTime.UtcNow + TimeSpan.FromMinutes(1), kind);
+        // Arrange: a hardcoded UTC target instant expressed with different Kinds.
+        DateTime targetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+        DateTime featureValue = kind switch
+        {
+            DateTimeKind.Utc => targetUtc,
+            DateTimeKind.Local => targetUtc.ToLocalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(targetUtc.ToLocalTime(), DateTimeKind.Unspecified),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
 
-        Assert.Throws<ArgumentException>(() => new DeadlineFeature(deadline));
-    }
+        DateTime encodedDeadline = DateTime.MaxValue;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out OutgoingFieldValue deadlineField))
+            {
+                encodedDeadline = ReadDeadline(deadlineField);
+            }
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
+        });
 
-    /// <summary>Verifies that <see cref="DeadlineFeature" /> accepts <see cref="DateTime.MaxValue" /> (no deadline)
-    /// despite its <see cref="DateTimeKind.Unspecified" /> kind.</summary>
-    [Test]
-    public void DeadlineFeature_accepts_max_value()
-    {
-        Assert.DoesNotThrow(() => new DeadlineFeature(DateTime.MaxValue));
+        // Use a fake time provider so the interceptor doesn't trip the "deadline already expired" check on
+        // the hardcoded target.
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(targetUtc - TimeSpan.FromMinutes(1), TimeSpan.Zero));
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
+
+        IFeatureCollection features = new FeatureCollection();
+        features.Set<IDeadlineFeature>(new DeadlineFeature(featureValue));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { Features = features };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(encodedDeadline, Is.EqualTo(targetUtc));
     }
 
     private static DateTime ReadDeadline(OutgoingFieldValue field)
