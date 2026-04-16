@@ -39,6 +39,7 @@ internal class ColocServerTransport : IDuplexServerTransport
 
         var listener = new ColocListener(
             transportAddress,
+            _listeners,
             colocTransportOptions: _options,
             duplexConnectionOptions: options);
 
