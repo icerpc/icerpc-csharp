@@ -211,6 +211,19 @@ public abstract class DuplexConnectionConformanceTests
         }
     }
 
+    /// <summary>Verifies that a read into an empty buffer throws <see cref="ArgumentException" />.</summary>
+    [Test]
+    public async Task Read_with_empty_buffer_fails()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        Assert.That(
+            async () => await sut.Client.ReadAsync(Memory<byte>.Empty, default),
+            Throws.TypeOf<ArgumentException>());
+    }
+
     [Test]
     public async Task Read_canceled()
     {
