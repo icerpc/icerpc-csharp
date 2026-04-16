@@ -76,7 +76,8 @@ public ref partial struct IceDecoder
 
         _currentCollectionAllocation = 0;
 
-        _maxCollectionAllocation = maxCollectionAllocation == -1 ? (int)Math.Min(int.MaxValue, 8L * buffer.Length) :
+        _maxCollectionAllocation = maxCollectionAllocation == -1 ?
+            (buffer.Length > int.MaxValue / 8 ? int.MaxValue : (int)(8L * buffer.Length)) :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                 throw new ArgumentException(
                     $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
