@@ -29,10 +29,10 @@ public static class SliceDecoderExtensions
     /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
     /// <returns>The dictionary decoded by this decoder.</returns>
     /// <remarks>Duplicate-key detection depends on the collection returned by <paramref name="dictionaryFactory" />.
-    /// When the collection throws <see cref="ArgumentException" /> on a duplicate key (e.g.
-    /// <see cref="Dictionary{TKey,TValue}" />, <see cref="SortedDictionary{TKey,TValue}" />), this method catches that
-    /// exception and rethrows it as an <see cref="InvalidDataException" />. Collections that silently accept duplicates
-    /// (e.g. <see cref="List{T}" />) follow their own semantics.</remarks>
+    /// When the collection throws <see cref="ArgumentException" /> on a duplicate key — as
+    /// <see cref="Dictionary{TKey,TValue}" /> and <see cref="SortedDictionary{TKey,TValue}" /> do — this method
+    /// translates that exception into an <see cref="InvalidDataException" />. Collections that silently accept
+    /// duplicates (e.g. <see cref="List{T}" />) follow their own semantics.</remarks>
     public static TDictionary DecodeDictionary<TDictionary, TKey, TValue>(
         this ref SliceDecoder decoder,
         Func<int, TDictionary> dictionaryFactory,
@@ -77,10 +77,10 @@ public static class SliceDecoderExtensions
     /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
     /// <returns>The dictionary decoded by this decoder.</returns>
     /// <remarks>Duplicate-key detection depends on the collection returned by <paramref name="dictionaryFactory" />.
-    /// When the collection throws <see cref="ArgumentException" /> on a duplicate key (e.g.
-    /// <see cref="Dictionary{TKey,TValue}" />, <see cref="SortedDictionary{TKey,TValue}" />), this method catches that
-    /// exception and rethrows it as an <see cref="InvalidDataException" />. Collections that silently accept duplicates
-    /// (e.g. <see cref="List{T}" />) follow their own semantics.</remarks>
+    /// When the collection throws <see cref="ArgumentException" /> on a duplicate key — as
+    /// <see cref="Dictionary{TKey,TValue}" /> and <see cref="SortedDictionary{TKey,TValue}" /> do — this method
+    /// translates that exception into an <see cref="InvalidDataException" />. Collections that silently accept
+    /// duplicates (e.g. <see cref="List{T}" />) follow their own semantics.</remarks>
     public static TDictionary DecodeDictionaryWithOptionalValueType<TDictionary, TKey, TValue>(
         this ref SliceDecoder decoder,
         Func<int, TDictionary> dictionaryFactory,
