@@ -211,7 +211,7 @@ public abstract class DuplexConnectionConformanceTests
         }
     }
 
-    /// <summary>Verifies that a read with an empty buffer throws <see cref="ArgumentException" />.</summary>
+    /// <summary>Verifies that a read into an empty buffer throws <see cref="ArgumentException" />.</summary>
     [Test]
     public async Task Read_with_empty_buffer_fails()
     {
