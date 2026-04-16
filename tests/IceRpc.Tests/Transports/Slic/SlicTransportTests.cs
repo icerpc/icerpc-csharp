@@ -910,7 +910,7 @@ public class SlicTransportTests
     }
 
     [Test]
-    public async Task Write_initialize_frame_with_oversized_body()
+    public async Task Reject_slic_control_frame_with_oversized_body()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -1307,7 +1307,7 @@ public class SlicTransportTests
     /// <summary>Writes a frame with a body of the specified size. Used to test oversized frame rejection.</summary>
     private static Task WriteOversizedFrameAsync(IDuplexConnection connection, FrameType frameType, int bodySize)
     {
-        var writer = new MemoryBufferWriter(new byte[bodySize + 10]);
+        var writer = new MemoryBufferWriter(new byte[bodySize + 5]); // header takes 5 bytes
         Encode(writer);
         return connection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default).AsTask();
 
