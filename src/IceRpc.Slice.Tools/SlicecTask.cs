@@ -113,6 +113,7 @@ public class SlicecTask : ToolTask
             }
 
             diagnostic.SourceSpan ??= new SourceSpan();
+            diagnostic.Notes ??= Array.Empty<Note>();
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
                 diagnostic.Message,
