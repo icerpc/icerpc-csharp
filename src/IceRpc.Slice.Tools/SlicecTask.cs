@@ -105,8 +105,12 @@ public class SlicecTask : ToolTask
     {
         try
         {
-            Diagnostic? diagnostic = JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions);
-            Debug.Assert(diagnostic is not null);
+            if (JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions) is not Diagnostic diagnostic)
+            {
+                // The JSON was the literal "null"; treat it as a non-diagnostic line.
+                Log.LogError(singleLine);
+                return;
+            }
 
             diagnostic.SourceSpan ??= new SourceSpan();
             LogSliceCompilerDiagnostic(
