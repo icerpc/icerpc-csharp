@@ -163,22 +163,11 @@ public sealed class DeadlineInterceptorTests
     }
 
     /// <summary>Verifies that the interceptor encodes and enforces the same UTC instant regardless of the
-    /// deadline feature value's <see cref="DateTime.Kind" /> (see issue #4421).</summary>
-    [TestCase(DateTimeKind.Utc)]
-    [TestCase(DateTimeKind.Local)]
-    [TestCase(DateTimeKind.Unspecified)]
-    public async Task Deadline_feature_is_normalized_to_utc(DateTimeKind kind)
+    /// deadline feature value's <see cref="DateTime.Kind" />.</summary>
+    [TestCaseSource(nameof(DeadlineFeatureIsNormalizedToUtcSource))]
+    public async Task Deadline_feature_is_normalized_to_utc(DateTime deadlineValue)
     {
-        // Arrange: a hardcoded UTC target instant expressed with different Kinds.
-        DateTime targetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
-        DateTime featureValue = kind switch
-        {
-            DateTimeKind.Utc => targetUtc,
-            DateTimeKind.Local => targetUtc.ToLocalTime(),
-            DateTimeKind.Unspecified => DateTime.SpecifyKind(targetUtc.ToLocalTime(), DateTimeKind.Unspecified),
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
-
+        // Arrange
         DateTime encodedDeadline = DateTime.MaxValue;
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
@@ -189,20 +178,32 @@ public sealed class DeadlineInterceptorTests
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         });
 
-        // Use a fake time provider so the interceptor doesn't trip the "deadline already expired" check on
-        // the hardcoded target.
-        var timeProvider = new FakeTimeProvider(new DateTimeOffset(targetUtc - TimeSpan.FromMinutes(1), TimeSpan.Zero));
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(TargetUtc - TimeSpan.FromMinutes(1), TimeSpan.Zero));
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
 
         IFeatureCollection features = new FeatureCollection();
-        features.Set<IDeadlineFeature>(new DeadlineFeature(featureValue));
+        features.Set<IDeadlineFeature>(new DeadlineFeature(deadlineValue));
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { Features = features };
 
         // Act
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(encodedDeadline, Is.EqualTo(targetUtc));
+        Assert.That(encodedDeadline, Is.EqualTo(TargetUtc));
+    }
+
+    private static readonly DateTime TargetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+
+    private static IEnumerable<TestCaseData> DeadlineFeatureIsNormalizedToUtcSource
+    {
+        get
+        {
+            yield return new TestCaseData(TargetUtc).SetName("Utc");
+            yield return new TestCaseData(TargetUtc.ToLocalTime()).SetName("Local");
+            yield return new TestCaseData(
+                DateTime.SpecifyKind(TargetUtc.ToLocalTime(), DateTimeKind.Unspecified)).SetName("Unspecified");
+        }
     }
 
     private static DateTime ReadDeadline(OutgoingFieldValue field)
