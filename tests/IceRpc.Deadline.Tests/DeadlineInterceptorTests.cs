@@ -162,6 +162,50 @@ public sealed class DeadlineInterceptorTests
         Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
     }
 
+    /// <summary>Verifies that the interceptor encodes and enforces the same UTC instant regardless of the
+    /// deadline feature value's <see cref="DateTime.Kind" />.</summary>
+    [TestCaseSource(nameof(DeadlineFeatureIsNormalizedToUtcSource))]
+    public async Task Deadline_feature_is_normalized_to_utc(DateTime deadlineValue)
+    {
+        // Arrange
+        DateTime encodedDeadline = DateTime.MaxValue;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out OutgoingFieldValue deadlineField))
+            {
+                encodedDeadline = ReadDeadline(deadlineField);
+            }
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
+        });
+
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(TargetUtc - TimeSpan.FromMinutes(1), TimeSpan.Zero));
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
+
+        IFeatureCollection features = new FeatureCollection();
+        features.Set<IDeadlineFeature>(new DeadlineFeature(deadlineValue));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { Features = features };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(encodedDeadline, Is.EqualTo(TargetUtc));
+    }
+
+    private static readonly DateTime TargetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+
+    private static IEnumerable<TestCaseData> DeadlineFeatureIsNormalizedToUtcSource
+    {
+        get
+        {
+            yield return new TestCaseData(TargetUtc).SetName("Utc");
+            yield return new TestCaseData(TargetUtc.ToLocalTime()).SetName("Local");
+            yield return new TestCaseData(
+                DateTime.SpecifyKind(TargetUtc.ToLocalTime(), DateTimeKind.Unspecified)).SetName("Unspecified");
+        }
+    }
+
     private static DateTime ReadDeadline(OutgoingFieldValue field)
     {
         var pipe = new Pipe();
