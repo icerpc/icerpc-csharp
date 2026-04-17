@@ -439,35 +439,6 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public async Task Operation_returning_a_custom_dictionary2()
-    {
-        // Arrange
-        var value = new List<KeyValuePair<int, int>>()
-        {
-            new KeyValuePair<int, int>(1, 1),
-            new KeyValuePair<int, int>(2, 2),
-            new KeyValuePair<int, int>(3, 3)
-        };
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.EncodeReturnCustomDictionary2(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        List<KeyValuePair<int, int>> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionary2Async(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
     public async Task Operation_sending_a_dictionary_of_int32()
     {
         // Arrange
@@ -786,31 +757,6 @@ public class DictionaryMappingTests
             Payload = requestPayload
         };
         var decodedValue = await IDictionaryMappingOperationsService.Request.DecodeSendCustomDictionaryAsync(
-            request,
-            default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_sending_a_custom_dictionary2()
-    {
-        // Arrange
-        var value = new List<KeyValuePair<int, int>>
-        {
-            new KeyValuePair<int, int>(1, 1),
-            new KeyValuePair<int, int>(2, 2),
-            new KeyValuePair<int, int>(3, 3)
-        };
-
-        // Act
-        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendCustomDictionary2(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        var decodedValue = await IDictionaryMappingOperationsService.Request.DecodeSendCustomDictionary2Async(
             request,
             default);
         Assert.That(decodedValue, Is.EqualTo(value));

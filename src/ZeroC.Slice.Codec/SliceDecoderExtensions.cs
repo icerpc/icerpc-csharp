@@ -34,7 +34,7 @@ public static class SliceDecoderExtensions
         DecodeFunc<TKey> keyDecodeFunc,
         DecodeFunc<TValue> valueDecodeFunc)
         where TKey : notnull
-        where TDictionary : ICollection<KeyValuePair<TKey, TValue>>
+        where TDictionary : IDictionary<TKey, TValue>
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -51,7 +51,7 @@ public static class SliceDecoderExtensions
                 TValue value = valueDecodeFunc(ref decoder);
                 try
                 {
-                    dictionary.Add(new KeyValuePair<TKey, TValue>(key, value));
+                    dictionary.Add(key, value);
                 }
                 catch (ArgumentException exception)
                 {
@@ -77,7 +77,7 @@ public static class SliceDecoderExtensions
         DecodeFunc<TKey> keyDecodeFunc,
         DecodeFunc<TValue?> valueDecodeFunc)
         where TKey : notnull
-        where TDictionary : ICollection<KeyValuePair<TKey, TValue?>>
+        where TDictionary : IDictionary<TKey, TValue?>
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -101,7 +101,7 @@ public static class SliceDecoderExtensions
                 TValue? value = hasValue ? valueDecodeFunc(ref decoder) : default;
                 try
                 {
-                    dictionary.Add(new KeyValuePair<TKey, TValue?>(key, value));
+                    dictionary.Add(key, value);
                 }
                 catch (ArgumentException exception)
                 {
