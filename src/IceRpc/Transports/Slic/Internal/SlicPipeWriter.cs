@@ -22,6 +22,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
+    private volatile int _localCredit;
+    // The semaphore is used to wait when local credit is exhausted (reaches 0).
+    private readonly SemaphoreSlim _localCreditSemaphore = new(1, 1);
     private volatile int _peerWindowSize = SlicTransportOptions.MaxWindowSize;
     private readonly Pipe _pipe;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
@@ -156,6 +159,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     internal SlicPipeWriter(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
+        _localCredit = connection.PauseWriterThreshold;
         _peerWindowSize = connection.PeerInitialStreamWindowSize;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
@@ -227,6 +231,42 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
             _sendCreditSemaphore.Release();
+        }
+    }
+
+    /// <summary>Waits until local buffering credit is available and returns the current amount.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The available local credit in bytes.</returns>
+    internal async ValueTask<int> AcquireLocalCreditAsync(CancellationToken cancellationToken)
+    {
+        await _localCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return _localCredit;
+    }
+
+    /// <summary>Decrements local credit by the actual frame payload size.</summary>
+    /// <param name="size">The payload size of the frame.</param>
+    /// <remarks>Must be called while the local credit semaphore is held.</remarks>
+    internal void ConsumedLocalCredit(int size)
+    {
+        Debug.Assert(_localCreditSemaphore.CurrentCount == 0);
+
+        int newLocalCredit = Interlocked.Add(ref _localCredit, -size);
+        if (newLocalCredit > 0)
+        {
+            _localCreditSemaphore.Release();
+        }
+    }
+
+    /// <summary>Returns local credit when the shared writer confirms bytes have been written to the duplex
+    /// connection. Called from the background WriterTask.</summary>
+    /// <param name="size">The payload size to release.</param>
+    internal void ReleasedLocalCredit(int size)
+    {
+        int newLocalCredit = Interlocked.Add(ref _localCredit, size);
+        int previousLocalCredit = newLocalCredit - size;
+        if (previousLocalCredit <= 0 && newLocalCredit > 0)
+        {
+            _localCreditSemaphore.Release();
         }
     }
 }

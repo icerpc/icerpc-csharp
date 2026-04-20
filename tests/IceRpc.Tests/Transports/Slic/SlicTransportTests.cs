@@ -1343,6 +1343,139 @@ public class SlicTransportTests
         }
     }
 
+    [Test]
+    public void PauseWriterThreshold_default_value()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(options.PauseWriterThreshold, Is.EqualTo(65_536));
+    }
+
+    [Test]
+    public void PauseWriterThreshold_below_minimum_throws()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = 1023, Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void PauseWriterThreshold_at_minimum_succeeds()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = 1024, Throws.Nothing);
+        Assert.That(options.PauseWriterThreshold, Is.EqualTo(1024));
+    }
+
+    [Test]
+    public async Task Large_write_completes_with_small_pause_writer_threshold()
+    {
+        // Arrange: peer advertises a large window (256 KB) but local PauseWriterThreshold is small (8 KB).
+        // The write of 256 KB must be chunked through the PauseWriterThreshold without deadlocking.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 256 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 8 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: write a payload much larger than PauseWriterThreshold.
+        byte[] payload = new byte[256 * 1024];
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+
+        // The peer reads everything.
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+
+        // Assert: the write completes without deadlock and all bytes are received.
+        await writeTask;
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
+    }
+
+    [TestCase(1024)]
+    [TestCase(4 * 1024)]
+    [TestCase(64 * 1024)]
+    public async Task Write_completes_with_various_pause_writer_thresholds(int threshold)
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = threshold);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: write a payload larger than PauseWriterThreshold.
+        byte[] payload = new byte[64 * 1024];
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+
+        // Assert
+        await writeTask;
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
+    }
+
+    [Test]
+    public async Task Concurrent_streams_with_small_pause_writer_threshold()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 8 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams1 = await sut.CreateAndAcceptStreamAsync();
+        using var streams2 = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: both streams write concurrently.
+        byte[] payload = new byte[32 * 1024];
+
+        ValueTask<FlushResult> writeTask1 = streams1.Local.Output.WriteAsync(payload, default);
+        ValueTask<FlushResult> writeTask2 = streams2.Local.Output.WriteAsync(payload, default);
+
+        // Read from both streams concurrently.
+        async Task ReadAllAsync(PipeReader reader, int expectedBytes)
+        {
+            int totalRead = 0;
+            while (totalRead < expectedBytes)
+            {
+                ReadResult readResult = await reader.ReadAtLeastAsync(1);
+                totalRead += (int)readResult.Buffer.Length;
+                reader.AdvanceTo(readResult.Buffer.End);
+            }
+        }
+
+        await Task.WhenAll(
+            ReadAllAsync(streams1.Remote.Input, payload.Length),
+            ReadAllAsync(streams2.Remote.Input, payload.Length));
+
+        // Assert: both writes complete.
+        await writeTask1;
+        await writeTask2;
+    }
+
     private static Task WriteStreamFrameAsync(
         IDuplexConnection connection,
         FrameType frameType,
