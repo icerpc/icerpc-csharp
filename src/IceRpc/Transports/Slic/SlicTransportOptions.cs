@@ -38,6 +38,28 @@ public sealed record class SlicTransportOptions
             value;
     }
 
+    /// <summary>Gets or sets the pause writer threshold. It defines the maximum amount of outbound stream payload
+    /// data in bytes that Slic will buffer locally for a single stream before
+    /// <see cref="System.IO.Pipelines.PipeWriter.WriteAsync" /> or
+    /// <see cref="System.IO.Pipelines.PipeWriter.FlushAsync" /> starts blocking. This limit is independent of the
+    /// peer's advertised <see cref="InitialStreamWindowSize" />.</summary>
+    /// <value>The pause writer threshold in bytes. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.
+    /// </value>
+    public int PauseWriterThreshold
+    {
+        get => _pauseWriterThreshold;
+        set
+        {
+            if (value < 1024)
+            {
+                throw new ArgumentException(
+                    $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB.",
+                    nameof(value));
+            }
+            _pauseWriterThreshold = value;
+        }
+    }
+
     /// <summary>Gets or sets the maximum stream frame size in bytes.</summary>
     /// <value>The maximum stream frame size in bytes. It can't be less than <c>1</c> KB. Defaults to <c>32</c>
     /// KB.</value>
@@ -57,4 +79,5 @@ public sealed record class SlicTransportOptions
     // The default specified in the HTTP/2 specification.
     private int _initialStreamWindowSize = 65_536;
     private int _maxStreamFrameSize = 32_768;
+    private int _pauseWriterThreshold = 65_536;
 }

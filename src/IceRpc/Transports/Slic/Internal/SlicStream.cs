@@ -103,6 +103,9 @@ internal class SlicStream : IMultiplexedStream
     /// cref="FrameType.StreamLast"/> frame to ensure enough send credit is available. If no send credit is available,
     /// it will block until send credit is available. The send credit matches the size of the peer's flow-control
     /// window.</remarks>
+    internal ValueTask<int> AcquireLocalCreditAsync(CancellationToken cancellationToken) =>
+        _outputPipeWriter!.AcquireLocalCreditAsync(cancellationToken);
+
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
@@ -268,7 +271,14 @@ internal class SlicStream : IMultiplexedStream
     /// <summary>Notifies the stream of the amount of data consumed by the connection to send a <see
     /// cref="FrameType.Stream" /> or <see cref="FrameType.StreamLast" /> frame.</summary>
     /// <param name="size">The size of the stream frame.</param>
+    internal void ConsumedLocalCredit(int size) => _outputPipeWriter!.ConsumedLocalCredit(size);
+
     internal void ConsumedSendCredit(int size) => _outputPipeWriter!.ConsumedSendCredit(size);
+
+    internal void ReleasedLocalCredit(int size) => _outputPipeWriter!.ReleasedLocalCredit(size);
+
+    /// <summary>Gets the output pipe writer as a completion callback for the shared writer.</summary>
+    internal SlicDuplexConnectionWriter.ICompletionCallback OutputCompletionCallback => _outputPipeWriter!;
 
     /// <summary>Fills the given writer with stream data received on the connection.</summary>
     /// <param name="bufferWriter">The destination buffer writer.</param>

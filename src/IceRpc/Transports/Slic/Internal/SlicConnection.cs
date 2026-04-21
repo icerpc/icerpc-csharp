@@ -38,6 +38,9 @@ internal class SlicConnection : IMultiplexedConnection
     /// <summary>Gets the initial stream window size.</summary>
     internal int InitialStreamWindowSize { get; }
 
+    /// <summary>Gets the pause writer threshold for per-stream local buffering.</summary>
+    internal int PauseWriterThreshold { get; }
+
     /// <summary>Gets the window update threshold. When the window size is increased and this threshold reached, a <see
     /// cref="FrameType.StreamWindowUpdate" /> frame is sent.</summary>
     internal int StreamWindowUpdateThreshold => InitialStreamWindowSize / StreamWindowUpdateRatio;
@@ -537,6 +540,7 @@ internal class SlicConnection : IMultiplexedConnection
         _maxUnidirectionalStreams = options.MaxUnidirectionalStreams;
 
         InitialStreamWindowSize = slicOptions.InitialStreamWindowSize;
+        PauseWriterThreshold = slicOptions.PauseWriterThreshold;
         _localIdleTimeout = slicOptions.IdleTimeout;
         _maxStreamFrameSize = slicOptions.MaxStreamFrameSize;
 
@@ -754,13 +758,19 @@ internal class SlicConnection : IMultiplexedConnection
         {
             do
             {
-                // Next, ensure send credit is available. If not, this will block until the receiver allows sending
-                // additional data.
                 int sendCredit = 0;
                 if (!source1.IsEmpty || !source2.IsEmpty)
                 {
-                    sendCredit = await stream.AcquireSendCreditAsync(writeCts.Token).ConfigureAwait(false);
-                    Debug.Assert(sendCredit > 0);
+                    // Wait for local buffering credit. This blocks if this stream already has PauseWriterThreshold
+                    // bytes in-flight across Slic-owned buffers.
+                    int localCredit = await stream.AcquireLocalCreditAsync(writeCts.Token).ConfigureAwait(false);
+                    Debug.Assert(localCredit > 0);
+
+                    // Wait for peer-granted send credit. This blocks if the peer's flow-control window is exhausted.
+                    int peerCredit = await stream.AcquireSendCreditAsync(writeCts.Token).ConfigureAwait(false);
+                    Debug.Assert(peerCredit > 0);
+
+                    sendCredit = Math.Min(localCredit, peerCredit);
                 }
 
                 // Gather data from source1 or source2 up to sendCredit bytes or the peer maximum stream frame size.
@@ -791,6 +801,7 @@ internal class SlicConnection : IMultiplexedConnection
 
                 // If there's no data left to send and endStream is true, it's the last stream frame.
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
+                int payloadSize = (int)(sendSource1.Length + sendSource2.Length);
 
                 lock (_mutex)
                 {
@@ -813,15 +824,16 @@ internal class SlicConnection : IMultiplexedConnection
                         }
                     }
 
-                    // Notify the stream that we're consuming sendSize credit. It's important to call this before
-                    // sending the stream frame to avoid race conditions where the StreamWindowUpdate frame could be
-                    // received before the send credit was updated.
+                    // Consume peer-granted and local buffering credit. It's important to consume
+                    // peer credit before sending the stream frame to avoid race conditions where the
+                    // StreamWindowUpdate frame could be received before the send credit was updated.
                     if (sendCredit > 0)
                     {
-                        stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                        stream.ConsumedSendCredit(payloadSize);
+                        stream.ConsumedLocalCredit(payloadSize);
                     }
 
-                    EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
+                    EncodeStreamFrameHeader(stream.Id, payloadSize, lastStreamFrame);
 
                     if (lastStreamFrame)
                     {
@@ -839,6 +851,13 @@ internal class SlicConnection : IMultiplexedConnection
                     if (!sendSource2.IsEmpty)
                     {
                         _duplexConnectionWriter.Write(sendSource2);
+                    }
+
+                    // Enqueue a completion callback to release local credit when these bytes have been written to the
+                    // duplex connection by the background writer task.
+                    if (payloadSize > 0)
+                    {
+                        _duplexConnectionWriter.EnqueueCompletion(payloadSize, stream.OutputCompletionCallback);
                     }
 
                     if (writeReadsClosedFrame)
