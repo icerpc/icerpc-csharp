@@ -81,22 +81,17 @@ public class TelemetryMiddleware : IDispatcher
         // metadata is less damaging than failing the RPC, and silent clipping matches the behavior of
         // OpenTelemetry .NET's and Python's BaggagePropagator on incoming headers. Only the first
         // MaxBaggageEntries entries are read from the buffer; the remainder is left unconsumed.
+        //
+        // Activity.Baggage's enumeration order is undocumented, so duplicate-key resolution across the
+        // wire is inherently undefined on both ends — we don't attempt to preserve it.
         int count = decoder.DecodeSize();
         int kept = Math.Min(count, TelemetryInterceptor.MaxBaggageEntries);
 
-        var baggage = new (string Key, string Value)[kept];
         for (int i = 0; i < kept; i++)
         {
             string key = decoder.DecodeString();
             string value = decoder.DecodeString();
-            baggage[i] = (key, value);
-        }
-
-        // Restore in reverse order to keep the order in which the peer adds baggage entries,
-        // this is important when there are duplicate keys.
-        for (int i = kept - 1; i >= 0; i--)
-        {
-            activity.AddBaggage(baggage[i].Key, baggage[i].Value);
+            activity.AddBaggage(key, value);
         }
     }
 }
