@@ -200,13 +200,18 @@ public sealed class TelemetryMiddlewareTests
     }
 
     /// <summary>Verifies that a trace context carrying more than the maximum allowed number of baggage
-    /// entries is rejected with <see cref="InvalidDataException" />.</summary>
+    /// entries is silently clipped rather than rejected, consistent with OpenTelemetry's no-throw
+    /// policy for observability operations.</summary>
     [Test]
-    public void Decoding_trace_context_with_excessive_baggage_fails()
+    public async Task Decoding_trace_context_with_excessive_baggage_is_clipped()
     {
         // Arrange
+        Activity? dispatchActivity = null;
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-            new(new OutgoingResponse(request)));
+        {
+            dispatchActivity = Activity.Current;
+            return new(new OutgoingResponse(request));
+        });
 
         PipeReader encodedTraceContext = EncodeTraceContextWithRawBaggage(
             entryCount: TelemetryInterceptor.MaxBaggageEntries + 1);
@@ -227,11 +232,15 @@ public sealed class TelemetryMiddlewareTests
             Path = "/"
         };
 
-        // Act/Assert
-        Assert.That(async () => await sut.DispatchAsync(request, default), Throws.InstanceOf<InvalidDataException>());
+        // Act
+        await sut.DispatchAsync(request, default);
 
         // Cleanup
         encodedTraceContext.Complete();
+
+        // Assert
+        Assert.That(dispatchActivity, Is.Not.Null);
+        Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
     }
 
     private static PipeReader EncodeTraceContextWithBaggage(int entryCount)

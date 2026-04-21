@@ -76,19 +76,16 @@ public class TelemetryMiddleware : IDispatcher
         // Read TraceState encoded as a string
         activity.TraceStateString = decoder.DecodeString();
 
-        // Decode the baggage sequence with an explicit entry-count cap. Well-behaved peers clip their
-        // outgoing baggage at TelemetryInterceptor.MaxBaggageEntries; exceeding the cap here indicates
-        // a malformed or malicious sender. Check the count before decoding the entries so we don't
-        // allocate or deserialize anything for a bogus sequence.
+        // Decode the baggage sequence, silently clipping to MaxBaggageEntries. OpenTelemetry SDKs
+        // follow a strict no-throw policy for observability operations: losing a piece of contextual
+        // metadata is less damaging than failing the RPC, and silent clipping matches the behavior of
+        // OpenTelemetry .NET's and Python's BaggagePropagator on incoming headers. Only the first
+        // MaxBaggageEntries entries are read from the buffer; the remainder is left unconsumed.
         int count = decoder.DecodeSize();
-        if (count > TelemetryInterceptor.MaxBaggageEntries)
-        {
-            throw new InvalidDataException(
-                $"The baggage sequence has {count} entries, which exceeds the maximum of {TelemetryInterceptor.MaxBaggageEntries}.");
-        }
+        int kept = Math.Min(count, TelemetryInterceptor.MaxBaggageEntries);
 
-        var baggage = new (string Key, string Value)[count];
-        for (int i = 0; i < count; i++)
+        var baggage = new (string Key, string Value)[kept];
+        for (int i = 0; i < kept; i++)
         {
             string key = decoder.DecodeString();
             string value = decoder.DecodeString();
@@ -97,7 +94,7 @@ public class TelemetryMiddleware : IDispatcher
 
         // Restore in reverse order to keep the order in witch the peer add baggage entries,
         // this is important when there are duplicate keys.
-        for (int i = count - 1; i >= 0; i--)
+        for (int i = kept - 1; i >= 0; i--)
         {
             activity.AddBaggage(baggage[i].Key, baggage[i].Value);
         }
