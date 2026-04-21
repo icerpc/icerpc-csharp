@@ -16,6 +16,11 @@ namespace IceRpc.Telemetry;
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
 {
+    // The W3C Baggage spec mandates propagating all entries only when the baggage has at most 64 list-members
+    // and fits in 8192 bytes; beyond that, implementations MAY drop entries. We follow OpenTelemetry .NET and
+    // clip at 180 entries, which avoids amplifying entry count across forwarded hops.
+    internal const int MaxBaggageEntries = 180;
+
     private readonly IInvoker _next;
     private readonly ActivitySource _activitySource;
 
@@ -101,9 +106,12 @@ public class TelemetryInterceptor : IInvoker
         // TraceState encoded as an string
         encoder.EncodeString(activity.TraceStateString ?? "");
 
-        // Baggage encoded as a Sequence<BaggageEntry>
+        // Baggage encoded as a Sequence<BaggageEntry>, clipped to MaxBaggageEntries. Activity.Baggage has
+        // no documented iteration order, so which entries we retain when clipping is unspecified; the W3C
+        // Baggage spec permits dropping list-members in any order.
+        KeyValuePair<string, string?>[] baggage = activity.Baggage.Take(MaxBaggageEntries).ToArray();
         encoder.EncodeSequence(
-            activity.Baggage,
+            baggage,
             (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
             {
                 encoder.EncodeString(entry.Key);

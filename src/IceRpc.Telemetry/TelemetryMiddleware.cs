@@ -76,19 +76,30 @@ public class TelemetryMiddleware : IDispatcher
         // Read TraceState encoded as a string
         activity.TraceStateString = decoder.DecodeString();
 
-        IEnumerable<(string Key, string Value)> baggage = decoder.DecodeSequence(
-            (ref SliceDecoder decoder) =>
-            {
-                string key = decoder.DecodeString();
-                string value = decoder.DecodeString();
-                return (key, value);
-            });
+        // Decode the baggage sequence with an explicit entry-count cap. Well-behaved peers clip their
+        // outgoing baggage at TelemetryInterceptor.MaxBaggageEntries; exceeding the cap here indicates
+        // a malformed or malicious sender. Check the count before decoding the entries so we don't
+        // allocate or deserialize anything for a bogus sequence.
+        int count = decoder.DecodeSize();
+        if (count > TelemetryInterceptor.MaxBaggageEntries)
+        {
+            throw new InvalidDataException(
+                $"The baggage sequence has {count} entries, which exceeds the maximum of {TelemetryInterceptor.MaxBaggageEntries}.");
+        }
+
+        var baggage = new (string Key, string Value)[count];
+        for (int i = 0; i < count; i++)
+        {
+            string key = decoder.DecodeString();
+            string value = decoder.DecodeString();
+            baggage[i] = (key, value);
+        }
 
         // Restore in reverse order to keep the order in witch the peer add baggage entries,
         // this is important when there are duplicate keys.
-        foreach ((string key, string value) in baggage.Reverse())
+        for (int i = count - 1; i >= 0; i--)
         {
-            activity.AddBaggage(key, value);
+            activity.AddBaggage(baggage[i].Key, baggage[i].Value);
         }
     }
 }
