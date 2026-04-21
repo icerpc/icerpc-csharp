@@ -62,7 +62,11 @@ public static class IncomingRequestExtensions
 
             pipe.Writer.Complete();
 
-            return new OutgoingResponse(request, StatusCode.ApplicationError, GetErrorMessage(sliceException))
+            // By default, the generated Slice exceptions don't set a custom message and don't support setting an inner
+            // exception. However, Message can still be overridden, so the value transmitted over icerpc is whatever
+            // sliceException.Message returns.
+            // The icerpc client uses this message when it can't decode the Slice exception.
+            return new OutgoingResponse(request, StatusCode.ApplicationError, sliceException.Message)
             {
                 Payload = pipe.Reader
             };
@@ -116,11 +120,4 @@ public static class IncomingRequestExtensions
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             cancellationToken);
-
-    // The error message includes the inner exception type and message because we don't transmit this inner exception
-    // with the response.
-    private static string GetErrorMessage(SliceException exception) =>
-        exception.InnerException is Exception innerException ?
-            $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
-            exception.Message;
 }
