@@ -104,7 +104,7 @@ public class TelemetryInterceptor : IInvoker
         encoder.WriteByteSpan(buffer[0..8]);
         encoder.EncodeUInt8((byte)activity.ActivityTraceFlags);
 
-        // TraceState encoded as an string
+        // TraceState encoded as a string
         encoder.EncodeString(activity.TraceStateString ?? "");
 
         // Baggage encoded as a Sequence<BaggageEntry>, clipped to MaxBaggageEntries. Activity.Baggage has
