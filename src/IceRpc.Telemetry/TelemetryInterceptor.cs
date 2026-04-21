@@ -102,16 +102,13 @@ public class TelemetryInterceptor : IInvoker
         // TraceState encoded as a string
         encoder.EncodeString(activity.TraceStateString ?? "");
 
-        // Baggage encoded as a Sequence<BaggageEntry>, clipped to MaxBaggageEntries. Activity.Baggage has
+        // Baggage encoded as a Dictionary<string, string>, clipped to MaxBaggageEntries. Activity.Baggage has
         // no documented iteration order, so which entries we retain when clipping is unspecified; the W3C
         // Baggage spec permits dropping list-members in any order.
         KeyValuePair<string, string?>[] baggage = activity.Baggage.Take(MaxBaggageEntries).ToArray();
-        encoder.EncodeSequence(
+        encoder.EncodeDictionary(
             baggage,
-            (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
-            {
-                encoder.EncodeString(entry.Key);
-                encoder.EncodeString(entry.Value ?? "");
-            });
+            (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
+            (ref SliceEncoder encoder, string? value) => encoder.EncodeString(value ?? ""));
     }
 }
