@@ -7,16 +7,23 @@ namespace IceRpc.Transports.Slic;
 public sealed record class SlicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no
-    /// data is received within the idle timeout period, the transport connection is aborted.
-    /// </summary>
-    /// <value>The idle timeout. Defaults to <c>30</c> s.</value>
+    /// data is received within the idle timeout period, the transport connection is aborted. Use
+    /// <see cref="Timeout.InfiniteTimeSpan" /> to disable idle timeout monitoring.</summary>
+    /// <value>The idle timeout. It must be positive or <see cref="Timeout.InfiniteTimeSpan" />.
+    /// Defaults to <c>30</c> s.</value>
     public TimeSpan IdleTimeout
     {
         get => _idleTimeout;
-        set => _idleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException(
-                $"The value '0' is not a valid for {nameof(IdleTimeout)} property.",
-                nameof(value));
+        set
+        {
+            if (value != Timeout.InfiniteTimeSpan && value <= TimeSpan.Zero)
+            {
+                throw new ArgumentException(
+                    $"The {nameof(IdleTimeout)} value must be positive or Timeout.InfiniteTimeSpan.",
+                    nameof(value));
+            }
+            _idleTimeout = value;
+        }
     }
 
     /// <summary>Gets or sets the initial stream window size. It defines the initial size of the stream receive buffer
