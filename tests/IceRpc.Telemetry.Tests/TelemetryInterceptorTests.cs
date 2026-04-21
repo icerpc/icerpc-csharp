@@ -4,6 +4,7 @@ using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Telemetry.Tests;
 
@@ -99,6 +100,35 @@ public sealed class TelemetryInterceptorTests
         var baggage = decodedActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);
         Assert.That(baggage["foo"], Is.EqualTo("bar"));
+    }
+
+    /// <summary>Verifies that an activity carrying more baggage entries than the maximum allowed is clipped
+    /// during encoding, so a forwarding chain cannot amplify entry count across hops.</summary>
+    [Test]
+    public void Outgoing_baggage_is_clipped_to_maximum()
+    {
+        // Arrange
+        using var activity = new Activity("/hello/Op");
+        for (int i = 0; i < TelemetryInterceptor.MaxBaggageEntries + 10; i++)
+        {
+            activity.AddBaggage($"key{i}", $"value{i}");
+        }
+        activity.Start();
+
+        var pipe = new Pipe();
+        var encoder = new SliceEncoder(pipe.Writer);
+
+        // Act
+        TelemetryInterceptor.WriteActivityContext(ref encoder, activity);
+        pipe.Writer.Complete();
+
+        // Assert
+        pipe.Reader.TryRead(out ReadResult readResult);
+        using var decodedActivity = new Activity("/op");
+        TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, decodedActivity);
+        Assert.That(decodedActivity.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
+
+        pipe.Reader.Complete();
     }
 
     private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
