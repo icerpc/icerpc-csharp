@@ -156,8 +156,8 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(async () => await sut.DispatchAsync(request, default), Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that a trace context carrying baggage at the maximum allowed entry count
-    /// (180, per the W3C Baggage spec soft limit) is decoded successfully.</summary>
+    /// <summary>Verifies that a trace context carrying baggage at the maximum allowed entry count is
+    /// decoded successfully.</summary>
     [Test]
     public async Task Dispatch_activity_decodes_trace_context_with_maximum_baggage()
     {
@@ -169,7 +169,8 @@ public sealed class TelemetryMiddlewareTests
             return new(new OutgoingResponse(request));
         });
 
-        PipeReader encodedTraceContext = EncodeTraceContextWithBaggage(entryCount: 180);
+        PipeReader encodedTraceContext = EncodeTraceContextWithBaggage(
+            entryCount: TelemetryInterceptor.MaxBaggageEntries);
 
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
@@ -195,7 +196,7 @@ public sealed class TelemetryMiddlewareTests
 
         // Assert
         Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(180));
+        Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
     }
 
     /// <summary>Verifies that a trace context carrying more than the maximum allowed number of baggage
@@ -207,7 +208,8 @@ public sealed class TelemetryMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
             new(new OutgoingResponse(request)));
 
-        PipeReader encodedTraceContext = EncodeTraceContextWithRawBaggage(entryCount: 181);
+        PipeReader encodedTraceContext = EncodeTraceContextWithRawBaggage(
+            entryCount: TelemetryInterceptor.MaxBaggageEntries + 1);
 
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);

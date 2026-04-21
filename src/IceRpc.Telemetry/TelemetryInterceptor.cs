@@ -16,11 +16,11 @@ namespace IceRpc.Telemetry;
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
 {
-    // The W3C Baggage spec mandates propagating all entries only when the baggage has at most 64 list-members
-    // and fits in 8192 bytes; implementations MAY define higher limits and drop excess entries. We clip at
-    // 180 entries — the same hard-coded cap used by OpenTelemetry .NET's and Python's BaggagePropagator — to
-    // avoid amplifying entry count across forwarded hops.
-    internal const int MaxBaggageEntries = 180;
+    // The W3C Baggage spec guarantees propagation of all entries only when the baggage has at most 64
+    // list-members and fits in 8192 bytes. We clip at 64 entries — the spec-mandated floor — so a
+    // strictly spec-conforming peer in any language can always round-trip the baggage we send. Clipping
+    // here also prevents amplification of entry count across forwarded hops.
+    internal const int MaxBaggageEntries = 64;
 
     private readonly IInvoker _next;
     private readonly ActivitySource _activitySource;
