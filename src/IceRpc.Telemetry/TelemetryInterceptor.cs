@@ -69,7 +69,13 @@ public class TelemetryInterceptor : IInvoker
 
         // The activity context is written to the field value, as if it has the following Slice definition
         //
-        // Dictionary<string, string> Baggage;
+        // compact struct BaggageEntry
+        // {
+        //    string key;
+        //    string value;
+        // }
+        //
+        // Sequence<BaggageEntry> Baggage;
         //
         // compact struct ActivityContext
         // {
@@ -85,6 +91,10 @@ public class TelemetryInterceptor : IInvoker
         //    string traceStateString;
         //    Baggage baggage;
         // }
+        //
+        // Baggage is modeled as a sequence rather than a dictionary because Activity.Baggage allows
+        // duplicate keys: encoding as a Slice dictionary could produce bytes that a strict dictionary
+        // decoder in another language would reject (see #4518).
 
         // W3C traceparent binary encoding (1 byte version, 16 bytes trace-ID, 8 bytes span-ID,
         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
@@ -102,13 +112,16 @@ public class TelemetryInterceptor : IInvoker
         // TraceState encoded as a string
         encoder.EncodeString(activity.TraceStateString ?? "");
 
-        // Baggage encoded as a Dictionary<string, string>, clipped to MaxBaggageEntries. Activity.Baggage has
+        // Baggage encoded as a Sequence<BaggageEntry>, clipped to MaxBaggageEntries. Activity.Baggage has
         // no documented iteration order, so which entries we retain when clipping is unspecified; the W3C
         // Baggage spec permits dropping list-members in any order.
         KeyValuePair<string, string?>[] baggage = activity.Baggage.Take(MaxBaggageEntries).ToArray();
-        encoder.EncodeDictionary(
+        encoder.EncodeSequence(
             baggage,
-            (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
-            (ref SliceEncoder encoder, string? value) => encoder.EncodeString(value ?? ""));
+            (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
+            {
+                encoder.EncodeString(entry.Key);
+                encoder.EncodeString(entry.Value ?? "");
+            });
     }
 }
