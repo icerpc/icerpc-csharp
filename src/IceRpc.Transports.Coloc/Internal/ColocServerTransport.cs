@@ -38,11 +38,13 @@ internal class ColocServerTransport : IDuplexServerTransport
         }
 
         var key = (transportAddress.Host, transportAddress.Port);
-        ColocListener? listener = null;
-        listener = new ColocListener(
+
+        void OnDispose(ColocListener disposedListener) =>
+            _listeners.TryRemove(new KeyValuePair<(string, ushort), ColocListener>(key, disposedListener));
+
+        var listener = new ColocListener(
             transportAddress,
-            onDispose: () => _listeners.TryRemove(
-                new KeyValuePair<(string, ushort), ColocListener>(key, listener!)),
+            onDispose: OnDispose,
             colocTransportOptions: _options,
             duplexConnectionOptions: options);
 
