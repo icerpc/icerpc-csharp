@@ -31,7 +31,12 @@ public static class IncomingRequestExtensions
             iceException.Encode(ref encoder);
             pipe.Writer.Complete();
 
-            return new OutgoingResponse(request, StatusCode.ApplicationError, GetErrorMessage(iceException))
+            // By default, the generated Ice exceptions don't set a custom message and don't support setting an inner
+            // exception. However, Message can still be overridden, so the value transmitted over icerpc is whatever
+            // iceException.Message returns.
+            // The icerpc client uses this message when it can't decode the Ice exception. See
+            // IceDecoder.DecodeException for more details.
+            return new OutgoingResponse(request, StatusCode.ApplicationError, iceException.Message)
             {
                 Payload = pipe.Reader
             };
@@ -203,11 +208,4 @@ public static class IncomingRequestExtensions
             return request.CreateIceExceptionResponse(iceException);
         }
     }
-
-    // The error message includes the inner exception type and message because we don't transmit this inner exception
-    // with the response.
-    private static string GetErrorMessage(IceException exception) =>
-        exception.InnerException is Exception innerException ?
-            $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
-            exception.Message;
 }
