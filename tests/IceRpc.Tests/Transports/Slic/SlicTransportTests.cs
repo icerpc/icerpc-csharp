@@ -1517,22 +1517,28 @@ public class SlicTransportTests
         await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0).Encode);
         await writeCalledTask;
 
-        // Act: now flood 20 Ping frames. The WriterTask is blocked, so all Pong replies pile up in the
-        // shared writer. After 16+ pending Pongs, the server closes the connection.
-        for (int i = 0; i < 20; i++)
+        try
         {
-            await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0).Encode);
+            // Act: now flood 20 Ping frames. The WriterTask is blocked, so all Pong replies pile up in
+            // the shared writer. After 16+ pending Pongs, the server closes the connection.
+            for (int i = 0; i < 20; i++)
+            {
+                await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0).Encode);
+            }
+
+            // Assert: the server connection should close due to the pending Pong reply limit.
+            IceRpcException? exception =
+                Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+            Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+            Assert.That(
+                exception.Message,
+                Does.Contain("Ping frames faster than Pong replies can be drained"));
         }
-
-        // Assert: the server connection should close due to the pending Pong reply limit.
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-        Assert.That(
-            exception.Message,
-            Does.Contain("Ping frames faster than Pong replies can be drained"));
-
-        // Release the held write to allow cleanup.
-        serverDuplexConnection.Operations.Hold = DuplexTransportOperations.None;
+        finally
+        {
+            // Release the held write to allow cleanup even when the test fails early.
+            serverDuplexConnection.Operations.Hold = DuplexTransportOperations.None;
+        }
     }
 
     private static Task WriteStreamFrameAsync(

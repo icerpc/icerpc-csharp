@@ -277,6 +277,9 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReleasedLocalCredit(int size) => _outputPipeWriter!.ReleasedLocalCredit(size);
 
+    /// <summary>Gets the output pipe writer as a completion callback for the shared writer.</summary>
+    internal SlicDuplexConnectionWriter.ICompletionCallback OutputCompletionCallback => _outputPipeWriter!;
+
     /// <summary>Fills the given writer with stream data received on the connection.</summary>
     /// <param name="bufferWriter">The destination buffer writer.</param>
     /// <param name="byteCount">The amount of stream data to read.</param>

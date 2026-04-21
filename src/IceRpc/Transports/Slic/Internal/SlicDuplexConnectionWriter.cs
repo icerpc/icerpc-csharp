@@ -117,11 +117,11 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
             });
     }
 
-    /// <summary>Enqueues a completion entry that releases per-stream local credit after the background writer has
-    /// written the corresponding bytes to the duplex connection.</summary>
+    /// <summary>Enqueues a completion entry that will be invoked after the background writer has written the
+    /// corresponding bytes to the duplex connection.</summary>
     /// <remarks>Must be called under SlicConnection._mutex, after writing the frame data.</remarks>
-    internal void EnqueueCompletion(int creditBytes, Action<int> releaseCredit) =>
-        _completionQueue.Enqueue(new CompletionEntry(_totalBytesEnqueued, creditBytes, releaseCredit));
+    internal void EnqueueCompletion(int creditBytes, ICompletionCallback target) =>
+        _completionQueue.Enqueue(new CompletionEntry(_totalBytesEnqueued, creditBytes, target));
 
     internal void Flush()
     {
@@ -142,12 +142,16 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
         while (_completionQueue.TryPeek(out CompletionEntry entry) && entry.PipeOffset <= bytesWrittenTotal)
         {
             _completionQueue.TryDequeue(out _);
-            entry.ReleaseCredit(entry.CreditBytes);
+            entry.Target.WriteCompleted(entry.CreditBytes);
         }
     }
 
-    private readonly record struct CompletionEntry(
-        long PipeOffset,
-        int CreditBytes,
-        Action<int> ReleaseCredit);
+    private readonly record struct CompletionEntry(long PipeOffset, int CreditBytes, ICompletionCallback Target);
+
+    /// <summary>A callback invoked when the background writer has written the corresponding bytes to the duplex
+    /// connection.</summary>
+    internal interface ICompletionCallback
+    {
+        void WriteCompleted(int creditBytes);
+    }
 }

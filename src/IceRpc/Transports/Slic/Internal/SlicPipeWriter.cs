@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Slic.Internal;
 
 // Type owns disposable field(s) '_completeWritesCts' and '_sendCreditSemaphore' but is not disposable
 #pragma warning disable CA1001
-internal class SlicPipeWriter : ReadOnlySequencePipeWriter
+internal class SlicPipeWriter : ReadOnlySequencePipeWriter, SlicDuplexConnectionWriter.ICompletionCallback
 #pragma warning restore CA1001
 {
     public override bool CanGetUnflushedBytes => true;
@@ -155,6 +155,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
         }
     }
+
+    /// <inheritdoc/>
+    void SlicDuplexConnectionWriter.ICompletionCallback.WriteCompleted(int creditBytes) =>
+        ReleasedLocalCredit(creditBytes);
 
     internal SlicPipeWriter(SlicStream stream, SlicConnection connection)
     {
