@@ -92,7 +92,7 @@ public class TelemetryMiddleware : IDispatcher
             baggage[i] = (key, value);
         }
 
-        // Restore in reverse order to keep the order in witch the peer add baggage entries,
+        // Restore in reverse order to keep the order in which the peer adds baggage entries,
         // this is important when there are duplicate keys.
         for (int i = kept - 1; i >= 0; i--)
         {
