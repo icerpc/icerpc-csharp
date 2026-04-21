@@ -208,7 +208,7 @@ public static class IceProxyIceDecoderExtensions
         {
             if (decoder.DecodeString() is string adapterId && adapterId.Length > 0)
             {
-                serviceAddressParams = serviceAddressParams.Add("adapter-id", adapterId);
+                serviceAddressParams = serviceAddressParams.Add("adapter-id", Uri.EscapeDataString(adapterId));
             }
         }
         else
