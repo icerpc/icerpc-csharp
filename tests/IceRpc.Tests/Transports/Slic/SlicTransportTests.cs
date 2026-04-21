@@ -1561,6 +1561,73 @@ public class SlicTransportTests
         await writeTask2;
     }
 
+    /// <summary>Verifies that at most PauseWriterThreshold payload bytes are buffered in Slic-owned memory per
+    /// stream. A write decorator on the underlying duplex connection tracks the maximum payload bytes observed in
+    /// a single write, which must not exceed PauseWriterThreshold plus frame header overhead.</summary>
+    [Test]
+    public async Task Write_does_not_buffer_more_than_pause_writer_threshold()
+    {
+        // Arrange: use a small PauseWriterThreshold with a large peer window. Track the maximum bytes
+        // observed in a single duplex WriteAsync call via a write decorator.
+        int threshold = 4 * 1024;
+        long maxBytesWrittenAtOnce = 0;
+
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = threshold);
+        services.AddTestDuplexTransportDecorator(
+            clientOperationsOptions: new()
+            {
+                WriteDecorator = async (connection, buffer, cancellationToken) =>
+                {
+                    long length = buffer.Length;
+                    // Track the max bytes seen in a single write to the duplex connection.
+                    long current;
+                    do
+                    {
+                        current = Interlocked.Read(ref maxBytesWrittenAtOnce);
+                        if (length <= current)
+                        {
+                            break;
+                        }
+                    }
+                    while (Interlocked.CompareExchange(ref maxBytesWrittenAtOnce, length, current) != current);
+                    await connection.WriteAsync(buffer, cancellationToken);
+                }
+            });
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: write a payload much larger than PauseWriterThreshold. The data is chunked through the
+        // local credit mechanism, so each duplex write should carry at most ~threshold payload bytes
+        // (plus Slic frame headers).
+        byte[] payload = new byte[128 * 1024];
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        await writeTask;
+
+        // Assert: the maximum bytes written to the duplex connection in a single call should not
+        // significantly exceed PauseWriterThreshold. We allow a margin for Slic frame headers
+        // (frame type + size + stream ID per frame, typically ~10 bytes each).
+        Assert.That(
+            maxBytesWrittenAtOnce,
+            Is.LessThanOrEqualTo(threshold + 1024),
+            $"Expected max bytes per duplex write to be at most {threshold + 1024} " +
+            $"(threshold {threshold} + header overhead), but was {maxBytesWrittenAtOnce}");
+    }
+
     private static Task WriteStreamFrameAsync(
         IDuplexConnection connection,
         FrameType frameType,

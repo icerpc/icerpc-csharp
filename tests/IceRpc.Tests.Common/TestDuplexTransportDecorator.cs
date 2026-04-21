@@ -39,6 +39,9 @@ public record class DuplexTransportOperationsOptions : TransportOperationsOption
 {
     /// <summary>The connection read decorator.</summary>
     public Func<IDuplexConnection, Memory<byte>, CancellationToken, ValueTask<int>>? ReadDecorator { get; set; }
+
+    /// <summary>The connection write decorator.</summary>
+    public Func<IDuplexConnection, ReadOnlySequence<byte>, CancellationToken, ValueTask>? WriteDecorator { get; set; }
 }
 
 /// <summary>A <see cref="IDuplexClientTransport" /> decorator to create decorated <see cref="IDuplexConnection" />
@@ -216,6 +219,7 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
 
     private readonly IDuplexConnection _decoratee;
     private readonly Func<IDuplexConnection, Memory<byte>, CancellationToken, ValueTask<int>>? _readDecorator;
+    private readonly Func<IDuplexConnection, ReadOnlySequence<byte>, CancellationToken, ValueTask>? _writeDecorator;
 
     /// <inheritdoc/>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
@@ -247,7 +251,9 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken) =>
         Operations.CallAsync(
             DuplexTransportOperations.Write,
-            () => _decoratee.WriteAsync(buffer, cancellationToken),
+            () => _writeDecorator is null ?
+                _decoratee.WriteAsync(buffer, cancellationToken) :
+                _writeDecorator(_decoratee, buffer, cancellationToken),
             cancellationToken);
 
     internal TestDuplexConnectionDecorator(
@@ -256,6 +262,7 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     {
         _decoratee = decoratee;
         _readDecorator = operationsOptions.ReadDecorator;
+        _writeDecorator = operationsOptions.WriteDecorator;
         Operations = new(operationsOptions);
     }
 }
