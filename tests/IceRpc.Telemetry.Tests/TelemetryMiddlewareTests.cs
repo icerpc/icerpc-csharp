@@ -156,10 +156,16 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(async () => await sut.DispatchAsync(request, default), Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that a trace context carrying baggage at the maximum allowed entry count is
-    /// decoded successfully.</summary>
-    [Test]
-    public async Task Dispatch_activity_decodes_trace_context_with_maximum_baggage()
+    /// <summary>Verifies that the decoded baggage count equals <c>min(inputEntryCount,
+    /// <see cref="TelemetryInterceptor.MaxBaggageEntries"/>)</c>: under-cap input round-trips fully, and
+    /// over-cap input is silently clipped to the cap — consistent with OpenTelemetry's no-throw policy
+    /// for observability operations.</summary>
+    [TestCase(0)]
+    [TestCase(TelemetryInterceptor.MaxBaggageEntries / 2)]
+    [TestCase(TelemetryInterceptor.MaxBaggageEntries)]
+    [TestCase(TelemetryInterceptor.MaxBaggageEntries + 1)]
+    [TestCase(TelemetryInterceptor.MaxBaggageEntries * 2)]
+    public async Task Dispatch_activity_clips_trace_context_baggage_to_maximum(int inputEntryCount)
     {
         // Arrange
         Activity? dispatchActivity = null;
@@ -169,8 +175,7 @@ public sealed class TelemetryMiddlewareTests
             return new(new OutgoingResponse(request));
         });
 
-        PipeReader encodedTraceContext = EncodeTraceContextWithBaggage(
-            entryCount: TelemetryInterceptor.MaxBaggageEntries);
+        PipeReader encodedTraceContext = EncodeTraceContextWithRawBaggage(inputEntryCount);
 
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
@@ -196,69 +201,8 @@ public sealed class TelemetryMiddlewareTests
 
         // Assert
         Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
-    }
-
-    /// <summary>Verifies that a trace context carrying more than the maximum allowed number of baggage
-    /// entries is silently clipped rather than rejected, consistent with OpenTelemetry's no-throw
-    /// policy for observability operations.</summary>
-    [Test]
-    public async Task Decoding_trace_context_with_excessive_baggage_is_clipped()
-    {
-        // Arrange
-        Activity? dispatchActivity = null;
-        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-        {
-            dispatchActivity = Activity.Current;
-            return new(new OutgoingResponse(request));
-        });
-
-        PipeReader encodedTraceContext = EncodeTraceContextWithRawBaggage(
-            entryCount: TelemetryInterceptor.MaxBaggageEntries + 1);
-
-        using var activitySource = new ActivitySource("Test Activity Source");
-        using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, activitySource);
-
-        encodedTraceContext.TryRead(out ReadResult readResult);
-
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
-            {
-                [RequestFieldKey.TraceContext] = readResult.Buffer
-            },
-            Operation = "Op",
-            Path = "/"
-        };
-
-        // Act
-        await sut.DispatchAsync(request, default);
-
-        // Cleanup
-        encodedTraceContext.Complete();
-
-        // Assert
-        Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
-    }
-
-    private static PipeReader EncodeTraceContextWithBaggage(int entryCount)
-    {
-        // Encode the parent activity context in a separate scope so it doesn't leak into Activity.Current.
-        using var encodedActivity = new Activity("/hello/Op");
-        for (int i = 0; i < entryCount; i++)
-        {
-            encodedActivity.AddBaggage($"key{i}", $"value{i}");
-        }
-        encodedActivity.Start();
-
-        var pipe = new Pipe();
-        var encoder = new SliceEncoder(pipe.Writer);
-        TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
-        pipe.Writer.Complete();
-
-        return pipe.Reader;
+        int expected = Math.Min(inputEntryCount, TelemetryInterceptor.MaxBaggageEntries);
+        Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(expected));
     }
 
     // Mirrors TelemetryInterceptor.WriteActivityContext but writes the baggage sequence raw so tests can
