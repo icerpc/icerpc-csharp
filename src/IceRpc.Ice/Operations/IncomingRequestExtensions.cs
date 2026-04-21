@@ -31,10 +31,11 @@ public static class IncomingRequestExtensions
             iceException.Encode(ref encoder);
             pipe.Writer.Complete();
 
-            // The message is always the default C# message since the generated Ice exceptions don't provide a way to
-            // set the message.
-            // This default message is only transmitted over icerpc; the icerpc client uses this message when it can't
-            // decode the Ice exception. See IceDecoder.DecodeException for more details.
+            // By default, the generated Ice exceptions don't set a custom message and don't support setting an inner
+            // exception. However, Message can still be overridden, so the value transmitted over icerpc is whatever
+            // iceException.Message returns.
+            // The icerpc client uses this message when it can't decode the Ice exception. See
+            // IceDecoder.DecodeException for more details.
             return new OutgoingResponse(request, StatusCode.ApplicationError, iceException.Message)
             {
                 Payload = pipe.Reader
