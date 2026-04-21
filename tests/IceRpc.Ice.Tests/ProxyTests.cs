@@ -17,6 +17,11 @@ public class ProxyTests
     [TestCase(
         "ice://hello.zeroc.com/hello?alt-server=[::1]?transport=ssl",
         "ice://hello.zeroc.com/hello?transport=tcp&alt-server=[::1]?transport=ssl")]
+    // adapter-id values containing characters that must be percent-escaped in the URI representation.
+    [TestCase("ice:/hello?adapter-id=foo%23bar", null)]                  // '#'
+    [TestCase("ice:/hello?adapter-id=foo%25bar", null)]                  // '%'
+    [TestCase("ice:/hello?adapter-id=foo%20bar", null)]                  // ' '
+    [TestCase("ice:/hello?adapter-id=foo%23bar%25baz%20qux%26quux", null)] // '#', '%', ' ', '&'
     public void Encode_decode_proxy(ServiceAddress? value, ServiceAddress? expectedValue)
     {
         var buffer = new byte[256];
