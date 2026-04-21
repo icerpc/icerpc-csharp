@@ -7,8 +7,9 @@ namespace IceRpc.Transports.Slic;
 public sealed record class SlicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no
-    /// data is received within the idle timeout period, the transport connection is aborted. Use
-    /// <see cref="Timeout.InfiniteTimeSpan" /> to disable idle timeout monitoring.</summary>
+    /// data is received within the idle timeout period, the transport connection is aborted. The effective idle timeout
+    /// is negotiated with the peer: use <see cref="Timeout.InfiniteTimeSpan" /> to defer to the peer's idle timeout.
+    /// Idle timeout monitoring is disabled only when both sides use <see cref="Timeout.InfiniteTimeSpan" />.</summary>
     /// <value>The idle timeout. It must be positive or <see cref="Timeout.InfiniteTimeSpan" />.
     /// Defaults to <c>30</c> s.</value>
     public TimeSpan IdleTimeout
