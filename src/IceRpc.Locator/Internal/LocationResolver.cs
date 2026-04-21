@@ -52,10 +52,10 @@ internal class CacheLessLocationResolver : ILocationResolver
             .ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
-        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId))
         {
             (serviceAddress, _) = await ResolveAsync(
-                new Location { IsAdapterId = true, Value = adapterId },
+                new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) },
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -122,14 +122,14 @@ internal class LocationResolver : ILocationResolver
         }
 
         // A well-known service address resolution can return a service address with an adapter-id.
-        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId))
         {
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                 // service address, we request a cache refresh for the adapter ID.
                 (serviceAddress, _) = await PerformResolveAsync(
-                    new Location { IsAdapterId = true, Value = adapterId },
+                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) },
                     refreshCache || resolved,
                     cancellationToken).ConfigureAwait(false);
             }

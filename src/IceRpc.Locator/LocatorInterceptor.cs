@@ -57,8 +57,8 @@ public class LocatorInterceptor : IInvoker
             }
             else if (serverAddressFeature.ServerAddress is null)
             {
-                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ?
-                    new Location { IsAdapterId = true, Value = adapterId } :
+                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId) ?
+                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) } :
                     new Location { Value = request.ServiceAddress.Path };
             }
             // else it could be a retry where the first attempt provided non-cached server address(es)

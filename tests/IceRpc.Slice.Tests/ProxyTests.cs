@@ -72,6 +72,11 @@ public partial class ProxyTests
         SliceEncoding.Slice1)]
     [TestCase("ice:/cat/name?adapter-id=foo", null, SliceEncoding.Slice1)]
     [TestCase("ice:/cat/name", null, SliceEncoding.Slice1)]
+    // adapter-id values containing characters that must be percent-escaped in the URI representation.
+    [TestCase("ice:/hello?adapter-id=foo%23bar", null, SliceEncoding.Slice1)]                  // '#'
+    [TestCase("ice:/hello?adapter-id=foo%25bar", null, SliceEncoding.Slice1)]                  // '%'
+    [TestCase("ice:/hello?adapter-id=foo%20bar", null, SliceEncoding.Slice1)]                  // ' '
+    [TestCase("ice:/hello?adapter-id=foo%23bar%25baz%20qux%26quux", null, SliceEncoding.Slice1)] // '#', '%', ' ', '&'
     // cSpell:enable
     public void Decode_proxy(ServiceAddress value, ServiceAddress? expected, SliceEncoding encoding)
     {
