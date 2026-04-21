@@ -14,6 +14,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     public TransportAddress TransportAddress { get; }
 
     private readonly CancellationTokenSource _disposeCts = new();
+    private readonly Action<ColocListener> _onDispose;
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
 
@@ -71,6 +72,9 @@ internal class ColocListener : IListener<IDuplexConnection>
             return default;
         }
 
+        // Notify the owner (e.g. the server transport) so it can release its reference to this listener.
+        _onDispose(this);
+
         // Cancel pending AcceptAsync.
         _disposeCts.Cancel();
 
@@ -91,11 +95,13 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     internal ColocListener(
         TransportAddress transportAddress,
+        Action<ColocListener> onDispose,
         ColocTransportOptions colocTransportOptions,
         DuplexConnectionOptions duplexConnectionOptions)
     {
         TransportAddress = transportAddress;
 
+        _onDispose = onDispose;
         _networkAddress = new ColocEndPoint(transportAddress);
         _pipeOptions = new PipeOptions(
             pool: duplexConnectionOptions.Pool,

@@ -11,6 +11,36 @@ namespace IceRpc.Tests.Transports.Coloc;
 [Parallelizable(scope: ParallelScope.All)]
 public class ColocTransportTests
 {
+    /// <summary>Verifies that after a listener is disposed, a new listener can be created at the same
+    /// transport address on the same <see cref="ColocTransport" /> (see issue #4484).</summary>
+    [Test]
+    public async Task Listen_succeeds_at_the_same_address_after_dispose()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var transportAddress = new TransportAddress { Host = Guid.NewGuid().ToString() };
+
+        IListener<IDuplexConnection> firstListener = colocTransport.ServerTransport.Listen(
+            transportAddress,
+            new DuplexConnectionOptions(),
+            null);
+        await firstListener.DisposeAsync();
+
+        // Act/Assert
+        IListener<IDuplexConnection>? secondListener = null;
+        Assert.That(
+            () => secondListener = colocTransport.ServerTransport.Listen(
+                transportAddress,
+                new DuplexConnectionOptions(),
+                null),
+            Throws.Nothing);
+
+        if (secondListener is not null)
+        {
+            await secondListener.DisposeAsync();
+        }
+    }
+
     [Test]
     public async Task Coloc_transport_connection_information()
     {
