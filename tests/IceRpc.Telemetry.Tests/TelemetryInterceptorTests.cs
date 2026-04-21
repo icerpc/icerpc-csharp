@@ -109,7 +109,7 @@ public sealed class TelemetryInterceptorTests
     {
         // Arrange
         using var activity = new Activity("/hello/Op");
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < TelemetryInterceptor.MaxBaggageEntries + 10; i++)
         {
             activity.AddBaggage($"key{i}", $"value{i}");
         }
