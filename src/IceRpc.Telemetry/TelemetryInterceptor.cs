@@ -69,14 +69,9 @@ public class TelemetryInterceptor : IInvoker
 
         // The activity context is written to the field value, as if it has the following Slice definition
         //
-        // struct BaggageEntry
-        // {
-        //    string key;
-        //    string value;
-        // }
-        // Sequence<BaggageEntry> Baggage;
+        // Dictionary<string, string> Baggage;
         //
-        // struct ActivityContext
+        // compact struct ActivityContext
         // {
         //    // ActivityID version 1 byte
         //    uint8 version;
