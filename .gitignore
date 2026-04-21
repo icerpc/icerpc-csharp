@@ -95,3 +95,4 @@ NuGet.config
 
 # CSharp Dev Kit
 .mono
+*.csproj.lscache
