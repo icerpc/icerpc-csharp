@@ -132,8 +132,9 @@ public sealed class TelemetryInterceptorTests
     }
 
     /// <summary>Verifies that the interceptor forces W3C activity ID format even when the process-wide default is
-    /// Hierarchical.</summary>
+    /// Hierarchical, and that the trace context field can be encoded and decoded successfully.</summary>
     [Test]
+    [NonParallelizable]
     public async Task Invocation_uses_w3c_format_regardless_of_process_default()
     {
         // Arrange
@@ -142,9 +143,11 @@ public sealed class TelemetryInterceptorTests
         try
         {
             Activity? invocationActivity = null;
+            Activity? decodedActivity = null;
             var invoker = new InlineInvoker((request, cancellationToken) =>
             {
                 invocationActivity = Activity.Current;
+                decodedActivity = DecodeTraceContextField(request.Fields, request.Operation);
                 return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
             });
 
@@ -162,8 +165,9 @@ public sealed class TelemetryInterceptorTests
 
             // Assert
             Assert.That(invocationActivity, Is.Not.Null);
-            Assert.That(invocationActivity.IdFormat, Is.EqualTo(ActivityIdFormat.W3C));
-            Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.True);
+            Assert.That(invocationActivity!.IdFormat, Is.EqualTo(ActivityIdFormat.W3C));
+            Assert.That(decodedActivity, Is.Not.Null);
+            Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity.Id));
         }
         finally
         {
