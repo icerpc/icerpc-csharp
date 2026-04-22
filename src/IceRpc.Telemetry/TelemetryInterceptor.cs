@@ -40,7 +40,7 @@ public class TelemetryInterceptor : IInvoker
         if (request.Protocol.HasFields)
         {
             string name = $"{request.ServiceAddress.Path}/{request.Operation}";
-            using Activity activity = _activitySource?.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
+            using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
             activity.AddTag("rpc.system", "icerpc");
             activity.AddTag("rpc.service", request.ServiceAddress.Path);
             activity.AddTag("rpc.method", request.Operation);
