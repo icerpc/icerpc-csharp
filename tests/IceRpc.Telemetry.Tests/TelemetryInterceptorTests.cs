@@ -131,6 +131,46 @@ public sealed class TelemetryInterceptorTests
         pipe.Reader.Complete();
     }
 
+    /// <summary>Verifies that the interceptor forces W3C activity ID format even when the process-wide default is
+    /// Hierarchical.</summary>
+    [Test]
+    public async Task Invocation_uses_w3c_format_regardless_of_process_default()
+    {
+        // Arrange
+        ActivityIdFormat previousDefault = Activity.DefaultIdFormat;
+        Activity.DefaultIdFormat = ActivityIdFormat.Hierarchical;
+        try
+        {
+            Activity? invocationActivity = null;
+            var invoker = new InlineInvoker((request, cancellationToken) =>
+            {
+                invocationActivity = Activity.Current;
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
+            });
+
+            using var activitySource = new ActivitySource("Test Activity Source");
+            using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
+
+            var sut = new TelemetryInterceptor(invoker, activitySource);
+            using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+            {
+                Operation = "Op"
+            };
+
+            // Act
+            await sut.InvokeAsync(request, default);
+
+            // Assert
+            Assert.That(invocationActivity, Is.Not.Null);
+            Assert.That(invocationActivity.IdFormat, Is.EqualTo(ActivityIdFormat.W3C));
+            Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.True);
+        }
+        finally
+        {
+            Activity.DefaultIdFormat = previousDefault;
+        }
+    }
+
     private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
     {
         var mockActivityListener = new ActivityListener();
