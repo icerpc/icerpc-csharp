@@ -83,21 +83,29 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
         {
             var depends = new List<string>();
             string dependContents = File.ReadAllText(dependOutput);
-            // strip everything before Xxx.cs:
+
+            // Strip everything before and including "Xxx.cs:" (the output target).
             const string outputPrefix = ".cs:";
             int i = dependContents.IndexOf(outputPrefix, StringComparison.CurrentCultureIgnoreCase);
-            if (i != -1 && i + outputPrefix.Length < dependContents.Length)
+            if (i == -1 || i + outputPrefix.Length >= dependContents.Length)
             {
-                dependContents = dependContents[(i + outputPrefix.Length)..];
-                foreach (string line in dependContents.Split(['\\']))
+                return depends;
+            }
+
+            dependContents = dependContents[(i + outputPrefix.Length)..];
+
+            // The Make depfile format uses '\' at end of line as a line continuation. Each dependency
+            // path appears on its own line (possibly after a continuation). We split on newlines, strip
+            // trailing '\' and whitespace, then treat each non-empty result as a path.
+            foreach (string line in dependContents.Split('\n'))
+            {
+                string filePath = line.TrimEnd().TrimEnd('\\').Trim();
+                if (!string.IsNullOrEmpty(filePath))
                 {
-                    string filePath = line.Trim();
-                    if (!string.IsNullOrEmpty(filePath))
-                    {
-                        depends.Add(Path.GetFullPath(filePath));
-                    }
+                    depends.Add(Path.GetFullPath(filePath));
                 }
             }
+
             return depends;
         }
     }
