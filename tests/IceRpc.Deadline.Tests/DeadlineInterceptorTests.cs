@@ -216,4 +216,27 @@ public sealed class DeadlineInterceptorTests
         var decoder = new SliceDecoder(readResult.Buffer);
         return decoder.DecodeTimeStamp();
     }
+
+    [TestCase(0)]
+    [TestCase(-5000)]
+    public void Constructor_rejects_invalid_default_timeout(int milliseconds)
+    {
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Assert.That(
+            () => new DeadlineInterceptor(invoker, TimeSpan.FromMilliseconds(milliseconds), alwaysEnforceDeadline: false),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void Constructor_accepts_infinite_timeout()
+    {
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Assert.That(
+            () => new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false),
+            Throws.Nothing);
+    }
 }
