@@ -18,6 +18,7 @@
     "contentfiles",
     "Datagram",
     "decoratee",
+    "depfile",
     "dependencyinjection",
     "docfx",
     "dprime",
