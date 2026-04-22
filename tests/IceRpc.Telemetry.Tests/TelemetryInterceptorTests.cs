@@ -133,6 +133,9 @@ public sealed class TelemetryInterceptorTests
 
     /// <summary>Verifies that the interceptor forces W3C activity ID format even when the process-wide default is
     /// Hierarchical, and that the trace context field can be encoded and decoded successfully.</summary>
+    /// <remarks>Marked <c>NonParallelizable</c> because it mutates <see cref="Activity.DefaultIdFormat" />, a
+    /// process-wide setting; running it concurrently with other tests that create activities would make their
+    /// observed ID format non-deterministic.</remarks>
     [Test]
     [NonParallelizable]
     public async Task Invocation_uses_w3c_format_regardless_of_process_default()
