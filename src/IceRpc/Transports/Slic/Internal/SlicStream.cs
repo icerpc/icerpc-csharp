@@ -96,6 +96,15 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>Acquires local buffering credit.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The available local credit in bytes.</returns>
+    /// <remarks>This method blocks if this stream already has <see cref="SlicTransportOptions.PauseWriterThreshold"/>
+    /// bytes in-flight across Slic-owned buffers. Local credit is released when the shared writer confirms the bytes
+    /// have been written to the underlying duplex connection.</remarks>
+    internal ValueTask<int> AcquireLocalCreditAsync(CancellationToken cancellationToken) =>
+        _outputPipeWriter!.AcquireLocalCreditAsync(cancellationToken);
+
     /// <summary>Acquires send credit.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The available send credit.</returns>
@@ -103,9 +112,6 @@ internal class SlicStream : IMultiplexedStream
     /// cref="FrameType.StreamLast"/> frame to ensure enough send credit is available. If no send credit is available,
     /// it will block until send credit is available. The send credit matches the size of the peer's flow-control
     /// window.</remarks>
-    internal ValueTask<int> AcquireLocalCreditAsync(CancellationToken cancellationToken) =>
-        _outputPipeWriter!.AcquireLocalCreditAsync(cancellationToken);
-
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
