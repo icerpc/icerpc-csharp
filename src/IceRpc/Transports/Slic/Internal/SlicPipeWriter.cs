@@ -22,10 +22,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter, SlicDuplexConnection
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
-    private volatile int _localCredit;
+    private int _localCredit;
     // The semaphore is used to wait when local credit is exhausted (reaches 0).
     private readonly SemaphoreSlim _localCreditSemaphore = new(1, 1);
-    private volatile int _peerWindowSize = SlicTransportOptions.MaxWindowSize;
+    private int _peerWindowSize = SlicTransportOptions.MaxWindowSize;
     private readonly Pipe _pipe;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
