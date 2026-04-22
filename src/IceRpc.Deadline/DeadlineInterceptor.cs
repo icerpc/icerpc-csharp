@@ -43,6 +43,13 @@ public class DeadlineInterceptor : IInvoker
     /// </param>
     public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline, TimeProvider? timeProvider = null)
     {
+        if (defaultTimeout != Timeout.InfiniteTimeSpan && defaultTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentException(
+                $"The {nameof(defaultTimeout)} value must be positive or Timeout.InfiniteTimeSpan.",
+                nameof(defaultTimeout));
+        }
+
         _next = next;
         _alwaysEnforceDeadline = alwaysEnforceDeadline;
         _defaultTimeout = defaultTimeout;
