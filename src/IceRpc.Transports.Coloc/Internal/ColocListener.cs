@@ -14,7 +14,9 @@ internal class ColocListener : IListener<IDuplexConnection>
     public TransportAddress TransportAddress { get; }
 
     private readonly CancellationTokenSource _disposeCts = new();
+    private Task? _disposeTask;
     private readonly Action<ColocListener> _onDispose;
+    private readonly Lock _mutex = new();
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
 
@@ -28,7 +30,7 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_disposeCts.IsCancellationRequested, this);
+        ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposeCts.Token, cancellationToken);
         try
@@ -66,31 +68,34 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     public ValueTask DisposeAsync()
     {
-        if (_disposeCts.IsCancellationRequested)
+        lock (_mutex)
         {
-            // Dispose already called.
-            return default;
+            _disposeTask ??= PerformDisposeAsync();
         }
+        return new(_disposeTask);
 
-        // Notify the owner (e.g. the server transport) so it can release its reference to this listener.
-        _onDispose(this);
-
-        // Cancel pending AcceptAsync.
-        _disposeCts.Cancel();
-
-        // Ensure no more client connection establishment request is queued.
-        _channel.Writer.Complete();
-
-        // Complete all the queued client connection establishment requests with IceRpcError.ConnectionRefused. Use
-        // TrySetException in case the task has been already canceled.
-        while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader) item))
+        Task PerformDisposeAsync()
         {
-            item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
+            // Notify the owner (e.g. the server transport) so it can release its reference to this listener.
+            _onDispose(this);
+
+            // Cancel pending AcceptAsync.
+            _disposeCts.Cancel();
+
+            // Ensure no more client connection establishment request is queued.
+            _channel.Writer.Complete();
+
+            // Complete all the queued client connection establishment requests with IceRpcError.ConnectionRefused.
+            // Use TrySetException in case the task has been already canceled.
+            while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader) item))
+            {
+                item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
+            }
+
+            _disposeCts.Dispose();
+
+            return Task.CompletedTask;
         }
-
-        _disposeCts.Dispose();
-
-        return default;
     }
 
     internal ColocListener(
