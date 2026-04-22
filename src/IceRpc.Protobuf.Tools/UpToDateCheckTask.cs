@@ -94,12 +94,13 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
 
             dependContents = dependContents[(i + outputPrefix.Length)..];
 
-            // The Make depfile format uses '\' at end of line as a line continuation. Each dependency
-            // path appears on its own line (possibly after a continuation). We split on newlines, strip
-            // trailing '\' and whitespace, then treat each non-empty result as a path.
+            // The Make depfile format uses '\' at end of line as a line continuation, and escapes
+            // spaces inside paths as '\ '. Windows directory separators are emitted as literal '\'
+            // (not escaped). We split on newlines, strip the trailing continuation '\' and whitespace,
+            // then unescape '\ ' -> ' ' so paths containing spaces resolve correctly.
             foreach (string line in dependContents.Split('\n'))
             {
-                string filePath = line.TrimEnd().TrimEnd('\\').Trim();
+                string filePath = line.TrimEnd().TrimEnd('\\').Trim().Replace("\\ ", " ", StringComparison.Ordinal);
                 if (!string.IsNullOrEmpty(filePath))
                 {
                     depends.Add(Path.GetFullPath(filePath));
