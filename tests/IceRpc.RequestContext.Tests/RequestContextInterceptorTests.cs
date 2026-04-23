@@ -51,6 +51,19 @@ public sealed class RequestContextInterceptorTests
     }
 
     [Test]
+    public void Feature_is_isolated_from_mutations_to_source_dictionary()
+    {
+        var context = new Dictionary<string, string> { ["Foo"] = "Bar" };
+        var feature = new RequestContextFeature(context);
+
+        context["Foo"] = "Mutated";
+        context["Added"] = "After";
+        context.Remove("Foo");
+
+        Assert.That(feature.Value, Is.EqualTo(new Dictionary<string, string> { ["Foo"] = "Bar" }));
+    }
+
+    [Test]
     public async Task Empty_context_not_encoded_in_context_field()
     {
         var context = new Dictionary<string, string>();
