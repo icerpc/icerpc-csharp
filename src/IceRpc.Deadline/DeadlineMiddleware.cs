@@ -10,6 +10,9 @@ namespace IceRpc.Deadline;
 /// <summary>Represents a middleware that decodes deadline fields into deadline features. When the decoded deadline
 /// expires, this middleware cancels the dispatch and returns an <see cref="OutgoingResponse" /> with status code
 /// <see cref="StatusCode.DeadlineExceeded" />.</summary>
+/// <remarks>A peer-encoded deadline whose computed remaining timeout exceeds the
+/// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> maximum (~24.8 days) is silently clamped to that
+/// maximum. At this bound the deadline is effectively infinite for RPC purposes.</remarks>
 /// <seealso cref="DeadlineRouterExtensions"/>
 /// <seealso cref="DeadlineDispatcherBuilderExtensions"/>
 public class DeadlineMiddleware : IDispatcher

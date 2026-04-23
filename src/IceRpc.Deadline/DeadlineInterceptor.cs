@@ -35,8 +35,11 @@ public class DeadlineInterceptor : IInvoker
 
     /// <summary>Constructs a Deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="defaultTimeout">The default timeout. When not infinite, the interceptor adds a deadline to requests
-    /// without a deadline.</param>
+    /// <param name="defaultTimeout">The default timeout. When not <see cref="Timeout.InfiniteTimeSpan" />, the
+    /// interceptor adds a deadline to requests without a deadline. Must be positive and must not exceed
+    /// <see cref="int.MaxValue" /> milliseconds (~24.8 days), the maximum supported by
+    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" />, or equal to
+    /// <see cref="Timeout.InfiniteTimeSpan" />.</param>
     /// <param name="timeProvider">The optional time provider used to obtain the current time. If <see langword="null"/>, it uses
     /// <see cref="TimeProvider.System"/>.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
@@ -44,6 +47,11 @@ public class DeadlineInterceptor : IInvoker
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
     /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
     /// </param>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="defaultTimeout" /> is not positive, not
+    /// <see cref="Timeout.InfiniteTimeSpan" />, and does not exceed the maximum supported value.</exception>
+    /// <remarks>A request carrying an <see cref="IDeadlineFeature" /> whose computed remaining timeout exceeds
+    /// the <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> maximum is silently clamped to that
+    /// maximum at invocation time.</remarks>
     public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline, TimeProvider? timeProvider = null)
     {
         if (defaultTimeout != Timeout.InfiniteTimeSpan && defaultTimeout <= TimeSpan.Zero)
