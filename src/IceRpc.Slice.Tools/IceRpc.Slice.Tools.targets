@@ -66,6 +66,9 @@
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
+      <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-gen-icerpc-build-telemetry$(_SliceGeneratorScriptExtension)</Generators>
+      </_SliceFile>
     </ItemGroup>
   </Target>
 

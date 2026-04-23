@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>major</RollForward>
+    <AssemblyName>IceRpc.Slice.BuildTelemetry</AssemblyName>
+    <!-- We don't generate a NuGet package for IceRpc.Slice.BuildTelemetry. The generator is included with
+    the IceRpc.Slice.Tools package. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IceRpc/IceRpc.csproj" />
+    <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj" />
+    <None Include="slicec-gen-icerpc-build-telemetry.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="slicec-gen-icerpc-build-telemetry.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+</Project>

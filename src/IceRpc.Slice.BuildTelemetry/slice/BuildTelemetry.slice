@@ -1,0 +1,91 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::BuildTelemetry
+
+/// Represents a telemetry reporter that can send telemetry data to a remote server for analysis.
+interface Reporter {
+    /// Uploads the collected telemetry data to a remote server.
+    ///
+    /// @param telemetry: The telemetry data to be uploaded, which could be related to a build using either Slice or
+    /// Protobuf.
+    [oneway] upload(telemetry: BuildTelemetry)
+}
+
+/// Represents the language mapping of the telemetry data.
+enum TargetLanguage {
+    /// The data is coming from IceRPC for C#.
+    ///
+    /// @param dotnetRuntime: The version of the .NET runtime used by the build.
+    CSharp(dotnetRuntime: string)
+}
+
+/// Represents telemetry data from a build. The data can be from either an IceRPC + Slice or IceRPC + Protobuf
+/// build.
+enum BuildTelemetry {
+    /// Telemetry data from a build using Protobuf.
+    ///
+    /// @param data: The telemetry data from the Protobuf build.
+    Protobuf(data: ProtobufTelemetryData)
+
+    /// Telemetry data from a build using Slice.
+    ///
+    /// @param data: The telemetry data from the Slice build.
+    Slice(data: SliceTelemetryData)
+}
+
+/// Represents telemetry data collected from an IceRPC + Slice build.
+struct SliceTelemetryData {
+    /// The architecture of the client machine (e.g., x86_64, arm64).
+    architecture: string
+
+    /// A hash representing the the Slice files being compiled.
+    compilationHash: string
+
+    /// Indicates whether the build included any Slice1 files.
+    containsSlice1: bool
+
+    /// Indicates whether the build included any Slice2 files.
+    containsSlice2: bool
+
+    /// Specifies whether the build was executed in a continuous integration (CI) environment.
+    isCI: bool
+
+    /// The operating system running the client (e.g., Linux, Windows, macOS).
+    operatingSystem: string
+
+    /// The number of Slice reference files.
+    referenceFileCount: int32
+
+    /// The number of Slice source files.
+    sourceFileCount: int32
+
+    /// The target language of the telemetry data.
+    targetLanguage: TargetLanguage
+
+    /// The version of the telemetry reporting tool used in this build.
+    toolVersion: string
+}
+
+/// Represents telemetry data from an IceRPC + Protobuf build.
+struct ProtobufTelemetryData {
+    /// The architecture of the client machine (e.g., x86_64, arm64).
+    architecture: string
+
+    /// A hash representing the the Protobuf files being compiled.
+    compilationHash: string
+
+    /// The number of protobuf files in the compilation.
+    fileCount: int32
+
+    /// Specifies whether the build was executed in a continuous integration (CI) environment.
+    isCI: bool
+
+    /// The operating system running the client (e.g., Linux, Windows, macOS).
+    operatingSystem: string
+
+    /// The target language of the telemetry data.
+    targetLanguage: TargetLanguage
+
+    /// The version of the telemetry reporting tool used in this build.
+    toolVersion: string
+}
