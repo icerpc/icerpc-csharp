@@ -522,8 +522,14 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_shutdownTask is null && _activeConnections.Remove(serverAddress))
+            // Check identity before removing: a concurrent reconnect may have already replaced this connection
+            // with a new one at the same server address. Removing without the identity check would evict the
+            // healthy replacement and leak it outside the cache.
+            if (_shutdownTask is null &&
+                _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? existing) &&
+                existing == connection)
             {
+                _activeConnections.Remove(serverAddress);
                 // it's now our connection.
                 _detachedConnectionCount++;
             }
