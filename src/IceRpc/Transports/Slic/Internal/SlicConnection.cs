@@ -1455,7 +1455,14 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (isBidirectional)
             {
-                if (streamId > _lastRemoteBidirectionalStreamId + 4)
+                // The next expected remote bidirectional stream ID is the last one plus 4, or the initial remote
+                // bidirectional stream ID (0 for the server, 1 for the client) if no remote bidirectional stream has
+                // been opened yet. This check also rejects a bogus first stream ID, which would otherwise slip
+                // through because `null + 4` evaluates to null.
+                ulong expectedStreamId = _lastRemoteBidirectionalStreamId is ulong lastId
+                    ? lastId + 4
+                    : (IsServer ? 0ul : 1ul);
+                if (streamId > expectedStreamId)
                 {
                     throw new InvalidDataException("Invalid stream ID.");
                 }
@@ -1470,7 +1477,13 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                if (streamId > _lastRemoteUnidirectionalStreamId + 4)
+                // The next expected remote unidirectional stream ID is the last one plus 4, or the initial remote
+                // unidirectional stream ID (2 for the server, 3 for the client) if no remote unidirectional stream
+                // has been opened yet.
+                ulong expectedStreamId = _lastRemoteUnidirectionalStreamId is ulong lastId
+                    ? lastId + 4
+                    : (IsServer ? 2ul : 3ul);
+                if (streamId > expectedStreamId)
                 {
                     throw new InvalidDataException("Invalid stream ID.");
                 }
