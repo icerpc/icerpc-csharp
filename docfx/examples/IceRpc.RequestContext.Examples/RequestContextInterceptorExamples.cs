@@ -48,4 +48,28 @@ public static class RequestContextInterceptorExamples
         #endregion
         }
     }
+
+    public static void UpdateRequestContextInInterceptor()
+    {
+        #region UpdateRequestContextInInterceptor
+        // An interceptor that adds an entry to the request context. The appropriate pattern is
+        // copy-on-write: build a new dictionary and install a new feature, rather than mutating the
+        // existing Value in place (which would race with the outgoing encoding).
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
+            {
+                IRequestContextFeature? feature = request.Features.Get<IRequestContextFeature>();
+                IDictionary<string, string> current =
+                    feature?.Value ?? new Dictionary<string, string>();
+                var updated = new Dictionary<string, string>(current)
+                {
+                    ["CorrelationId"] = Guid.NewGuid().ToString()
+                };
+                request.Features = request.Features.With<IRequestContextFeature>(
+                    new RequestContextFeature(updated));
+                return next.InvokeAsync(request, cancellationToken);
+            }))
+            .UseRequestContext();
+        #endregion
+    }
 }
