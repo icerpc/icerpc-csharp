@@ -13,8 +13,12 @@ internal class ColocListener : IListener<IDuplexConnection>
 {
     public TransportAddress TransportAddress { get; }
 
+    [SuppressMessage(
+        "Usage",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "Disposing this CTS races with AcceptAsync creating a linked token source from its Token; a CTS with no timer is safely reclaimed by the GC.")]
     private readonly CancellationTokenSource _disposeCts = new();
-    private Task? _disposeTask;
+    private bool _disposed;
     private readonly Action<ColocListener> _onDispose;
     private readonly Lock _mutex = new();
     private readonly EndPoint _networkAddress;
@@ -33,7 +37,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         CancellationTokenSource cts;
         lock (_mutex)
         {
-            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             cts = CancellationTokenSource.CreateLinkedTokenSource(_disposeCts.Token, cancellationToken);
         }
         using var _ = cts;
@@ -74,12 +78,12 @@ internal class ColocListener : IListener<IDuplexConnection>
     {
         lock (_mutex)
         {
-            _disposeTask ??= PerformDisposeAsync();
-        }
-        return new(_disposeTask);
+            if (_disposed)
+            {
+                return default;
+            }
+            _disposed = true;
 
-        Task PerformDisposeAsync()
-        {
             // Notify the owner (e.g. the server transport) so it can release its reference to this listener.
             _onDispose(this);
 
@@ -95,11 +99,8 @@ internal class ColocListener : IListener<IDuplexConnection>
             {
                 item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
             }
-
-            _disposeCts.Dispose();
-
-            return Task.CompletedTask;
         }
+        return default;
     }
 
     internal ColocListener(
