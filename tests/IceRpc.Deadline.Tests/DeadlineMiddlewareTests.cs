@@ -97,6 +97,36 @@ public sealed class DeadlineMiddlewareTests
         pipeReader.Complete();
     }
 
+    /// <summary>Verifies the middleware clamps an extreme-future peer-encoded deadline instead of letting
+    /// CancelAfter throw ArgumentOutOfRangeException.</summary>
+    [Test]
+    public async Task Dispatch_with_extreme_future_deadline_does_not_throw()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            new(new OutgoingResponse(request)));
+
+        var sut = new DeadlineMiddleware(dispatcher);
+
+        PipeReader pipeReader = WriteDeadline(
+            DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc));
+        pipeReader.TryRead(out var readResult);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.Deadline] = readResult.Buffer
+            }
+        };
+
+        // Act/Assert
+        Assert.That(async () => await sut.DispatchAsync(request, CancellationToken.None), Throws.Nothing);
+
+        // Cleanup
+        pipeReader.Complete();
+    }
+
     /// <summary>Verifies that the deadline decoded by the middleware has the expected value.</summary>
     [Test]
     public async Task Deadline_decoded_by_middleware_has_expected_value()

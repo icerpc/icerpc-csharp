@@ -25,6 +25,9 @@ namespace IceRpc.Deadline;
 /// <seealso cref="DeadlineInvokerBuilderExtensions"/>
 public class DeadlineInterceptor : IInvoker
 {
+    // The maximum delay CancellationTokenSource.CancelAfter(TimeSpan) accepts.
+    private static readonly TimeSpan MaxCancelAfterDelay = TimeSpan.FromMilliseconds(int.MaxValue);
+
     private readonly bool _alwaysEnforceDeadline;
     private readonly IInvoker _next;
     private readonly TimeSpan _defaultTimeout;
@@ -47,6 +50,13 @@ public class DeadlineInterceptor : IInvoker
         {
             throw new ArgumentException(
                 $"The {nameof(defaultTimeout)} value must be positive or Timeout.InfiniteTimeSpan.",
+                nameof(defaultTimeout));
+        }
+
+        if (defaultTimeout != Timeout.InfiniteTimeSpan && defaultTimeout > MaxCancelAfterDelay)
+        {
+            throw new ArgumentException(
+                $"The {nameof(defaultTimeout)} value must not exceed {MaxCancelAfterDelay} or be Timeout.InfiniteTimeSpan.",
                 nameof(defaultTimeout));
         }
 
@@ -96,6 +106,14 @@ public class DeadlineInterceptor : IInvoker
 
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
+            // Clamp to CancelAfter's supported maximum. A caller-provided IDeadlineFeature value near
+            // DateTime.MaxValue would otherwise cause CancelAfter to throw ArgumentOutOfRangeException. At this
+            // bound the deadline is effectively infinite for RPC purposes.
+            if (timeout > MaxCancelAfterDelay)
+            {
+                timeout = MaxCancelAfterDelay;
+            }
+
             using var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutTokenSource.CancelAfter(timeout);
 
