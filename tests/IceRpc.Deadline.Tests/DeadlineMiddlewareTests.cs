@@ -56,6 +56,47 @@ public sealed class DeadlineMiddlewareTests
         pipeReader.Complete();
     }
 
+    /// <summary>Verifies that a request with an explicitly encoded DateTime.MinValue deadline returns
+    /// DeadlineExceeded and does not fall through to the next dispatcher. This is the decoded form of a peer-encoded
+    /// ticks=0 deadline, which must be treated as an expired deadline rather than as an absent field.</summary>
+    [Test]
+    public async Task Dispatch_fails_when_deadline_is_min_value()
+    {
+        // Arrange
+        bool nextCalled = false;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            nextCalled = true;
+            return new(new OutgoingResponse(request));
+        });
+
+        var sut = new DeadlineMiddleware(dispatcher);
+
+        // Encode an explicit ticks=0 deadline: the Utc kind avoids ToUniversalTime shifting it away from 0 in
+        // timezones other than UTC. Decoded server-side as DateTime.MinValue, which collides with the "field
+        // absent" sentinel the middleware used to rely on.
+        PipeReader pipeReader = WriteDeadline(new DateTime(0, DateTimeKind.Utc));
+        pipeReader.TryRead(out var readResult);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.Deadline] = readResult.Buffer
+            }
+        };
+
+        // Act
+        OutgoingResponse response = await sut.DispatchAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
+        Assert.That(nextCalled, Is.False);
+
+        // Cleanup
+        pipeReader.Complete();
+    }
+
     /// <summary>Verifies that the deadline decoded by the middleware has the expected value.</summary>
     [Test]
     public async Task Deadline_decoded_by_middleware_has_expected_value()

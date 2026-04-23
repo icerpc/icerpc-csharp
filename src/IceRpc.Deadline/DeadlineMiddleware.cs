@@ -2,6 +2,7 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
+using System.Buffers;
 using ZeroC.Slice.Codec;
 
 namespace IceRpc.Deadline;
@@ -31,16 +32,13 @@ public class DeadlineMiddleware : IDispatcher
         IncomingRequest request,
         CancellationToken cancellationToken = default)
     {
-        TimeSpan? timeout = null;
-
-        // not found returns default == DateTime.MinValue.
-        DateTime deadline = request.Fields.DecodeValue(
-            RequestFieldKey.Deadline,
-            (ref SliceDecoder decoder) => decoder.DecodeTimeStamp());
-
-        if (deadline != DateTime.MinValue)
+        // Check explicit field presence rather than relying on a decoded-value sentinel: a peer encoding ticks=0
+        // decodes to DateTime.MinValue, which would otherwise be indistinguishable from an absent field.
+        if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out ReadOnlySequence<byte> value))
         {
-            timeout = deadline - _timeProvider.GetUtcNow().UtcDateTime;
+            DateTime deadline = value.DecodeSliceBuffer(
+                (ref SliceDecoder decoder) => decoder.DecodeTimeStamp());
+            TimeSpan timeout = deadline - _timeProvider.GetUtcNow().UtcDateTime;
 
             if (timeout <= TimeSpan.Zero)
             {
@@ -51,9 +49,10 @@ public class DeadlineMiddleware : IDispatcher
             }
 
             request.Features = request.Features.With<IDeadlineFeature>(new DeadlineFeature(deadline));
+            return PerformDispatchAsync(timeout);
         }
 
-        return timeout is null ? _next.DispatchAsync(request, cancellationToken) : PerformDispatchAsync(timeout.Value);
+        return _next.DispatchAsync(request, cancellationToken);
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
         {
