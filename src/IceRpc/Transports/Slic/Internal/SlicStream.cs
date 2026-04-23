@@ -96,6 +96,15 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>Acquires local buffering credit.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The available local credit in bytes.</returns>
+    /// <remarks>This method blocks if this stream already has <see cref="SlicTransportOptions.PauseWriterThreshold"/>
+    /// bytes in-flight across Slic-owned buffers. Local credit is released when the shared writer confirms the bytes
+    /// have been written to the underlying duplex connection.</remarks>
+    internal ValueTask<int> AcquireLocalCreditAsync(CancellationToken cancellationToken) =>
+        _outputPipeWriter!.AcquireLocalCreditAsync(cancellationToken);
+
     /// <summary>Acquires send credit.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The available send credit.</returns>
@@ -268,7 +277,14 @@ internal class SlicStream : IMultiplexedStream
     /// <summary>Notifies the stream of the amount of data consumed by the connection to send a <see
     /// cref="FrameType.Stream" /> or <see cref="FrameType.StreamLast" /> frame.</summary>
     /// <param name="size">The size of the stream frame.</param>
+    internal void ConsumedLocalCredit(int size) => _outputPipeWriter!.ConsumedLocalCredit(size);
+
     internal void ConsumedSendCredit(int size) => _outputPipeWriter!.ConsumedSendCredit(size);
+
+    internal void ReleasedLocalCredit(int size) => _outputPipeWriter!.ReleasedLocalCredit(size);
+
+    /// <summary>Gets the output pipe writer as a completion callback for the shared writer.</summary>
+    internal SlicDuplexConnectionWriter.ICompletionCallback OutputCompletionCallback => _outputPipeWriter!;
 
     /// <summary>Fills the given writer with stream data received on the connection.</summary>
     /// <param name="bufferWriter">The destination buffer writer.</param>

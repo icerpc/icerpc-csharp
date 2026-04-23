@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -13,12 +14,21 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
 {
     internal Task WriterTask { get; private init; }
 
+    private readonly ConcurrentQueue<CompletionEntry> _completionQueue = new();
     private readonly IDuplexConnection _connection;
     private readonly CancellationTokenSource _disposeCts = new();
     private Task? _disposeTask;
     private readonly Pipe _pipe;
 
-    public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+    // Tracks the absolute byte position in the pipe. Incremented by Advance, which is always called under
+    // SlicConnection._mutex.
+    private long _totalBytesEnqueued;
+
+    public void Advance(int bytes)
+    {
+        _pipe.Writer.Advance(bytes);
+        _totalBytesEnqueued += bytes;
+    }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
@@ -54,9 +64,10 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     {
         _connection = connection;
 
-        // We set pauseWriterThreshold to 0 because Slic implements flow-control at the stream level. So there's no need
-        // to limit the amount of data buffered by the writer pipe. The amount of data buffered is limited to
-        // (MaxBidirectionalStreams + MaxUnidirectionalStreams) * PeerPauseWriterThreshold bytes.
+        // We set pauseWriterThreshold to 0 because per-stream local buffering is bounded by PauseWriterThreshold in
+        // SlicPipeWriter, and we cannot await inside SlicConnection._mutex. The shared pipe remains an unbounded
+        // synchronous staging area. The total data buffered is bounded by
+        // PauseWriterThreshold * (MaxBidirectionalStreams + MaxUnidirectionalStreams) plus control frame overhead.
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
@@ -66,6 +77,7 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
         WriterTask = Task.Run(
             async () =>
             {
+                long bytesWrittenTotal = 0;
                 try
                 {
                     while (true)
@@ -75,7 +87,10 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
                         if (!readResult.Buffer.IsEmpty)
                         {
                             await _connection.WriteAsync(readResult.Buffer, _disposeCts.Token).ConfigureAwait(false);
+                            bytesWrittenTotal += readResult.Buffer.Length;
                             _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+
+                            DrainCompletionQueue(bytesWrittenTotal);
                         }
 
                         if (readResult.IsCompleted)
@@ -94,8 +109,19 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
                 {
                     _pipe.Reader.Complete(exception);
                 }
+                finally
+                {
+                    // Drain all remaining entries to unblock any waiting stream writers.
+                    DrainCompletionQueue(long.MaxValue);
+                }
             });
     }
+
+    /// <summary>Enqueues a completion entry that will be invoked after the background writer has written the
+    /// corresponding bytes to the duplex connection.</summary>
+    /// <remarks>Must be called under SlicConnection._mutex, after writing the frame data.</remarks>
+    internal void EnqueueCompletion(int creditBytes, ICompletionCallback target) =>
+        _completionQueue.Enqueue(new CompletionEntry(_totalBytesEnqueued, creditBytes, target));
 
     internal void Flush()
     {
@@ -110,4 +136,22 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     internal void Shutdown() =>
         // Completing the pipe writer makes the background write task complete successfully.
         _pipe.Writer.Complete();
+
+    private void DrainCompletionQueue(long bytesWrittenTotal)
+    {
+        while (_completionQueue.TryPeek(out CompletionEntry entry) && entry.PipeOffset <= bytesWrittenTotal)
+        {
+            _completionQueue.TryDequeue(out _);
+            entry.Target.WriteCompleted(entry.CreditBytes);
+        }
+    }
+
+    private readonly record struct CompletionEntry(long PipeOffset, int CreditBytes, ICompletionCallback Target);
+
+    /// <summary>A callback invoked when the background writer has written the corresponding bytes to the duplex
+    /// connection.</summary>
+    internal interface ICompletionCallback
+    {
+        void WriteCompleted(int creditBytes);
+    }
 }
