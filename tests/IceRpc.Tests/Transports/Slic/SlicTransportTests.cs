@@ -773,6 +773,183 @@ public class SlicTransportTests
     }
 
     [Test]
+    public void Setting_max_stream_frame_size_above_limit_throws()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.MaxStreamFrameSize = SlicTransportOptions.MaxFrameSize + 1, Throws.ArgumentException);
+    }
+
+    [Test]
+    public async Task Reject_peer_max_stream_frame_size_above_limit()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        await duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var serverConnectionHandle = multiplexedServerConnection;
+
+        // Act - send an Initialize frame that advertises a MaxStreamFrameSize above the allowed limit.
+        await WriteFrameAsync(
+            duplexClientConnection,
+            FrameType.Initialize,
+            (ref SliceEncoder encoder) =>
+            {
+                var parameters = new Dictionary<ParameterKey, IList<byte>>();
+                byte[] oversizedMaxStreamFrameSizeBuffer = new byte[8];
+                SliceEncoder.EncodeVarUInt62(
+                    (ulong)SlicTransportOptions.MaxFrameSize + 1,
+                    oversizedMaxStreamFrameSizeBuffer);
+                parameters[ParameterKey.MaxStreamFrameSize] = oversizedMaxStreamFrameSizeBuffer;
+                byte[] initialStreamWindowSizeBuffer = new byte[4];
+                SliceEncoder.EncodeVarUInt62(32 * 1024, initialStreamWindowSizeBuffer);
+                parameters[ParameterKey.InitialStreamWindowSize] = initialStreamWindowSizeBuffer;
+
+                var initializeBody = new InitializeBody(parameters);
+                encoder.EncodeVarUInt62(1); // version
+                initializeBody.Encode(ref encoder);
+            });
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+            async () => await multiplexedServerConnection.ConnectAsync(default));
+        Assert.That(exception!.InnerException, Is.InstanceOf<InvalidDataException>());
+        Assert.That(exception.InnerException!.Message, Does.Contain("cannot exceed"));
+    }
+
+    [Test]
+    public async Task Reject_window_update_causing_overflow()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var serverConnectionHandle = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Advertise InitialStreamWindowSize = MaxWindowSize so the server's outgoing SlicPipeWriter starts its
+        // _peerWindowSize at int.MaxValue; any positive increment then overflows.
+        await WriteFrameAsync(
+            duplexClientConnection,
+            FrameType.Initialize,
+            (ref SliceEncoder encoder) =>
+            {
+                var parameters = new Dictionary<ParameterKey, IList<byte>>();
+                byte[] maxStreamFrameSizeBuffer = new byte[4];
+                SliceEncoder.EncodeVarUInt62(4096, maxStreamFrameSizeBuffer);
+                parameters[ParameterKey.MaxStreamFrameSize] = maxStreamFrameSizeBuffer;
+                byte[] initialStreamWindowSizeBuffer = new byte[8];
+                SliceEncoder.EncodeVarUInt62(
+                    (ulong)SlicTransportOptions.MaxWindowSize,
+                    initialStreamWindowSizeBuffer);
+                parameters[ParameterKey.InitialStreamWindowSize] = initialStreamWindowSizeBuffer;
+
+                var initializeBody = new InitializeBody(parameters);
+                encoder.EncodeVarUInt62(1); // version
+                initializeBody.Encode(ref encoder);
+            });
+        var serverConnectTask = multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader); // consume InitializeAck
+        await serverConnectTask;
+
+        // Open a bidirectional stream so the server has a SlicPipeWriter whose _peerWindowSize == MaxWindowSize.
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+        IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Act - send a StreamWindowUpdate that pushes the server's cumulative window over int.MaxValue.
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.StreamWindowUpdate,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => new StreamWindowUpdateBody(1).Encode(ref encoder));
+
+        // Assert - the overflow rejection tears down the connection. Depending on whether AcceptStreamAsync
+        // observes the close state via the already-set _isClosed path or via the accept-channel completion, it
+        // may surface the close error (ConnectionAborted) or the original SlicPipeWriter exception (IceRpcError),
+        // so accept either.
+        IceRpcException exception = Assert.ThrowsAsync<IceRpcException>(
+            async () => await multiplexedServerConnection.AcceptStreamAsync(default))!;
+        Assert.That(
+            exception.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
+
+        acceptedStream.Output.Complete();
+        acceptedStream.Input.Complete();
+    }
+
+    [Test]
+    public async Task Reject_stream_frame_exceeding_max_size()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.MaxStreamFrameSize = 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var serverConnectionHandle = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        var serverConnectTask = multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader); // consume InitializeAck
+        await serverConnectTask;
+
+        // Act - send a stream frame whose body exceeds the server's local MaxStreamFrameSize (1024). The frame body
+        // is (streamId varint + payload), so a 2048-byte payload guarantees size > 1024.
+        const int payloadSize = 2048;
+        var writer = new MemoryBufferWriter(new byte[payloadSize + 16]);
+        {
+            var encoder = new SliceEncoder(writer);
+            encoder.EncodeFrameType(FrameType.Stream);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encoder.EncodeVarUInt62(0ul); // streamId
+            encoder.WriteByteSpan(new byte[payloadSize]);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        }
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+
+        // Assert - server rejects with an InvalidDataException, surfaced as IceRpcError.
+        Assert.That(
+            async () => await multiplexedServerConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+    }
+
+    [Test]
     public async Task Stream_peer_options_are_set_after_connect()
     {
         // Arrange

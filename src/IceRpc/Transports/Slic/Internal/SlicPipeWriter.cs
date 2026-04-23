@@ -211,8 +211,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         Debug.Assert(size > 0);
 
+        // With _peerWindowSize >= 0 and size > 0, the atomic sum is positive unless it overflows int.MaxValue
+        // (MaxWindowSize), in which case it wraps to a non-positive value.
         int newPeerWindowSize = Interlocked.Add(ref _peerWindowSize, size);
-        if (newPeerWindowSize > SlicTransportOptions.MaxWindowSize)
+        if (newPeerWindowSize <= 0)
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
