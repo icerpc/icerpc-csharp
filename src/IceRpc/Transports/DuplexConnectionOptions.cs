@@ -20,6 +20,9 @@ public record class DuplexConnectionOptions
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
     /// <value>A pool of memory blocks used for buffer management. Defaults to <see cref="MemoryPool{T}.Shared"
     /// />.</value>
+    /// <remarks>The pool must return array-backed memory blocks. This is a requirement of the TCP transport, which
+    /// uses <see cref="System.Net.Sockets.Socket.SendAsync(System.Collections.Generic.IList{ArraySegment{byte}},
+    /// System.Net.Sockets.SocketFlags)" /> for multi-segment writes.</remarks>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
     private int _minSegmentSize = 4096;
