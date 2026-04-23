@@ -33,6 +33,10 @@ public record class MultiplexedConnectionOptions
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
     /// <value>A pool of memory blocks used for buffer management. Defaults to <see cref="MemoryPool{T}.Shared"
     /// />.</value>
+    /// <remarks>Some multiplexed transports require the pool to return array-backed memory blocks. Slic over TCP
+    /// does, because Slic's write buffers are allocated from this pool and passed down to the TCP transport,
+    /// whose multi-segment write path uses <see cref="System.Net.Sockets.Socket.SendAsync(System.Collections.Generic.IList{ArraySegment{byte}},
+    /// System.Net.Sockets.SocketFlags)" />. The QUIC transport has no such requirement.</remarks>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
     internal const int DefaultMaxBidirectionalStreams = 100;
