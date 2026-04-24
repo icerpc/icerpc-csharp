@@ -221,7 +221,8 @@ public class LocatorLocationResolver : ILocationResolver
                 serverAddressCache,
                 options.Background,
                 options.RefreshThreshold,
-                options.Ttl);
+                options.Ttl,
+                logger);
         if (logger != NullLogger.Instance)
         {
             _locationResolver = new LogLocationResolverDecorator(_locationResolver, logger);
