@@ -3,7 +3,6 @@
 using IceRpc.CaseConverter.Internal;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -145,46 +144,18 @@ public partial class ProtocTask : ToolTask
     /// <inheritdoc/>
     protected override string GetWorkingDirectory() => WorkingDirectory;
 
-    // Matches protoc's --error_format=msvs diagnostics, which have the shape:
-    //   file(line) : error|warning in column=N: message
-    // The parens make this format unambiguous regardless of colons in the path (e.g. Windows "C:\...").
+    // Rewrites protoc's --error_format=msvs output ("file(line) : error|warning in column=N: msg") into MSBuild's
+    // canonical diagnostic format ("file(line,N): error|warning: msg") so the base ToolTask logger can parse it via
+    // CanonicalError. Non-matching lines pass through unchanged for the base class to handle.
     [GeneratedRegex(
         @"^(?<file>.+?)\((?<line>\d+)\)\s*:\s*(?<severity>error|warning) in column=(?<column>\d+):\s*(?<message>.*)$")]
     private static partial Regex DiagnosticRegex();
 
-    /// <summary> Process the diagnostics emitted by the protoc compiler and log them with the MSBuild logger.
-    /// </summary>
-    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
-    {
-        Match match = DiagnosticRegex().Match(singleLine);
-        if (match.Success &&
-            int.TryParse(
-                match.Groups["line"].Value,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out int lineNumber) &&
-            int.TryParse(
-                match.Groups["column"].Value,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out int columnNumber))
-        {
-            string fileName = match.Groups["file"].Value;
-            string message = match.Groups["message"].Value;
-            if (match.Groups["severity"].Value == "warning")
-            {
-                Log.LogWarning("", "", "", fileName, lineNumber, columnNumber, -1, -1, message);
-            }
-            else
-            {
-                Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, message);
-            }
-        }
-        else
-        {
-            Log.LogError(singleLine);
-        }
-    }
+    /// <inheritdoc/>
+    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance) =>
+        base.LogEventsFromTextOutput(
+            DiagnosticRegex().Replace(singleLine, "${file}(${line},${column}): ${severity}: ${message}"),
+            messageImportance);
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
