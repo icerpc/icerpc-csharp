@@ -55,17 +55,14 @@ public class ProxyTests
         Assume.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
         buffer[uriStart] = 0x01;
 
-        // Act/Assert — IceDecoder is a ref struct, so we can't use a lambda with Assert.Throws.
-        try
-        {
-            var decoder = new IceDecoder(buffer.AsMemory(0, length));
-            _ = decoder.DecodeIceObjectProxy();
-            Assert.Fail("Expected InvalidDataException.");
-        }
-        catch (InvalidDataException)
-        {
-            // expected
-        }
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new IceDecoder(buffer.AsMemory(0, length));
+                _ = decoder.DecodeIceObjectProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
     }
 
     // Using transport=quic forces TransportCode.Uri on the ice side (only tcp/ssl have dedicated codes);
@@ -91,16 +88,13 @@ public class ProxyTests
         Assume.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
         System.Text.Encoding.UTF8.GetBytes(replacementScheme).CopyTo(buffer.AsSpan(uriStart));
 
-        // Act/Assert — IceDecoder is a ref struct, so we can't use a lambda with Assert.Throws.
-        try
-        {
-            var decoder = new IceDecoder(buffer.AsMemory(0, length));
-            _ = decoder.DecodeIceObjectProxy();
-            Assert.Fail("Expected InvalidDataException.");
-        }
-        catch (InvalidDataException)
-        {
-            // expected
-        }
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new IceDecoder(buffer.AsMemory(0, length));
+                _ = decoder.DecodeIceObjectProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
     }
 }
