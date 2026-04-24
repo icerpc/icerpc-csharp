@@ -112,4 +112,51 @@ public class PipeReaderTests
             () => _ = pipeReader.TryReadSliceSegment(maxSize: 100, out ReadResult readResult),
             Throws.TypeOf<InvalidDataException>());
     }
+
+    [Test]
+    public async Task Reading_a_segment_with_size_equal_to_max_size_succeeds()
+    {
+        // 20 = 4 * 5 means the payload size is 5
+        var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
+
+        ReadResult readResult = await pipeReader.ReadSliceSegmentAsync(maxSize: 5, default);
+
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
+        pipeReader.Complete();
+    }
+
+    [Test]
+    public void Reading_a_segment_larger_than_max_size_fails()
+    {
+        // 20 = 4 * 5 means the payload size is 5
+        var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
+
+        Assert.That(
+            async () => await pipeReader.ReadSliceSegmentAsync(maxSize: 4, default),
+            Throws.TypeOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Trying_to_read_a_segment_with_size_equal_to_max_size_succeeds()
+    {
+        // 20 = 4 * 5 means the payload size is 5
+        var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
+
+        bool success = pipeReader.TryReadSliceSegment(maxSize: 5, out ReadResult readResult);
+
+        Assert.That(success, Is.True);
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
+        pipeReader.Complete();
+    }
+
+    [Test]
+    public void Trying_to_read_a_segment_larger_than_max_size_fails()
+    {
+        // 20 = 4 * 5 means the payload size is 5
+        var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
+
+        Assert.That(
+            () => _ = pipeReader.TryReadSliceSegment(maxSize: 4, out ReadResult readResult),
+            Throws.TypeOf<InvalidDataException>());
+    }
 }
