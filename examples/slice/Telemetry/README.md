@@ -16,7 +16,7 @@ OTLP-compatible collector or backend works; the simplest option is the Jaeger v2
 natively accepts OTLP and provides a web UI:
 
 ```shell
-docker run --rm --name jaeger -p 4317:4317 -p 16686:16686 jaegertracing/jaeger:latest
+docker run --rm --name jaeger -p 4317:4317 -p 16686:16686 jaegertracing/jaeger:2.17.0
 ```
 
 In a separate terminal start the Greeter Server program:
