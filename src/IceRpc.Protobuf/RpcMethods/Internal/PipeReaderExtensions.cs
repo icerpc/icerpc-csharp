@@ -113,7 +113,7 @@ internal static class PipeReaderExtensions
         }
         int messageLength = DecodeMessageLength(readResult.Buffer.Slice(1, 4));
         reader.AdvanceTo(readResult.Buffer.GetPosition(5));
-        if (messageLength >= maxMessageLength)
+        if (messageLength > maxMessageLength)
         {
             throw new InvalidDataException("The message length exceeds the maximum value.");
         }
