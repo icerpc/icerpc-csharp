@@ -70,8 +70,8 @@ public partial class PipeReaderExtensionsTests
     {
         writer.Write(new byte[] { 0 }); // Not compressed
         Span<byte> lengthBytes = writer.GetSpan(4);
-        writer.Advance(4);
         BinaryPrimitives.WriteInt32BigEndian(lengthBytes, message.CalculateSize());
+        writer.Advance(4);
         message.WriteTo(writer);
     }
 }
