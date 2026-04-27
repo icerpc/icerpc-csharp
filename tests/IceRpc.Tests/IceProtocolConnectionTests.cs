@@ -145,6 +145,36 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
+    /// <summary>Verifies that exceptions thrown by the dispatcher are classified into the right status code:
+    /// InvalidDataException surfaces as StatusCode.InvalidData, anything else as StatusCode.InternalError.</summary>
+    [TestCase("InvalidData", StatusCode.InvalidData)]
+    [TestCase("Other", StatusCode.InternalError)]
+    public async Task Thrown_dispatch_exception_is_classified(string exceptionKind, StatusCode expectedStatusCode)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => exceptionKind switch
+        {
+            "InvalidData" => throw new InvalidDataException("boom"),
+            _ => throw new InvalidOperationException("boom")
+        });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
+    }
+
     /// <summary>Verifies that a StatusCode dispatched by the server is encoded as a ReplyStatus and decoded back to
     /// the expected StatusCode by the client.</summary>
     [Test, TestCaseSource(nameof(StatusCodeRoundTripSource))]
