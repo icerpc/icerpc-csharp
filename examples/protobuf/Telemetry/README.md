@@ -12,11 +12,11 @@ dotnet build
 ```
 
 The example sends traces to an OTLP endpoint at `http://localhost:4317` (the default for `AddOtlpExporter`). Any
-OTLP-compatible collector or backend works; the simplest option is the Jaeger all-in-one container, which natively
-accepts OTLP and provides a web UI:
+OTLP-compatible collector or backend works; the simplest option is the Jaeger v2 single-binary container, which
+natively accepts OTLP and provides a web UI:
 
 ```shell
-docker run --rm --name jaeger -p 4317:4317 -p 16686:16686 jaegertracing/all-in-one:latest
+docker run --rm --name jaeger -p 4317:4317 -p 16686:16686 jaegertracing/jaeger:latest
 ```
 
 In a separate terminal start the Greeter Server program:
