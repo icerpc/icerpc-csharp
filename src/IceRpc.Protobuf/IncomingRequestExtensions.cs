@@ -26,8 +26,8 @@ public static class IncomingRequestExtensions
         MessageParser<TInput> inputParser,
         TService service,
         Func<TService, TInput, IFeatureCollection, CancellationToken, ValueTask<TOutput>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
@@ -61,8 +61,8 @@ public static class IncomingRequestExtensions
         MessageParser<TInput> inputParser,
         TService service,
         Func<TService, IAsyncEnumerable<TInput>, IFeatureCollection, CancellationToken, ValueTask<TOutput>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
@@ -96,8 +96,8 @@ public static class IncomingRequestExtensions
         MessageParser<TInput> inputParser,
         TService service,
         Func<TService, TInput, IFeatureCollection, CancellationToken, ValueTask<IAsyncEnumerable<TOutput>>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
@@ -131,8 +131,8 @@ public static class IncomingRequestExtensions
         MessageParser<TInput> inputParser,
         TService service,
         Func<TService, IAsyncEnumerable<TInput>, IFeatureCollection, CancellationToken, ValueTask<IAsyncEnumerable<TOutput>>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;

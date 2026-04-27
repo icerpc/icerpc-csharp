@@ -39,7 +39,7 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -89,8 +89,8 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
-                                                       where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TInput : class, IMessage<TInput>
+                                                       where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -138,7 +138,7 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -188,8 +188,8 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
-                                                       where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TInput : class, IMessage<TInput>
+                                                       where TOutput : class, IMessage<TOutput>
 
     {
         var request = new OutgoingRequest(serviceAddress)
@@ -220,7 +220,7 @@ public static class InvokerExtensions
         MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
-        CancellationToken cancellationToken) where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TOutput : class, IMessage<TOutput>
     {
         try
         {
@@ -251,7 +251,7 @@ public static class InvokerExtensions
     private static async Task<IAsyncEnumerable<TOutput>> ReceiveStreamingResponseAsync<TOutput>(
         MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
-        OutgoingRequest request) where TOutput : IMessage<TOutput>
+        OutgoingRequest request) where TOutput : class, IMessage<TOutput>
     {
         try
         {

@@ -121,6 +121,65 @@ public partial class PipeReaderExtensionsTests
         pipe.Reader.Complete();
     }
 
+    /// <summary>Verifies that a unary Protobuf payload with trailing bytes after the message is rejected
+    /// as <see cref="InvalidDataException" />.</summary>
+    [Test]
+    public void Decode_message_throws_invalid_data_exception_when_payload_has_trailing_bytes()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        WriteLengthPrefixedMessage(pipe.Writer, new StringValue { Value = "hello" });
+        pipe.Writer.Write(new byte[] { 0xDE, 0xAD, 0xBE, 0xEF });
+        pipe.Writer.Complete();
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await pipe.Reader.DecodeProtobufMessageAsync(
+                StringValue.Parser,
+                maxMessageLength: 1024,
+                CancellationToken.None));
+        pipe.Reader.Complete();
+    }
+
+    /// <summary>Verifies that a unary Protobuf payload carrying two concatenated length-prefixed messages
+    /// is rejected: the unary path must read exactly one message.</summary>
+    [Test]
+    public void Decode_message_throws_invalid_data_exception_when_payload_has_concatenated_messages()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        WriteLengthPrefixedMessage(pipe.Writer, new StringValue { Value = "hello" });
+        WriteLengthPrefixedMessage(pipe.Writer, new StringValue { Value = "world" });
+        pipe.Writer.Complete();
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await pipe.Reader.DecodeProtobufMessageAsync(
+                StringValue.Parser,
+                maxMessageLength: 1024,
+                CancellationToken.None));
+        pipe.Reader.Complete();
+    }
+
+    /// <summary>Verifies that an empty unary payload is rejected with <see cref="InvalidDataException" />.
+    /// Previously this was guarded by a <c>Debug.Assert</c>, which is a no-op in Release builds and could
+    /// return <see langword="null" /> to the caller.</summary>
+    [Test]
+    public void Decode_message_throws_invalid_data_exception_on_empty_payload()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        pipe.Writer.Complete();
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await pipe.Reader.DecodeProtobufMessageAsync(
+                StringValue.Parser,
+                maxMessageLength: 1024,
+                CancellationToken.None));
+        pipe.Reader.Complete();
+    }
+
     // Writes a length-prefixed Protobuf envelope: 1 compression-flag byte + 4 big-endian uint32 length bytes
     // + optional message body. envelopeLength overrides the length field (used to construct mismatched
     // envelopes or values > int.MaxValue); when omitted, the length matches the actual encoded message size
