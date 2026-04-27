@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+option csharp_namespace = "IceRpc.Protobuf.Tests";
+
+package icerpc.protobuf.tests;
+
+service NestedMessageOperations {
+    rpc UnaryOp(Outer.Inner) returns (Outer.Inner);
+    rpc DeeplyNestedOp(Outer.Middle.Leaf) returns (Outer.Middle.Leaf);
+}
+
+message Outer {
+    message Inner {
+        string value = 1;
+    }
+
+    message Middle {
+        message Leaf {
+            int32 value = 1;
+        }
+    }
+}

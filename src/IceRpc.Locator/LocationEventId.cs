@@ -25,5 +25,8 @@ public enum LocationEventId
     FindFailed,
 
     /// <summary>The server address finder found server address(es) for the given location.</summary>
-    Found
+    Found,
+
+    /// <summary>A background cache refresh failed.</summary>
+    BackgroundRefreshFailed
 }

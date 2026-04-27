@@ -98,7 +98,7 @@ public static class IceProxyIceDecoderExtensions
                         break;
 
                     case TransportCode.Uri:
-                        serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                        serverAddress = DecodeUriServerAddress(decoder.DecodeString());
                         if (serverAddress.Value.Protocol != protocol)
                         {
                             throw new InvalidDataException(
@@ -139,7 +139,7 @@ public static class IceProxyIceDecoderExtensions
             else if (transportCode == TransportCode.Uri)
             {
                 // The server addresses of an Ice-encoded icerpc proxies only use TransportCode.Uri.
-                serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                serverAddress = DecodeUriServerAddress(decoder.DecodeString());
                 if (serverAddress.Value.Protocol != protocol)
                 {
                     throw new InvalidDataException(
@@ -251,6 +251,21 @@ public static class IceProxyIceDecoderExtensions
         catch (Exception exception)
         {
             throw new InvalidDataException("Received invalid service address.", exception);
+        }
+    }
+
+    /// <summary>Decodes a server address from its URI string representation.</summary>
+    private static ServerAddress DecodeUriServerAddress(string uriString)
+    {
+        try
+        {
+            return new ServerAddress(new Uri(uriString));
+        }
+        catch (Exception exception) when (exception is UriFormatException or ArgumentException)
+        {
+            throw new InvalidDataException(
+                $"Received invalid server address URI '{uriString}'.",
+                exception);
         }
     }
 

@@ -12,11 +12,11 @@ using VisitorCenter;
 using var activitySource = new ActivitySource("IceRpc");
 
 // Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRpc telemetry interceptor,
-// and to export the traces to the Zipkin service.
+// and to export the traces using the OpenTelemetry Protocol (OTLP).
 using TracerProvider? tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddSource(activitySource.Name)
    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Greeter Client"))
-   .AddZipkinExporter()
+   .AddOtlpExporter()
    .Build();
 
 // Load the test root CA certificate in order to connect to the server that uses a test server certificate.
