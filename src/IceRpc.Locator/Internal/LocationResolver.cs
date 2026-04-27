@@ -132,7 +132,7 @@ internal class LocationResolver : ILocationResolver
         else if (_background && expired)
         {
             // We retrieved an expired service address from the cache, so we launch a refresh in the background.
-            _ = RefreshInBackgroundAsync(location);
+            _ = RefreshInBackgroundAsync();
         }
 
         // A well-known service address resolution can return a service address with an adapter-id.
@@ -164,17 +164,17 @@ internal class LocationResolver : ILocationResolver
         }
 
         return (serviceAddress, serviceAddress is not null && !resolved);
-    }
 
-    private async Task RefreshInBackgroundAsync(Location location)
-    {
-        try
+        async Task RefreshInBackgroundAsync()
         {
-            _ = await _serverAddressFinder.FindAsync(location, cancellationToken: default).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogBackgroundRefreshFailed(location.Kind, location, exception);
+            try
+            {
+                _ = await _serverAddressFinder.FindAsync(location, cancellationToken: default).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogBackgroundRefreshFailed(location.Kind, location, exception);
+            }
         }
     }
 }
