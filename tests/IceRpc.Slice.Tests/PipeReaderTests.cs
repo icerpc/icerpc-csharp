@@ -56,7 +56,7 @@ public class PipeReaderTests
     [Test]
     public void Reading_a_short_segment_fails()
     {
-        // 20 = 4 * 5 means the payload size is 5
+        // 20 = 5 << 2 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4 }));
 
         Assert.That(
@@ -105,7 +105,7 @@ public class PipeReaderTests
     [Test]
     public void Trying_to_read_a_short_segment_fails()
     {
-        // 20 = 4 * 5 means the payload size is 5
+        // 20 = 5 << 2 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4 }));
 
         Assert.That(
@@ -116,7 +116,7 @@ public class PipeReaderTests
     [Test]
     public async Task Reading_a_segment_with_size_equal_to_max_size_succeeds()
     {
-        // 20 = 4 * 5 means the payload size is 5
+        // 20 = 5 << 2 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
 
         ReadResult readResult = await pipeReader.ReadSliceSegmentAsync(maxSize: 5, default);
@@ -128,7 +128,7 @@ public class PipeReaderTests
     [Test]
     public void Reading_a_segment_larger_than_max_size_fails()
     {
-        // 20 = 4 * 5 means the payload size is 5
+        // 20 = 5 << 2 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
 
         Assert.That(
@@ -139,7 +139,7 @@ public class PipeReaderTests
     [Test]
     public void Trying_to_read_a_segment_with_size_equal_to_max_size_succeeds()
     {
-        // 20 = 4 * 5 means the payload size is 5
+        // 20 = 5 << 2 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
 
         bool success = pipeReader.TryReadSliceSegment(maxSize: 5, out ReadResult readResult);
@@ -152,7 +152,7 @@ public class PipeReaderTests
     [Test]
     public void Trying_to_read_a_segment_larger_than_max_size_fails()
     {
-        // 20 = 4 * 5 means the payload size is 5
+        // 20 = 5 << 2 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4, 5 }));
 
         Assert.That(
