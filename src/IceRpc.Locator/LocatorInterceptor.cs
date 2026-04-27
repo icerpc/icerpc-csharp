@@ -108,13 +108,18 @@ public class LocatorInterceptor : IInvoker
             ServiceAddress serviceAddress,
             IEnumerable<ServerAddress> excludedAddresses)
         {
+            // Use OptionalTransport so the filter matches the connection layer's equality. Default ServerAddress
+            // equality requires an exact transport-string match and would let a removed replica back in when the
+            // locator re-resolves it without an explicit transport.
             (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) result =
                 (serviceAddress.ServerAddress, serviceAddress.AltServerAddresses);
-            if (result.ServerAddress is ServerAddress serverAddress && excludedAddresses.Contains(serverAddress))
+            if (result.ServerAddress is ServerAddress serverAddress &&
+                excludedAddresses.Contains(serverAddress, ServerAddressComparer.OptionalTransport))
             {
                 result.ServerAddress = null;
             }
-            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(e => excludedAddresses.Contains(e));
+            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(
+                e => excludedAddresses.Contains(e, ServerAddressComparer.OptionalTransport));
 
             if (result.ServerAddress is null && result.AltServerAddresses.Count > 0)
             {
