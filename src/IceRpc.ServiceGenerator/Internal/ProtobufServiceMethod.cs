@@ -2,7 +2,6 @@
 
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
@@ -31,6 +30,90 @@ internal class ProtobufServiceMethod : ServiceMethod
     // The name of the mapped C# method on the Service interface. For example: "GreetAsync".
     private readonly string _methodName;
 
+    internal static ProtobufServiceMethod? TryCreate(
+        IMethodSymbol method,
+        AttributeData attribute,
+        INamedTypeSymbol? asyncEnumerableSymbol,
+        Action<Diagnostic> reportDiagnostic)
+    {
+        Location location = method.Locations.FirstOrDefault() ?? Location.None;
+
+        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
+        if (items.Length != 1 || items[0].Value is not string operationName)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.InvalidRpcMethodAttributeShape,
+                location,
+                method.Name));
+            return null;
+        }
+
+        if (method.Parameters.Length == 0)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.InvalidRpcMethodSignature,
+                location,
+                method.Name,
+                "expected at least one parameter for the input message"));
+            return null;
+        }
+
+        ITypeSymbol inputType = method.Parameters[0].Type;
+        // An IAsyncEnumerable input parameter denotes a client streaming RPC.
+        bool isClientStreaming;
+        string inputTypeName;
+        if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, asyncEnumerableSymbol))
+        {
+            isClientStreaming = true;
+            if (inputType is not INamedTypeSymbol genericType || genericType.TypeArguments.Length != 1)
+            {
+                reportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.InvalidRpcMethodSignature,
+                    location,
+                    method.Name,
+                    "IAsyncEnumerable parameter must have exactly one type argument"));
+                return null;
+            }
+            inputTypeName = genericType.TypeArguments[0].GetFullName();
+        }
+        else
+        {
+            isClientStreaming = false;
+            inputTypeName = inputType.GetFullName();
+        }
+
+        // Methods with the RpcMethodAttribute always have a generic ValueTask return type.
+        // For server-streaming, the return type's generic argument is IAsyncEnumerable.
+        if (method.ReturnType is not INamedTypeSymbol genericReturnType ||
+            genericReturnType.TypeArguments.Length != 1)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.InvalidRpcMethodSignature,
+                location,
+                method.Name,
+                "return type must be a generic ValueTask<T>"));
+            return null;
+        }
+        bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
+            genericReturnType.TypeArguments[0].OriginalDefinition,
+            asyncEnumerableSymbol);
+
+        string methodKind = (isClientStreaming, isServerStreaming) switch
+        {
+            (false, false) => "Unary",
+            (true, false) => "ClientStreaming",
+            (false, true) => "ServerStreaming",
+            (true, true) => "BidiStreaming",
+        };
+
+        return new ProtobufServiceMethod(
+            operationName,
+            method.ContainingType.GetFullName(),
+            method.Name,
+            inputTypeName,
+            methodKind);
+    }
+
     /// <inheritdoc />
     internal override CodeBlock GenerateDispatchCaseBody() =>
         $@"return request.Dispatch{_methodKind}Async(
@@ -39,52 +122,18 @@ internal class ProtobufServiceMethod : ServiceMethod
     static (service, input, features, cancellationToken) => service.{_methodName}(input, features, cancellationToken),
     cancellationToken);";
 
-    internal ProtobufServiceMethod(
-        IMethodSymbol method,
-        AttributeData attribute,
-        INamedTypeSymbol? asyncEnumerableSymbol)
+    private ProtobufServiceMethod(
+        string operationName,
+        string interfaceName,
+        string methodName,
+        string inputTypeName,
+        string methodKind)
     {
-        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
-        Debug.Assert(
-            items.Length == 1,
-            "Unexpected number of arguments in attribute constructor.");
-        OperationName = (string)items[0].Value!;
-
-        _interfaceName = method.ContainingType.GetFullName();
-        _methodName = method.Name;
-
-        ITypeSymbol inputType = method.Parameters[0].Type;
-        // An IAsyncEnumerable input parameter denotes a client streaming RPC.
-        bool isClientStreaming;
-        if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, asyncEnumerableSymbol))
-        {
-            isClientStreaming = true;
-            var genericType = (INamedTypeSymbol)inputType;
-            Debug.Assert(genericType.TypeArguments.Length == 1);
-            _inputTypeName = genericType.TypeArguments[0].GetFullName();
-        }
-        else
-        {
-            isClientStreaming = false;
-            _inputTypeName = inputType.GetFullName();
-        }
-
-        // Methods with the RpcMethodAttribute always have a generic ValueTask return type.
-        // For server-streaming, the return type's generic argument is IAsyncEnumerable.
-        Debug.Assert(method.ReturnType is INamedTypeSymbol);
-        var genericReturnType = (INamedTypeSymbol)method.ReturnType;
-        Debug.Assert(genericReturnType.TypeArguments.Length == 1);
-        bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
-            genericReturnType.TypeArguments[0].OriginalDefinition,
-            asyncEnumerableSymbol);
-
-        _methodKind = (isClientStreaming, isServerStreaming) switch
-        {
-            (false, false) => "Unary",
-            (true, false) => "ClientStreaming",
-            (false, true) => "ServerStreaming",
-            (true, true) => "BidiStreaming",
-        };
+        OperationName = operationName;
+        _interfaceName = interfaceName;
+        _methodName = methodName;
+        _inputTypeName = inputTypeName;
+        _methodKind = methodKind;
     }
 }
 
@@ -96,6 +145,9 @@ internal class ProtobufServiceMethodFactory : ServiceMethodFactory
         : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.RpcMethods.RpcMethodAttribute")) =>
         _asyncEnumerableSymbol = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
 
-    private protected override ServiceMethod CreateServiceMethod(IMethodSymbol methodSymbol, AttributeData attribute) =>
-        new ProtobufServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol);
+    private protected override ServiceMethod? CreateServiceMethod(
+        IMethodSymbol methodSymbol,
+        AttributeData attribute,
+        Action<Diagnostic> reportDiagnostic) =>
+        ProtobufServiceMethod.TryCreate(methodSymbol, attribute, _asyncEnumerableSymbol, reportDiagnostic);
 }

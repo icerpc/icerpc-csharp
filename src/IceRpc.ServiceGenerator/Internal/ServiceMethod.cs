@@ -42,11 +42,16 @@ internal interface IServiceMethodFactory
 {
     /// <summary>Tries to create a service method from the specified method symbol.</summary>
     /// <param name="methodSymbol">The method symbol.</param>
+    /// <param name="reportDiagnostic">A callback invoked with any diagnostics discovered while analyzing the method.
+    /// </param>
     /// <param name="serviceMethod">When this method returns <see langword="true" />, contains the created
     /// service method.</param>
     /// <returns><see langword="true" /> if a service method was created; otherwise, <see langword="false" />.
     /// </returns>
-    bool TryCreate(IMethodSymbol methodSymbol, out ServiceMethod? serviceMethod);
+    bool TryCreate(
+        IMethodSymbol methodSymbol,
+        Action<Diagnostic> reportDiagnostic,
+        out ServiceMethod? serviceMethod);
 }
 
 /// <summary>The common base implementation of <see cref="IServiceMethodFactory"/>.</summary>
@@ -54,7 +59,10 @@ internal abstract class ServiceMethodFactory : IServiceMethodFactory
 {
     private readonly INamedTypeSymbol? _operationAttribute;
 
-    public bool TryCreate(IMethodSymbol methodSymbol, out ServiceMethod? serviceMethod)
+    public bool TryCreate(
+        IMethodSymbol methodSymbol,
+        Action<Diagnostic> reportDiagnostic,
+        out ServiceMethod? serviceMethod)
     {
         serviceMethod = null;
         if (_operationAttribute is null)
@@ -77,14 +85,15 @@ internal abstract class ServiceMethodFactory : IServiceMethodFactory
             }
         }
 
-        serviceMethod = CreateServiceMethod(methodSymbol, attribute);
-        return true;
+        serviceMethod = CreateServiceMethod(methodSymbol, attribute, reportDiagnostic);
+        return serviceMethod is not null;
     }
 
     private protected ServiceMethodFactory(INamedTypeSymbol? operationAttribute) =>
         _operationAttribute = operationAttribute;
 
-    private protected abstract ServiceMethod CreateServiceMethod(
+    private protected abstract ServiceMethod? CreateServiceMethod(
         IMethodSymbol methodSymbol,
-        AttributeData attribute);
+        AttributeData attribute,
+        Action<Diagnostic> reportDiagnostic);
 }

@@ -151,7 +151,7 @@ internal sealed class Parser
             {
                 // When a factory succeeds, we don't try the following factories. It is an error for a method to
                 // have several operation attributes, but we don't enforce it.
-                if (factory.TryCreate(method, out ServiceMethod? serviceMethod))
+                if (factory.TryCreate(method, _reportDiagnostic, out ServiceMethod? serviceMethod))
                 {
                     serviceMethods.Add(serviceMethod!);
                     break;

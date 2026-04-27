@@ -2,7 +2,6 @@
 
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using ZeroC.CodeBuilder;
 
 namespace IceRpc.ServiceGenerator.Internal;
@@ -44,17 +43,174 @@ internal class SliceServiceMethod : ServiceMethod
 
     /// <summary>The capitalized names of the operation parameters. This is empty when <see cref="_parameterCount"/>
     /// is 0 or 1.</summary>
-    private readonly string[] _parameterFieldNames = [];
+    private readonly string[] _parameterFieldNames;
 
     /// <summary>The number of elements in the return value.</summary>
     private readonly int _returnCount;
 
     /// <summary>The capitalized names of the operation return value fields. This is empty when
     /// <see cref="_returnCount"/> is 0 or 1.</summary>
-    private readonly string[] _returnFieldNames = [];
+    private readonly string[] _returnFieldNames;
 
     /// <summary>A value indicating whether the operation return value has a stream element.</summary>
     private readonly bool _returnStream;
+
+    internal static SliceServiceMethod? TryCreate(
+        IMethodSymbol method,
+        AttributeData attribute,
+        INamedTypeSymbol? asyncEnumerableSymbol,
+        INamedTypeSymbol? pipeReaderSymbol,
+        Action<Diagnostic> reportDiagnostic)
+    {
+        Location location = method.Locations.FirstOrDefault() ?? Location.None;
+
+        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
+        if (items.Length != 1 || items[0].Value is not string operationName)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.InvalidRpcMethodAttributeShape,
+                location,
+                method.Name));
+            return null;
+        }
+
+        if (!method.Name.EndsWith("Async", StringComparison.Ordinal))
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.InvalidRpcMethodSignature,
+                location,
+                method.Name,
+                "method name must end with 'Async'"));
+            return null;
+        }
+
+        INamedTypeSymbol interfaceSymbol = method.ContainingType;
+        string dispatchMethodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
+
+        bool compressReturn = false;
+        bool encodedReturn = false;
+        bool idempotent = false;
+        foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
+        {
+            switch (namedArgument.Key)
+            {
+                case "CompressReturn":
+                    if (namedArgument.Value.Value is bool compressReturnValue)
+                    {
+                        compressReturn = compressReturnValue;
+                    }
+                    break;
+                case "EncodedReturn":
+                    if (namedArgument.Value.Value is bool encodedReturnValue)
+                    {
+                        encodedReturn = encodedReturnValue;
+                    }
+                    break;
+                case "Idempotent":
+                    if (namedArgument.Value.Value is bool idempotentValue)
+                    {
+                        idempotent = idempotentValue;
+                    }
+                    break;
+            }
+        }
+
+        // Find the nested Request class within the interface
+        INamedTypeSymbol? requestClass = interfaceSymbol
+            .GetTypeMembers("Request")
+            .FirstOrDefault();
+
+        IMethodSymbol? decodeArgsMethod = requestClass?
+            .GetMembers()
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.Name == $"Decode{dispatchMethodName}Async");
+
+        if (decodeArgsMethod is null)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.MissingGeneratedRequestClass,
+                location,
+                interfaceSymbol.GetFullName(),
+                dispatchMethodName,
+                operationName));
+            return null;
+        }
+
+        // Analyze the return type of the decode method (ValueTask or ValueTask<T>)
+        int parameterCount = 0;
+        string[] parameterFieldNames = [];
+        if (decodeArgsMethod.ReturnType is INamedTypeSymbol returnType &&
+            returnType.IsGenericType &&
+            returnType.TypeArguments.Length == 1)
+        {
+            // It's ValueTask<T>, check what T is
+            ITypeSymbol typeArgument = returnType.TypeArguments[0];
+
+            if (typeArgument.IsTupleType && typeArgument is INamedTypeSymbol tupleType)
+            {
+                // It's a tuple - get the count and field names
+                ImmutableArray<IFieldSymbol> tupleElements = tupleType.TupleElements;
+                parameterCount = tupleElements.Length;
+                parameterFieldNames = tupleElements.Select(e => e.Name).ToArray();
+            }
+            else
+            {
+                // It's a simple type (int, string, etc.)
+                parameterCount = 1;
+            }
+        }
+        // else: It's ValueTask (non-generic), parameterCount stays 0
+
+        int returnCount = 0;
+        string[] returnFieldNames = [];
+        bool returnStream = false;
+        if (method.ReturnType is INamedTypeSymbol methodReturnType &&
+            methodReturnType.IsGenericType &&
+            methodReturnType.TypeArguments.Length == 1)
+        {
+            ITypeSymbol methodReturnTypeArg = methodReturnType.TypeArguments[0];
+            ITypeSymbol lastFieldType;
+
+            if (methodReturnTypeArg.IsTupleType && methodReturnTypeArg is INamedTypeSymbol methodTupleType)
+            {
+                ImmutableArray<IFieldSymbol> returnElements = methodTupleType.TupleElements;
+                returnCount = returnElements.Length;
+                returnFieldNames = returnElements.Select(e => e.Name).ToArray();
+
+                lastFieldType = returnElements[returnElements.Length - 1].Type;
+            }
+            else
+            {
+                // It's a simple return type
+                returnCount = 1;
+                lastFieldType = methodReturnTypeArg;
+            }
+
+            if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, asyncEnumerableSymbol))
+            {
+                returnStream = true;
+            }
+            else if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, pipeReaderSymbol))
+            {
+                returnStream = !encodedReturn || returnCount > 1;
+                // else, the single parameter is the encoded return, and there is no stream
+            }
+        }
+        // else: It's ValueTask (non-generic), returnCount remains 0 and returnStream remains false.
+
+        return new SliceServiceMethod(
+            operationName,
+            dispatchMethodName,
+            interfaceSymbol.GetFullName(),
+            compressReturn,
+            encodedReturn,
+            idempotent,
+            parameterCount,
+            parameterFieldNames,
+            returnCount,
+            returnFieldNames,
+            returnStream);
+    }
 
     /// <inheritdoc />
     internal override CodeBlock GenerateDispatchCaseBody()
@@ -179,119 +335,30 @@ internal class SliceServiceMethod : ServiceMethod
         return codeBlock;
     }
 
-    internal SliceServiceMethod(
-        IMethodSymbol method,
-        AttributeData attribute,
-        INamedTypeSymbol? asyncEnumerableSymbol,
-        INamedTypeSymbol? pipeReaderSymbol)
+    private SliceServiceMethod(
+        string operationName,
+        string dispatchMethodName,
+        string fullInterfaceName,
+        bool compressReturn,
+        bool encodedReturn,
+        bool idempotent,
+        int parameterCount,
+        string[] parameterFieldNames,
+        int returnCount,
+        string[] returnFieldNames,
+        bool returnStream)
     {
-        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
-        Debug.Assert(
-            items.Length == 1,
-            "Unexpected number of arguments in attribute constructor.");
-
-        INamedTypeSymbol interfaceSymbol = method.ContainingType!;
-
-        OperationName = (string)items[0].Value!;
-        _dispatchMethodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
-        _fullInterfaceName = interfaceSymbol.GetFullName();
-
-        foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
-        {
-            switch (namedArgument.Key)
-            {
-                case "CompressReturn":
-                    if (namedArgument.Value.Value is bool compressReturn)
-                    {
-                        _compressReturn = compressReturn;
-                    }
-                    break;
-                case "EncodedReturn":
-                    if (namedArgument.Value.Value is bool encodedReturn)
-                    {
-                        _encodedReturn = encodedReturn;
-                    }
-                    break;
-                case "Idempotent":
-                    if (namedArgument.Value.Value is bool idempotent)
-                    {
-                        _idempotent = idempotent;
-                    }
-                    break;
-            }
-        }
-
-        // Find the nested Request class within the interface
-        INamedTypeSymbol? requestClass = interfaceSymbol
-            .GetTypeMembers("Request")
-            .FirstOrDefault();
-
-        IMethodSymbol? decodeArgsMethod = requestClass?
-            .GetMembers()
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(m => m.Name == $"Decode{_dispatchMethodName}Async");
-
-        Debug.Assert(
-            decodeArgsMethod is not null,
-            $"Cannot find decode method for operation {OperationName} in interface {interfaceSymbol.Name}.");
-
-        // Analyze the return type of the decode method (ValueTask or ValueTask<T>)
-
-        if (decodeArgsMethod!.ReturnType is INamedTypeSymbol returnType &&
-            returnType.IsGenericType &&
-            returnType.TypeArguments.Length == 1)
-        {
-            // It's ValueTask<T>, check what T is
-            ITypeSymbol typeArgument = returnType.TypeArguments[0];
-
-            if (typeArgument.IsTupleType && typeArgument is INamedTypeSymbol tupleType)
-            {
-                // It's a tuple - get the count and field names
-                ImmutableArray<IFieldSymbol> tupleElements = tupleType.TupleElements;
-                _parameterCount = tupleElements.Length;
-                _parameterFieldNames = tupleElements.Select(e => e.Name).ToArray();
-            }
-            else
-            {
-                // It's a simple type (int, string, etc.)
-                _parameterCount = 1;
-            }
-        }
-        // else: It's ValueTask (non-generic), _parameterCount stays 0
-
-        if (method.ReturnType is INamedTypeSymbol methodReturnType &&
-            methodReturnType.IsGenericType &&
-            methodReturnType.TypeArguments.Length == 1)
-        {
-            ITypeSymbol methodReturnTypeArg = methodReturnType.TypeArguments[0];
-            ITypeSymbol lastFieldType;
-
-            if (methodReturnTypeArg.IsTupleType && methodReturnTypeArg is INamedTypeSymbol methodTupleType)
-            {
-                ImmutableArray<IFieldSymbol> returnElements = methodTupleType.TupleElements;
-                _returnCount = returnElements.Length;
-                _returnFieldNames = returnElements.Select(e => e.Name).ToArray();
-
-                lastFieldType = returnElements[returnElements.Length - 1].Type;
-            }
-            else
-            {
-                // It's a simple return type
-                _returnCount = 1;
-                lastFieldType = methodReturnTypeArg;
-            }
-
-            if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, asyncEnumerableSymbol))
-            {
-                _returnStream = true;
-            }
-            else if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, pipeReaderSymbol))
-            {
-                _returnStream = !_encodedReturn || _returnCount > 1;
-                // else, the single parameter is the encoded return, and there is no stream
-            }
-        }
-        // else: It's ValueTask (non-generic), _returnCount remains 0 and _returnStream remains false.
+        OperationName = operationName;
+        _dispatchMethodName = dispatchMethodName;
+        _fullInterfaceName = fullInterfaceName;
+        _compressReturn = compressReturn;
+        _encodedReturn = encodedReturn;
+        _idempotent = idempotent;
+        _parameterCount = parameterCount;
+        _parameterFieldNames = parameterFieldNames;
+        _returnCount = returnCount;
+        _returnFieldNames = returnFieldNames;
+        _returnStream = returnStream;
     }
 }
 
@@ -307,6 +374,9 @@ internal class SliceServiceMethodFactory : ServiceMethodFactory
         _pipeReaderSymbol = compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
     }
 
-    private protected override ServiceMethod CreateServiceMethod(IMethodSymbol methodSymbol, AttributeData attribute) =>
-        new SliceServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol, _pipeReaderSymbol);
+    private protected override ServiceMethod? CreateServiceMethod(
+        IMethodSymbol methodSymbol,
+        AttributeData attribute,
+        Action<Diagnostic> reportDiagnostic) =>
+        SliceServiceMethod.TryCreate(methodSymbol, attribute, _asyncEnumerableSymbol, _pipeReaderSymbol, reportDiagnostic);
 }
