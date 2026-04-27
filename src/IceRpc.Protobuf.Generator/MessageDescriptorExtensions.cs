@@ -8,10 +8,7 @@ internal static class MessageDescriptorExtensions
 {
     internal static string GetType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
     {
-        string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
-        string qualifiedName = messageDescriptor.GetQualifiedCsharpName();
-        string csharpType = scope == csharpNamespace ?
-            qualifiedName : $"global::{csharpNamespace}.{qualifiedName}";
+        string csharpType = messageDescriptor.GetQualifiedTypeName(scope);
         if (streaming)
         {
             csharpType = $"global::System.Collections.Generic.IAsyncEnumerable<{csharpType}>";
@@ -19,13 +16,18 @@ internal static class MessageDescriptorExtensions
         return csharpType;
     }
 
-    internal static string GetParserType(this MessageDescriptor messageDescriptor, string scope)
+    internal static string GetParserType(this MessageDescriptor messageDescriptor, string scope) =>
+        $"{messageDescriptor.GetQualifiedTypeName(scope)}.Parser";
+
+    private static string GetQualifiedTypeName(this MessageDescriptor messageDescriptor, string scope)
     {
         string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
         string qualifiedName = messageDescriptor.GetQualifiedCsharpName();
-        string csharpType = scope == csharpNamespace ?
-            qualifiedName : $"global::{csharpNamespace}.{qualifiedName}";
-        return $"{csharpType}.Parser";
+        return scope == csharpNamespace ?
+            qualifiedName :
+            csharpNamespace.Length == 0 ?
+                $"global::{qualifiedName}" :
+                $"global::{csharpNamespace}.{qualifiedName}";
     }
 
     // Google's C# Protobuf generator emits nested message types inside a "Types" container class on each enclosing
