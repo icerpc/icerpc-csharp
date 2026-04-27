@@ -34,6 +34,7 @@ internal class ProtobufServiceMethod : ServiceMethod
         IMethodSymbol method,
         AttributeData attribute,
         INamedTypeSymbol? asyncEnumerableSymbol,
+        INamedTypeSymbol? genericValueTaskSymbol,
         Action<Diagnostic> reportDiagnostic)
     {
         Location location = method.Locations.FirstOrDefault() ?? Location.None;
@@ -48,13 +49,15 @@ internal class ProtobufServiceMethod : ServiceMethod
             return null;
         }
 
-        if (method.Parameters.Length == 0)
+        // The generated dispatcher always invokes the user method as
+        // service.OpAsync(input, features, cancellationToken), so the method must accept exactly three parameters.
+        if (method.Parameters.Length != 3)
         {
             reportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.InvalidRpcMethodSignature,
                 location,
                 method.Name,
-                "expected at least one parameter for the input message"));
+                $"expected 3 parameters (input, features, cancellationToken), found {method.Parameters.Length}"));
             return null;
         }
 
@@ -82,16 +85,18 @@ internal class ProtobufServiceMethod : ServiceMethod
             inputTypeName = inputType.GetFullName();
         }
 
-        // Methods with the RpcMethodAttribute always have a generic ValueTask return type.
+        // Methods with the RpcMethodAttribute always have a generic ValueTask<T> return type.
         // For server-streaming, the return type's generic argument is IAsyncEnumerable.
         if (method.ReturnType is not INamedTypeSymbol genericReturnType ||
-            genericReturnType.TypeArguments.Length != 1)
+            !SymbolEqualityComparer.Default.Equals(
+                genericReturnType.OriginalDefinition,
+                genericValueTaskSymbol))
         {
             reportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.InvalidRpcMethodSignature,
                 location,
                 method.Name,
-                "return type must be a generic ValueTask<T>"));
+                "return type must be System.Threading.Tasks.ValueTask<T>"));
             return null;
         }
         bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
@@ -140,14 +145,23 @@ internal class ProtobufServiceMethod : ServiceMethod
 internal class ProtobufServiceMethodFactory : ServiceMethodFactory
 {
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
+    private readonly INamedTypeSymbol? _genericValueTaskSymbol;
 
     internal ProtobufServiceMethodFactory(Compilation compilation)
-        : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.RpcMethods.RpcMethodAttribute")) =>
+        : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.RpcMethods.RpcMethodAttribute"))
+    {
         _asyncEnumerableSymbol = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        _genericValueTaskSymbol = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+    }
 
     private protected override ServiceMethod? CreateServiceMethod(
         IMethodSymbol methodSymbol,
         AttributeData attribute,
         Action<Diagnostic> reportDiagnostic) =>
-        ProtobufServiceMethod.TryCreate(methodSymbol, attribute, _asyncEnumerableSymbol, reportDiagnostic);
+        ProtobufServiceMethod.TryCreate(
+            methodSymbol,
+            attribute,
+            _asyncEnumerableSymbol,
+            _genericValueTaskSymbol,
+            reportDiagnostic);
 }

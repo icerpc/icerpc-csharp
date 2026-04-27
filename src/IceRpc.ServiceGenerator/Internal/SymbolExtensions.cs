@@ -33,4 +33,13 @@ internal static class SymbolExtensions
             return containingSymbolName.Length == 0 ? symbol.Name : $"{containingSymbolName}.{symbol.Name}";
         }
     }
+
+    /// <summary>Checks whether <paramref name="type"/> is the non-generic <c>System.Threading.Tasks.ValueTask</c> or
+    /// the generic <c>System.Threading.Tasks.ValueTask&lt;T&gt;</c>.</summary>
+    internal static bool IsValueTask(
+        this INamedTypeSymbol type,
+        INamedTypeSymbol? valueTaskSymbol,
+        INamedTypeSymbol? genericValueTaskSymbol) =>
+        SymbolEqualityComparer.Default.Equals(type, valueTaskSymbol) ||
+        SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, genericValueTaskSymbol);
 }
