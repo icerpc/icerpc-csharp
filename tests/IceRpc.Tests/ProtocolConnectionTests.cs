@@ -33,7 +33,7 @@ public sealed class ProtocolConnectionTests
             }
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.InternalError);
+            yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.InvalidData);
 
             yield return new(
                 Protocol.IceRpc,
