@@ -43,6 +43,10 @@ internal sealed class Parser
         }
 
         var serviceDefinitions = new List<ServiceClass>();
+        // Multiple partial declarations of the same class with [Service] applied to more than one part each yield
+        // their own ClassDeclarationSyntax from ForAttributeWithMetadataName. Process each class symbol once so we
+        // don't AddSource the same hint name twice.
+        var seenClassSymbols = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         // we enumerate by syntax tree, to minimize the need to instantiate semantic models (since they're expensive)
         foreach (IGrouping<SyntaxTree, ClassDeclarationSyntax> group in classes.GroupBy(x => x.SyntaxTree))
         {
@@ -53,7 +57,7 @@ internal sealed class Parser
 
                 SemanticModel semanticModel = _compilation.GetSemanticModel(classDeclaration.SyntaxTree);
                 INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration, _cancellationToken);
-                if (classSymbol is null)
+                if (classSymbol is null || !seenClassSymbols.Add(classSymbol))
                 {
                     continue;
                 }
