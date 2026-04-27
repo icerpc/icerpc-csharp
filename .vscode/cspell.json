@@ -30,6 +30,7 @@
     "globaltool",
     "icerpc",
     "Idempotency",
+    "jaegertracing",
     "localizable",
     "Memberwise",
     "meteo",
