@@ -24,11 +24,12 @@ public sealed class RequestContextFeature : IRequestContextFeature, IEnumerable<
     /// <summary>Constructs an empty writeable request context feature.</summary>
     public RequestContextFeature() => Value = new Dictionary<string, string>();
 
-    /// <summary>Constructs a request context feature with a copy of the specified dictionary.</summary>
-    /// <param name="dictionary">The source dictionary. Its entries are copied into the new feature so that later
-    /// mutations of <paramref name="dictionary"/> do not affect this feature.</param>
-    public RequestContextFeature(IDictionary<string, string> dictionary) =>
-        Value = new Dictionary<string, string>(dictionary);
+    /// <summary>Constructs a request context feature wrapping the specified dictionary.</summary>
+    /// <param name="dictionary">The dictionary that the new feature will hold. The feature stores the reference; it
+    /// does not copy. The caller must not mutate <paramref name="dictionary"/> after constructing the feature, since
+    /// the request context is encoded lazily when the request is sent. See
+    /// <see cref="IRequestContextFeature"/> for the recommended copy-on-write update pattern.</param>
+    public RequestContextFeature(IDictionary<string, string> dictionary) => Value = dictionary;
 
     /// <summary>Adds a new entry to <see cref="Value" />.</summary>
     /// <param name="key">The key of the new entry.</param>

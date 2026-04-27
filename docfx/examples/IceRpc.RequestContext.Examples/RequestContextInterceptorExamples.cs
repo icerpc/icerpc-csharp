@@ -55,7 +55,7 @@ public static class RequestContextInterceptorExamples
         // An interceptor that adds an entry to the request context. The appropriate pattern is
         // copy-on-write: build a new dictionary and install a new feature, rather than mutating the
         // existing Value in place (which would race with the outgoing encoding).
-        Pipeline pipeline = new Pipeline()
+        _ = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
             {
                 IRequestContextFeature? feature = request.Features.Get<IRequestContextFeature>();
