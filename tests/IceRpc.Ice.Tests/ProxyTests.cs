@@ -52,7 +52,7 @@ public class ProxyTests
         // Corrupt the first byte of the encoded URI scheme so that new Uri(...) throws UriFormatException.
         // A URI scheme must start with an ALPHA; 0x01 is a control character and makes the URI unparseable.
         int uriStart = buffer.AsSpan(0, length).IndexOf(System.Text.Encoding.UTF8.GetBytes(schemePrefix));
-        Assume.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
+        Assert.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
         buffer[uriStart] = 0x01;
 
         // Act/Assert
@@ -83,9 +83,9 @@ public class ProxyTests
         // Replace the scheme with one that parses as a URI but is rejected by the ServerAddress constructor,
         // which throws ArgumentException for unsupported protocols. The replacement is chosen with the same
         // byte length so the encapsulation size remains valid.
-        Assume.That(replacementScheme.Length, Is.EqualTo(schemePrefix.Length));
+        Assert.That(replacementScheme.Length, Is.EqualTo(schemePrefix.Length));
         int uriStart = buffer.AsSpan(0, length).IndexOf(System.Text.Encoding.UTF8.GetBytes(schemePrefix));
-        Assume.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
+        Assert.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
         System.Text.Encoding.UTF8.GetBytes(replacementScheme).CopyTo(buffer.AsSpan(uriStart));
 
         // Act/Assert
