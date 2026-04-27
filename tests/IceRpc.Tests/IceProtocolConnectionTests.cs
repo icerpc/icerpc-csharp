@@ -149,7 +149,7 @@ public sealed class IceProtocolConnectionTests
     /// InvalidDataException surfaces as StatusCode.InvalidData, anything else as StatusCode.InternalError.</summary>
     [TestCase("InvalidData", StatusCode.InvalidData)]
     [TestCase("Other", StatusCode.InternalError)]
-    public async Task Thrown_dispatch_exception_is_classified(string exceptionKind, StatusCode expectedStatusCode)
+    public async Task Thrown_dispatcher_exception_is_classified(string exceptionKind, StatusCode expectedStatusCode)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => exceptionKind switch
