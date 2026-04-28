@@ -20,10 +20,25 @@ public sealed record class LocatorOptions
     /// <value>The refresh threshold. Defaults to <c>1</c> second.</value>
     public TimeSpan RefreshThreshold { get; set; } = TimeSpan.FromSeconds(1);
 
+    /// <summary>Gets or sets the timeout for a single coalesced lookup against the underlying locator. This bounds
+    /// how long an in-flight resolution can run when no caller is waiting for it (because every joined caller
+    /// canceled).</summary>
+    /// <value>The resolution timeout. Defaults to <c>10</c> seconds, matching <c>ConnectTimeout</c> on the
+    /// connection cache: the initial resolution may incur the cost of establishing a connection to the locator
+    /// before issuing the lookup itself.</value>
+    public TimeSpan ResolveTimeout
+    {
+        get => _resolveTimeout;
+        set => _resolveTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ResolveTimeout)}", nameof(value));
+    }
+
     /// <summary>Gets or sets the time-to-live. This is the time period after which a cache entry is considered
     /// stale.</summary>
     /// <value>The time to live. Defaults to <see cref="Timeout.InfiniteTimeSpan" />, meaning the cache entries never
     /// become stale.
     /// </value>
     public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
+
+    private TimeSpan _resolveTimeout = TimeSpan.FromSeconds(10);
 }
