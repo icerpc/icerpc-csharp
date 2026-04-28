@@ -103,8 +103,12 @@ public sealed class DeadlineMiddlewareTests
     public async Task Dispatch_with_extreme_future_deadline_does_not_throw()
     {
         // Arrange
+        bool nextCalled = false;
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-            new(new OutgoingResponse(request)));
+        {
+            nextCalled = true;
+            return new(new OutgoingResponse(request));
+        });
 
         var sut = new DeadlineMiddleware(dispatcher);
 
@@ -122,6 +126,7 @@ public sealed class DeadlineMiddlewareTests
 
         // Act/Assert
         Assert.That(async () => await sut.DispatchAsync(request, CancellationToken.None), Throws.Nothing);
+        Assert.That(nextCalled, Is.True);
 
         // Cleanup
         pipeReader.Complete();

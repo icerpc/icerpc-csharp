@@ -38,10 +38,10 @@ public class DeadlineInterceptor : IInvoker
     /// <param name="defaultTimeout">The default timeout. When not <see cref="Timeout.InfiniteTimeSpan" />, the
     /// interceptor adds a deadline to requests without a deadline. Must be positive and must not exceed
     /// <see cref="int.MaxValue" /> milliseconds (~24.8 days), the maximum supported by
-    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" />, or equal to
-    /// <see cref="Timeout.InfiniteTimeSpan" />.</param>
-    /// <param name="timeProvider">The optional time provider used to obtain the current time. If <see langword="null"/>, it uses
-    /// <see cref="TimeProvider.System"/>.</param>
+    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" />. <see cref="Timeout.InfiniteTimeSpan" /> is
+    /// also accepted and disables the default deadline behavior.</param>
+    /// <param name="timeProvider">The optional time provider used to obtain the current time. If
+    /// <see langword="null"/>, it uses <see cref="TimeProvider.System"/>.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
     /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
