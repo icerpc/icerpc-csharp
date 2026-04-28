@@ -20,12 +20,10 @@ public sealed record class LocatorOptions
     /// <value>The refresh threshold. Defaults to <c>1</c> second.</value>
     public TimeSpan RefreshThreshold { get; set; } = TimeSpan.FromSeconds(1);
 
-    /// <summary>Gets or sets the timeout for a single coalesced lookup against the underlying locator. This bounds
-    /// how long an in-flight resolution can run when no caller is waiting for it (because every joined caller
-    /// canceled).</summary>
-    /// <value>The resolution timeout. Defaults to <c>10</c> seconds, matching <c>ConnectTimeout</c> on the
-    /// connection cache: the initial resolution may incur the cost of establishing a connection to the locator
-    /// before issuing the lookup itself.</value>
+    /// <summary>Gets or sets the timeout for locator resolution. When multiple callers concurrently request the
+    /// same address, the locator interceptor sends a single request to the underlying locator; this timeout
+    /// starts when that request is issued and applies to all callers.</summary>
+    /// <value>The locator resolve timeout. Defaults to <c>10</c> seconds.</value>
     public TimeSpan ResolveTimeout
     {
         get => _resolveTimeout;
