@@ -689,6 +689,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         var requestHeader = new IceRequestHeader(ref decoder);
         requestHeader.Facet.CheckFacetCount();
 
+        // Reject operation names that contain characters outside the printable ASCII range. The path is built from
+        // requestHeader.Identity via IceIdentity.ToPath, which percent-escapes any unsafe characters, so it does not
+        // need an additional check here.
+        try
+        {
+            ServiceAddress.CheckOperation(requestHeader.Operation);
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidDataException(exception.Message, exception);
+        }
+
         Pipe? contextPipe = null;
         long pos = decoder.Consumed;
         int count = decoder.DecodeSize();

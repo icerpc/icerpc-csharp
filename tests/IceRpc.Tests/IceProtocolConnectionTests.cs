@@ -175,6 +175,49 @@ public sealed class IceProtocolConnectionTests
         Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
+    /// <summary>Verifies that a request whose operation name contains characters outside the printable ASCII range
+    /// is rejected at decode time so peer-controlled control characters cannot reach loggers and other downstream
+    /// sinks. The dispatcher must not be invoked, and because ice cannot recover from a decode failure mid-stream,
+    /// the connection aborts and the pending invocation fails with
+    /// <see cref="IceRpcError.ConnectionAborted" />.</summary>
+    [TestCase("op\r\nINJECTED")] // CR/LF in operation
+    [TestCase("op\0")]           // NUL in operation
+    public async Task Request_with_invalid_operation_aborts_server_connection(string operation)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            Assert.Fail("The dispatcher must not be invoked for a request with an invalid operation name.");
+            return new(new OutgoingResponse(request));
+        });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        {
+            Operation = operation
+        };
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+
+        // Wait until the server's read loop has rejected the invalid header and signaled shutdown, so the
+        // disposal below cannot race with request decoding.
+        await serverShutdownRequested;
+
+        // Act: closing the server surfaces the abort to the client's pending invocation. ReadFailed signals
+        // shutdown but doesn't close the duplex connection on its own.
+        await sut.Server.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     /// <summary>Verifies that a StatusCode dispatched by the server is encoded as a ReplyStatus and decoded back to
     /// the expected StatusCode by the client.</summary>
     [Test, TestCaseSource(nameof(StatusCodeRoundTripSource))]

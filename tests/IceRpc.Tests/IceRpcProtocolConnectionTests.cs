@@ -446,6 +446,54 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.Nothing);
     }
 
+    /// <summary>Verifies that a request whose path or operation name contains characters outside the printable
+    /// ASCII range is rejected at decode time, so peer-controlled control characters cannot reach loggers and
+    /// other downstream sinks.</summary>
+    [TestCase("/foo\r\nINJECTED", "op")]   // CR/LF in path
+    [TestCase("/foo", "op\r\nINJECTED")]   // CR/LF in operation
+    [TestCase("/foo\0", "op")]             // NUL in path
+    [TestCase("/foo", "op\0")]             // NUL in operation
+    [TestCase("foo", "op")]                // path without leading '/'
+    public async Task Request_with_invalid_path_or_operation_is_rejected(string path, string operation)
+    {
+        // Arrange
+        var taskExceptionObserver = new TestTaskExceptionObserver();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator()
+            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        IMultiplexedConnection clientTransportConnection = clientTransport.LastCreatedConnection;
+        IMultiplexedStream stream = await clientTransportConnection.CreateStreamAsync(bidirectional: true, default);
+
+        var writer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(writer);
+        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+        int startPos = encoder.EncodedByteCount;
+        encoder.EncodeString(path);
+        encoder.EncodeString(operation);
+        encoder.EncodeVarUInt62(0); // empty field dictionary
+        SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+
+        // Act
+        stream.Output.Write(writer.WrittenMemory.Span);
+        await stream.Output.FlushAsync();
+        stream.Output.CompleteOutput(success: true);
+
+        // Assert
+        Assert.That(
+            async () => await taskExceptionObserver.DispatchRefusedException,
+            Is.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError)
+                .And.InnerException.InstanceOf<InvalidDataException>());
+    }
+
     /// <summary>Verifies that a request with a field count large enough that count * 2 would overflow int arithmetic
     /// is correctly rejected.</summary>
     [Test]

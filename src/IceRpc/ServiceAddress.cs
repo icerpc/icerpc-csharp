@@ -490,7 +490,7 @@ public sealed record class ServiceAddress
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
-                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
+                $"Invalid path '{Sanitize(path)}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
         }
     }
 
@@ -500,6 +500,23 @@ public sealed record class ServiceAddress
     /// <returns><see langword="true" /> if <paramref name="value" /> is a valid parameter value; otherwise,
     /// <see langword="false" />.</returns>
     internal static bool IsValidParamValue(string value) => IsValid(value, _notValidInParamValue);
+
+    /// <summary>Checks if <paramref name="operation" /> is a valid operation name. A valid operation name contains
+    /// only printable ASCII characters (in the inclusive range <c>0x21</c> to <c>0x7E</c>) and may be empty.
+    /// </summary>
+    /// <param name="operation">The operation name to check.</param>
+    /// <exception cref="FormatException">Thrown if the operation name is not valid.</exception>
+    /// <remarks>This range covers every legal Slice identifier and rejects all C0 control characters as well as DEL
+    /// and any non-ASCII content. Empty operation names are accepted because <see cref="OutgoingRequest.Operation" />
+    /// defaults to the empty string.</remarks>
+    internal static void CheckOperation(string operation)
+    {
+        if (operation.AsSpan().IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) != -1)
+        {
+            throw new FormatException(
+                $"Invalid operation name '{Sanitize(operation)}'; an operation name contains only printable ASCII characters.");
+        }
+    }
 
     /// <summary>"unchecked" constructor used by the Ice decoder when decoding a service address.
     /// </summary>
@@ -537,6 +554,40 @@ public sealed record class ServiceAddress
     {
         ReadOnlySpan<char> span = s.AsSpan();
         return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
+    }
+
+    /// <summary>Returns a representation of <paramref name="value" /> safe to embed in a log line or exception
+    /// message. Characters outside the printable ASCII range (and the space character) are replaced with C-style
+    /// escape sequences, so a peer-controlled CR/LF/NUL cannot forge log lines or break downstream parsers.
+    /// </summary>
+    private static string Sanitize(string value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+        if (span.IndexOfAnyExceptInRange(' ', LastValidChar) == -1)
+        {
+            return value;
+        }
+
+        var builder = new StringBuilder(value.Length + 8);
+        foreach (char c in value)
+        {
+            if (c >= ' ' && c <= LastValidChar)
+            {
+                builder.Append(c);
+            }
+            else
+            {
+                _ = c switch
+                {
+                    '\0' => builder.Append(@"\0"),
+                    '\t' => builder.Append(@"\t"),
+                    '\n' => builder.Append(@"\n"),
+                    '\r' => builder.Append(@"\r"),
+                    _ => builder.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture)),
+                };
+            }
+        }
+        return builder.ToString();
     }
 
     /// <summary>Checks if <paramref name="name" /> is not empty, not equal to <c>alt-server</c> nor equal to

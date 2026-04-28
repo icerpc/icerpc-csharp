@@ -1227,6 +1227,20 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             var decoder = new SliceDecoder(buffer);
             var header = new IceRpcRequestHeader(ref decoder);
+
+            // Reject paths and operation names that contain characters outside the printable ASCII range. This
+            // matches the constraints already enforced by ServiceAddress and by the Slice identifier grammar, and
+            // prevents control characters (notably CR/LF/NUL) from flowing into loggers and other downstream sinks.
+            try
+            {
+                ServiceAddress.CheckPath(header.Path);
+                ServiceAddress.CheckOperation(header.Operation);
+            }
+            catch (FormatException exception)
+            {
+                throw new InvalidDataException(exception.Message, exception);
+            }
+
             (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
                 DecodeFieldDictionary(
                     ref decoder,
