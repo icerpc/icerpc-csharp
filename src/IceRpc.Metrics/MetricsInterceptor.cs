@@ -30,9 +30,7 @@ public class MetricsInterceptor : IInvoker
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-            // A non-OK status code means the server returned a failure response (for example DeadlineExceeded
-            // from DeadlineMiddleware or NotFound from NotFoundDispatcher). Count it as a failure so that
-            // failed-requests is consistent with the throw-based path.
+            // A non-OK status code means the server returned a failure response.
             if (response.StatusCode != StatusCode.Ok)
             {
                 _invocationMetrics.RequestFailure();

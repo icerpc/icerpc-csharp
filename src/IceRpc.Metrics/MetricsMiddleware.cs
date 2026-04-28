@@ -32,9 +32,7 @@ public class MetricsMiddleware : IDispatcher
         try
         {
             OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
-            // A non-OK status code means the dispatch produced a failure response (for example DeadlineExceeded
-            // from DeadlineMiddleware or NotFound from the router). Count it as a failure so that
-            // failed-requests is consistent with the throw-based path.
+            // A non-OK status code means the dispatch produced a failure response.
             if (response.StatusCode != StatusCode.Ok)
             {
                 _dispatchMetrics.RequestFailure();
