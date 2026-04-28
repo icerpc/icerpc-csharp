@@ -490,7 +490,7 @@ public sealed record class ServiceAddress
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
-                $"Invalid path '{Sanitize(path)}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
+                "Invalid path; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
         }
     }
 
@@ -514,7 +514,7 @@ public sealed record class ServiceAddress
         if (operation.AsSpan().IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) != -1)
         {
             throw new FormatException(
-                $"Invalid operation name '{Sanitize(operation)}'; an operation name contains only printable ASCII characters.");
+                "Invalid operation name; an operation name contains only printable ASCII characters.");
         }
     }
 
@@ -554,40 +554,6 @@ public sealed record class ServiceAddress
     {
         ReadOnlySpan<char> span = s.AsSpan();
         return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
-    }
-
-    /// <summary>Returns a representation of <paramref name="value" /> safe to embed in a log line or exception
-    /// message. Characters outside the printable ASCII range (and the space character) are replaced with C-style
-    /// escape sequences, so a peer-controlled CR/LF/NUL cannot forge log lines or break downstream parsers.
-    /// </summary>
-    private static string Sanitize(string value)
-    {
-        ReadOnlySpan<char> span = value.AsSpan();
-        if (span.IndexOfAnyExceptInRange(' ', LastValidChar) == -1)
-        {
-            return value;
-        }
-
-        var builder = new StringBuilder(value.Length + 8);
-        foreach (char c in value)
-        {
-            if (c >= ' ' && c <= LastValidChar)
-            {
-                builder.Append(c);
-            }
-            else
-            {
-                _ = c switch
-                {
-                    '\0' => builder.Append(@"\0"),
-                    '\t' => builder.Append(@"\t"),
-                    '\n' => builder.Append(@"\n"),
-                    '\r' => builder.Append(@"\r"),
-                    _ => builder.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture)),
-                };
-            }
-        }
-        return builder.ToString();
     }
 
     /// <summary>Checks if <paramref name="name" /> is not empty, not equal to <c>alt-server</c> nor equal to
