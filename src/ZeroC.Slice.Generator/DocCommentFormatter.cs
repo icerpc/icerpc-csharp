@@ -47,7 +47,8 @@ internal static class DocCommentFormatter
     {
         // Type aliases don't generate C# types, so output the identifier as plain text.
         ResolvedCommentLink { Entity: TypeAlias } r => $"<c>{CommentTag.XmlEscape(r.Entity.Identifier)}</c>",
-        ResolvedCommentLink r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
+        ResolvedCommentLink r =>
+            $"""<see cref="{CommentTag.XmlEscape(FormatEntityCref(r.Entity, currentNamespace))}" />""",
         UnresolvedCommentLink u => $"<c>{CommentTag.XmlEscape(u.Identifier)}</c>",
         _ => ""
     };
