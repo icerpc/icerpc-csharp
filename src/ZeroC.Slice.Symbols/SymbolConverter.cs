@@ -54,7 +54,8 @@ internal sealed class SymbolConverter
             {
                 if (GetNamedIdentifier(symbol) is string id)
                 {
-                    _named.TryAdd($"{moduleScope}::{id}", (file, symbol));
+                    // Scoped IDs are warned to be unique by the compiler, we can safely use them as dictionary keys.
+                    _named.Add($"{moduleScope}::{id}", (file, symbol));
                 }
             }
         }
