@@ -38,6 +38,26 @@ internal static class OperationExtensions
         internal string FeaturesParamName =>
             op.Parameters.Any(p => p.ParameterName == "features") ? "features_" : "features";
 
+        /// <summary>Gets the escaped name for the injected "cancellationToken" parameter, appending "_" if any
+        /// operation parameter uses the name "cancellationToken".</summary>
+        internal string CancellationTokenParamName =>
+            op.Parameters.Any(p => p.ParameterName == "cancellationToken") ? "cancellationToken_" : "cancellationToken";
+
+        /// <summary>Gets the escaped name for the injected "encodeOptions" parameter on Request.* helpers,
+        /// appending "_" if any operation parameter uses the name "encodeOptions".</summary>
+        internal string RequestEncodeOptionsParamName =>
+            op.Parameters.Any(p => p.ParameterName == "encodeOptions") ? "encodeOptions_" : "encodeOptions";
+
+        /// <summary>Gets the escaped name for the injected "encodeOptions" parameter on Response.* helpers,
+        /// appending "_" if any operation return field uses the name "encodeOptions".</summary>
+        internal string ResponseEncodeOptionsParamName =>
+            op.ReturnType.Any(f => f.ParameterName == "encodeOptions") ? "encodeOptions_" : "encodeOptions";
+
+        /// <summary>Gets the escaped name for the synthetic "Payload" tuple element used by cs::encodedReturn
+        /// operations with a streamed return, appending "_" if the streamed return field uses the name "Payload".
+        /// </summary>
+        internal string EncodedReturnPayloadName => op.StreamedReturn?.Name == "Payload" ? "Payload_" : "Payload";
+
         /// <summary>Returns the C# type string for a streamed field (parameter or return).
         /// Non-optional stream uint8 maps to PipeReader, all others to IAsyncEnumerable&lt;T&gt;.</summary>
         internal static string GetStreamTypeString(Field streamField, string currentNamespace)
@@ -51,7 +71,10 @@ internal static class OperationExtensions
         }
 
         /// <summary>Builds the EncodeStreamOf{Op} method for a streamed field (parameter or return value).</summary>
-        internal CodeBlock BuildEncodeStreamMethod(Field streamParam, string currentNamespace)
+        /// <param name="streamParam">The streamed field.</param>
+        /// <param name="currentNamespace">The current C# namespace.</param>
+        /// <param name="encodeOptionsName">The escaped name to use for the injected encodeOptions parameter.</param>
+        internal CodeBlock BuildEncodeStreamMethod(Field streamParam, string currentNamespace, string encodeOptionsName)
         {
             string opName = op.Name;
             string streamType = GetStreamTypeString(streamParam, currentNamespace);
@@ -65,7 +88,7 @@ internal static class OperationExtensions
                     "summary",
                     $"Encodes the stream argument of operation <c>{op.Name}</c> into a request payload continuation.")
                 .AddParameter(streamType, streamParam.ParameterName)
-                .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                .AddParameter("SliceEncodeOptions?", encodeOptionsName, "null", "The Slice encode options.")
                 .AddComment("returns", "A new request payload continuation.");
 
             if (streamParam.IsByteStream)
@@ -92,7 +115,7 @@ internal static class OperationExtensions
                     {{streamParam.ParameterName}}.ToPipeReader(
                         {{encodeLambda}},
                         {{(useSegments ? "true" : "false")}},
-                        encodeOptions)
+                        {{encodeOptionsName}})
                     """);
             }
 
@@ -114,7 +137,8 @@ internal static class OperationExtensions
                 if (op.StreamedReturn is Field streamReturn)
                 {
                     string streamType = GetStreamTypeString(streamReturn, currentNamespace);
-                    return $"global::System.Threading.Tasks.ValueTask<(global::System.IO.Pipelines.PipeReader Payload, {streamType} {streamReturn.Name})>";
+                    string payloadName = op.EncodedReturnPayloadName;
+                    return $"global::System.Threading.Tasks.ValueTask<(global::System.IO.Pipelines.PipeReader {payloadName}, {streamType} {streamReturn.Name})>";
                 }
                 return op.NonStreamedReturns.Count > 0
                     ? "global::System.Threading.Tasks.ValueTask<global::System.IO.Pipelines.PipeReader>"
