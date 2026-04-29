@@ -46,6 +46,41 @@ internal class EnumTests
     public void As_enum_for_an_enum_with_contiguous_enumerators_fails_for_invalid_values(int value) =>
        Assert.That(() => value.AsMyEnum(), Throws.TypeOf<InvalidDataException>());
 
+    // Boundary enums: declared min/max span the full underlying range. The valid enumerators decode,
+    // and intermediate values that are not declared must be rejected.
+    [TestCase((sbyte)-128, MyInt8BoundaryEnum.Min)]
+    [TestCase((sbyte)127, MyInt8BoundaryEnum.Max)]
+    public void As_enum_int8_boundary_accepts_declared_values(sbyte value, MyInt8BoundaryEnum expected) =>
+        Assert.That(value.AsMyInt8BoundaryEnum(), Is.EqualTo(expected));
+
+    [TestCase((sbyte)-127)]
+    [TestCase((sbyte)0)]
+    [TestCase((sbyte)126)]
+    public void As_enum_int8_boundary_rejects_undeclared_values(sbyte value) =>
+        Assert.That(() => value.AsMyInt8BoundaryEnum(), Throws.TypeOf<InvalidDataException>());
+
+    [TestCase(int.MinValue, MyInt32BoundaryEnum.Min)]
+    [TestCase(int.MaxValue, MyInt32BoundaryEnum.Max)]
+    public void As_enum_int32_boundary_accepts_declared_values(int value, MyInt32BoundaryEnum expected) =>
+        Assert.That(value.AsMyInt32BoundaryEnum(), Is.EqualTo(expected));
+
+    [TestCase(int.MinValue + 1)]
+    [TestCase(0)]
+    [TestCase(int.MaxValue - 1)]
+    public void As_enum_int32_boundary_rejects_undeclared_values(int value) =>
+        Assert.That(() => value.AsMyInt32BoundaryEnum(), Throws.TypeOf<InvalidDataException>());
+
+    [TestCase(long.MinValue, MyInt64BoundaryEnum.Min)]
+    [TestCase(long.MaxValue, MyInt64BoundaryEnum.Max)]
+    public void As_enum_int64_boundary_accepts_declared_values(long value, MyInt64BoundaryEnum expected) =>
+        Assert.That(value.AsMyInt64BoundaryEnum(), Is.EqualTo(expected));
+
+    [TestCase(long.MinValue + 1)]
+    [TestCase(0L)]
+    [TestCase(long.MaxValue - 1)]
+    public void As_enum_int64_boundary_rejects_undeclared_values(long value) =>
+        Assert.That(() => value.AsMyInt64BoundaryEnum(), Throws.TypeOf<InvalidDataException>());
+
     [TestCase(sizeof(MyFixedSizeEnum), sizeof(short))]
     [TestCase(sizeof(MyUncheckedEnum), sizeof(uint))]
     public void Enum_has_the_expected_size(int size, int expectedSize) =>
