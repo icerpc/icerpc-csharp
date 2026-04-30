@@ -226,8 +226,7 @@ internal static class BasicEnumGenerator
     private static bool NeedsHashSetValidation<T>(BasicEnum<T> enumDef) where T : struct, INumber<T>
     {
         // If the enumerator count covers the full range of the underlying type, every value is valid
-        // and no validation is needed. This also prevents overflow when computing max - min below
-        // for small types like sbyte where MaxValue - MinValue (127 - (-128) = 255) overflows.
+        // and no validation is needed.
         int? bitSize = enumDef.Underlying.Kind switch
         {
             BuiltinKind.Int8 or BuiltinKind.UInt8 => 8,
@@ -244,6 +243,10 @@ internal static class BasicEnumGenerator
 
         T min = enumDef.Enumerators.Min(e => e.Value);
         T max = enumDef.Enumerators.Max(e => e.Value);
-        return T.CreateChecked(enumDef.Enumerators.Count - 1) < max - min;
+        // Promote to BigInteger so the subtraction doesn't wrap when min/max span (or near-span) the
+        // underlying type's full range — otherwise a sparse enum like `int8 { Min = -128, Max = 127 }`
+        // is misclassified as contiguous and the emitted range check accepts every underlying value.
+        BigInteger span = BigInteger.CreateChecked(max) - BigInteger.CreateChecked(min);
+        return enumDef.Enumerators.Count - 1 < span;
     }
 }
