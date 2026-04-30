@@ -36,7 +36,22 @@ internal static class DocCommentFormatter
 
         foreach (CommentLink link in seeTags)
         {
-            if (link is ResolvedCommentLink r)
+            if (link is not ResolvedCommentLink r)
+            {
+                continue;
+            }
+
+            if (r.Entity is TypeAlias alias)
+            {
+                // Type aliases don't generate a C# type; map to the underlying C# type. We can't reliably
+                // produce a seealso for a generic mapped type without C# parsing, so skip those.
+                string mapped = alias.UnderlyingType.Type.ToTypeString(currentNamespace);
+                if (!mapped.Contains('<', StringComparison.Ordinal))
+                {
+                    yield return new CommentTag("seealso", "cref", mapped, "");
+                }
+            }
+            else
             {
                 yield return new CommentTag("seealso", "cref", FormatEntityCref(r.Entity, currentNamespace), "");
             }
@@ -45,13 +60,22 @@ internal static class DocCommentFormatter
 
     private static string FormatInlineLink(CommentLink link, string currentNamespace) => link switch
     {
-        // Type aliases don't generate C# types, so output the identifier as plain text.
-        ResolvedCommentLink { Entity: TypeAlias } r => $"<c>{CommentTag.XmlEscape(r.Entity.Identifier)}</c>",
-        ResolvedCommentLink r =>
-            $"""<see cref="{CommentTag.XmlEscape(FormatEntityCref(r.Entity, currentNamespace))}" />""",
+        ResolvedCommentLink { Entity: TypeAlias alias } => FormatTypeAliasInline(alias, currentNamespace),
+        ResolvedCommentLink r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
         UnresolvedCommentLink u => $"<c>{CommentTag.XmlEscape(u.Identifier)}</c>",
         _ => ""
     };
+
+    private static string FormatTypeAliasInline(TypeAlias alias, string currentNamespace)
+    {
+        // Type aliases don't generate a C# type; link to the underlying C# type instead. For generic mapped
+        // types we emit the type name as inline code (XML-escaped) to avoid constructing cref-friendly forms
+        // like IList{T} or IDictionary{T, U}.
+        string mapped = alias.UnderlyingType.Type.ToTypeString(currentNamespace);
+        return mapped.Contains('<', StringComparison.Ordinal)
+            ? $"<c>{CommentTag.XmlEscape(mapped)}</c>"
+            : $"""<see cref="{mapped}" />""";
+    }
 
     private static string FormatEntityCref(Entity entity, string currentNamespace)
     {
