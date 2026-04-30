@@ -26,7 +26,7 @@ namespace IceRpc.Deadline;
 public class DeadlineInterceptor : IInvoker
 {
     // The maximum delay CancellationTokenSource.CancelAfter(TimeSpan) accepts.
-    private static readonly TimeSpan MaxCancelAfterDelay = TimeSpan.FromMilliseconds(int.MaxValue);
+    private static readonly TimeSpan _maxCancelAfterDelay = TimeSpan.FromMilliseconds(int.MaxValue);
 
     private readonly bool _alwaysEnforceDeadline;
     private readonly IInvoker _next;
@@ -35,11 +35,10 @@ public class DeadlineInterceptor : IInvoker
 
     /// <summary>Constructs a Deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="defaultTimeout">The default timeout. When not <see cref="Timeout.InfiniteTimeSpan" />, the
-    /// interceptor adds a deadline to requests without a deadline. Must be positive and must not exceed
-    /// <see cref="int.MaxValue" /> milliseconds (~24.8 days), the maximum supported by
-    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" />. <see cref="Timeout.InfiniteTimeSpan" /> is
-    /// also accepted and disables the default deadline behavior.</param>
+    /// <param name="defaultTimeout">The default timeout applied to requests without a deadline. Must be positive and
+    /// must not exceed <see cref="int.MaxValue" /> milliseconds (~24.8 days), the maximum supported by
+    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" />, or <see cref="Timeout.InfiniteTimeSpan" /> to
+    /// disable this behavior.</param>
     /// <param name="timeProvider">The optional time provider used to obtain the current time. If
     /// <see langword="null"/>, it uses <see cref="TimeProvider.System"/>.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
@@ -61,10 +60,10 @@ public class DeadlineInterceptor : IInvoker
                 nameof(defaultTimeout));
         }
 
-        if (defaultTimeout != Timeout.InfiniteTimeSpan && defaultTimeout > MaxCancelAfterDelay)
+        if (defaultTimeout != Timeout.InfiniteTimeSpan && defaultTimeout > _maxCancelAfterDelay)
         {
             throw new ArgumentException(
-                $"The {nameof(defaultTimeout)} value must not exceed {MaxCancelAfterDelay} or be Timeout.InfiniteTimeSpan.",
+                $"The {nameof(defaultTimeout)} value must not exceed {_maxCancelAfterDelay} or be Timeout.InfiniteTimeSpan.",
                 nameof(defaultTimeout));
         }
 
@@ -116,9 +115,9 @@ public class DeadlineInterceptor : IInvoker
         {
             // Clamp to CancelAfter's supported maximum. A caller-provided IDeadlineFeature value near
             // DateTime.MaxValue would otherwise cause CancelAfter to throw ArgumentOutOfRangeException.
-            if (timeout > MaxCancelAfterDelay)
+            if (timeout > _maxCancelAfterDelay)
             {
-                timeout = MaxCancelAfterDelay;
+                timeout = _maxCancelAfterDelay;
             }
 
             using var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

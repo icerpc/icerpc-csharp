@@ -12,13 +12,13 @@ namespace IceRpc.Deadline;
 /// <see cref="StatusCode.DeadlineExceeded" />.</summary>
 /// <remarks>A peer-encoded deadline whose computed remaining timeout exceeds the
 /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> maximum (~24.8 days) is silently clamped to that
-/// maximum. At this bound the deadline is effectively infinite for RPC purposes.</remarks>
+/// maximum.</remarks>
 /// <seealso cref="DeadlineRouterExtensions"/>
 /// <seealso cref="DeadlineDispatcherBuilderExtensions"/>
 public class DeadlineMiddleware : IDispatcher
 {
     // The maximum delay CancellationTokenSource.CancelAfter(TimeSpan) accepts.
-    private static readonly TimeSpan MaxCancelAfterDelay = TimeSpan.FromMilliseconds(int.MaxValue);
+    private static readonly TimeSpan _maxCancelAfterDelay = TimeSpan.FromMilliseconds(int.MaxValue);
 
     private readonly IDispatcher _next;
     private readonly TimeProvider _timeProvider;
@@ -56,9 +56,9 @@ public class DeadlineMiddleware : IDispatcher
             // Clamp to CancelAfter's supported maximum. A peer-encoded deadline thousands of years in the future
             // would otherwise cause CancelAfter to throw ArgumentOutOfRangeException, surfacing as a generic
             // InternalError response.
-            if (timeout > MaxCancelAfterDelay)
+            if (timeout > _maxCancelAfterDelay)
             {
-                timeout = MaxCancelAfterDelay;
+                timeout = _maxCancelAfterDelay;
             }
 
             request.Features = request.Features.With<IDeadlineFeature>(new DeadlineFeature(deadline));
