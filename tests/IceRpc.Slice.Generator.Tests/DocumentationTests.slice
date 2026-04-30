@@ -4,7 +4,7 @@ module IceRpc::Slice::Generator::Tests
 
 // This file contains Slice definitions for testing the mapping of doc comments
 
-// Typealiases used to test how doc comment links to a typealias are mapped to its underlying C# type:
+// Type aliases used to test how doc comment links to a typealias are mapped to its underlying C# type:
 // - UserName maps to a non-generic C# type (string), so links resolve to <see cref="string" />.
 // - UserList, UserMap, UserResult map to generic C# types, so inline @link is emitted as <c>...</c>
 //   (XML-escaped) and @see is skipped.
@@ -13,7 +13,7 @@ typealias UserList = Sequence<string>
 typealias UserMap = Dictionary<string, MySession>
 typealias UserResult = Result<MySession, string>
 
-/// Tests how doc comment links to typealiases are mapped to their underlying C# types.
+/// Tests how doc comment links to type aliases are mapped to their underlying C# types.
 /// The {@link UserName} alias maps to a non-generic type while {@link UserList},
 /// {@link UserMap}, and {@link UserResult} map to generic types.
 /// @see UserName
