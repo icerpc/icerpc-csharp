@@ -216,7 +216,7 @@ public class LocatorLocationResolver : ILocationResolver
         {
             serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(serverAddressFinder, serverAddressCache);
         }
-        serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder);
+        serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder, options.ResolveTimeout);
 
         _locationResolver = serverAddressCache is null ?
             new CacheLessLocationResolver(serverAddressFinder) :

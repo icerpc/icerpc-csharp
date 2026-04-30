@@ -20,10 +20,23 @@ public sealed record class LocatorOptions
     /// <value>The refresh threshold. Defaults to <c>1</c> second.</value>
     public TimeSpan RefreshThreshold { get; set; } = TimeSpan.FromSeconds(1);
 
+    /// <summary>Gets or sets the timeout for locator resolution. When multiple callers concurrently request the
+    /// same address, the locator interceptor sends a single request to the underlying locator; this timeout
+    /// starts when that request is issued and applies to all callers.</summary>
+    /// <value>The locator resolve timeout. Defaults to <c>10</c> seconds.</value>
+    public TimeSpan ResolveTimeout
+    {
+        get => _resolveTimeout;
+        set => _resolveTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ResolveTimeout)}", nameof(value));
+    }
+
     /// <summary>Gets or sets the time-to-live. This is the time period after which a cache entry is considered
     /// stale.</summary>
     /// <value>The time to live. Defaults to <see cref="Timeout.InfiniteTimeSpan" />, meaning the cache entries never
     /// become stale.
     /// </value>
     public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
+
+    private TimeSpan _resolveTimeout = TimeSpan.FromSeconds(10);
 }
