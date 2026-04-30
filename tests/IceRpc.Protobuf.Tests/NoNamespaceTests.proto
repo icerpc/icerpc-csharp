@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+// Intentionally has no `package` and no `option csharp_namespace`. The generator must emit valid C# in
+// this case (no `namespace ;` declaration; cross-namespace references use `global::Type` rather than
+// `global::.Type`).
+
+syntax = "proto3";
+
+service NoNamespaceOperations {
+    rpc UnaryOp(NoNamespaceMessage) returns (NoNamespaceMessage);
+}
+
+message NoNamespaceMessage {
+    string value = 1;
+}
