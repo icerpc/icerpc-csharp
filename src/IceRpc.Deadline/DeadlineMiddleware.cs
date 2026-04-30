@@ -38,8 +38,7 @@ public class DeadlineMiddleware : IDispatcher
         IncomingRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Check explicit field presence rather than relying on a decoded-value sentinel: a peer encoding ticks=0
-        // decodes to DateTime.MinValue, which would otherwise be indistinguishable from an absent field.
+        // Check explicit field presence rather than relying on a decoded-value sentinel.
         if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out ReadOnlySequence<byte> value))
         {
             DateTime deadline = value.DecodeSliceBuffer(
@@ -56,7 +55,7 @@ public class DeadlineMiddleware : IDispatcher
 
             // Clamp to CancelAfter's supported maximum. A peer-encoded deadline thousands of years in the future
             // would otherwise cause CancelAfter to throw ArgumentOutOfRangeException, surfacing as a generic
-            // InternalError response. At this bound the deadline is effectively infinite for RPC purposes.
+            // InternalError response.
             if (timeout > MaxCancelAfterDelay)
             {
                 timeout = MaxCancelAfterDelay;

@@ -48,11 +48,10 @@ public class DeadlineInterceptor : IInvoker
     /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
     /// </param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="defaultTimeout" /> is not
-    /// <see cref="Timeout.InfiniteTimeSpan" /> and is either non-positive or exceeds the maximum supported
-    /// value.</exception>
+    /// <see cref="Timeout.InfiniteTimeSpan" />, not positive, or exceeds the maximum supported value.</exception>
     /// <remarks>A request carrying an <see cref="IDeadlineFeature" /> whose computed remaining timeout exceeds
-    /// the <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> maximum is silently clamped to that
-    /// maximum at invocation time.</remarks>
+    /// the <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> maximum (~24.8 days) is silently clamped to
+    /// that maximum at invocation time.</remarks>
     public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline, TimeProvider? timeProvider = null)
     {
         if (defaultTimeout != Timeout.InfiniteTimeSpan && defaultTimeout <= TimeSpan.Zero)
@@ -116,8 +115,7 @@ public class DeadlineInterceptor : IInvoker
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
             // Clamp to CancelAfter's supported maximum. A caller-provided IDeadlineFeature value near
-            // DateTime.MaxValue would otherwise cause CancelAfter to throw ArgumentOutOfRangeException. At this
-            // bound the deadline is effectively infinite for RPC purposes.
+            // DateTime.MaxValue would otherwise cause CancelAfter to throw ArgumentOutOfRangeException.
             if (timeout > MaxCancelAfterDelay)
             {
                 timeout = MaxCancelAfterDelay;
