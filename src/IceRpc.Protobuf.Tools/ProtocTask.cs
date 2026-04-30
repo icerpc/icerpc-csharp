@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.CaseConverter.Internal;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System.Diagnostics;
@@ -12,14 +11,23 @@ namespace IceRpc.Protobuf.Tools;
 // Properties should not return arrays, disabled as this is standard for MSBuild tasks.
 #pragma warning disable CA1819
 
-/// <summary>A MSBuild task to generate code from Protobuf files using <c>protoc</c> C# built-in generator and
-/// <c>protoc-gen-icerpc-csharp</c> generator.</summary>
+/// <summary>An MSBuild task that runs <c>protoc</c> with a configurable set of plug-ins.</summary>
 public class ProtocTask : ToolTask
 {
-    /// <summary>Gets or sets the output directory for the generated code; corresponds to the
-    /// <c>--icerpc-csharp_out=</c> option of the <c>protoc</c> compiler.</summary>
+    /// <summary>Gets or sets additional options to pass verbatim to <c>protoc</c>.</summary>
+    public string[] AdditionalOptions { get; set; } = [];
+
+    /// <summary>Gets or sets the output directory shared by all configured plug-ins; corresponds to the
+    /// <c>--&lt;name&gt;_out=</c> option of the <c>protoc</c> compiler.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
+
+    /// <summary>Gets or sets the protoc plug-ins to run. Each item's <c>Identity</c> is the plug-in name (for example
+    /// <c>csharp</c>, <c>icerpc-csharp</c>, <c>icerpc-build-telemetry</c>). The <c>Path</c> metadata, when not empty,
+    /// is the full path to the plug-in script and is passed via <c>--plugin protoc-gen-&lt;name&gt;=&lt;path&gt;</c>;
+    /// an empty <c>Path</c> indicates a protoc built-in such as <c>csharp</c>.</summary>
+    [Required]
+    public ITaskItem[] Plugins { get; set; } = [];
 
     /// <summary>Gets or sets the directories in which to search for imports, corresponds to <c>-I</c> protoc compiler
     /// option.</summary>
@@ -33,18 +41,6 @@ public class ProtocTask : ToolTask
     /// <summary>Gets or sets the directory containing the protoc compiler.</summary>
     [Required]
     public string ToolsPath { get; set; } = "";
-
-    /// <summary>Gets or sets the directory containing the protoc-gen-icerpc-csharp scripts.</summary>
-    [Required]
-    public string GenPath { get; set; } = "";
-
-    /// <summary>Gets or sets the directory containing the protoc-gen-icerpc-build-telemetry scripts.</summary>
-    [Required]
-    public string BuildTelemetryPath { get; set; } = "";
-
-    /// <summary>Gets or sets a value indicating whether to run the build telemetry plug-in.</summary>
-    [Required]
-    public bool RunBuildTelemetry { get; set; }
 
     /// <summary>Gets or sets the working directory for executing the protoc compiler from.</summary>
     [Required]
@@ -63,44 +59,31 @@ public class ProtocTask : ToolTask
     {
         var builder = new CommandLineBuilder(false);
 
-        // Specify the full path to the protoc-gen-icerpc-csharp script.
-
-        string genScriptName =
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-                "protoc-gen-icerpc-csharp.bat" : "protoc-gen-icerpc-csharp.sh";
-        builder.AppendSwitch("--plugin");
-        builder.AppendFileNameIfNotNull($"protoc-gen-icerpc-csharp={Path.Combine(GenPath, genScriptName)}");
-
-        // Add --csharp_out to generate Protobuf C# code
-        builder.AppendSwitch("--csharp_out");
-        builder.AppendFileNameIfNotNull(OutputDir);
-
-        // Add --icerpc-csharp_out to generate IceRPC + Protobuf integration code
-        builder.AppendSwitch("--icerpc-csharp_out");
-        builder.AppendFileNameIfNotNull(OutputDir);
-
-        if (RunBuildTelemetry)
+        // Register and enable each plug-in.
+        foreach (ITaskItem plugin in Plugins)
         {
-            // Enable build telemetry
-            string buildTelemetryScriptName =
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-                    "protoc-gen-icerpc-build-telemetry.bat" : "protoc-gen-icerpc-build-telemetry.sh";
+            string name = plugin.ItemSpec;
+            string pluginPath = plugin.GetMetadata("Path");
 
-            // Specify the full path to the protoc-gen-icerpc-build-telemetry script.
-            builder.AppendSwitch("--plugin");
-            builder.AppendFileNameIfNotNull(
-                $"protoc-gen-icerpc-build-telemetry={Path.Combine(BuildTelemetryPath, buildTelemetryScriptName)}");
+            if (!string.IsNullOrEmpty(pluginPath))
+            {
+                builder.AppendSwitch("--plugin");
+                builder.AppendFileNameIfNotNull($"protoc-gen-{name}={pluginPath}");
+            }
 
-            // Add --icerpc-build-telemetry_out to enable build telemetry, even though the build telemetry plug-in
-            // doesn't need to generate any output files.
-            builder.AppendSwitch("--icerpc-build-telemetry_out");
+            builder.AppendSwitch($"--{name}_out");
             builder.AppendFileNameIfNotNull(OutputDir);
+        }
+
+        foreach (string option in AdditionalOptions)
+        {
+            builder.AppendTextUnquoted(" ");
+            builder.AppendTextUnquoted(option);
         }
 
         var searchPath = new List<string>(SearchPath);
 
-        // Add the sources directories to the import search path
-        var computedSources = new List<ITaskItem>();
+        // Add the sources directories to the import search path.
         foreach (ITaskItem source in Sources)
         {
             string fullPath = source.GetMetadata("FullPath");
@@ -109,14 +92,8 @@ public class ProtocTask : ToolTask
             {
                 searchPath.Add(directory);
             }
-
-            // Add dependency_out to generate dependency files
-            builder.AppendSwitch("--dependency_out");
-            builder.AppendFileNameIfNotNull(
-                Path.Combine(OutputDir, $"{source.GetMetadata("FileName").ToPascalCase()}.d"));
         }
 
-        // Add protoc searchPath paths
         foreach (string path in searchPath)
         {
             builder.AppendSwitch("-I");
