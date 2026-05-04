@@ -92,7 +92,8 @@ internal static class DocCommentFormatter
         if (entity is TypeAlias alias)
         {
             // Type aliases don't generate a C# type; link to the underlying C# type instead.
-            string mapped = alias.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] ?? alias.UnderlyingType.Type.ToTypeString(currentNamespace);
+            string mapped = alias.UnderlyingType.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0]
+                ?? alias.UnderlyingType.Type.ToTypeString(currentNamespace);
             return FormatTypeString(mapped);
         }
 
