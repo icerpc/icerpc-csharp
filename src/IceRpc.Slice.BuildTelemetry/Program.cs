@@ -73,8 +73,7 @@ static async Task<GeneratorResponse> BuildResponseAsync(
 
     string responseContent = await UploadTelemetryAsync(sliceTelemetryData);
 
-    string fileName = compilationHash.Length >= 8 ?
-        $"{compilationHash[..8]}.icerpc_build_telemetry.txt" : "icerpc_build_telemetry.txt";
+    string fileName = "icerpc_build_telemetry.txt";
 
     return new GeneratorResponse
     {
