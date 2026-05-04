@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using ZeroC.Slice.Symbols;
 
-// slicec executes this program as a generator plug-in. It writes the serialized generator request to the
+// The slicec compiler executes this program as a generator plug-in. It writes the serialized generator request to the
 // plug-in's standard input and expects a serialized generator response on standard output.
 
 using Stream stdin = Console.OpenStandardInput();
@@ -34,7 +34,8 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         return new GeneratorResponse { GeneratedFiles = [], Diagnostics = [] };
     }
 
-    byte[] hashBytes = [];
+    using var fileHashes = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+    int hashedFileCount = 0;
 
     foreach (SliceFile file in symbolFiles)
     {
@@ -48,9 +49,11 @@ static async Task<GeneratorResponse> BuildResponseAsync(
             continue;
         }
 
-        byte[] newHash = SHA256.HashData(content);
-        hashBytes = hashBytes.Length == 0 ? newHash : SHA256.HashData(newHash.Concat(hashBytes).ToArray());
+        fileHashes.AppendData(SHA256.HashData(content));
+        hashedFileCount++;
     }
+
+    byte[] hashBytes = hashedFileCount == 0 ? [] : fileHashes.GetHashAndReset();
 
     // Determine the IceRPC version using the assembly version.
     var assembly = Assembly.GetExecutingAssembly();
@@ -115,12 +118,7 @@ static async Task<string> UploadTelemetryAsync(SliceTelemetryData data)
     }
     catch (Exception ex)
     {
-        string message = ex.Message;
-        if (ex.InnerException is not null)
-        {
-            message += $"\n  Inner exception: {ex.InnerException.Message}";
-        }
-        return $"Failed to report build telemetry to {uri}: {message}";
+        return $"Failed to report build telemetry to {uri}: {ex}";
     }
 }
 
