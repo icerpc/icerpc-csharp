@@ -57,8 +57,8 @@ public class LocatorInterceptor : IInvoker
             }
             else if (serverAddressFeature.ServerAddress is null)
             {
-                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ?
-                    new Location { IsAdapterId = true, Value = adapterId } :
+                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId) ?
+                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) } :
                     new Location { Value = request.ServiceAddress.Path };
             }
             // else it could be a retry where the first attempt provided non-cached server address(es)
@@ -108,13 +108,17 @@ public class LocatorInterceptor : IInvoker
             ServiceAddress serviceAddress,
             IEnumerable<ServerAddress> excludedAddresses)
         {
+            // Use the ServerAddressComparer.OptionalTransport comparer so the filter matches the connection layer's
+            // equality.
             (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) result =
                 (serviceAddress.ServerAddress, serviceAddress.AltServerAddresses);
-            if (result.ServerAddress is ServerAddress serverAddress && excludedAddresses.Contains(serverAddress))
+            if (result.ServerAddress is ServerAddress serverAddress &&
+                excludedAddresses.Contains(serverAddress, ServerAddressComparer.OptionalTransport))
             {
                 result.ServerAddress = null;
             }
-            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(e => excludedAddresses.Contains(e));
+            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(
+                e => excludedAddresses.Contains(e, ServerAddressComparer.OptionalTransport));
 
             if (result.ServerAddress is null && result.AltServerAddresses.Count > 0)
             {
@@ -212,7 +216,7 @@ public class LocatorLocationResolver : ILocationResolver
         {
             serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(serverAddressFinder, serverAddressCache);
         }
-        serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder);
+        serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder, options.ResolveTimeout);
 
         _locationResolver = serverAddressCache is null ?
             new CacheLessLocationResolver(serverAddressFinder) :
@@ -221,7 +225,8 @@ public class LocatorLocationResolver : ILocationResolver
                 serverAddressCache,
                 options.Background,
                 options.RefreshThreshold,
-                options.Ttl);
+                options.Ttl,
+                logger);
         if (logger != NullLogger.Instance)
         {
             _locationResolver = new LogLocationResolverDecorator(_locationResolver, logger);

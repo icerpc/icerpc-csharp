@@ -58,7 +58,12 @@ internal class IceServiceMethod : ServiceMethod
         var codeBlock = new CodeBlock();
         if (!_idempotent)
         {
-            codeBlock.WriteLine("IceRpc.Ice.Operations.IncomingRequestExtensions.CheckNonIdempotent(request);");
+            codeBlock.AddBlock(@"if (request.Fields.ContainsKey(IceRpc.RequestFieldKey.Idempotent))
+{
+    throw new IceRpc.DispatchException(
+        IceRpc.StatusCode.InvalidData,
+        $""Invocation mode mismatch for operation '{request.Operation}': received idempotent field for an operation not marked as idempotent."");
+}");
         }
 
         string thisInterface = $"((global::{_fullInterfaceName})this)";

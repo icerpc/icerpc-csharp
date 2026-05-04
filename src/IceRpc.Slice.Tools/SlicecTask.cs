@@ -103,9 +103,17 @@ public class SlicecTask : ToolTask
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {
-        if (JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions) is Diagnostic diagnostic)
+        try
         {
+            if (JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions) is not Diagnostic diagnostic)
+            {
+                // The JSON was the literal "null"; treat it as a non-diagnostic line.
+                Log.LogError(singleLine);
+                return;
+            }
+
             diagnostic.SourceSpan ??= new SourceSpan();
+            diagnostic.Notes ??= Array.Empty<Note>();
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
                 diagnostic.Message,
@@ -129,6 +137,12 @@ public class SlicecTask : ToolTask
                     MessageImportance.High,
                     note.Message);
             }
+        }
+        catch (JsonException)
+        {
+            // The slicec compiler produced a line that isn't valid JSON (for example a panic message).
+            // Surface it as a regular error so the build output still shows the underlying problem.
+            Log.LogError(singleLine);
         }
 
         void LogSliceCompilerDiagnostic(

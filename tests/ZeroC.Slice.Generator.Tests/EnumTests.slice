@@ -32,3 +32,21 @@ unchecked enum MyUncheckedEnum : uint32 {
 }
 
 unchecked enum MyVarInt62Alias : varint62 {}
+
+// Sparse enums whose declared min/max span the full underlying range. Exercises both the BigInteger-based
+// contiguity test (must classify these as sparse → HashSet validation) and the checked casts in the
+// symbol converter (boundary values must round-trip without overflow).
+enum MyInt8BoundaryEnum : int8 {
+    Min = -128
+    Max = 127
+}
+
+enum MyInt32BoundaryEnum : int32 {
+    Min = -2147483648
+    Max = 2147483647
+}
+
+enum MyInt64BoundaryEnum : int64 {
+    Min = -9223372036854775808
+    Max = 9223372036854775807
+}

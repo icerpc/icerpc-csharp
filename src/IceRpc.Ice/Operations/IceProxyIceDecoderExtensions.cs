@@ -98,7 +98,7 @@ public static class IceProxyIceDecoderExtensions
                         break;
 
                     case TransportCode.Uri:
-                        serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                        serverAddress = DecodeUriServerAddress(decoder.DecodeString());
                         if (serverAddress.Value.Protocol != protocol)
                         {
                             throw new InvalidDataException(
@@ -124,7 +124,7 @@ public static class IceProxyIceDecoderExtensions
                             decoder.CopyTo(span);
                             string value = Convert.ToBase64String(span);
                             builder.Add("v", value);
-                            decoder.IncreaseCollectionAllocation(value.Length * Unsafe.SizeOf<char>());
+                            decoder.IncreaseCollectionAllocation(value.Length, Unsafe.SizeOf<char>());
                         }
 
                         serverAddress = new ServerAddress(
@@ -139,7 +139,7 @@ public static class IceProxyIceDecoderExtensions
             else if (transportCode == TransportCode.Uri)
             {
                 // The server addresses of an Ice-encoded icerpc proxies only use TransportCode.Uri.
-                serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                serverAddress = DecodeUriServerAddress(decoder.DecodeString());
                 if (serverAddress.Value.Protocol != protocol)
                 {
                     throw new InvalidDataException(
@@ -208,7 +208,7 @@ public static class IceProxyIceDecoderExtensions
         {
             if (decoder.DecodeString() is string adapterId && adapterId.Length > 0)
             {
-                serviceAddressParams = serviceAddressParams.Add("adapter-id", adapterId);
+                serviceAddressParams = serviceAddressParams.Add("adapter-id", Uri.EscapeDataString(adapterId));
             }
         }
         else
@@ -218,7 +218,7 @@ public static class IceProxyIceDecoderExtensions
             {
                 // An Ice-encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
                 // bytes for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
-                decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
+                decoder.IncreaseCollectionAllocation(count, Unsafe.SizeOf<ServerAddress>());
 
                 var serverAddressArray = new ServerAddress[count - 1];
                 for (int i = 0; i < count - 1; ++i)
@@ -251,6 +251,21 @@ public static class IceProxyIceDecoderExtensions
         catch (Exception exception)
         {
             throw new InvalidDataException("Received invalid service address.", exception);
+        }
+    }
+
+    /// <summary>Decodes a server address from its URI string representation.</summary>
+    private static ServerAddress DecodeUriServerAddress(string uriString)
+    {
+        try
+        {
+            return new ServerAddress(new Uri(uriString));
+        }
+        catch (Exception exception) when (exception is UriFormatException or ArgumentException)
+        {
+            throw new InvalidDataException(
+                $"Received invalid server address URI '{uriString}'.",
+                exception);
         }
     }
 

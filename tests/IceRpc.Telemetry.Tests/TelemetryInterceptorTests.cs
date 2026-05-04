@@ -4,6 +4,7 @@ using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Telemetry.Tests;
 
@@ -99,6 +100,82 @@ public sealed class TelemetryInterceptorTests
         var baggage = decodedActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);
         Assert.That(baggage["foo"], Is.EqualTo("bar"));
+    }
+
+    /// <summary>Verifies that an activity carrying more baggage entries than the maximum allowed is clipped
+    /// during encoding, so a forwarding chain cannot amplify entry count across hops.</summary>
+    [Test]
+    public void Outgoing_baggage_is_clipped_to_maximum()
+    {
+        // Arrange
+        using var activity = new Activity("/hello/Op");
+        for (int i = 0; i < TelemetryInterceptor.MaxBaggageEntries + 10; i++)
+        {
+            activity.AddBaggage($"key{i}", $"value{i}");
+        }
+        activity.Start();
+
+        var pipe = new Pipe();
+        var encoder = new SliceEncoder(pipe.Writer);
+
+        // Act
+        TelemetryInterceptor.WriteActivityContext(ref encoder, activity);
+        pipe.Writer.Complete();
+
+        // Assert
+        pipe.Reader.TryRead(out ReadResult readResult);
+        using var decodedActivity = new Activity("/op");
+        TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, decodedActivity);
+        Assert.That(decodedActivity.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
+
+        pipe.Reader.Complete();
+    }
+
+    /// <summary>Verifies that the interceptor forces W3C activity ID format even when the process-wide default is
+    /// <c>Hierarchical</c>, and that the trace context field can be encoded and decoded successfully.</summary>
+    /// <remarks>Marked <c>NonParallelizable</c> because it mutates <see cref="Activity.DefaultIdFormat" />, a
+    /// process-wide setting; running it concurrently with other tests that create activities would make their
+    /// observed ID format non-deterministic.</remarks>
+    [Test]
+    [NonParallelizable]
+    public async Task Invocation_uses_w3c_format_regardless_of_process_default()
+    {
+        // Arrange
+        ActivityIdFormat previousDefault = Activity.DefaultIdFormat;
+        Activity.DefaultIdFormat = ActivityIdFormat.Hierarchical;
+        try
+        {
+            Activity? invocationActivity = null;
+            Activity? decodedActivity = null;
+            var invoker = new InlineInvoker((request, cancellationToken) =>
+            {
+                invocationActivity = Activity.Current;
+                decodedActivity = DecodeTraceContextField(request.Fields, request.Operation);
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
+            });
+
+            using var activitySource = new ActivitySource("Test Activity Source");
+            using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
+
+            var sut = new TelemetryInterceptor(invoker, activitySource);
+            using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+            {
+                Operation = "Op"
+            };
+
+            // Act
+            await sut.InvokeAsync(request, default);
+
+            // Assert
+            Assert.That(invocationActivity, Is.Not.Null);
+            Assert.That(invocationActivity!.IdFormat, Is.EqualTo(ActivityIdFormat.W3C));
+            Assert.That(decodedActivity, Is.Not.Null);
+            Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity.Id));
+        }
+        finally
+        {
+            Activity.DefaultIdFormat = previousDefault;
+        }
     }
 
     private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)

@@ -38,6 +38,18 @@ interface MyOperationsA {
     // cancel and features as regular parameter names
     opWithSpecialParameterNames(cancel: int32, features: int32)
 
+    // cancellationToken as regular parameter name (collides with the injected cancellationToken parameter)
+    opWithCancellationTokenParameter(cancellationToken: int32)
+
+    // encodeOptions as regular parameter name (collides with the injected encodeOptions parameter on Request.Encode*)
+    opWithEncodeOptionsParameter(encodeOptions: int32)
+
+    // encodeOptions as regular return name (collides with the injected encodeOptions parameter on Response.Encode*)
+    opWithEncodeOptionsReturn() -> (r1: int32, encodeOptions: int32)
+
+    // payload as streamed return name with cs::encodedReturn (collides with the synthetic Payload tuple element)
+    [cs::encodedReturn] opWithPayloadStreamReturn() -> (r1: Sequence<int32>, payload: stream int32)
+
     // Encoded return
     [cs::encodedReturn] opWithSingleReturnValueAndEncodedReturnAttribute() -> Sequence<int32>
     [cs::encodedReturn] opWithMultipleReturnValuesAndEncodedReturnAttribute() -> (r1: Sequence<int32>, r2: Sequence<int32>)

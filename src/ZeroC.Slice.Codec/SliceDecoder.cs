@@ -48,13 +48,14 @@ public ref partial struct SliceDecoder
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
-    /// length.</param>
+    /// length, clamped to <see cref="int.MaxValue" />.</param>
     public SliceDecoder(ReadOnlySequence<byte> buffer, object? decodingContext = null, int maxCollectionAllocation = -1)
     {
         DecodingContext = decodingContext;
 
         _currentCollectionAllocation = 0;
-        _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
+        _maxCollectionAllocation = maxCollectionAllocation == -1 ?
+            (buffer.Length > int.MaxValue / 8 ? int.MaxValue : (int)(8L * buffer.Length)) :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                 throw new ArgumentException(
                     $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
@@ -68,7 +69,7 @@ public ref partial struct SliceDecoder
     /// <param name="decodingContext">The decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
-    /// length.</param>
+    /// length, clamped to <see cref="int.MaxValue" />.</param>
     public SliceDecoder(ReadOnlyMemory<byte> buffer, object? decodingContext = null, int maxCollectionAllocation = -1)
         : this(new ReadOnlySequence<byte>(buffer), decodingContext, maxCollectionAllocation)
     {
@@ -165,6 +166,10 @@ public ref partial struct SliceDecoder
         }
         else
         {
+            // In the worst-case scenario, each byte becomes a new character. We'll adjust this allocation increase
+            // after decoding the string.
+            IncreaseCollectionAllocation(size, Unsafe.SizeOf<char>());
+
             string result;
             if (_reader.UnreadSpan.Length >= size)
             {
@@ -202,9 +207,8 @@ public ref partial struct SliceDecoder
 
             _reader.Advance(size);
 
-            // We can only compute the new allocation _after_ decoding the string. For dictionaries and sequences,
-            // we perform this check before the allocation.
-            IncreaseCollectionAllocation(result.Length * Unsafe.SizeOf<char>());
+            // Make the adjustment. The overall increase in allocation is result.Length * SizeOf<char>().
+            DecreaseCollectionAllocation(size - result.Length, Unsafe.SizeOf<char>());
             return result;
         }
     }
@@ -412,6 +416,10 @@ public ref partial struct SliceDecoder
         }
 
         int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
+        if (_reader.Remaining < size)
+        {
+            throw new InvalidDataException(EndOfBufferMessage);
+        }
         ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
         _reader.Advance(size);
         Debug.Assert(bitSequence.Length == size);
@@ -419,18 +427,24 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
-    /// <param name="byteCount">The number of bytes to add.</param>
-    /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
-    /// allocation.</exception>
+    /// <param name="count">The number of elements.</param>
+    /// <param name="elementSize">The size of each element in bytes.</param>
     /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, object?, int)" />
-    public void IncreaseCollectionAllocation(int byteCount)
+    public void IncreaseCollectionAllocation(int count, int elementSize)
     {
-        _currentCollectionAllocation += byteCount;
-        if (_currentCollectionAllocation > _maxCollectionAllocation)
+        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
+        Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
+
+        // Widen count to long to avoid overflow when multiplying by elementSize.
+        long byteCount = (long)count * elementSize;
+
+        int remainingAllocation = _maxCollectionAllocation - _currentCollectionAllocation;
+        if (byteCount > remainingAllocation)
         {
             throw new InvalidDataException(
                 $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
         }
+        _currentCollectionAllocation += (int)byteCount;
     }
 
     /// <summary>Skip the given number of bytes.</summary>
@@ -467,6 +481,21 @@ public ref partial struct SliceDecoder
 
     // Applies to all var type: varint62, varuint62 etc.
     internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
+
+    /// <summary>Decreases the number of bytes in the decoder's collection allocation.</summary>
+    /// <param name="count">The number of elements.</param>
+    /// <param name="elementSize">The size of each element in bytes.</param>
+    private void DecreaseCollectionAllocation(int count, int elementSize)
+    {
+        Debug.Assert(count >= 0, $"{nameof(count)} must be greater than or equal to 0.");
+        Debug.Assert(elementSize > 0, $"{nameof(elementSize)} must be greater than 0.");
+
+        // Widen count to long to avoid overflow when multiplying by elementSize.
+        long byteCount = (long)count * elementSize;
+
+        Debug.Assert(byteCount <= _currentCollectionAllocation, "Decreasing more than the current collection allocation.");
+        _currentCollectionAllocation -= (int)byteCount;
+    }
 
     private readonly byte PeekByte() =>
         _reader.TryPeek(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);

@@ -11,21 +11,6 @@ namespace IceRpc.Ice.Operations;
 /// </summary>
 public static class IncomingRequestExtensions
 {
-    /// <summary>The generated code calls this method to ensure that when an operation is not declared idempotent,
-    /// the request is not marked idempotent. If the request is marked idempotent, it means the caller incorrectly
-    /// believes this operation is idempotent.</summary>
-    /// <param name="request">The request to check.</param>
-    /// <exception cref="InvalidDataException">Thrown if the request contains the <see cref="RequestFieldKey.Idempotent"/>
-    /// field.</exception>
-    public static void CheckNonIdempotent(this IncomingRequest request)
-    {
-        if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
-        {
-            throw new InvalidDataException(
-                $"Invocation mode mismatch for operation '{request.Operation}': received idempotent field for an operation not marked as idempotent.");
-        }
-    }
-
     /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with an Ice
     /// exception payload.</summary>
     /// <param name="request">The incoming request.</param>
@@ -46,7 +31,12 @@ public static class IncomingRequestExtensions
             iceException.Encode(ref encoder);
             pipe.Writer.Complete();
 
-            return new OutgoingResponse(request, StatusCode.ApplicationError, GetErrorMessage(iceException))
+            // By default, the generated Ice exceptions don't set a custom message and don't support setting an inner
+            // exception. However, Message can still be overridden, so the value transmitted over icerpc is whatever
+            // iceException.Message returns.
+            // The icerpc client uses this message when it can't decode the Ice exception. See
+            // IceDecoder.DecodeException for more details.
+            return new OutgoingResponse(request, StatusCode.ApplicationError, iceException.Message)
             {
                 Payload = pipe.Reader
             };
@@ -218,11 +208,4 @@ public static class IncomingRequestExtensions
             return request.CreateIceExceptionResponse(iceException);
         }
     }
-
-    // The error message includes the inner exception type and message because we don't transmit this inner exception
-    // with the response.
-    private static string GetErrorMessage(IceException exception) =>
-        exception.InnerException is Exception innerException ?
-            $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
-            exception.Message;
 }

@@ -62,8 +62,14 @@ internal class SliceServiceMethod : ServiceMethod
         var codeBlock = new CodeBlock();
         if (!_idempotent)
         {
-            codeBlock.WriteLine("IceRpc.Slice.Operations.IncomingRequestExtensions.CheckNonIdempotent(request);");
+            codeBlock.AddBlock(@"if (request.Fields.ContainsKey(IceRpc.RequestFieldKey.Idempotent))
+{
+    throw new IceRpc.DispatchException(
+        IceRpc.StatusCode.InvalidData,
+        $""Invocation mode mismatch for operation '{request.Operation}': received idempotent field for an operation not marked as idempotent."");
+}");
         }
+
         if (_compressReturn)
         {
             FunctionCallBuilder withCallBuilder =

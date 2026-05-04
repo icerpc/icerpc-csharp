@@ -20,6 +20,9 @@ module IceRpc::Ice::Generator::Tests
         // idempotent operation
         idempotent void idempotentOp();
 
+        // Oneway operation
+        ["oneway"] void opWithOnewayAttribute(int p);
+
         // cancel and features as regular parameter names
         void opWithSpecialParameterNames(int cancel, int features);
 

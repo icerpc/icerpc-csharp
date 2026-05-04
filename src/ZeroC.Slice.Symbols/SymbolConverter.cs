@@ -14,7 +14,7 @@ internal sealed class SymbolConverter
         IEnumerable<Compiler.SliceFile> referenceFiles)
     {
         var converter = new SymbolConverter(sourceFiles.Concat(referenceFiles));
-        return sourceFiles.Select(converter.ConvertFile).ToImmutableList();
+        return [.. sourceFiles.Select(converter.ConvertFile)];
     }
 
     private static readonly Dictionary<string, Builtin> _builtins = new(StringComparer.Ordinal)
@@ -54,17 +54,30 @@ internal sealed class SymbolConverter
             {
                 if (GetNamedIdentifier(symbol) is string id)
                 {
-                    _named.TryAdd($"{moduleScope}::{id}", (file, symbol));
+                    // Scoped IDs are guaranteed to be unique by the compiler, we can safely use them as dictionary keys.
+                    _named.Add($"{moduleScope}::{id}", (file, symbol));
                 }
             }
         }
 
-        // Convert all named symbols in dependency order to fully populate _cache.
+        // Phase 1: convert all named symbols in dependency order. Doc-comment links are recorded as
+        // UnresolvedCommentLink and resolved in phase 2 — eager resolution here would miss any reference
+        // that targets a symbol not yet in _cache (forward references, self-references, or cycles between
+        // entities that aren't related by type dependencies).
         foreach (string typeId in TopologicalSort())
         {
             (Compiler.SliceFile file, Compiler.Symbol symbol) = _named[typeId];
             Module module = ConvertModule(file.ModuleDeclaration);
             _cache[typeId] = ConvertSymbol(symbol, file, module);
+        }
+
+        // Phase 2: resolve doc-comment links now that the symbol table is fully populated.
+        foreach (ISymbol symbol in _cache.Values)
+        {
+            if (symbol is Entity entity)
+            {
+                ResolveEntityComments(entity);
+            }
         }
     }
 
@@ -73,7 +86,7 @@ internal sealed class SymbolConverter
         string moduleScope = file.ModuleDeclaration.Identifier;
         Module module = ConvertModule(file.ModuleDeclaration);
 
-        var contents = ImmutableList.CreateBuilder<ISymbol>();
+        ImmutableList<ISymbol>.Builder contents = ImmutableList.CreateBuilder<ISymbol>();
         for (int i = 0; i < file.Contents.Count; i++)
         {
             Compiler.Symbol raw = file.Contents[i];
@@ -143,7 +156,7 @@ internal sealed class SymbolConverter
         foreach ((string typeId, (Compiler.SliceFile file, Compiler.Symbol symbol)) in _named)
         {
             var deps = new HashSet<string>(StringComparer.Ordinal);
-            CollectNamedTypeIds(symbol, file, deps);
+            CollectDependencies(symbol, file, deps);
             pending[typeId] = deps;
         }
 
@@ -179,7 +192,7 @@ internal sealed class SymbolConverter
 
         return sorted;
 
-        void CollectNamedTypeIds(Compiler.Symbol symbol, Compiler.SliceFile file, HashSet<string> result)
+        void CollectDependencies(Compiler.Symbol symbol, Compiler.SliceFile file, HashSet<string> result)
         {
             IEnumerable<string> typeIds = symbol switch
             {
@@ -203,7 +216,7 @@ internal sealed class SymbolConverter
                 else if (int.TryParse(typeId, out int index))
                 {
                     // Anonymous type — recurse to collect any named types it references.
-                    CollectNamedTypeIds(file.Contents[index], file, result);
+                    CollectDependencies(file.Contents[index], file, result);
                 }
                 // else: builtin, ignore.
             }
@@ -309,7 +322,7 @@ internal sealed class SymbolConverter
         return result;
     }
 
-    private ISymbol ConvertBasicEnum(Compiler.BasicEnum raw, Module module)
+    private static ISymbol ConvertBasicEnum(Compiler.BasicEnum raw, Module module)
     {
         Builtin builtin = _builtins[raw.Underlying];
         return builtin.Kind switch
@@ -318,44 +331,48 @@ internal sealed class SymbolConverter
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
+                (abs, isNegative) => checked((sbyte)(isNegative ? -(long)abs : (long)abs))),
             BuiltinKind.UInt8 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, _) => (byte)abs),
+                (abs, _) => checked((byte)abs)),
             BuiltinKind.Int16 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
+                (abs, isNegative) => checked((short)(isNegative ? -(long)abs : (long)abs))),
             BuiltinKind.UInt16 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, _) => (ushort)abs),
+                (abs, _) => checked((ushort)abs)),
             BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
+                (abs, isNegative) => checked((int)(isNegative ? -(long)abs : (long)abs))),
             BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, _) => (uint)abs),
+                (abs, _) => checked((uint)abs)),
             BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
+                // slicec's descriptor format reports each enumerator as (AbsoluteValue: ulong, HasNegativeValue: bool).
+                // long.MinValue's absolute value is 2^63, which doesn't fit in long — handle it explicitly so the
+                // checked cast below doesn't throw on a legitimate value.
+                (abs, isNegative) => isNegative
+                    ? (abs == (ulong)long.MaxValue + 1 ? long.MinValue : checked(-(long)abs))
+                    : checked((long)abs)),
             BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
                 (abs, _) => abs),
-            _ => throw new InvalidOperationException(
-                $"Unsupported enum underlying type: {builtin.Kind}"),
+            _ => throw new InvalidOperationException($"Unsupported enum underlying type: {builtin.Kind}"),
         };
     }
 
@@ -369,15 +386,17 @@ internal sealed class SymbolConverter
             Module = module,
             IsCompact = raw.IsCompact,
             IsUnchecked = raw.IsUnchecked,
-            Variants = raw.Variants.Select(v => new VariantEnum.Variant
-            {
-                Identifier = v.EntityInfo.Identifier,
-                Attributes = ConvertAttributes(v.EntityInfo.Attributes),
-                Comment = ConvertComment(v.EntityInfo.Comment),
-                Module = module,
-                Discriminant = v.Discriminant,
-                Fields = v.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
-            }).ToImmutableList(),
+            Variants = [
+                .. raw.Variants.Select(v => new VariantEnum.Variant
+                {
+                    Identifier = v.EntityInfo.Identifier,
+                    Attributes = ConvertAttributes(v.EntityInfo.Attributes),
+                    Comment = ConvertComment(v.EntityInfo.Comment),
+                    Module = module,
+                    Discriminant = v.Discriminant,
+                    Fields = v.Fields.Select(f => ConvertField(f, file, module)).ToImmutableList(),
+                })
+            ],
         };
         SetParent(result, result.Variants);
         foreach (VariantEnum.Variant variant in result.Variants)
@@ -395,10 +414,7 @@ internal sealed class SymbolConverter
             Attributes = ConvertAttributes(raw.EntityInfo.Attributes),
             Comment = ConvertComment(raw.EntityInfo.Comment),
             Module = module,
-            Bases = raw.Bases
-                .Select(baseId => ResolveNamedSymbol(baseId))
-                .OfType<Interface>()
-                .ToImmutableList(),
+            Bases = [.. raw.Bases.Select(ResolveNamedSymbol).OfType<Interface>()],
             Operations = raw.Operations.Select(op => ConvertOperation(op, file, module)).ToImmutableList(),
         };
         SetParent(result, result.Operations);
@@ -427,7 +443,7 @@ internal sealed class SymbolConverter
         return result;
     }
 
-    private BasicEnum<T> CreateBasicEnum<T>(
+    private static BasicEnum<T> CreateBasicEnum<T>(
         Compiler.BasicEnum raw,
         Module module,
         Builtin builtin,
@@ -441,14 +457,16 @@ internal sealed class SymbolConverter
             Module = module,
             IsUnchecked = raw.IsUnchecked,
             Underlying = builtin,
-            Enumerators = raw.Enumerators.Select(e => new BasicEnum<T>.Enumerator
-            {
-                Identifier = e.EntityInfo.Identifier,
-                Attributes = ConvertAttributes(e.EntityInfo.Attributes),
-                Comment = ConvertComment(e.EntityInfo.Comment),
-                Module = module,
-                Value = toValue(e.AbsoluteValue, e.HasNegativeValue),
-            }).ToImmutableList(),
+            Enumerators = [
+                .. raw.Enumerators.Select(e => new BasicEnum<T>.Enumerator
+                {
+                    Identifier = e.EntityInfo.Identifier,
+                    Attributes = ConvertAttributes(e.EntityInfo.Attributes),
+                    Comment = ConvertComment(e.EntityInfo.Comment),
+                    Module = module,
+                    Value = toValue(e.AbsoluteValue, e.HasNegativeValue),
+                })
+            ],
         };
         SetParent(result, result.Enumerators);
         return result;
@@ -486,13 +504,15 @@ internal sealed class SymbolConverter
     }
 
     private static ImmutableList<Attribute> ConvertAttributes(IList<Compiler.Attribute> raw) =>
-        raw.Select(a => new Attribute
-        {
-            Directive = a.Directive,
-            Args = [.. a.Args],
-        }).ToImmutableList();
+        [
+            .. raw.Select(a => new Attribute
+            {
+                Directive = a.Directive,
+                Args = [.. a.Args],
+            })
+        ];
 
-    private Comment? ConvertComment(Compiler.DocComment? raw)
+    private static Comment? ConvertComment(Compiler.DocComment? raw)
     {
         if (raw is null)
         {
@@ -502,18 +522,86 @@ internal sealed class SymbolConverter
         var overview = raw.Value.Overview.Select<Compiler.MessageComponent, CommentMessageComponent>(c => c switch
         {
             Compiler.MessageComponent.Text t => new CommentText(t.V),
-            Compiler.MessageComponent.Link l => new CommentInlineLink(ResolveLink(l.V)),
+            Compiler.MessageComponent.Link l => new CommentInlineLink(new UnresolvedCommentLink(l.V)),
             _ => throw new InvalidOperationException($"Unknown MessageComponent kind: {c.GetType().FullName}")
         }).ToImmutableList();
 
-        var seeTags = raw.Value.SeeTags.Select(ResolveLink).ToImmutableList();
+        var seeTags = raw.Value.SeeTags
+            .Select(id => (CommentLink)new UnresolvedCommentLink(id))
+            .ToImmutableList();
+
+        return new Comment { Overview = overview, SeeTags = seeTags };
+    }
+
+    private void ResolveEntityComments(Entity entity)
+    {
+        if (entity.Comment is Comment comment)
+        {
+            entity.Comment = ResolveComment(comment);
+        }
+
+        switch (entity)
+        {
+            case Interface i:
+                foreach (Operation op in i.Operations)
+                {
+                    ResolveEntityComments(op);
+                }
+                break;
+            case Operation op:
+                foreach (Field p in op.Parameters)
+                {
+                    ResolveEntityComments(p);
+                }
+                foreach (Field r in op.ReturnType)
+                {
+                    ResolveEntityComments(r);
+                }
+                break;
+            case Struct s:
+                foreach (Field f in s.Fields)
+                {
+                    ResolveEntityComments(f);
+                }
+                break;
+            case VariantEnum v:
+                foreach (VariantEnum.Variant variant in v.Variants)
+                {
+                    ResolveEntityComments(variant);
+                }
+                break;
+            case VariantEnum.Variant variant:
+                foreach (Field f in variant.Fields)
+                {
+                    ResolveEntityComments(f);
+                }
+                break;
+            case BasicEnum basicEnum:
+                foreach (Entity enumerator in basicEnum.EnumeratorEntities)
+                {
+                    ResolveEntityComments(enumerator);
+                }
+                break;
+        }
+    }
+
+    private Comment ResolveComment(Comment comment)
+    {
+        var overview = comment.Overview.Select(c => c switch
+            {
+                CommentInlineLink l => new CommentInlineLink(ResolveOrKeep(l.Target)),
+                _ => c,
+            })
+            .ToImmutableList();
+
+        var seeTags = comment.SeeTags.Select(ResolveOrKeep).ToImmutableList();
 
         return new Comment { Overview = overview, SeeTags = seeTags };
 
-        CommentLink ResolveLink(string entityId) =>
-            ResolveEntityById(entityId) is Entity entity
+        CommentLink ResolveOrKeep(CommentLink link) =>
+            link is UnresolvedCommentLink unresolved && ResolveEntityById(unresolved.Identifier) is Entity entity
                 ? new ResolvedCommentLink(entity)
-                : new UnresolvedCommentLink(entityId);
+                : link;
     }
 
     private Entity? ResolveEntityById(string entityId)

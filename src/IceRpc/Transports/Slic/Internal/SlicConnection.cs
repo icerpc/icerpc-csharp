@@ -42,6 +42,11 @@ internal class SlicConnection : IMultiplexedConnection
     /// cref="FrameType.StreamWindowUpdate" /> frame is sent.</summary>
     internal int StreamWindowUpdateThreshold => InitialStreamWindowSize / StreamWindowUpdateRatio;
 
+    // The maximum body size for non-stream frames (Initialize, InitializeAck, Version, Close, Ping, Pong). This
+    // value is the maximum value that can be encoded as a 2-byte varuint62, which allows WriteFrame to use a 2-byte
+    // size placeholder. Stream data frames are not subject to this limit; they are gated by per-stream flow control.
+    private const int MaxControlFrameBodySize = 16_383;
+
     // The ratio used to compute the StreamWindowUpdateThreshold. For now, the stream window update is sent when the
     // window size grows over InitialStreamWindowSize / StreamWindowUpdateRatio.
     private const int StreamWindowUpdateRatio = 2;
@@ -258,9 +263,21 @@ internal class SlicConnection : IMultiplexedConnection
 
             // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
             // check are not expected until the Slic connection initialization completes. The idle timeout check uses
-            // the smallest idle timeout.
-            TimeSpan idleTimeout = _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
-                (_peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout : _localIdleTimeout);
+            // the smallest idle timeout. Timeout.InfiniteTimeSpan is -1 ms so we can't compare it directly with
+            // positive timeouts.
+            TimeSpan idleTimeout;
+            if (_localIdleTimeout == Timeout.InfiniteTimeSpan)
+            {
+                idleTimeout = _peerIdleTimeout;
+            }
+            else if (_peerIdleTimeout == Timeout.InfiniteTimeSpan)
+            {
+                idleTimeout = _localIdleTimeout;
+            }
+            else
+            {
+                idleTimeout = _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout : _localIdleTimeout;
+            }
 
             if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
@@ -938,7 +955,7 @@ internal class SlicConnection : IMultiplexedConnection
                     if (maxStreamFrameSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1KB.");
+                            "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1 KB.");
                     }
                     break;
                 }
@@ -948,7 +965,7 @@ internal class SlicConnection : IMultiplexedConnection
                     if (peerInitialStreamWindowSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The InitialStreamWindowSize connection parameter is invalid, it must be greater than 1KB.");
+                            "The InitialStreamWindowSize connection parameter is invalid, it must be greater than 1 KB.");
                     }
                     break;
                 }
@@ -1299,6 +1316,13 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new InvalidDataException("The frame size can't be larger than int.MaxValue.", exception);
             }
 
+            // Reject oversized control frame bodies before any buffering occurs.
+            if (header.FrameType < FrameType.Stream && header.FrameSize > MaxControlFrameBodySize)
+            {
+                throw new InvalidDataException(
+                    $"The {header.FrameType} frame body size ({header.FrameSize}) exceeds the maximum allowed size ({MaxControlFrameBodySize}).");
+            }
+
             // If it's a stream frame, try to decode the stream ID
             if (header.FrameType >= FrameType.Stream)
             {
@@ -1431,7 +1455,14 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (isBidirectional)
             {
-                if (streamId > _lastRemoteBidirectionalStreamId + 4)
+                // The next expected remote bidirectional stream ID is the last one plus 4, or the initial remote
+                // bidirectional stream ID (0 for the server, 1 for the client) if no remote bidirectional stream has
+                // been opened yet. This check also rejects a bogus first stream ID, which would otherwise slip
+                // through because `null + 4` evaluates to null.
+                ulong expectedStreamId = _lastRemoteBidirectionalStreamId is ulong lastId
+                    ? lastId + 4
+                    : (IsServer ? 0ul : 1ul);
+                if (streamId > expectedStreamId)
                 {
                     throw new InvalidDataException("Invalid stream ID.");
                 }
@@ -1446,7 +1477,14 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                if (streamId > _lastRemoteUnidirectionalStreamId + 4)
+                // The next expected remote unidirectional stream ID is the last one plus 4, or the initial remote
+                // unidirectional stream ID (2 for the server, 3 for the client) if no remote unidirectional stream
+                // has been opened yet. This check also rejects a bogus first stream ID, which would otherwise slip
+                // through because `null + 4` evaluates to null.
+                ulong expectedStreamId = _lastRemoteUnidirectionalStreamId is ulong lastId
+                    ? lastId + 4
+                    : (IsServer ? 2ul : 3ul);
+                if (streamId > expectedStreamId)
                 {
                     throw new InvalidDataException("Invalid stream ID.");
                 }
@@ -1455,7 +1493,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     throw new IceRpcException(
                         IceRpcError.IceRpcError,
-                        $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached");
+                        $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached.");
                 }
                 Interlocked.Increment(ref _unidirectionalStreamCount);
             }
@@ -1560,7 +1598,9 @@ internal class SlicConnection : IMultiplexedConnection
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter);
         encoder.EncodeFrameType(frameType);
-        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+        // 2 bytes is sufficient: control frame bodies are limited to MaxControlFrameBodySize (16,383) and the
+        // stream frames encoded by WriteFrame carry at most a stream ID + a small body (e.g., StreamWindowUpdate).
+        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
         int startPos = encoder.EncodedByteCount;
         if (streamId is not null)
         {

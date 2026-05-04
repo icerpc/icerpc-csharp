@@ -29,6 +29,17 @@ internal static partial class LocatorLoggerExtensions
         string locationKind,
         Location location,
         Exception? exception = null);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventId.BackgroundRefreshFailed,
+        EventName = nameof(LocationEventId.BackgroundRefreshFailed),
+        Level = LogLevel.Debug,
+        Message = "Background cache refresh failed for {LocationKind} '{Location}'")]
+    internal static partial void LogBackgroundRefreshFailed(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        Exception exception);
 }
 
 /// <summary>An implementation of <see cref="ILocationResolver" /> without a cache.</summary>
@@ -52,10 +63,10 @@ internal class CacheLessLocationResolver : ILocationResolver
             .ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
-        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId))
         {
             (serviceAddress, _) = await ResolveAsync(
-                new Location { IsAdapterId = true, Value = adapterId },
+                new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) },
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -67,6 +78,7 @@ internal class CacheLessLocationResolver : ILocationResolver
 internal class LocationResolver : ILocationResolver
 {
     private readonly bool _background;
+    private readonly ILogger _logger;
     private readonly IServerAddressCache _serverAddressCache;
     private readonly IServerAddressFinder _serverAddressFinder;
     private readonly TimeSpan _refreshThreshold;
@@ -78,13 +90,15 @@ internal class LocationResolver : ILocationResolver
         IServerAddressCache serverAddressCache,
         bool background,
         TimeSpan refreshThreshold,
-        TimeSpan ttl)
+        TimeSpan ttl,
+        ILogger logger)
     {
         _serverAddressFinder = serverAddressFinder;
         _serverAddressCache = serverAddressCache;
         _background = background;
         _refreshThreshold = refreshThreshold;
         _ttl = ttl;
+        _logger = logger;
     }
 
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
@@ -118,18 +132,18 @@ internal class LocationResolver : ILocationResolver
         else if (_background && expired)
         {
             // We retrieved an expired service address from the cache, so we launch a refresh in the background.
-            _ = _serverAddressFinder.FindAsync(location, cancellationToken: default).ConfigureAwait(false);
+            _ = RefreshInBackgroundAsync();
         }
 
         // A well-known service address resolution can return a service address with an adapter-id.
-        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId))
         {
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                 // service address, we request a cache refresh for the adapter ID.
                 (serviceAddress, _) = await PerformResolveAsync(
-                    new Location { IsAdapterId = true, Value = adapterId },
+                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) },
                     refreshCache || resolved,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -150,6 +164,18 @@ internal class LocationResolver : ILocationResolver
         }
 
         return (serviceAddress, serviceAddress is not null && !resolved);
+
+        async Task RefreshInBackgroundAsync()
+        {
+            try
+            {
+                _ = await _serverAddressFinder.FindAsync(location, cancellationToken: default).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogBackgroundRefreshFailed(location.Kind, location, exception);
+            }
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice.Codec;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
@@ -56,5 +57,54 @@ public sealed class RequestContextMiddlewareTests
             pipe.Writer.Complete();
             return pipe.Reader;
         }
+    }
+
+    /// <summary>Verifies that a context field with trailing bytes is rejected with
+    /// <see cref="InvalidDataException" />.</summary>
+    [TestCase("icerpc")]
+    [TestCase("ice")]
+    public void Context_field_with_trailing_bytes_is_rejected(string protocolName)
+    {
+        Protocol protocol = Protocol.Parse(protocolName);
+        var pipe = new Pipe();
+        if (protocol == Protocol.Ice)
+        {
+            var encoder = new IceEncoder(pipe.Writer);
+            encoder.EncodeDictionary(
+                new Dictionary<string, string> { ["Foo"] = "Bar" },
+                (ref IceEncoder encoder, string key) => encoder.EncodeString(key),
+                (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
+        }
+        else
+        {
+            var encoder = new SliceEncoder(pipe.Writer);
+            encoder.EncodeDictionary(
+                new Dictionary<string, string> { ["Foo"] = "Bar" },
+                (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
+                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+        }
+        // Append extra trailing bytes.
+        pipe.Writer.GetMemory(4).Span.Clear();
+        pipe.Writer.Advance(4);
+        pipe.Writer.Complete();
+        pipe.Reader.TryRead(out var readResult);
+
+        using var request = new IncomingRequest(protocol, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.Context] = readResult.Buffer
+            }
+        };
+
+        var sut = new RequestContextMiddleware(
+            new InlineDispatcher((request, cancellationToken) =>
+                new(new OutgoingResponse(request))));
+
+        Assert.That(
+            async () => await sut.DispatchAsync(request, default),
+            Throws.InstanceOf<InvalidDataException>());
+
+        pipe.Reader.Complete();
     }
 }

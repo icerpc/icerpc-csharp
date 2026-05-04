@@ -109,6 +109,30 @@ public class SequenceDecodingTests
             Throws.InstanceOf<InvalidDataException>());
     }
 
+    [Test]
+    public void Decode_sequence_of_optionals_with_truncated_bit_sequence()
+    {
+        // Arrange: encode count = 8 (which requires 1 bit-sequence byte) with no bit-sequence bytes following.
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(8);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                // The decoder only sees WrittenMemory (1 byte: the encoded size), so the default
+                // maxCollectionAllocation of 8 * buffer.Length = 8 bytes is too small and would trip the
+                // collection-allocation check before GetBitSequenceReader runs. Raise it so the truncation
+                // check is the first to fire.
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: 1024);
+                _ = sut.DecodeSequenceOfOptionals<long?>(
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>()
+                .With.Message.EqualTo("Attempting to decode past the end of the Slice decoder buffer."));
+    }
+
     private enum TestEnum : short
     {
         A = 1,
@@ -218,5 +242,48 @@ public class SequenceDecodingTests
                 _ = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
             },
             Throws.Nothing);
+    }
+
+    /// <summary>Verifies that a crafted count near int.MaxValue / elementSize that would overflow int arithmetic
+    /// is correctly rejected by the allocation check.</summary>
+    [Test]
+    public void Decode_sequence_with_overflowing_allocation_cost_is_rejected()
+    {
+        // Arrange
+        // count * sizeof(int) would overflow in unchecked int arithmetic.
+        int count = (int.MaxValue / Unsafe.SizeOf<int>()) + 1;
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(count);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: 1024);
+                _ = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
+            },
+            Throws.InstanceOf<InvalidDataException>().With.Message.Contains("max collection allocation"));
+    }
+
+    /// <summary>Verifies that a crafted count near int.MaxValue / elementSize that would overflow int arithmetic
+    /// is correctly rejected by the allocation check for sequences of optionals.</summary>
+    [Test]
+    public void Decode_sequence_of_optionals_with_overflowing_allocation_cost_is_rejected()
+    {
+        // Arrange
+        int count = (int.MaxValue / Unsafe.SizeOf<long?>()) + 1;
+        var buffer = new MemoryBufferWriter(new byte[16]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(count);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, maxCollectionAllocation: 1024);
+                _ = sut.DecodeSequenceOfOptionals<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>().With.Message.Contains("max collection allocation"));
     }
 }

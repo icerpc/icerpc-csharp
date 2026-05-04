@@ -175,7 +175,9 @@ public class LocatorServerAddressFinderTests
     {
         // Arrange
         using var blockingServerAddressFinder = new BlockingServerAddressFinder();
-        IServerAddressFinder serverAddressFinder = new CoalesceServerAddressFinderDecorator(blockingServerAddressFinder);
+        IServerAddressFinder serverAddressFinder = new CoalesceServerAddressFinderDecorator(
+            blockingServerAddressFinder,
+            TimeSpan.FromSeconds(30));
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
         var t1 = serverAddressFinder.FindAsync(location, default);
@@ -192,6 +194,51 @@ public class LocatorServerAddressFinderTests
         Assert.That(blockingServerAddressFinder.Count, Is.EqualTo(1));
         Assert.That(p1, Is.EqualTo(p2));
         Assert.That(p1, Is.EqualTo(p3));
+    }
+
+    /// <summary>Verifies that the cancellation of an early caller does not cancel the underlying lookup for
+    /// later joined callers.</summary>
+    [Test]
+    public async Task Coalesce_decorator_does_not_propagate_first_caller_cancellation_to_joined_callers()
+    {
+        // Arrange
+        using var blockingServerAddressFinder = new BlockingServerAddressFinder();
+        IServerAddressFinder serverAddressFinder = new CoalesceServerAddressFinderDecorator(
+            blockingServerAddressFinder,
+            TimeSpan.FromSeconds(30));
+        var location = new Location { IsAdapterId = false, Value = "/good" };
+
+        using var cts1 = new CancellationTokenSource();
+        Task<ServiceAddress?> t1 = serverAddressFinder.FindAsync(location, cts1.Token);
+        Task<ServiceAddress?> t2 = serverAddressFinder.FindAsync(location, default);
+
+        // Act: cancel the first caller; the shared lookup must keep running for the second caller.
+        cts1.Cancel();
+        Assert.That(async () => await t1, Throws.InstanceOf<OperationCanceledException>());
+
+        blockingServerAddressFinder.Release(1);
+
+        // Assert: the second caller still resolves successfully.
+        ServiceAddress? p2 = await t2;
+        Assert.That(p2, Is.Not.Null);
+        Assert.That(blockingServerAddressFinder.Count, Is.EqualTo(1));
+    }
+
+    /// <summary>Verifies that the configured ResolveTimeout bounds an in-flight coalesced lookup.</summary>
+    [Test]
+    public void Coalesce_decorator_resolve_timeout_bounds_lookup()
+    {
+        // Arrange
+        using var blockingServerAddressFinder = new BlockingServerAddressFinder();
+        IServerAddressFinder serverAddressFinder = new CoalesceServerAddressFinderDecorator(
+            blockingServerAddressFinder,
+            TimeSpan.FromMilliseconds(50));
+        var location = new Location { IsAdapterId = false, Value = "/good" };
+
+        // Act/Assert: the decoratee never releases, so the shared lookup must time out.
+        Assert.That(
+            async () => await serverAddressFinder.FindAsync(location, default),
+            Throws.TypeOf<TimeoutException>());
     }
 
     private sealed class BlockingServerAddressFinder : IServerAddressFinder, IDisposable

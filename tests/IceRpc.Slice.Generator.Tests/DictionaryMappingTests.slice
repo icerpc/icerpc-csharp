@@ -42,8 +42,8 @@ interface DictionaryMappingOperations {
     sendDictionaryOfOptionalCustomReferenceType(p: Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri?>)
 
     // We don't need to add tests for other cs::type arguments because the code path is always the same. The argument
-    // must be a non-abstract generic type that implements ICollection<KeyValuePair<TKey, TValue>> and provides a
-    // constructor with an initial capacity parameter.
+    // must be a non-abstract generic type that implements IDictionary<TKey, TValue> and provides a constructor with an
+    // initial capacity parameter.
     returnCustomDictionaryTuple() -> (
         r1: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
         r2: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
@@ -52,10 +52,6 @@ interface DictionaryMappingOperations {
     returnCustomDictionary() -> [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
 
     sendCustomDictionary(p: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>)
-
-    returnCustomDictionary2() -> [cs::type("List<KeyValuePair<int, int>>")] Dictionary<int32, int32>
-
-    sendCustomDictionary2(p: [cs::type("List<KeyValuePair<int, int>>")] Dictionary<int32, int32>)
 }
 
 [cs::readonly] compact struct LargeStruct {

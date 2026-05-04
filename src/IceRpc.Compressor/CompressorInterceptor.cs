@@ -2,7 +2,6 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -83,17 +82,11 @@ public class CompressorInterceptor : IInvoker
             {
                 response.Payload = PipeReader.Create(
                     new BrotliStream(response.Payload.AsStream(), CompressionMode.Decompress));
-
-                // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
-                response.Payload = new BugFixStreamPipeReaderDecorator(response.Payload);
             }
             else if (compressionFormat == CompressionFormat.Deflate)
             {
                 response.Payload = PipeReader.Create(
                     new DeflateStream(response.Payload.AsStream(), CompressionMode.Decompress));
-
-                // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
-                response.Payload = new BugFixStreamPipeReaderDecorator(response.Payload);
             }
             // else nothing to do
         }

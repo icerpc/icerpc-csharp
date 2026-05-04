@@ -1052,7 +1052,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             if (exception is not DispatchException dispatchException)
             {
-                dispatchException = new DispatchException(StatusCode.InternalError, innerException: exception);
+                StatusCode statusCode = exception is InvalidDataException ?
+                    StatusCode.InvalidData : StatusCode.InternalError;
+                dispatchException = new DispatchException(statusCode, innerException: exception);
             }
             response = dispatchException.ToOutgoingResponse(request);
         }
@@ -1214,6 +1216,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // below. We won't be reading anything else so it's ok to run continuations synchronously.
 
                         // Abort two-way invocations that are waiting for a response (it will never come).
+                        // We use InvocationCanceled (not ConnectionAborted) because the ice protocol guarantees the
+                        // peer has sent responses for all two-way requests it accepted before sending CloseConnection.
+                        // These pending two-way requests were never processed by the peer, so it's safe for a retry
+                        // interceptor to retry them unconditionally.
                         AbortTwowayInvocations(
                             IceRpcError.InvocationCanceled,
                             "The invocation was canceled by the shutdown of the peer.");

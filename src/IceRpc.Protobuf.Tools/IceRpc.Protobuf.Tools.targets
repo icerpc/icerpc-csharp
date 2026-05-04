@@ -26,12 +26,6 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
-  <UsingTask
-    TaskName="IceRpc.Protobuf.Tools.BuildTelemetryTask"
-    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
-    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
-    Runtime="NET"
-  />
   <ItemGroup Condition="'$(IceRpcProtobufToolsSourceBuild)' == 'true'">
     <!-- Add a reference to the Tools project to ensure it's built before we use its tasks -->
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj" ReferenceOutputAssembly="false" />
@@ -69,6 +63,19 @@
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
 
+    <ItemGroup>
+      <!-- Code-generating plug-ins; protoc runs once per ProtoFile to produce a dependency file per file. -->
+      <_ProtocCodegenPlugin Include="csharp" />
+      <_ProtocCodegenPlugin Include="icerpc-csharp">
+        <Path>$(IceRpcProtocGenPath)protoc-gen-icerpc-csharp$(_ProtocPluginScriptExtension)</Path>
+      </_ProtocCodegenPlugin>
+
+      <!-- Telemetry plug-in; runs once over all ProtoFile items so the upload reports the whole build. -->
+      <_ProtocTelemetryPlugin Include="icerpc-build-telemetry">
+        <Path>$(IceRpcProtocBuildTelemetryPath)protoc-gen-icerpc-build-telemetry$(_ProtocPluginScriptExtension)</Path>
+      </_ProtocTelemetryPlugin>
+    </ItemGroup>
+
     <!-- Compile the Proto files
       The search path determines where protoc compiler locates import files, we add:
       - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
@@ -81,11 +88,24 @@
       OutputDir="@(_ProtoFile->'%(OutputDir)')"
       SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
       ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
-      GenPath="$(IceRpcProtocGenPath)"
-      BuildTelemetryPath="$(IceRpcProtocBuildTelemetryPath)"
-      RunBuildTelemetry="$(IceRpcBuildTelemetry)"
+      Plugins="@(_ProtocCodegenPlugin)"
+      AdditionalOptions="--dependency_out=&quot;%(_ProtoFile.OutputDir)/%(_ProtoFile.OutputFileName).d&quot;"
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
+    />
+
+    <!--
+      Run the build-telemetry plug-in once over all ProtoFile items so it can compute a single per-build
+      compilation hash and file count from the descriptors, regardless of which files were up-to-date.
+    -->
+    <ProtocTask
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      OutputDir="$(IntermediateOutputPath)"
+      SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
+      ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
+      Plugins="@(_ProtocTelemetryPlugin)"
+      Sources="@(_ProtoFile)"
+      Condition="'$(IceRpcBuildTelemetry)' == 'true'"
     />
 
     <!--

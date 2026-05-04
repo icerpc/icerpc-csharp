@@ -49,7 +49,12 @@ using IceRpc.Protobuf;
 using IceRpc.Protobuf.RpcMethods;
 ");
 
-    codeBlock.AddBlock($"namespace {descriptor.GetCsharpNamespace()};");
+    string csharpNamespace = descriptor.GetCsharpNamespace();
+    if (csharpNamespace.Length > 0)
+    {
+        codeBlock.AddBlock($"namespace {csharpNamespace};");
+    }
+    // else generated types land in the global namespace, matching Google's protoc-gen-csharp behavior.
 
     foreach (ServiceDescriptor service in descriptor.Services)
     {

@@ -214,6 +214,7 @@ internal static class ServiceGenerator
 
             string opName = op.Name;
             ImmutableList<Field> nonStreamedReturns = op.NonStreamedReturns;
+            string encodeOptionsName = op.ResponseEncodeOptionsParamName;
             CodeBlock? encodeBody = nonStreamedReturns.GenerateEncodeBody(currentNamespace);
 
             if (encodeBody is null)
@@ -231,7 +232,7 @@ internal static class ServiceGenerator
                         .AddComment(
                             "summary",
                             $"Encodes the return value of operation <c>{op.Identifier}</c> into a response payload.")
-                        .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddParameter("SliceEncodeOptions?", encodeOptionsName, "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
                         .SetBody(emptyPayload)
                         .Build());
@@ -256,16 +257,17 @@ internal static class ServiceGenerator
 
                 response.AddBlock(
                     encodeBuilder
-                        .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddParameter("SliceEncodeOptions?", encodeOptionsName, "null", "The Slice encode options.")
                         .AddComment("returns", "A new response payload.")
-                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody))
+                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody, encodeOptionsName))
                         .Build());
             }
 
             // Add EncodeStreamOf method for streamed returns
             if (op.StreamedReturn is Field streamReturn)
             {
-                response.AddBlock(op.BuildEncodeStreamMethod(streamReturn, currentNamespace));
+                response.AddBlock(
+                    op.BuildEncodeStreamMethod(streamReturn, currentNamespace, encodeOptionsName, isRequest: false));
             }
         }
 
@@ -305,7 +307,7 @@ internal static class ServiceGenerator
             docComment: "The dispatch features.");
         operationBuilder.AddParameter(
             "global::System.Threading.CancellationToken",
-            "cancellationToken",
+            op.CancellationTokenParamName,
             docComment: "A cancellation token that receives the cancellation requests.");
 
         if (op.NonStreamedReturns.Count == 0 && !op.HasStreamedReturn)

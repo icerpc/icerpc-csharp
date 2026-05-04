@@ -16,6 +16,12 @@ namespace IceRpc.Telemetry;
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
 {
+    // The W3C Baggage spec guarantees propagation of all entries only when the baggage has at most 64
+    // list-members and fits in 8192 bytes. We clip at 64 entries — the spec-mandated floor — so a
+    // strictly spec-conforming peer in any language can always round-trip the baggage we send. Clipping
+    // here also prevents amplification of entry count across forwarded hops.
+    internal const int MaxBaggageEntries = 64;
+
     private readonly IInvoker _next;
     private readonly ActivitySource _activitySource;
 
@@ -34,7 +40,8 @@ public class TelemetryInterceptor : IInvoker
         if (request.Protocol.HasFields)
         {
             string name = $"{request.ServiceAddress.Path}/{request.Operation}";
-            using Activity activity = _activitySource?.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
+            using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
+            activity.SetIdFormat(ActivityIdFormat.W3C);
             activity.AddTag("rpc.system", "icerpc");
             activity.AddTag("rpc.service", request.ServiceAddress.Path);
             activity.AddTag("rpc.method", request.Operation);
@@ -50,11 +57,7 @@ public class TelemetryInterceptor : IInvoker
 
     internal static void WriteActivityContext(ref SliceEncoder encoder, Activity activity)
     {
-        if (activity.IdFormat != ActivityIdFormat.W3C)
-        {
-            throw new NotSupportedException(
-                $"The activity ID format '{activity.IdFormat}' is not supported, the only supported activity ID format is 'W3C'.");
-        }
+        Debug.Assert(activity.IdFormat == ActivityIdFormat.W3C);
 
         if (activity.Id is null)
         {
@@ -63,14 +66,15 @@ public class TelemetryInterceptor : IInvoker
 
         // The activity context is written to the field value, as if it has the following Slice definition
         //
-        // struct BaggageEntry
+        // compact struct BaggageEntry
         // {
         //    string key;
         //    string value;
         // }
+        //
         // Sequence<BaggageEntry> Baggage;
         //
-        // struct ActivityContext
+        // compact struct ActivityContext
         // {
         //    // ActivityID version 1 byte
         //    uint8 version;
@@ -84,6 +88,10 @@ public class TelemetryInterceptor : IInvoker
         //    string traceStateString;
         //    Baggage baggage;
         // }
+        //
+        // Baggage is modeled as a sequence rather than a dictionary because Activity.Baggage allows
+        // duplicate keys: encoding as a Slice dictionary could produce bytes that a strict dictionary
+        // decoder in another language would reject (see #4518).
 
         // W3C traceparent binary encoding (1 byte version, 16 bytes trace-ID, 8 bytes span-ID,
         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
@@ -98,12 +106,15 @@ public class TelemetryInterceptor : IInvoker
         encoder.WriteByteSpan(buffer[0..8]);
         encoder.EncodeUInt8((byte)activity.ActivityTraceFlags);
 
-        // TraceState encoded as an string
+        // TraceState encoded as a string
         encoder.EncodeString(activity.TraceStateString ?? "");
 
-        // Baggage encoded as a Sequence<BaggageEntry>
+        // Baggage encoded as a Sequence<BaggageEntry>, clipped to MaxBaggageEntries. Activity.Baggage has
+        // no documented iteration order, so which entries we retain when clipping is unspecified; the W3C
+        // Baggage spec permits dropping list-members in any order.
+        KeyValuePair<string, string?>[] baggage = activity.Baggage.Take(MaxBaggageEntries).ToArray();
         encoder.EncodeSequence(
-            activity.Baggage,
+            baggage,
             (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
             {
                 encoder.EncodeString(entry.Key);

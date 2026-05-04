@@ -65,7 +65,7 @@ jobs:
           # Create a new top-level nuget.config that points to the downloaded packages and zeroc.com
           dotnet new nugetconfig -o ${{ github.workspace }}
           dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "Local Packages" ${{ github.workspace }}/packages
-          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "zeroc.com" "https://download.zeroc.com/nexus/repository/nuget-3.9-nightly/"
+          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "zeroc.com" "https://download.zeroc.com/nexus/repository/nuget-3.8-nightly/"
         shell: pwsh
 
       - name: Install dotnet new templates

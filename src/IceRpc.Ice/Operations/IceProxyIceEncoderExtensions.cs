@@ -79,14 +79,14 @@ public static class IceProxyIceEncoderExtensions
         else
         {
             encoder.EncodeSize(0); // 0 server addresses
-            int maxCount = value.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
+            int maxCount = value.Params.TryGetValue("adapter-id", out string? escapedAdapterId) ? 1 : 0;
 
             if (value.Params.Count > maxCount)
             {
                 throw new NotSupportedException(
                     "Cannot encode a service address with a parameter other than adapter-id using the Ice encoding.");
             }
-            encoder.EncodeString(adapterId ?? "");
+            encoder.EncodeString(escapedAdapterId is null ? "" : Uri.UnescapeDataString(escapedAdapterId));
         }
     }
 

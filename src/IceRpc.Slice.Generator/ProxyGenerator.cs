@@ -95,7 +95,7 @@ internal static class ProxyGenerator
         builder.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null", "The invocation features.");
         builder.AddParameter(
             "global::System.Threading.CancellationToken",
-            "cancellationToken",
+            op.CancellationTokenParamName,
             "default",
             "A cancellation token that receives the cancellation requests.");
 
@@ -193,6 +193,7 @@ internal static class ProxyGenerator
 
             ImmutableList<Field> nonStreamedParams = op.NonStreamedParameters;
             string opName = op.Name;
+            string encodeOptionsName = op.RequestEncodeOptionsParamName;
 
             CodeBlock? encodeBody = nonStreamedParams.GenerateEncodeBody(currentNamespace);
 
@@ -213,7 +214,7 @@ internal static class ProxyGenerator
                         .AddComment(
                             "summary",
                             $"Encodes the arguments of operation <c>{op.Identifier}</c> into a request payload.")
-                        .AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                        .AddParameter("SliceEncodeOptions?", encodeOptionsName, "null", "The Slice encode options.")
                         .AddComment("returns", "The Slice-encoded payload.")
                         .SetBody(emptyPayload)
                         .Build());
@@ -237,16 +238,17 @@ internal static class ProxyGenerator
                 }
 
                 request.AddBlock(
-                    fn.AddParameter("SliceEncodeOptions?", "encodeOptions", "null", "The Slice encode options.")
+                    fn.AddParameter("SliceEncodeOptions?", encodeOptionsName, "null", "The Slice encode options.")
                         .AddComment("returns", "The Slice-encoded payload.")
-                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody))
+                        .SetBody(EncodeHelper.BuildEncodeBody(encodeBody, encodeOptionsName))
                         .Build());
             }
 
             // Add EncodeStreamOf{Op} method for streamed parameters
             if (op.StreamedParameter is Field streamParam)
             {
-                request.AddBlock(op.BuildEncodeStreamMethod(streamParam, currentNamespace));
+                request.AddBlock(
+                    op.BuildEncodeStreamMethod(streamParam, currentNamespace, encodeOptionsName, isRequest: true));
             }
         }
 
@@ -440,16 +442,18 @@ internal static class ProxyGenerator
         }
 
         string featuresParam = op.FeaturesParamName;
+        string cancellationTokenParam = op.CancellationTokenParamName;
+        string requestEncodeOptionsParam = op.RequestEncodeOptionsParamName;
         builder.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null");
-        builder.AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default");
+        builder.AddParameter("global::System.Threading.CancellationToken", cancellationTokenParam, "default");
 
         string encodeArgs = nonStreamedParams.Count > 0
-            ? string.Join(", ", nonStreamedParams.Select(p => p.ParameterName)) + ", encodeOptions: EncodeOptions"
-            : "encodeOptions: EncodeOptions";
+            ? string.Join(", ", nonStreamedParams.Select(p => p.ParameterName)) + $", {requestEncodeOptionsParam}: EncodeOptions"
+            : $"{requestEncodeOptionsParam}: EncodeOptions";
 
         // payloadContinuation: either null or the stream encoder
         string payloadContinuation = streamParam is not null
-            ? $"Request.EncodeStreamOf{opName}({streamParam.ParameterName}, encodeOptions: EncodeOptions)"
+            ? $"Request.EncodeStreamOf{opName}({streamParam.ParameterName}, {requestEncodeOptionsParam}: EncodeOptions)"
             : "null";
 
         FunctionCallBuilder bodyBuilder = new FunctionCallBuilder("this.InvokeOperationAsync")
@@ -462,7 +466,7 @@ internal static class ProxyGenerator
             .AddArgument(featuresParam)
             .AddArgumentIf(op.IsIdempotent, "idempotent: true")
             .AddArgumentIf(op.Attributes.HasAttribute("oneway"), "oneway: true")
-            .AddArgument("cancellationToken: cancellationToken");
+            .AddArgument($"cancellationToken: {cancellationTokenParam}");
 
         if (compressArgs)
         {
@@ -506,8 +510,9 @@ internal static class ProxyGenerator
             paramNames.Add(streamParam.ParameterName);
         }
         string featuresParam = op.FeaturesParamName;
+        string cancellationTokenParam = op.CancellationTokenParamName;
         paramNames.Add(featuresParam);
-        paramNames.Add("cancellationToken");
+        paramNames.Add(cancellationTokenParam);
 
         FunctionBuilder builder = new FunctionBuilder(
             "public", returnType, $"{opName}Async", FunctionType.ExpressionBody)
@@ -526,7 +531,7 @@ internal static class ProxyGenerator
         }
 
         builder.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null");
-        builder.AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default");
+        builder.AddParameter("global::System.Threading.CancellationToken", cancellationTokenParam, "default");
 
         builder.SetBody($"(({baseProxyName})this).{opName}Async({string.Join(", ", paramNames)})");
 
