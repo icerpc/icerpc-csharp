@@ -2,9 +2,8 @@
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace IceRpc.Protobuf.Tools;
 
@@ -12,7 +11,7 @@ namespace IceRpc.Protobuf.Tools;
 #pragma warning disable CA1819
 
 /// <summary>An MSBuild task that runs <c>protoc</c> with a configurable set of plug-ins.</summary>
-public class ProtocTask : ToolTask
+public partial class ProtocTask : ToolTask
 {
     /// <summary>Gets or sets additional options to pass verbatim to <c>protoc</c>.</summary>
     public string[] AdditionalOptions { get; set; } = [];
@@ -58,6 +57,11 @@ public class ProtocTask : ToolTask
     protected override string GenerateCommandLineCommands()
     {
         var builder = new CommandLineBuilder(false);
+
+        // Emit diagnostics in protoc's MSVS format ("file(line) : error|warning in column=N: msg") so
+        // LogEventsFromTextOutput can rewrite them into MSBuild's canonical format reliably, including for paths
+        // that contain colons (e.g., Windows drive-letter paths).
+        builder.AppendSwitch("--error_format=msvs");
 
         // Register and enable each plug-in.
         foreach (ITaskItem plugin in Plugins)
@@ -118,29 +122,18 @@ public class ProtocTask : ToolTask
     /// <inheritdoc/>
     protected override string GetWorkingDirectory() => WorkingDirectory;
 
-    /// <summary> Process the diagnostics emitted by the protoc compiler and log them with the MSBuild logger.
-    /// </summary>
-    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
-    {
-        Debug.Assert(singleLine is not null);
-        int colonCount = singleLine.Count(c => c == ':');
-        if (colonCount >= 3)
-        {
-            // protoc returned a diagnostic in the form "file:line:column: message", parse it and log it
-            // For example: greeter.proto:9:1: Expected top-level statement (e.g. "message").
-            string[] parts = singleLine.Split([':'], 4);
-            string fileName = parts[0];
-            int lineNumber = int.Parse(parts[1], CultureInfo.InvariantCulture);
-            int columnNumber = int.Parse(parts[2], CultureInfo.InvariantCulture);
-            string errorMessage = parts[3];
+    // Rewrites protoc's --error_format=msvs output ("file(line) : error|warning in column=N: msg") into MSBuild's
+    // canonical diagnostic format ("file(line,N): error|warning: msg") so the base ToolTask logger can parse it via
+    // CanonicalError. Non-matching lines pass through unchanged for the base class to handle.
+    [GeneratedRegex(
+        @"^(?<file>.+?)\((?<line>\d+)\)\s*:\s*(?<severity>error|warning) in column=(?<column>\d+):\s*(?<message>.*)$")]
+    private static partial Regex DiagnosticRegex();
 
-            Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
-        }
-        else
-        {
-            Log.LogError(singleLine);
-        }
-    }
+    /// <inheritdoc/>
+    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance) =>
+        base.LogEventsFromTextOutput(
+            DiagnosticRegex().Replace(singleLine, "${file}(${line},${column}): ${severity}: ${message}"),
+            messageImportance);
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
