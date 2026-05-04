@@ -148,7 +148,7 @@ public partial class ProtocTask : ToolTask
     // canonical diagnostic format ("file(line,N): error|warning: msg") so the base ToolTask logger can parse it via
     // CanonicalError. Non-matching lines pass through unchanged for the base class to handle.
     [GeneratedRegex(
-        @"^(?<file>.+)\((?<line>\d+)\)\s*:\s*(?<severity>error|warning) in column=(?<column>\d+):\s*(?<message>.*)$")]
+        @"^(?<file>.+?)\((?<line>\d+)\)\s*:\s*(?<severity>error|warning) in column=(?<column>\d+):\s*(?<message>.*)$")]
     private static partial Regex DiagnosticRegex();
 
     /// <inheritdoc/>
