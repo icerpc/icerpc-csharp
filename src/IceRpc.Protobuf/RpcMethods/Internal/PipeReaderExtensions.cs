@@ -124,9 +124,18 @@ internal static class PipeReaderExtensions
                 $"The payload has {readResult.Buffer.Length} bytes, but 5 bytes were expected.");
         }
 
-        if (readResult.Buffer.FirstSpan[0] == 1)
+        byte compressionFlag = readResult.Buffer.FirstSpan[0];
+        if (compressionFlag == 1)
         {
-            throw new NotSupportedException("IceRPC does not support Protobuf compressed messages");
+            // The Protobuf envelope defines flag 1 as "compressed". The message is well-formed Protobuf, but
+            // IceRPC doesn't decompress it.
+            throw new NotSupportedException("IceRPC does not support Protobuf compressed messages.");
+        }
+        if (compressionFlag != 0)
+        {
+            // The Protobuf envelope only defines flags 0 and 1; any other value is malformed.
+            throw new InvalidDataException(
+                $"Invalid Protobuf compression flag {compressionFlag}; expected 0 or 1.");
         }
         int messageLength = DecodeMessageLength(readResult.Buffer.Slice(1, 4));
         reader.AdvanceTo(readResult.Buffer.GetPosition(5));
@@ -158,7 +167,17 @@ internal static class PipeReaderExtensions
             Debug.Assert(buffer.Length == 4);
             Span<byte> spanBuffer = stackalloc byte[4];
             buffer.CopyTo(spanBuffer);
-            return BinaryPrimitives.ReadInt32BigEndian(spanBuffer);
+            // The Protobuf envelope encodes the length as an unsigned 32-bit big-endian integer; we decode it
+            // as a signed int32 so any value with the high bit set lands here as negative. Reject before
+            // returning so the caller doesn't pass a negative length to ReadAtLeastAsync (which would throw
+            // ArgumentOutOfRangeException) or treat a hostile peer's value as non-malformed.
+            int messageLength = BinaryPrimitives.ReadInt32BigEndian(spanBuffer);
+            if (messageLength < 0)
+            {
+                throw new InvalidDataException(
+                    $"Invalid Protobuf message length {messageLength}; expected a non-negative value.");
+            }
+            return messageLength;
         }
     }
 }
