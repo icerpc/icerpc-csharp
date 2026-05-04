@@ -72,10 +72,12 @@ public class SlicecTask : ToolTask
             builder.AppendSwitchIfNotNull("-R", reference);
         }
 
+        // Append each option as a single argv token. AppendSwitchIfNotNull with an empty switch name quotes
+        // values containing whitespace so a user-supplied --switch=... with a path containing spaces stays
+        // one token.
         foreach (string option in AdditionalOptions)
         {
-            builder.AppendTextUnquoted(" ");
-            builder.AppendTextUnquoted(option);
+            builder.AppendSwitchIfNotNull(string.Empty, option);
         }
         builder.AppendSwitch("--diagnostic-format=json");
         builder.AppendFileNamesIfNotNull(
