@@ -68,13 +68,40 @@ internal static class DocCommentFormatter
 
     private static string FormatTypeAliasInline(TypeAlias alias, string currentNamespace)
     {
-        // Type aliases don't generate a C# type; link to the underlying C# type instead. For generic mapped
-        // types we emit the type name as inline code (XML-escaped) to avoid constructing cref-friendly forms
-        // like IList{T} or IDictionary{T, U}.
+        // Type aliases don't generate a C# type; link to the underlying C# type instead.
         string mapped = alias.UnderlyingType.Type.ToTypeString(currentNamespace);
-        return mapped.Contains('<', StringComparison.Ordinal)
-            ? $"<c>{CommentTag.XmlEscape(mapped)}</c>"
-            : $"""<see cref="{mapped}" />""";
+
+        // For generic mapped we have to convert them to their cref-friendly forms (ex: IList{T0}, IDictionary{T0, T1}).
+        var start = mapped.IndexOf('<', StringComparison.Ordinal);
+        if (start != -1)
+        {
+            // Get the type-name without any generics, then append a generic parameter 'T0'. There must be at least one.
+            string sanitizedTypeString = string.Concat(mapped.AsSpan(0, start), "{T0");
+
+            // Add an extra type parameter for each top-level comma we see, skipping over any commas within nested
+            // generic types, since they don't correspond to type parameters of the outer type.
+            int commaCount = 0;
+            int nestingLevel = 0;
+            foreach(char c in mapped)
+            {
+                switch (c)
+                {
+                    case ',' when nestingLevel == 1: // Only count commas within the first level of '<...>'.
+                        commaCount += 1;
+                        sanitizedTypeString += ", T" + commaCount;
+                        break;
+                    case '<':
+                        nestingLevel += 1;
+                        break;
+                    case '>':
+                        nestingLevel -= 1;
+                        break;
+                }
+            }
+            mapped = sanitizedTypeString + "}";
+        }
+
+        return $"""<see cref="{mapped}" />""";
     }
 
     private static string FormatEntityCref(Entity entity, string currentNamespace)
