@@ -15,6 +15,18 @@
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
   </PropertyGroup>
   <Choose>
+    <When Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+      <PropertyGroup>
+        <_ProtocPluginScriptExtension>.bat</_ProtocPluginScriptExtension>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <_ProtocPluginScriptExtension>.sh</_ProtocPluginScriptExtension>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator')">
       <!--
         Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.Protobuf.Generator assembly from the
