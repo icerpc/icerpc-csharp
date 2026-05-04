@@ -71,7 +71,7 @@ internal static class DocCommentFormatter
         // Type aliases don't generate a C# type; link to the underlying C# type instead.
         string mapped = alias.UnderlyingType.Type.ToTypeString(currentNamespace);
 
-        // For generic mapped we have to convert them to their cref-friendly forms (ex: IList{T0}, IDictionary{T0, T1}).
+        // For generic types we have to convert them to their cref-friendly forms (e.g. IList{T0}, IDictionary{T0, T1}).
         var start = mapped.IndexOf('<', StringComparison.Ordinal);
         if (start != -1)
         {
