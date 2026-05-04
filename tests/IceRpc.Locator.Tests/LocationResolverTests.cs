@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Locator.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace IceRpc.Locator.Tests;
@@ -21,7 +22,8 @@ public class LocationResolverTests
                 new MockServerAddressCache(cachedServiceAddress, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
                 background: false,
                 TimeSpan.FromSeconds(refreshThreshold),
-                ttl: Timeout.InfiniteTimeSpan);
+                ttl: Timeout.InfiniteTimeSpan,
+                NullLogger.Instance);
 
         (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
 
@@ -44,7 +46,8 @@ public class LocationResolverTests
                 new MockServerAddressCache(cachedServiceAddress, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
                 background: false,
                 TimeSpan.FromSeconds(refreshThreshold),
-                ttl: Timeout.InfiniteTimeSpan);
+                ttl: Timeout.InfiniteTimeSpan,
+                NullLogger.Instance);
 
         (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
 
@@ -64,7 +67,8 @@ public class LocationResolverTests
                 new MockServerAddressCache(cachedServiceAddress, insertionTime: TimeSpan.FromSeconds(120)),
                 background: true,
                 TimeSpan.FromSeconds(1),
-                ttl: TimeSpan.FromSeconds(30));
+                ttl: TimeSpan.FromSeconds(30),
+                NullLogger.Instance);
 
         (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(default, refreshCache: false, default);
 
@@ -84,7 +88,8 @@ public class LocationResolverTests
                 new MockServerAddressCache(),
                 background: true,
                 TimeSpan.FromSeconds(1),
-                ttl: TimeSpan.FromSeconds(30));
+                ttl: TimeSpan.FromSeconds(30),
+                NullLogger.Instance);
 
         (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
             new Location
@@ -111,7 +116,8 @@ public class LocationResolverTests
                 serverAddressCache,
                 background: true,
                 TimeSpan.FromSeconds(1),
-                ttl: TimeSpan.FromSeconds(30));
+                ttl: TimeSpan.FromSeconds(30),
+                NullLogger.Instance);
         var location = new Location
         {
             Value = "/hello",

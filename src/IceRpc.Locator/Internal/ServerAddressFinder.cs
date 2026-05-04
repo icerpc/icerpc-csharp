@@ -174,6 +174,7 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
     private readonly IServerAddressFinder _decoratee;
     private readonly Lock _mutex = new();
     private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
+    private readonly TimeSpan _resolveTimeout;
 
     public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
@@ -200,11 +201,20 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
 
         return task.WaitAsync(cancellationToken);
 
+        // The shared task uses an internal CTS bounded by _resolveTimeout — never the caller's token. Otherwise
+        // the first caller's cancellation would fault the shared task and propagate to every joined waiter.
+        // Per-caller cancellation is handled by task.WaitAsync above.
         async Task<ServiceAddress?> PerformFindAsync()
         {
+            using var cts = new CancellationTokenSource(_resolveTimeout);
             try
             {
-                return await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
+                return await _decoratee.FindAsync(location, cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"The locator lookup timed out after {_resolveTimeout.TotalSeconds} s.");
             }
             finally
             {
@@ -216,6 +226,9 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
         }
     }
 
-    internal CoalesceServerAddressFinderDecorator(IServerAddressFinder decoratee) =>
+    internal CoalesceServerAddressFinderDecorator(IServerAddressFinder decoratee, TimeSpan resolveTimeout)
+    {
         _decoratee = decoratee;
+        _resolveTimeout = resolveTimeout;
+    }
 }

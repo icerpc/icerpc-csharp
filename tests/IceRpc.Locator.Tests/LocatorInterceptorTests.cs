@@ -92,6 +92,35 @@ public class LocatorInterceptorTests
         Assert.That(locationResolver.RefreshCache, Is.True);
     }
 
+    /// <summary>Verifies that an excluded server address that differs only in transport from a newly-resolved one
+    /// is filtered out: the connection layer treats them as the same physical endpoint, so the locator must use the
+    /// same OptionalTransport equality when applying RemovedServerAddresses.</summary>
+    [Test]
+    public async Task Removed_address_with_explicit_transport_filters_resolved_address_without_transport()
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+        var resolved = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
+        var locationResolver = new MockLocationResolver(resolved, adapterId: false);
+        var sut = new LocatorInterceptor(invoker, locationResolver);
+        var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };
+        using var request = new OutgoingRequest(serviceAddress);
+        var serverAddressFeature = new ServerAddressFeature(serviceAddress)
+        {
+            RemovedServerAddresses = ImmutableList.Create(
+                new ServerAddress(new Uri("ice://localhost:10000?transport=tcp")))
+        };
+        request.Features = request.Features.With<IServerAddressFeature>(serverAddressFeature);
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(serverAddressFeature.ServerAddress, Is.Null);
+        Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
+    }
+
     /// <summary>Verifies that the locator interceptor does not set the refresh cache parameter on the second attempt
     /// to resolve a location if the first attempt returned a non cached result.</summary>
     [Test]

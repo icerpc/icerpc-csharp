@@ -135,6 +135,28 @@ public sealed class DeadlineInterceptorTests
         Assert.That(token!.Value, Is.EqualTo(cts.Token));
     }
 
+    /// <summary>Verifies the interceptor clamps an extreme-future IDeadlineFeature value instead of letting
+    /// CancelAfter throw ArgumentOutOfRangeException.</summary>
+    [Test]
+    public async Task Invoke_with_extreme_future_deadline_does_not_throw()
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: true);
+        // Close to DateTime.MaxValue but not equal, so the interceptor's "== DateTime.MaxValue" short-circuit
+        // does not kick in and the CancelAfter path is actually exercised.
+        DateTime extreme = DateTime.SpecifyKind(DateTime.MaxValue.AddDays(-1), DateTimeKind.Utc);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            Features = new FeatureCollection().With<IDeadlineFeature>(new DeadlineFeature(extreme))
+        };
+
+        // Act/Assert
+        Assert.That(async () => await sut.InvokeAsync(request, default), Throws.Nothing);
+    }
+
     [Test]
     public void Deadline_interceptor_can_enforce_application_deadline()
     {
@@ -226,6 +248,20 @@ public sealed class DeadlineInterceptorTests
 
         Assert.That(
             () => new DeadlineInterceptor(invoker, TimeSpan.FromMilliseconds(milliseconds), alwaysEnforceDeadline: false),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    /// <summary>Verifies the constructor rejects a default timeout beyond CancelAfter's supported maximum.
+    /// TimeSpan.MaxValue would otherwise later cause DateTime overflow (now + timeout) or CancelAfter to throw
+    /// ArgumentOutOfRangeException at first invoke.</summary>
+    [Test]
+    public void Constructor_rejects_default_timeout_beyond_cancel_after_max()
+    {
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Assert.That(
+            () => new DeadlineInterceptor(invoker, TimeSpan.MaxValue, alwaysEnforceDeadline: false),
             Throws.TypeOf<ArgumentException>());
     }
 

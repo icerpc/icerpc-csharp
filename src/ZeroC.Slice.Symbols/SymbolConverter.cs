@@ -54,7 +54,8 @@ internal sealed class SymbolConverter
             {
                 if (GetNamedIdentifier(symbol) is string id)
                 {
-                    _named.TryAdd($"{moduleScope}::{id}", (file, symbol));
+                    // Scoped IDs are guaranteed to be unique by the compiler, we can safely use them as dictionary keys.
+                    _named.Add($"{moduleScope}::{id}", (file, symbol));
                 }
             }
         }
@@ -318,37 +319,42 @@ internal sealed class SymbolConverter
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? (sbyte)-(long)abs : (sbyte)abs),
+                (abs, isNegative) => checked((sbyte)(isNegative ? -(long)abs : (long)abs))),
             BuiltinKind.UInt8 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, _) => (byte)abs),
+                (abs, _) => checked((byte)abs)),
             BuiltinKind.Int16 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? (short)-(long)abs : (short)abs),
+                (abs, isNegative) => checked((short)(isNegative ? -(long)abs : (long)abs))),
             BuiltinKind.UInt16 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, _) => (ushort)abs),
+                (abs, _) => checked((ushort)abs)),
             BuiltinKind.Int32 or BuiltinKind.VarInt32 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? (int)-(long)abs : (int)abs),
+                (abs, isNegative) => checked((int)(isNegative ? -(long)abs : (long)abs))),
             BuiltinKind.UInt32 or BuiltinKind.VarUInt32 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, _) => (uint)abs),
+                (abs, _) => checked((uint)abs)),
             BuiltinKind.Int64 or BuiltinKind.VarInt62 => CreateBasicEnum(
                 raw,
                 module,
                 builtin,
-                (abs, isNegative) => isNegative ? -(long)abs : (long)abs),
+                // slicec's descriptor format reports each enumerator as (AbsoluteValue: ulong, HasNegativeValue: bool).
+                // long.MinValue's absolute value is 2^63, which doesn't fit in long — handle it explicitly so the
+                // checked cast below doesn't throw on a legitimate value.
+                (abs, isNegative) => isNegative
+                    ? (abs == (ulong)long.MaxValue + 1 ? long.MinValue : checked(-(long)abs))
+                    : checked((long)abs)),
             BuiltinKind.UInt64 or BuiltinKind.VarUInt62 => CreateBasicEnum(
                 raw,
                 module,

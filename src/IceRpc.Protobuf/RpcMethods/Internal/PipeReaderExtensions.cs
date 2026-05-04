@@ -31,6 +31,23 @@ internal static class PipeReaderExtensions
             cancellationToken).ConfigureAwait(false);
 
         Debug.Assert(message is not null);
+
+        // A unary payload must contain exactly one message; any trailing bytes indicate a framing error.
+        ReadResult readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+        }
+        bool hasTrailingBytes = !readResult.Buffer.IsEmpty;
+        reader.AdvanceTo(readResult.Buffer.End);
+        if (hasTrailingBytes)
+        {
+            throw new InvalidDataException(
+                "The payload contains unexpected trailing bytes after the Protobuf message.");
+        }
+        Debug.Assert(readResult.IsCompleted);
+
         return message;
     }
 
@@ -113,7 +130,7 @@ internal static class PipeReaderExtensions
         }
         int messageLength = DecodeMessageLength(readResult.Buffer.Slice(1, 4));
         reader.AdvanceTo(readResult.Buffer.GetPosition(5));
-        if (messageLength >= maxMessageLength)
+        if (messageLength > maxMessageLength)
         {
             throw new InvalidDataException("The message length exceeds the maximum value.");
         }
