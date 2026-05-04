@@ -247,7 +247,8 @@ internal static class ProxyGenerator
             // Add EncodeStreamOf{Op} method for streamed parameters
             if (op.StreamedParameter is Field streamParam)
             {
-                request.AddBlock(op.BuildEncodeStreamMethod(streamParam, currentNamespace, encodeOptionsName));
+                request.AddBlock(
+                    op.BuildEncodeStreamMethod(streamParam, currentNamespace, encodeOptionsName, isRequest: true));
             }
         }
 

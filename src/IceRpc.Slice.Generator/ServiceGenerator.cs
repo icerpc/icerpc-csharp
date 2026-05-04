@@ -266,7 +266,8 @@ internal static class ServiceGenerator
             // Add EncodeStreamOf method for streamed returns
             if (op.StreamedReturn is Field streamReturn)
             {
-                response.AddBlock(op.BuildEncodeStreamMethod(streamReturn, currentNamespace, encodeOptionsName));
+                response.AddBlock(
+                    op.BuildEncodeStreamMethod(streamReturn, currentNamespace, encodeOptionsName, isRequest: false));
             }
         }
 
