@@ -1479,7 +1479,8 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 // The next expected remote unidirectional stream ID is the last one plus 4, or the initial remote
                 // unidirectional stream ID (2 for the server, 3 for the client) if no remote unidirectional stream
-                // has been opened yet.
+                // has been opened yet. This check also rejects a bogus first stream ID, which would otherwise slip
+                // through because `null + 4` evaluates to null.
                 ulong expectedStreamId = _lastRemoteUnidirectionalStreamId is ulong lastId
                     ? lastId + 4
                     : (IsServer ? 2ul : 3ul);
