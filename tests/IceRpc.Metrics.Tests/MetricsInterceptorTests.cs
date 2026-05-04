@@ -108,6 +108,53 @@ public sealed class MetricsInterceptorTests
         Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 
+    /// <summary>Verifies that a non-OK IncomingResponse is counted as a failure, matching the throw-based path.
+    /// </summary>
+    [Test]
+    public async Task Non_ok_response_publishes_total_current_and_failed_measurements()
+    {
+        const string meterName = "Test.NonOkResponse.IceRpc.Invocation";
+        var current = new List<long>();
+        var failed = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "failed-requests":
+                    {
+                        failed.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var invocationMetrics = new InvocationMetrics(meterName);
+        var invoker = new InlineInvoker((request, cancellationToken) => Task.FromResult(
+            new IncomingResponse(request, FakeConnectionContext.Instance, StatusCode.NotFound, errorMessage: "not found")));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
+
+        IncomingResponse response = await sut.InvokeAsync(request, default);
+
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.NotFound));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
+        Assert.That(failed, Is.EqualTo(new long[] { 1 }));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
+    }
+
     [Test]
     public async Task Successful_invocation_publishes_total_and_current_measurements()
     {
