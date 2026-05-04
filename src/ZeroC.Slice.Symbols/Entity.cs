@@ -20,7 +20,7 @@ public class Entity
     public Entity? Parent { get; internal set; }
 
     /// <summary>Gets the doc comment associated with this entity, if any.</summary>
-    public Comment? Comment { get; init; }
+    public Comment? Comment { get; internal set; }
 
     /// <summary>Gets the fully scoped Slice identifier (e.g. "MyModule::MyType" or
     /// "MyModule::MyInterface::MyOperation").</summary>
