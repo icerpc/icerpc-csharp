@@ -36,22 +36,7 @@ internal static class DocCommentFormatter
 
         foreach (CommentLink link in seeTags)
         {
-            if (link is not ResolvedCommentLink r)
-            {
-                continue;
-            }
-
-            if (r.Entity is TypeAlias alias)
-            {
-                // Type aliases don't generate a C# type; map to the underlying C# type. We can't reliably
-                // produce a seealso for a generic mapped type without C# parsing, so skip those.
-                string mapped = alias.UnderlyingType.Type.ToTypeString(currentNamespace);
-                if (!mapped.Contains('<', StringComparison.Ordinal))
-                {
-                    yield return new CommentTag("seealso", "cref", mapped, "");
-                }
-            }
-            else
+            if (link is ResolvedCommentLink r)
             {
                 yield return new CommentTag("seealso", "cref", FormatEntityCref(r.Entity, currentNamespace), "");
             }
@@ -60,29 +45,25 @@ internal static class DocCommentFormatter
 
     private static string FormatInlineLink(CommentLink link, string currentNamespace) => link switch
     {
-        ResolvedCommentLink { Entity: TypeAlias alias } => FormatTypeAliasInline(alias, currentNamespace),
         ResolvedCommentLink r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
         UnresolvedCommentLink u => $"<c>{CommentTag.XmlEscape(u.Identifier)}</c>",
         _ => ""
     };
 
-    private static string FormatTypeAliasInline(TypeAlias alias, string currentNamespace)
+    private static string FormatTypeString(string typeString)
     {
-        // Type aliases don't generate a C# type; link to the underlying C# type instead.
-        string mapped = alias.UnderlyingType.Type.ToTypeString(currentNamespace);
-
         // For generic types we have to convert them to their cref-friendly forms (e.g. IList{T0}, IDictionary{T0, T1}).
-        var start = mapped.IndexOf('<', StringComparison.Ordinal);
+        var start = typeString.IndexOf('<', StringComparison.Ordinal);
         if (start != -1)
         {
             // Get the type-name without any generics, then append a generic parameter 'T0'. There must be at least one.
-            string sanitizedTypeString = string.Concat(mapped.AsSpan(0, start), "{T0");
+            string sanitizedTypeString = string.Concat(typeString.AsSpan(0, start), "{T0");
 
             // Add an extra type parameter for each top-level comma we see, skipping over any commas within nested
             // generic types, since they don't correspond to type parameters of the outer type.
             int commaCount = 0;
             int nestingLevel = 0;
-            foreach(char c in mapped)
+            foreach(char c in typeString)
             {
                 switch (c)
                 {
@@ -98,18 +79,32 @@ internal static class DocCommentFormatter
                         break;
                 }
             }
-            mapped = sanitizedTypeString + "}";
+            typeString = sanitizedTypeString + "}";
         }
 
-        return $"""<see cref="{mapped}" />""";
+        return typeString;
     }
 
     private static string FormatEntityCref(Entity entity, string currentNamespace)
     {
+        if (entity is TypeAlias alias)
+        {
+            // Type aliases don't generate a C# type; link to the underlying C# type instead.
+            string mapped = alias.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] ?? alias.UnderlyingType.Type.ToTypeString(currentNamespace);
+            return FormatTypeString(mapped);
+        }
+
+        if (entity is CustomType custom)
+        {
+            if (custom.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] is string mapped)
+            {
+                return FormatTypeString(mapped);
+            }
+        }
+
         string name = entity switch
         {
             Interface => $"I{entity.Name}",
-            CustomType ct => ct.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] ?? entity.Name,
             Operation op when op.Parent is Interface => $"I{op.Parent.Name}.{entity.Name}Async",
             Field f when f.Parent is not null => $"{f.Parent.Name}.{entity.Name}",
             VariantEnum.Variant e when e.Parent is not null => $"{e.Parent.Name}.{entity.Name}",
