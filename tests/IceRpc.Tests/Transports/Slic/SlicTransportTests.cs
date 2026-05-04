@@ -67,6 +67,26 @@ public class SlicTransportTests
                     $"Received {frameType} frame for unknown stream.");
             }
 
+            // Stream frame opening a new remote bidirectional stream with a non-initial stream ID.
+            // The first remote bidirectional stream ID the server expects from the client is 0.
+            yield return new TestCaseData(
+                (IDuplexConnection connection) => WriteStreamFrameAsync(
+                    connection,
+                    FrameType.Stream,
+                    streamId: 4ul,
+                    (ref SliceEncoder encoder) => encoder.EncodeBool(false)),
+                "Invalid stream ID.");
+
+            // Stream frame opening a new remote unidirectional stream with a non-initial stream ID.
+            // The first remote unidirectional stream ID the server expects from the client is 2.
+            yield return new TestCaseData(
+                (IDuplexConnection connection) => WriteStreamFrameAsync(
+                    connection,
+                    FrameType.Stream,
+                    streamId: 6ul,
+                    (ref SliceEncoder encoder) => encoder.EncodeBool(false)),
+                "Invalid stream ID.");
+
             // Bogus stream frame with FrameSize=0 (stream ID not encoded)
             yield return new TestCaseData((IDuplexConnection connection) =>
                 WriteFrameAsync(connection, FrameType.StreamLast, (ref SliceEncoder encoder) => { }),

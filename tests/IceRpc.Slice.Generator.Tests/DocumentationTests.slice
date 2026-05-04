@@ -4,7 +4,35 @@ module IceRpc::Slice::Generator::Tests
 
 // This file contains Slice definitions for testing the mapping of doc comments
 
+// Type aliases used to test how doc comment links to a typealias are mapped to its underlying C# type:
+// - UserName maps to a non-generic C# type (string), so links resolve to <see cref="string" />.
+// - UserList, UserMap, UserResult map to generic C# types, so inline @link is emitted as <c>...</c>
+//   (XML-escaped) and @see is skipped.
+typealias UserName = string
 typealias UserList = Sequence<string>
+typealias UserMap = Dictionary<string, MySession>
+typealias UserResult = Result<MySession, string>
+
+/// Tests how doc comment links to type aliases are mapped to their underlying C# types.
+/// The {@link UserName} alias maps to a non-generic type while {@link UserList},
+/// {@link UserMap}, and {@link UserResult} map to generic types.
+/// @see UserName
+/// @see UserList
+/// @see UserMap
+/// @see UserResult
+interface MyTypealiasDocs {
+    /// Returns the {@link UserName} for the active user.
+    getName() -> UserName
+
+    /// Returns a {@link UserList} of active user names.
+    getNames() -> UserList
+
+    /// Returns a {@link UserMap} keyed by user name.
+    getSessions() -> UserMap
+
+    /// Returns a {@link UserResult} containing the session or an error message.
+    getResult() -> UserResult
+}
 
 /// This is the session manager interface summary. The caller must use the {@link MyAuthorizationManager::createAuthToken}
 /// operation to create an authentication token before creating a session.

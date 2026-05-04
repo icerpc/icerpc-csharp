@@ -6,28 +6,18 @@ using System.Security.Cryptography.X509Certificates;
 /// <summary>Provides helper methods to create the authentication options used by the examples.</summary>
 internal static partial class Program
 {
-    /// <summary>Creates client authentication options with a custom certificate validation callback that uses the
-    /// specified root CA.</summary>
+    /// <summary>Creates client authentication options that trust only the specified root CA.</summary>
     /// <param name="rootCA">The root CA certificate.</param>
     /// <returns>The client authentication options.</returns>
     public static SslClientAuthenticationOptions CreateClientAuthenticationOptions(X509Certificate2 rootCA) =>
         new()
         {
-            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+            CertificateChainPolicy = new X509ChainPolicy
             {
-                if (certificate is X509Certificate2 peerCertificate)
-                {
-                    using var customChain = new X509Chain();
-                    customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                    customChain.ChainPolicy.DisableCertificateDownloads = true;
-                    customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                    customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-                    return customChain.Build(peerCertificate);
-                }
-                else
-                {
-                    return false;
-                }
+                RevocationMode = X509RevocationMode.NoCheck,
+                DisableCertificateDownloads = true,
+                TrustMode = X509ChainTrustMode.CustomRootTrust,
+                CustomTrustStore = { rootCA }
             }
         };
 

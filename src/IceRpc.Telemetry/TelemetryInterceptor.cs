@@ -41,6 +41,7 @@ public class TelemetryInterceptor : IInvoker
         {
             string name = $"{request.ServiceAddress.Path}/{request.Operation}";
             using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
+            activity.SetIdFormat(ActivityIdFormat.W3C);
             activity.AddTag("rpc.system", "icerpc");
             activity.AddTag("rpc.service", request.ServiceAddress.Path);
             activity.AddTag("rpc.method", request.Operation);
@@ -56,11 +57,7 @@ public class TelemetryInterceptor : IInvoker
 
     internal static void WriteActivityContext(ref SliceEncoder encoder, Activity activity)
     {
-        if (activity.IdFormat != ActivityIdFormat.W3C)
-        {
-            throw new NotSupportedException(
-                $"The activity ID format '{activity.IdFormat}' is not supported, the only supported activity ID format is 'W3C'.");
-        }
+        Debug.Assert(activity.IdFormat == ActivityIdFormat.W3C);
 
         if (activity.Id is null)
         {

@@ -15,6 +15,9 @@ public abstract class BasicEnum : Entity, ISymbol, IType
 
     /// <summary>Finds an enumerator by its Slice identifier.</summary>
     public abstract Entity? FindEnumeratorByIdentifier(string identifier);
+
+    /// <summary>Gets the enumerators as a sequence of entities (without their typed values).</summary>
+    internal abstract IEnumerable<Entity> EnumeratorEntities { get; }
 }
 
 /// <summary>Represents a Slice basic enumeration with a typed underlying value.</summary>
@@ -26,6 +29,8 @@ public sealed class BasicEnum<T> : BasicEnum where T : struct, System.Numerics.I
     /// <inheritdoc/>
     public override Entity? FindEnumeratorByIdentifier(string identifier) =>
         Enumerators.FirstOrDefault(e => e.Identifier == identifier);
+
+    internal override IEnumerable<Entity> EnumeratorEntities => Enumerators;
 
     /// <summary>Represents an enumerator in a Slice basic enumeration.</summary>
     public sealed class Enumerator : Entity

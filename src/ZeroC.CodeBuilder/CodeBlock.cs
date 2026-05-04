@@ -46,6 +46,9 @@ public sealed class CodeBlock
 
     /// <summary>Adds another code block to this one, separated by newlines.</summary>
     /// <param name="block">The block to add.</param>
+    /// <remarks>Adding an empty <see cref="CodeBlock"/> has no effect — no phantom blank-line gap is
+    /// inserted. The vertical whitespace between non-empty blocks is normalized by <see cref="ToString"/>,
+    /// which collapses runs of blank lines to at most one.</remarks>
     public void AddBlock(CodeBlock block) => Write($"\n{block}\n");
 
     /// <summary>Creates a new code block with the content indented by 4 spaces.</summary>
@@ -103,5 +106,11 @@ public sealed class CodeBlock
 
     /// <summary>Writes the specified value followed by a newline to the code block.</summary>
     /// <param name="value">The value to write.</param>
+    /// <remarks><see cref="Write"/> drops empty and whitespace-only strings, so <c>WriteLine("")</c>
+    /// and <c>WriteLine("   ")</c> are no-ops. This is intentional: it lets callers interpolate values
+    /// that may be empty without producing stray blank lines (for example
+    /// <c>WriteLine($"    {body.Indent()}")</c> when <c>body</c> is empty). Vertical whitespace in the
+    /// final output is managed by <see cref="ToString"/>, which collapses runs of blank lines to at
+    /// most one.</remarks>
     public void WriteLine(string value) => Write($"{value}\n");
 }

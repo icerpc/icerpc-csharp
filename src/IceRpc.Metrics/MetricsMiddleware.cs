@@ -31,7 +31,13 @@ public class MetricsMiddleware : IDispatcher
         _dispatchMetrics.RequestStart();
         try
         {
-            return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+            OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+            // A non-OK status code means the dispatch produced a failure response.
+            if (response.StatusCode != StatusCode.Ok)
+            {
+                _dispatchMetrics.RequestFailure();
+            }
+            return response;
         }
         catch (OperationCanceledException)
         {
