@@ -38,7 +38,7 @@ struct SliceTelemetryData {
     /// The architecture of the client machine (e.g., x86_64, arm64).
     architecture: string
 
-    /// A hash representing the the Slice files being compiled.
+    /// A hash representing the Slice files being compiled.
     compilationHash: string
 
     /// Indicates whether the build included any Slice1 files.
@@ -71,7 +71,7 @@ struct ProtobufTelemetryData {
     /// The architecture of the client machine (e.g., x86_64, arm64).
     architecture: string
 
-    /// A hash representing the the Protobuf files being compiled.
+    /// A hash representing the Protobuf files being compiled.
     compilationHash: string
 
     /// The number of protobuf files in the compilation.

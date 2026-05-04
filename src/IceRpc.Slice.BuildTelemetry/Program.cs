@@ -23,9 +23,9 @@ var reader = PipeReader.Create(stdin);
 using Stream stdout = Console.OpenStandardOutput();
 var writer = PipeWriter.Create(stdout);
 
-await Generator.RunAsync(reader, writer, BuildResponse).ConfigureAwait(false);
+await Generator.RunAsync(reader, writer, BuildResponseAsync);
 
-static GeneratorResponse BuildResponse(
+static async Task<GeneratorResponse> BuildResponseAsync(
     ImmutableList<SliceFile> symbolFiles,
     Dictionary<string, string> options)
 {
@@ -71,7 +71,7 @@ static GeneratorResponse BuildResponse(
         new TargetLanguage.CSharp(Environment.Version.ToString()),
         toolVersion);
 
-    string responseContent = UploadTelemetry(sliceTelemetryData);
+    string responseContent = await UploadTelemetryAsync(sliceTelemetryData);
 
     string fileName = compilationHash.Length >= 8 ?
         $"{compilationHash[..8]}.icerpc_build_telemetry.txt" : "icerpc_build_telemetry.txt";
@@ -83,7 +83,7 @@ static GeneratorResponse BuildResponse(
     };
 }
 
-static string UploadTelemetry(SliceTelemetryData data)
+static async Task<string> UploadTelemetryAsync(SliceTelemetryData data)
 {
     const string uri = "icerpc://build-telemetry.icerpc.dev";
 
@@ -92,23 +92,15 @@ static string UploadTelemetry(SliceTelemetryData data)
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
         // Create a client connection to the telemetry server. We use QUIC when supported, otherwise Slic over TCP.
-        var connection = new ClientConnection(
+        await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
             multiplexedClientTransport: QuicConnection.IsSupported ?
                 new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
 
-        try
-        {
-            var reporter = new ReporterProxy(connection);
-            reporter.UploadAsync(new BuildTelemetry.Slice(data), cancellationToken: cts.Token)
-                .ConfigureAwait(false).GetAwaiter().GetResult();
-            connection.ShutdownAsync(cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-        finally
-        {
-            connection.DisposeAsync().AsTask().GetAwaiter().GetResult();
-        }
+        var reporter = new ReporterProxy(connection);
+        await reporter.UploadAsync(new BuildTelemetry.Slice(data), cancellationToken: cts.Token);
+        await connection.ShutdownAsync(cts.Token);
 
         return @$"Build telemetry reported successfully to {uri}.
 
