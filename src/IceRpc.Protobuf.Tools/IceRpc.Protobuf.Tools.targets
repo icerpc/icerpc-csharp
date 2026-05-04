@@ -63,11 +63,6 @@
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
 
-    <PropertyGroup>
-      <_ProtocPluginScriptExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.bat</_ProtocPluginScriptExtension>
-      <_ProtocPluginScriptExtension Condition="!$([MSBuild]::IsOSPlatform('Windows'))">.sh</_ProtocPluginScriptExtension>
-    </PropertyGroup>
-
     <ItemGroup>
       <!-- Code-generating plug-ins; protoc runs once per ProtoFile to produce a dependency file per file. -->
       <_ProtocCodegenPlugin Include="csharp" />
