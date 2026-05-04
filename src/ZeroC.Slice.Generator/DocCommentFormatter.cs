@@ -98,6 +98,7 @@ internal static class DocCommentFormatter
 
         if (entity is CustomType custom)
         {
+            // Custom types don't generate a C# type; link to their mapped C# type instead.
             if (custom.Attributes.FindAttribute(CSAttributes.CSType)?.Args[0] is string mapped)
             {
                 return FormatTypeString(mapped);
