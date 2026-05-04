@@ -75,10 +75,11 @@ public class ProtocTask : ToolTask
             builder.AppendFileNameIfNotNull(OutputDir);
         }
 
+        // Append each option as a single argv token. AppendSwitchIfNotNull with an empty switch name quotes
+        // values containing whitespace so a path with spaces in --dependency_out=... stays one token.
         foreach (string option in AdditionalOptions)
         {
-            builder.AppendTextUnquoted(" ");
-            builder.AppendTextUnquoted(option);
+            builder.AppendSwitchIfNotNull(string.Empty, option);
         }
 
         var searchPath = new List<string>(SearchPath);
