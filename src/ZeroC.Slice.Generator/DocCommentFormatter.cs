@@ -69,7 +69,7 @@ internal static class DocCommentFormatter
                 {
                     case ',' when nestingLevel == 1: // Only count commas within the first level of '<...>'.
                         commaCount += 1;
-                        sanitizedTypeString += ", T" + commaCount;
+                        sanitizedTypeString = $"{sanitizedTypeString}, T{commaCount}";
                         break;
                     case '<':
                         nestingLevel += 1;
