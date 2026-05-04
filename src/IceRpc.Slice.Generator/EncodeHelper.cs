@@ -8,11 +8,13 @@ namespace IceRpc.Slice.Generator;
 internal static class EncodeHelper
 {
     /// <summary>Wraps an encode body in the standard pipe creation/size-placeholder boilerplate.</summary>
-    internal static CodeBlock BuildEncodeBody(CodeBlock encodeBody)
+    /// <param name="encodeBody">The encode body.</param>
+    /// <param name="encodeOptionsName">The escaped name of the encodeOptions parameter referenced by the body.</param>
+    internal static CodeBlock BuildEncodeBody(CodeBlock encodeBody, string encodeOptionsName)
     {
         return new CodeBlock($$"""
             var pipe_ = new global::System.IO.Pipelines.Pipe(
-                encodeOptions?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
+                {{encodeOptionsName}}?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
             var encoder_ = new SliceEncoder(pipe_.Writer);
 
             Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);

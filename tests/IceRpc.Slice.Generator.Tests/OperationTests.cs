@@ -789,6 +789,38 @@ public partial class OperationTests
             IFeatureCollection features_,
             CancellationToken cancellationToken) => default;
 
+        public ValueTask OpWithCancellationTokenParameterAsync(
+            int cancellationToken,
+            IFeatureCollection features,
+            CancellationToken cancellationToken_) => default;
+
+        public ValueTask OpWithEncodeOptionsParameterAsync(
+            int encodeOptions,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => default;
+
+        public ValueTask<(int R1, int EncodeOptions)> OpWithEncodeOptionsReturnAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new((1, 42));
+
+        public ValueTask<(PipeReader Payload_, IAsyncEnumerable<int> Payload)> OpWithPayloadStreamReturnAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            var payload = IMyOperationsAService.Response.EncodeOpWithPayloadStreamReturn(
+                new int[] { 1, 2, 3 },
+                features.Get<ISliceFeature>()?.EncodeOptions);
+            return new((payload, GetDataAsync()));
+
+            static async IAsyncEnumerable<int> GetDataAsync()
+            {
+                await Task.Yield();
+                yield return 1;
+                yield return 2;
+                yield return 3;
+            }
+        }
+
         public ValueTask<PipeReader> OpWithSingleReturnValueAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
