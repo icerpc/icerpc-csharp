@@ -19,8 +19,8 @@ internal static class DocCommentFormatter
 
         return string.Concat(overview.Select(c => c switch
         {
-            CommentText t => CommentTag.XmlEscape(t.Value),
-            CommentInlineLink l => FormatInlineLink(l.Target, currentNamespace),
+            CommentText text => CommentTag.XmlEscape(text.Value),
+            CommentInlineLink link => FormatInlineLink(link.Target, currentNamespace),
             _ => ""
         })).TrimEnd();
     }
@@ -36,30 +36,30 @@ internal static class DocCommentFormatter
 
         foreach (CommentLink link in seeTags)
         {
-            if (link is ResolvedCommentLink r)
+            if (link is ResolvedCommentLink resolved)
             {
-                yield return new CommentTag("seealso", "cref", FormatEntityCref(r.Entity, currentNamespace), "");
+                yield return new CommentTag("seealso", "cref", FormatEntityCref(resolved.Entity, currentNamespace), "");
             }
         }
     }
 
     private static string FormatInlineLink(CommentLink link, string currentNamespace) => link switch
     {
-        ResolvedCommentLink r => $"""<see cref="{FormatEntityCref(r.Entity, currentNamespace)}" />""",
-        UnresolvedCommentLink u => $"<c>{CommentTag.XmlEscape(u.Identifier)}</c>",
+        ResolvedCommentLink resolved => $"""<see cref="{FormatEntityCref(resolved.Entity, currentNamespace)}" />""",
+        UnresolvedCommentLink unresolved => $"<c>{CommentTag.XmlEscape(unresolved.Identifier)}</c>",
         _ => ""
     };
 
     /// <summary>Converts a C# type string into a form that can be safely used in cref attributes. Specifically, it
-    /// converts generic type parameters into their cref-friendly forms (e.g. IList{T0}, IDictionary{T0, T1}).</summary>
+    /// converts generic type parameters into their cref-friendly forms (e.g. IList{T}, IDictionary{T0, T1}).</summary>
     private static string FormatTypeString(string typeString)
     {
-        // For generic types we have to convert them to their cref-friendly forms (e.g. IList{T0}, IDictionary{T0, T1}).
+        // For generic types we have to convert them to their cref-friendly forms (e.g. IList{T}, IDictionary{T0, T1}).
         var start = typeString.IndexOf('<', StringComparison.Ordinal);
         if (start != -1)
         {
-            // Get the type-name without any generics, then append a generic parameter 'T0'. There must be at least one.
-            string sanitizedTypeString = string.Concat(typeString.AsSpan(0, start), "{T0");
+            // Get the type-name without any generics, then append a generic parameter 'T'. There must be at least one.
+            string sanitizedTypeString = string.Concat(typeString.AsSpan(0, start), "{T");
 
             // Add an extra type parameter for each top-level comma we see, skipping over any commas within nested
             // generic types, since they don't correspond to type parameters of the outer type.
@@ -70,8 +70,8 @@ internal static class DocCommentFormatter
                 switch (c)
                 {
                     case ',' when nestingLevel == 1: // Only count commas within the first level of '<...>'.
+                        sanitizedTypeString = $"{commaCount}{sanitizedTypeString}, T";
                         commaCount += 1;
-                        sanitizedTypeString = $"{sanitizedTypeString}, T{commaCount}";
                         break;
                     case '<':
                         nestingLevel += 1;
@@ -80,6 +80,12 @@ internal static class DocCommentFormatter
                         nestingLevel -= 1;
                         break;
                 }
+            }
+            if (commaCount > 0)
+            {
+                // If there were multiple generic parameters, we generate T0, T1, ... instead of T. But we always have
+                // a trailing 'T' with no number. Write the final number if there were multiple parameters to get 'TN'.
+                sanitizedTypeString += commaCount;
             }
             typeString = sanitizedTypeString + "}";
         }
