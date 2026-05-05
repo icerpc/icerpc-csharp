@@ -22,7 +22,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
-    private volatile int _peerWindowSize = SlicTransportOptions.MaxWindowSize;
+    private volatile int _peerWindowSize;
     private readonly Pipe _pipe;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
