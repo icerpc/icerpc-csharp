@@ -9,7 +9,7 @@ public class Diagnostic
     public string Message { get; set; } = "";
     public string Severity { get; set; } = "";
 
-    public Snippet? Snippet { get; set; } = null;
+    public Snippet? Snippet { get; set; }
     public Note[] Notes { get; set; } = Array.Empty<Note>();
 
     [JsonPropertyName("error_code")]

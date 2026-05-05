@@ -6,5 +6,5 @@ public class Note
 {
     public string Message { get; set; } = "";
 
-    public Snippet? Snippet { get; set; } = null;
+    public Snippet? Snippet { get; set; }
 }
