@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+// cspell:ignore IRSG
+
 using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
 using IceRpc.Tests.Common;
