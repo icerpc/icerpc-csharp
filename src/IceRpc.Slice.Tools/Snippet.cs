@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Text.Json.Serialization;
+
 namespace IceRpc.Slice.Tools;
 
 public class Snippet
