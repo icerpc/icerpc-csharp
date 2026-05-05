@@ -1582,6 +1582,61 @@ public class SlicTransportTests
         }
     }
 
+    /// <summary>Verifies that the connection remains usable after a write parked on the connection-level pipe pause
+    /// is canceled. The cancellation cancels the FlushAsync wait (and completes the writer side of the affected
+    /// stream), but the underlying connection is not aborted — a new stream on the same connection can still be
+    /// created and written to.</summary>
+    [Test]
+    public async Task Connection_remains_usable_after_canceled_pipe_threshold_write()
+    {
+        // Arrange: same configuration as Stream_write_cancellation_while_blocked_on_pipe_threshold.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 4 * 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        using var firstStreams = await sut.CreateAndAcceptStreamAsync();
+
+        // Hold duplex writes so the background writer task can't drain the connection-level pipe.
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        using var writeCts = new CancellationTokenSource();
+
+        ValueTask<FlushResult> firstWriteTask = firstStreams.Local.Output.WriteAsync(
+            new byte[8 * 1024],
+            writeCts.Token);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(firstWriteTask.IsCompleted, Is.False);
+        writeCts.Cancel();
+
+        Assert.That(async () => await firstWriteTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Act: release the duplex hold so the background writer task can drain, then open a new stream and write on
+        // it. This proves the connection itself is unaffected by the cancellation.
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+
+        using var secondStreams = await sut.CreateAndAcceptStreamAsync();
+        byte[] payload = new byte[1024];
+        FlushResult flushResult = await secondStreams.Local.Output.WriteAsync(payload, default);
+
+        // Assert: the new stream's write completes normally.
+        Assert.That(flushResult.IsCompleted, Is.False);
+        Assert.That(flushResult.IsCanceled, Is.False);
+
+        ReadResult readResult = await secondStreams.Remote.Input.ReadAtLeastAsync(payload.Length);
+        Assert.That((int)readResult.Buffer.Length, Is.GreaterThanOrEqualTo(payload.Length));
+        secondStreams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+    }
+
     [Test]
     public async Task Large_write_completes_with_small_pause_writer_threshold()
     {

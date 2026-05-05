@@ -61,8 +61,8 @@ public class SlicIdleTimeoutTests
 
         using var clientConnection = new SlicDuplexConnectionDecorator(
             sut.Client,
-            sendReadPing: () => readSemaphore.Release(),
-            sendWritePing: () => writeSemaphore.Release());
+            sendReadPing: () => { readSemaphore.Release(); return Task.CompletedTask; },
+            sendWritePing: () => { writeSemaphore.Release(); return Task.CompletedTask; });
         clientConnection.Enable(TimeSpan.FromMilliseconds(500));
 
         // Write and read data.

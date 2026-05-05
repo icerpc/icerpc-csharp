@@ -97,11 +97,16 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
 
     /// <summary>Constructs a decorator that does nothing until it is enabled by a call to <see cref="Enable"/>.
     /// </summary>
-    internal SlicDuplexConnectionDecorator(IDuplexConnection decoratee, Action sendReadPing, Action sendWritePing)
+    internal SlicDuplexConnectionDecorator(
+        IDuplexConnection decoratee,
+        Func<Task> sendReadPing,
+        Func<Task> sendWritePing)
         : this(decoratee)
     {
-        _readTimer = new Timer(_ => sendReadPing());
-        _writeTimer = new Timer(_ => sendWritePing());
+        // Timer callbacks cannot await; we fire-and-forget the returned Task. The send-ping callers are responsible
+        // for ensuring no unobserved exception escapes.
+        _readTimer = new Timer(_ => _ = sendReadPing());
+        _writeTimer = new Timer(_ => _ = sendWritePing());
     }
 
     /// <summary>Sets the idle timeout and schedules pings once the connection is established.</summary>.

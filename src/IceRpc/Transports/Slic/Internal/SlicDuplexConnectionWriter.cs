@@ -63,7 +63,7 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: pauseWriterThreshold,
-            // When pauseWriterThreshold is non-zero, resume writes once buffered data drops to half of the threshold.
+            // Match the algorithm PipeOptions uses for its defaults: resumeWriterThreshold = pauseWriterThreshold / 2.
             // Without this override, the PipeOptions default of 32 KB would exceed pauseWriterThreshold for small
             // thresholds and throw. When pauseWriterThreshold is 0, leave both at 0 to disable pausing.
             resumeWriterThreshold: pauseWriterThreshold == 0 ? 0 : pauseWriterThreshold / 2,

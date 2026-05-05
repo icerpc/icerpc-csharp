@@ -60,17 +60,23 @@ public sealed record class SlicTransportOptions
             value;
     }
 
-    /// <summary>Gets or sets the pause writer threshold. It defines the maximum amount of data that Slic buffers
-    /// locally on the connection's outbound pipe before <see cref="System.IO.Pipelines.PipeWriter.FlushAsync" /> on the
-    /// underlying pipe starts blocking. This bounds the memory used by the connection's outbound buffering when a peer
-    /// is slow or not reading.</summary>
+    /// <summary>Gets or sets the per-connection pause writer threshold. It defines the maximum amount of data that
+    /// Slic buffers locally on the connection's outbound pipe before
+    /// <see cref="System.IO.Pipelines.PipeWriter.FlushAsync" /> on the underlying pipe starts blocking. This bounds the
+    /// memory used by the connection's outbound buffering when a peer is slow or not reading.</summary>
     /// <value>The pause writer threshold in bytes. Set to <c>0</c> to disable this flow control mechanism. Otherwise,
     /// it can't be less than <c>1</c> KB. Defaults to <c>64</c> KB (the <see cref="System.IO.Pipelines.Pipe" />
     /// default).</value>
-    public int PauseWriterThreshold
-    {
-        get => _pauseWriterThreshold;
-        set => _pauseWriterThreshold = value < 0 ?
+    // The default specified by System.IO.Pipelines.PipeOptions.
+    public int PauseWriterThreshold { get; set => field = ValidatePauseWriterThreshold(value); } = 65_536;
+
+    // Upper bound on MaxStreamFrameSize (local and peer-advertised). Matches HTTP/2's SETTINGS_MAX_FRAME_SIZE
+    // ceiling. Larger frames worsen head-of-line blocking across multiplexed streams without improving
+    // throughput at any realistic link speed.
+    internal const int MaxStreamFrameSizeCeiling = 16_777_215;
+
+    private static int ValidatePauseWriterThreshold(int value) =>
+        value < 0 ?
             throw new ArgumentException(
                 $"The {nameof(PauseWriterThreshold)} value cannot be negative.",
                 nameof(value)) :
@@ -79,12 +85,6 @@ public sealed record class SlicTransportOptions
                 $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB unless it is 0.",
                 nameof(value)) :
             value;
-    }
-
-    // Upper bound on MaxStreamFrameSize (local and peer-advertised). Matches HTTP/2's SETTINGS_MAX_FRAME_SIZE
-    // ceiling. Larger frames worsen head-of-line blocking across multiplexed streams without improving
-    // throughput at any realistic link speed.
-    internal const int MaxStreamFrameSizeCeiling = 16_777_215;
 
     // We use the HTTP/2 maximum window size (2GB).
     internal const int MaxWindowSize = int.MaxValue;
@@ -94,6 +94,4 @@ public sealed record class SlicTransportOptions
     // The default specified in the HTTP/2 specification.
     private int _initialStreamWindowSize = 65_536;
     private int _maxStreamFrameSize = 32_768;
-    // The default specified by System.IO.Pipelines.PipeOptions.
-    private int _pauseWriterThreshold = 65_536;
 }
