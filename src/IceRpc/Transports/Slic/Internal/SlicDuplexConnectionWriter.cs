@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
@@ -50,17 +49,23 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     /// <param name="pool">The memory pool to use.</param>
     /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref
     /// name="pool"/>.</param>
-    internal SlicDuplexConnectionWriter(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
+    /// <param name="pauseWriterThreshold">The pipe pause writer threshold. When buffered data exceeds this value, <see
+    /// cref="FlushAsync" /> blocks until the background writer task drains enough data from the pipe.</param>
+    internal SlicDuplexConnectionWriter(
+        IDuplexConnection connection,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize,
+        int pauseWriterThreshold)
     {
         _connection = connection;
 
-        // We set pauseWriterThreshold to 0 because Slic implements flow-control at the stream level. So there's no need
-        // to limit the amount of data buffered by the writer pipe. The amount of data buffered is limited to
-        // (MaxBidirectionalStreams + MaxUnidirectionalStreams) * PeerPauseWriterThreshold bytes.
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0,
+            pauseWriterThreshold: pauseWriterThreshold,
+            // Resume writes when buffered data drops to half of pauseWriterThreshold. Without this override, the
+            // PipeOptions default of 32 KB would exceed pauseWriterThreshold for small thresholds and throw.
+            resumeWriterThreshold: pauseWriterThreshold / 2,
             useSynchronizationContext: false));
 
         WriterTask = Task.Run(
@@ -97,13 +102,10 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
             });
     }
 
-    internal void Flush()
-    {
-        ValueTask<FlushResult> flushResult = _pipe.Writer.FlushAsync(CancellationToken.None);
-
-        // PauseWriterThreshold is 0 so FlushAsync should always complete synchronously.
-        Debug.Assert(flushResult.IsCompletedSuccessfully);
-    }
+    /// <summary>Flushes the underlying pipe. May block when the buffered data exceeds the configured pause writer
+    /// threshold.</summary>
+    internal ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
+        _pipe.Writer.FlushAsync(cancellationToken);
 
     /// <summary>Requests the shut down of the duplex connection writes after the buffered data is written on the
     /// duplex connection.</summary>
