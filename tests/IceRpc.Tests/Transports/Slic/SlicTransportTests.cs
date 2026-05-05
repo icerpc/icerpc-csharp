@@ -796,7 +796,7 @@ public class SlicTransportTests
     public void Setting_max_stream_frame_size_above_limit_throws()
     {
         var options = new SlicTransportOptions();
-        Assert.That(() => options.MaxStreamFrameSize = SlicTransportOptions.MaxFrameSize + 1, Throws.ArgumentException);
+        Assert.That(() => options.MaxStreamFrameSize = SlicTransportOptions.MaxStreamFrameSizeCeiling + 1, Throws.ArgumentException);
     }
 
     [Test]
@@ -827,7 +827,7 @@ public class SlicTransportTests
                 var parameters = new Dictionary<ParameterKey, IList<byte>>();
                 byte[] oversizedMaxStreamFrameSizeBuffer = new byte[8];
                 SliceEncoder.EncodeVarUInt62(
-                    (ulong)SlicTransportOptions.MaxFrameSize + 1,
+                    (ulong)SlicTransportOptions.MaxStreamFrameSizeCeiling + 1,
                     oversizedMaxStreamFrameSizeBuffer);
                 parameters[ParameterKey.MaxStreamFrameSize] = oversizedMaxStreamFrameSizeBuffer;
                 byte[] initialStreamWindowSizeBuffer = new byte[4];

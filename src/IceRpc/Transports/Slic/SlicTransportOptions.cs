@@ -57,9 +57,9 @@ public sealed record class SlicTransportOptions
             throw new ArgumentException(
                 $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1 KB.",
                 nameof(value)) :
-            value > MaxFrameSize ?
+            value > MaxStreamFrameSizeCeiling ?
             throw new ArgumentException(
-                $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxFrameSize}.",
+                $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxStreamFrameSizeCeiling}.",
                 nameof(value)) :
             value;
     }
@@ -67,7 +67,7 @@ public sealed record class SlicTransportOptions
     // Upper bound on MaxStreamFrameSize (local and peer-advertised). Matches HTTP/2's SETTINGS_MAX_FRAME_SIZE
     // ceiling. Larger frames worsen head-of-line blocking across multiplexed streams without improving
     // throughput at any realistic link speed.
-    internal const int MaxFrameSize = 16_777_215;
+    internal const int MaxStreamFrameSizeCeiling = 16_777_215;
 
     // We use the HTTP/2 maximum window size (2GB).
     internal const int MaxWindowSize = int.MaxValue;

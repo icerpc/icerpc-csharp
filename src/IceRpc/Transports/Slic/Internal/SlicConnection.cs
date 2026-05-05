@@ -957,10 +957,10 @@ internal class SlicConnection : IMultiplexedConnection
                         throw new InvalidDataException(
                             "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1 KB.");
                     }
-                    if (maxStreamFrameSize > SlicTransportOptions.MaxFrameSize)
+                    if (maxStreamFrameSize > SlicTransportOptions.MaxStreamFrameSizeCeiling)
                     {
                         throw new InvalidDataException(
-                            $"The MaxStreamFrameSize connection parameter is invalid, it cannot exceed {SlicTransportOptions.MaxFrameSize} bytes.");
+                            $"The MaxStreamFrameSize connection parameter is invalid, it cannot exceed {SlicTransportOptions.MaxStreamFrameSizeCeiling} bytes.");
                     }
                     break;
                 }
