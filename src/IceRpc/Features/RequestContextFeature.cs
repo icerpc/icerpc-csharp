@@ -16,7 +16,7 @@ public sealed class RequestContextFeature : IRequestContextFeature, IEnumerable<
 
     /// <summary>Gets or sets an entry in <see cref="Value" />.</summary>
     /// <param name="key">The key.</param>
-    /// <returns>The value.</returns>>
+    /// <returns>The value.</returns>
     public string this[string key]
     {
         get => _dictionary[key];
