@@ -1637,6 +1637,55 @@ public class SlicTransportTests
         secondStreams.Remote.Input.AdvanceTo(readResult.Buffer.End);
     }
 
+    /// <summary>Verifies that a server-side dispose does not deadlock when the outbound pipe is paused
+    /// (PauseWriterThreshold reached) and a concurrent server-side <see cref="IMultiplexedConnection.CloseAsync"/> is
+    /// parked on FlushAsync while holding the connection's write semaphore.</summary>
+    [Test]
+    public async Task Server_dispose_does_not_deadlock_when_close_is_blocked_on_pipe_threshold()
+    {
+        // Arrange: small server-side PauseWriterThreshold. We apply the duplex Write hold *after* the handshake, so
+        // the connection establishes normally and only subsequent server-side writes accumulate in the pipe.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(options =>
+        {
+            options.PauseWriterThreshold = 1024;
+            options.InitialStreamWindowSize = 128 * 1024;
+        });
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        var serverDuplexConnection =
+            provider.GetRequiredService<TestDuplexServerTransportDecorator>().LastAcceptedConnection;
+        serverDuplexConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        // Push enough server-side stream data into the outbound pipe to exceed PauseWriterThreshold. This write parks
+        // on FlushAsync; CloseAsync below cancels _closedCts which cancels the write's writeCts and releases the write
+        // semaphore — but the bytes remain buffered, leaving the pipe past PauseWriterThreshold.
+        Task<FlushResult> serverWriteTask = streams.Remote.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(serverWriteTask.IsCompleted, Is.False);
+
+        // Act: server.CloseAsync(None) writes the Close frame and parks on FlushAsync(None) while holding
+        // _writeSemaphore. server.DisposeAsync waits for _writeSemaphore.
+        Task closeTask = sut.Server.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(closeTask.IsCompleted, Is.False);
+
+        // Assert: DisposeAsync must complete (without the fix it deadlocks waiting for _writeSemaphore).
+        Task disposeTask = sut.Server.DisposeAsync().AsTask();
+        Assert.That(async () => await disposeTask.WaitAsync(TimeSpan.FromSeconds(5)), Throws.Nothing);
+
+        // Tidy up the in-flight tasks. The duplex hold is released by the server connection dispose above.
+        try { await closeTask; } catch { }
+        try { await serverWriteTask; } catch { }
+    }
+
     [Test]
     public async Task Large_write_completes_with_small_pause_writer_threshold()
     {

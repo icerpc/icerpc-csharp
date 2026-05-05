@@ -405,7 +405,22 @@ internal class SlicConnection : IMultiplexedConnection
                 WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
                 if (IsServer)
                 {
-                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    // Link with _disposedCts so a concurrent DisposeAsync can break out of a flush parked on
+                    // PauseWriterThreshold. Without the link, server CloseAsync(None) would deadlock with DisposeAsync:
+                    // CloseAsync holds _writeSemaphore across this flush while DisposeAsync waits to acquire it before
+                    // disposing the writer (which is what would otherwise unblock the flush).
+                    using var flushCts = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken,
+                        _disposedCts.Token);
+                    try
+                    {
+                        await _duplexConnectionWriter.FlushAsync(flushCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (
+                        _disposedCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                    {
+                        throw new IceRpcException(IceRpcError.OperationAborted, "The connection was disposed.");
+                    }
                 }
                 else
                 {
@@ -547,10 +562,10 @@ internal class SlicConnection : IMultiplexedConnection
             {
             }
 
-            // Acquire (and never release) the write semaphore so no in-flight fire-and-forget writer (e.g. a stream
-            // frame parked on FlushAsync due to PauseWriterThreshold) can race with the writer disposal below. The
-            // _closedCts cancellation we triggered above unblocks parked WaitAsync/FlushAsync calls in those writers,
-            // so this wait is bounded.
+            // Acquire (and never release) the write semaphore so no in-flight writer (e.g. a stream frame parked on
+            // FlushAsync due to PauseWriterThreshold) can race with the writer disposal below. The wait is bounded:
+            // every writer site uses a cancellation token derived from _closedCancellationToken or _disposedCts.Token,
+            // both of which are cancelled by the time we reach this point.
             await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
