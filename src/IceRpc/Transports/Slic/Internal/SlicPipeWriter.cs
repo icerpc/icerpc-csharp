@@ -22,7 +22,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
-    private volatile int _peerWindowSize = SlicTransportOptions.MaxWindowSize;
+    private volatile int _peerWindowSize;
     private readonly Pipe _pipe;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
@@ -211,8 +211,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         Debug.Assert(size > 0);
 
+        // With _peerWindowSize >= 0 and size > 0, the atomic sum is positive unless it overflows int.MaxValue
+        // (MaxWindowSize), in which case it wraps to a non-positive value.
         int newPeerWindowSize = Interlocked.Add(ref _peerWindowSize, size);
-        if (newPeerWindowSize > SlicTransportOptions.MaxWindowSize)
+        if (newPeerWindowSize <= 0)
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
