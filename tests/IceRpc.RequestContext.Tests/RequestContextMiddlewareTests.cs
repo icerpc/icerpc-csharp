@@ -32,7 +32,7 @@ public sealed class RequestContextMiddlewareTests
             }
         };
 
-        IDictionary<string, string>? decoded = null;
+        IReadOnlyDictionary<string, string>? decoded = null;
         var sut = new RequestContextMiddleware(
            new InlineDispatcher((request, cancellationToken) =>
            {
