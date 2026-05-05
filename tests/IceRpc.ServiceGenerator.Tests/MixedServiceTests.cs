@@ -129,10 +129,9 @@ public partial class MixedServiceTests
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         // Act
-        GeneratorDriver driver = CSharpGeneratorDriver
+        _ = CSharpGeneratorDriver
             .Create(new global::IceRpc.ServiceGenerator.ServiceGenerator())
             .RunGeneratorsAndUpdateCompilation(compilation, out _, out ImmutableArray<Diagnostic> diagnostics);
-        _ = driver;
 
         // Assert
         Assert.That(
