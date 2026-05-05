@@ -39,10 +39,6 @@ public sealed record class SlicTransportOptions
             throw new ArgumentException(
                 $"The {nameof(InitialStreamWindowSize)} value cannot be less than 1 KB.",
                 nameof(value)) :
-            value > MaxWindowSize ?
-            throw new ArgumentException(
-                $"The {nameof(InitialStreamWindowSize)} value cannot be larger than {MaxWindowSize}.",
-                nameof(value)) :
             value;
     }
 
