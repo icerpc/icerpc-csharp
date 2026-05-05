@@ -21,7 +21,7 @@ public class RequestContextInterceptor : IInvoker
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Features.Get<IRequestContextFeature>()?.Value is IDictionary<string, string> context)
+        if (request.Features.Get<IRequestContextFeature>()?.Value is IReadOnlyDictionary<string, string> context)
         {
             if (context.Count == 0)
             {
