@@ -865,10 +865,14 @@ internal class SlicConnection : IMultiplexedConnection
                 }
 
                 // Gather data from source1 or source2 up to sendCredit bytes, the peer maximum stream frame size,
-                // or PauseWriterThreshold. Bounding by PauseWriterThreshold ensures the connection-level outbound
-                // pipe never holds more than one threshold-sized frame at a time, so a single duplex write carries
-                // at most ~PauseWriterThreshold bytes.
-                int sendMaxSize = Math.Min(Math.Min(sendCredit, PeerMaxStreamFrameSize), PauseWriterThreshold);
+                // and (when set) PauseWriterThreshold. Bounding by PauseWriterThreshold ensures the connection-level
+                // outbound pipe never holds more than one threshold-sized frame at a time, so a single duplex write
+                // carries at most ~PauseWriterThreshold bytes. PauseWriterThreshold == 0 disables this bound.
+                int sendMaxSize = Math.Min(sendCredit, PeerMaxStreamFrameSize);
+                if (PauseWriterThreshold > 0)
+                {
+                    sendMaxSize = Math.Min(sendMaxSize, PauseWriterThreshold);
+                }
                 ReadOnlySequence<byte> sendSource1;
                 ReadOnlySequence<byte> sendSource2;
                 if (!source1.IsEmpty)

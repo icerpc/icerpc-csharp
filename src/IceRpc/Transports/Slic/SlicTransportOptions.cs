@@ -64,13 +64,19 @@ public sealed record class SlicTransportOptions
     /// locally on the connection's outbound pipe before <see cref="System.IO.Pipelines.PipeWriter.FlushAsync" /> on the
     /// underlying pipe starts blocking. This bounds the memory used by the connection's outbound buffering when a peer
     /// is slow or not reading.</summary>
-    /// <value>The pause writer threshold in bytes. It can't be less than <c>1</c> KB. Defaults to <c>1</c> MB.</value>
+    /// <value>The pause writer threshold in bytes. Set to <c>0</c> to disable this flow control mechanism. Otherwise,
+    /// it can't be less than <c>1</c> KB. Defaults to <c>64</c> KB (the <see cref="System.IO.Pipelines.Pipe" />
+    /// default).</value>
     public int PauseWriterThreshold
     {
         get => _pauseWriterThreshold;
-        set => _pauseWriterThreshold = value < 1024 ?
+        set => _pauseWriterThreshold = value < 0 ?
             throw new ArgumentException(
-                $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB.",
+                $"The {nameof(PauseWriterThreshold)} value cannot be negative.",
+                nameof(value)) :
+            value > 0 && value < 1024 ?
+            throw new ArgumentException(
+                $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB unless it is 0.",
                 nameof(value)) :
             value;
     }
@@ -88,5 +94,6 @@ public sealed record class SlicTransportOptions
     // The default specified in the HTTP/2 specification.
     private int _initialStreamWindowSize = 65_536;
     private int _maxStreamFrameSize = 32_768;
-    private int _pauseWriterThreshold = 1024 * 1024;
+    // The default specified by System.IO.Pipelines.PipeOptions.
+    private int _pauseWriterThreshold = 65_536;
 }

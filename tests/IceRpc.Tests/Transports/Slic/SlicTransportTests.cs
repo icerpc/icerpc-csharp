@@ -1434,7 +1434,7 @@ public class SlicTransportTests
     public void PauseWriterThreshold_default_value()
     {
         var options = new SlicTransportOptions();
-        Assert.That(options.PauseWriterThreshold, Is.EqualTo(1024 * 1024));
+        Assert.That(options.PauseWriterThreshold, Is.EqualTo(65_536));
     }
 
     [Test]
@@ -1445,11 +1445,59 @@ public class SlicTransportTests
     }
 
     [Test]
+    public void PauseWriterThreshold_negative_throws()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = -1, Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
     public void PauseWriterThreshold_at_minimum_succeeds()
     {
         var options = new SlicTransportOptions();
         Assert.That(() => options.PauseWriterThreshold = 1024, Throws.Nothing);
         Assert.That(options.PauseWriterThreshold, Is.EqualTo(1024));
+    }
+
+    [Test]
+    public void PauseWriterThreshold_zero_succeeds()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = 0, Throws.Nothing);
+        Assert.That(options.PauseWriterThreshold, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Large_write_completes_with_pause_writer_threshold_disabled()
+    {
+        // Arrange: PauseWriterThreshold = 0 disables connection-level flow control. The Slic peer-window flow
+        // control still bounds in-flight data per stream.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 256 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 0);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Act
+        byte[] payload = new byte[256 * 1024];
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+
+        // Assert
+        await writeTask;
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
     }
 
     /// <summary>Verifies that a write blocked on peer-granted send credit (peer window exhausted) can be
