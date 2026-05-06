@@ -67,9 +67,8 @@ public partial class MixedServiceTests
             CancellationToken cancellationToken) => new(message);
     }
 
-    /// <summary>Verifies that the service generator reports IRSG0001 when a derived service class adds an
-    /// operation whose name collides with an operation declared by its base service class (via a different
-    /// interface). Without the fix, the colliding derived operation would be silently dropped.</summary>
+    /// <summary>Verifies that the service generator reports IRSG0001 when a derived service class adds an operation
+    /// whose name collides with an operation declared by its base service class (via a different interface).</summary>
     [Test]
     public void Derived_service_with_operation_name_colliding_with_base_reports_diagnostic()
     {
@@ -130,7 +129,7 @@ public partial class MixedServiceTests
 
         // Act
         _ = CSharpGeneratorDriver
-            .Create(new global::IceRpc.ServiceGenerator.ServiceGenerator())
+            .Create(new IceRpc.ServiceGenerator.ServiceGenerator())
             .RunGeneratorsAndUpdateCompilation(compilation, out _, out ImmutableArray<Diagnostic> diagnostics);
 
         // Assert
