@@ -16,7 +16,7 @@ public static class Generator
     /// <param name="input">The pipe reader to read the Slice-encoded request from.</param>
     /// <param name="output">The pipe writer to write the Slice-encoded response to.</param>
     /// <param name="transform">A function that receives the converted source files and the options dictionary, and
-    /// returns the generator response.</param>
+    /// returns a task that produces the generator response.</param>
     public static async Task RunAsync(
         PipeReader input,
         PipeWriter output,
