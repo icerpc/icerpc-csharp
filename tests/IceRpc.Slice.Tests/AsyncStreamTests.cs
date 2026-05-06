@@ -42,11 +42,7 @@ public class AsyncStreamTests
     [Test]
     public async Task Full_iteration_completes_reader()
     {
-        // Three int32s = 12 bytes.
-        byte[] payload = new byte[12];
-        BitConverter.TryWriteBytes(payload.AsSpan(0, 4), 1);
-        BitConverter.TryWriteBytes(payload.AsSpan(4, 4), 2);
-        BitConverter.TryWriteBytes(payload.AsSpan(8, 4), 3);
+        byte[] payload = EncodeInt32Values(1, 2, 3);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
         IAsyncStream<int> stream = trackingReader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
@@ -65,10 +61,7 @@ public class AsyncStreamTests
     [Test]
     public async Task Break_during_iteration_completes_reader()
     {
-        byte[] payload = new byte[12];
-        BitConverter.TryWriteBytes(payload.AsSpan(0, 4), 1);
-        BitConverter.TryWriteBytes(payload.AsSpan(4, 4), 2);
-        BitConverter.TryWriteBytes(payload.AsSpan(8, 4), 3);
+        byte[] payload = EncodeInt32Values(1, 2, 3);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
         IAsyncStream<int> stream = trackingReader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
@@ -169,6 +162,17 @@ public class AsyncStreamTests
         stream.Dispose();
 
         Assert.That(() => stream.GetAsyncEnumerator(), Throws.InstanceOf<ObjectDisposedException>());
+    }
+
+    private static byte[] EncodeInt32Values(params int[] values)
+    {
+        var writer = new ArrayBufferWriter<byte>();
+        var encoder = new SliceEncoder(writer);
+        foreach (int value in values)
+        {
+            encoder.EncodeInt32(value);
+        }
+        return writer.WrittenSpan.ToArray();
     }
 
     /// <summary>A PipeReader wrapper that delegates everything to an inner reader and counts Complete calls.</summary>

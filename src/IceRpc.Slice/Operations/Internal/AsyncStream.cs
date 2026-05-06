@@ -16,8 +16,7 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
     private readonly Func<PipeReader, CancellationToken, ValueTask<ReadResult>> _readFunc;
     private readonly Func<ReadOnlySequence<byte>, IEnumerable<T>> _decodeBufferFunc;
 
-    // Canceled by Dispose when iteration has started, to unblock any pending ReadAsync. We never dispose this CTS:
-    // disposing it could race with a still-active linked CTS holding a registration on its token.
+    // Canceled by Dispose when iteration has started, to unblock any pending ReadAsync.
     private readonly CancellationTokenSource _disposeCts = new();
 
     private bool _disposed;
