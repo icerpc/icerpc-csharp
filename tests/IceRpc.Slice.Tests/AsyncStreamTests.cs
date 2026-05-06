@@ -175,11 +175,8 @@ public class AsyncStreamTests
     private sealed class TrackingPipeReader : PipeReader
     {
         private readonly PipeReader _inner;
-        private int _completeCallCount;
 
-        internal int CompleteCallCount => _completeCallCount;
-
-        internal TrackingPipeReader(PipeReader inner) => _inner = inner;
+        internal int CompleteCallCount { get; private set; }
 
         public override void AdvanceTo(SequencePosition consumed) => _inner.AdvanceTo(consumed);
 
@@ -190,7 +187,7 @@ public class AsyncStreamTests
 
         public override void Complete(Exception? exception = null)
         {
-            Interlocked.Increment(ref _completeCallCount);
+            CompleteCallCount++;
             _inner.Complete(exception);
         }
 
@@ -198,5 +195,7 @@ public class AsyncStreamTests
             _inner.ReadAsync(cancellationToken);
 
         public override bool TryRead(out ReadResult result) => _inner.TryRead(out result);
+
+        internal TrackingPipeReader(PipeReader inner) => _inner = inner;
     }
 }
