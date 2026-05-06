@@ -398,11 +398,13 @@ internal class SlicConnection : IMultiplexedConnection
         {
             using (await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false))
             {
-                // The duplex connection writer of a server connection might already be shutdown (_writerIsShutdown=true)
-                // if the client-side sent the Close frame and shut down the duplex connection. This doesn't apply to the
-                // client-side since the server-side doesn't shutdown the duplex connection writer after sending the
-                // Close frame.
-                if (!IsServer || !_writerIsShutdown)
+                if (IsServer && _writerIsShutdown)
+                {
+                    // ReadFramesAsync already shut down the writer because the client-side sent its Close frame and
+                    // shut down the duplex connection. Nothing more to send. The client-side is unaffected: it never
+                    // shuts down the writer from ReadFramesAsync.
+                }
+                else
                 {
                     WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
                     if (IsServer)
