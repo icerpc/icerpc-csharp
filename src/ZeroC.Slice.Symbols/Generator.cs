@@ -16,11 +16,11 @@ public static class Generator
     /// <param name="input">The pipe reader to read the Slice-encoded request from.</param>
     /// <param name="output">The pipe writer to write the Slice-encoded response to.</param>
     /// <param name="transform">A function that receives the converted source files and the options dictionary, and
-    /// returns the generator response.</param>
+    /// returns a task that produces the generator response.</param>
     public static async Task RunAsync(
         PipeReader input,
         PipeWriter output,
-        Func<ImmutableList<SliceFile>, Dictionary<string, string>, GeneratorResponse> transform)
+        Func<ImmutableList<SliceFile>, Dictionary<string, string>, Task<GeneratorResponse>> transform)
     {
         // Read all data from input.
         ReadResult readResult;
@@ -55,7 +55,7 @@ public static class Generator
         ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
         // Invoke the transform.
-        GeneratorResponse response = transform(symbolFiles, options);
+        GeneratorResponse response = await transform(symbolFiles, options).ConfigureAwait(false);
 
         // Convert public types to internal compiler types and encode the response.
         var encoder = new SliceEncoder(output);

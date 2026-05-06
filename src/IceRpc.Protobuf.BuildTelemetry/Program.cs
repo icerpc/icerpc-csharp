@@ -32,7 +32,7 @@ foreach (FileDescriptorProto? proto in request.ProtoFile)
 IReadOnlyList<FileDescriptor> descriptors = FileDescriptor.BuildFromByteStrings(sources);
 
 int fileCount = 0;
-byte[] hashBytes = [];
+using var fileHashes = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
 foreach (FileDescriptor descriptor in descriptors)
 {
@@ -42,17 +42,11 @@ foreach (FileDescriptor descriptor in descriptors)
         continue;
     }
 
-    byte[] newHash = SHA256.HashData(descriptor.SerializedData.Memory.Span);
-    if (hashBytes.Length > 0)
-    {
-        hashBytes = SHA256.HashData(newHash.Concat(hashBytes).ToArray());
-    }
-    else
-    {
-        hashBytes = newHash;
-    }
+    fileHashes.AppendData(SHA256.HashData(descriptor.SerializedData.Memory.Span));
     fileCount++;
 }
+
+byte[] hashBytes = fileCount == 0 ? [] : fileHashes.GetHashAndReset();
 
 var response = new CodeGeneratorResponse();
 
@@ -109,12 +103,7 @@ if (fileCount > 0)
     }
     catch (Exception ex)
     {
-        string message = ex.Message;
-        if (ex.InnerException is not null)
-        {
-            message += $"\n  Inner exception: {ex.InnerException.Message}";
-        }
-        responseContent = $"Failed to report build telemetry to {uri}: {message}";
+        responseContent = $"Failed to report build telemetry to {uri}: {ex}";
     }
 
     // We return a single file containing the result of the build telemetry reporting.
