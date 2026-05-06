@@ -1464,40 +1464,55 @@ public class SlicTransportTests
     {
         var options = new SlicTransportOptions();
         Assert.That(() => options.PauseWriterThreshold = 0, Throws.Nothing);
-        Assert.That(options.PauseWriterThreshold, Is.EqualTo(0));
+        Assert.That(options.PauseWriterThreshold, Is.Zero);
     }
 
+    /// <summary>Verifies that <see cref="SlicTransportOptions.PauseWriterThreshold"/> = 0 disables connection-level
+    /// flow control: a write can fill the outbound pipe arbitrarily without parking on FlushAsync, even when the
+    /// background writer task can't drain the pipe.</summary>
     [Test]
     public async Task Large_write_completes_with_pause_writer_threshold_disabled()
     {
-        // Arrange: PauseWriterThreshold = 0 disables connection-level flow control. The Slic peer-window flow
-        // control still bounds in-flight data per stream.
+        // Arrange: PauseWriterThreshold = 0 on the client disables the per-connection pipe pause. Hold the duplex
+        // Write so the background writer task cannot drain the outbound pipe — with any non-zero threshold the
+        // FlushAsync would park; with 0 it must complete. The peer window is sized well above the payload so the
+        // write isn't bounded by Slic's per-stream send credit.
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(
             options => options.InitialStreamWindowSize = 256 * 1024);
         services.AddOptions<SlicTransportOptions>("client").Configure(
             options => options.PauseWriterThreshold = 0);
+        services.AddTestDuplexTransportDecorator();
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
         using var streams = await sut.CreateAndAcceptStreamAsync();
 
-        // Act
-        byte[] payload = new byte[256 * 1024];
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
 
-        int totalRead = 0;
-        while (totalRead < payload.Length)
+        // Act: write a payload much larger than the default Pipe pauseWriterThreshold (64 KB) into the held
+        // outbound pipe. Stays comfortably within the peer's 256 KB send credit so the write isn't gated by
+        // peer-window flow control. The cancellation token bounds the test in case the threshold isn't actually
+        // disabled — WriteAsync would otherwise park indefinitely on FlushAsync.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        try
         {
-            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
-            totalRead += (int)readResult.Buffer.Length;
-            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
-        }
+            byte[] payload = new byte[128 * 1024];
+            FlushResult flushResult = await streams.Local.Output.WriteAsync(payload, cts.Token);
 
-        // Assert
-        await writeTask;
-        Assert.That(totalRead, Is.EqualTo(payload.Length));
+            // Assert: the write completes without the background writer task draining anything.
+            Assert.That(flushResult.IsCompleted, Is.False);
+            Assert.That(flushResult.IsCanceled, Is.False);
+        }
+        finally
+        {
+            duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+        }
     }
 
     /// <summary>Verifies that a write blocked on peer-granted send credit (peer window exhausted) can be
