@@ -29,7 +29,7 @@ internal partial class ThermoBridge : IThermoHomeService
         _deviceConnection.SetInvoker(dispatchInfo.ConnectionContext.Invoker);
 
         // Notify the ThermoFacade its device is connected. We let the async-iteration over readings execute in the
-        // background. This calls transfers the ownership of the readings stream to the ThermoFacade, which will
+        // background. This call transfers the ownership of the readings stream to the ThermoFacade, which will
         // dispose it when done.
         _ = _thermoFacade.PublishAsync(readings);
 
