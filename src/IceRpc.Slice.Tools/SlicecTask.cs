@@ -124,7 +124,7 @@ public class SlicecTask : ToolTask
 
             foreach (Note note in diagnostic.Notes)
             {
-                var noteSpan = note.Snippet?.SourceSpan ?? new SourceSpan();
+                var noteSpan = note.Snippet?.SourceSpan ?? diagnosticSpan;
                 Log.LogMessage(
                     "",
                     "",
