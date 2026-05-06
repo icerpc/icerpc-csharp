@@ -1500,9 +1500,9 @@ public class SlicTransportTests
         // peer-window flow control. The cancellation token bounds the test in case the threshold isn't actually
         // disabled — WriteAsync would otherwise park indefinitely on FlushAsync.
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        byte[] payload = new byte[128 * 1024];
         try
         {
-            byte[] payload = new byte[128 * 1024];
             FlushResult flushResult = await streams.Local.Output.WriteAsync(payload, cts.Token);
 
             // Assert: the write completes without the background writer task draining anything.
@@ -1513,6 +1513,16 @@ public class SlicTransportTests
         {
             duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
         }
+
+        // Once the background writer task drains the pipe, all bytes must reach the peer.
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1, cts.Token);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
     }
 
     /// <summary>Verifies that a write blocked on peer-granted send credit (peer window exhausted) can be
@@ -1531,7 +1541,7 @@ public class SlicTransportTests
         using var streams = await sut.CreateAndAcceptStreamAsync();
 
         // Exhaust the peer's window without reading.
-        byte[] payload = new byte[4 * 1024 - 1];
+        byte[] payload = new byte[(4 * 1024) - 1];
         _ = await streams.Local.Output.WriteAsync(payload, default);
 
         using var writeCts = new CancellationTokenSource();
@@ -1641,7 +1651,7 @@ public class SlicTransportTests
 
         using var secondStreams = await sut.CreateAndAcceptStreamAsync();
         byte[] payload = new byte[1024];
-        FlushResult flushResult = await secondStreams.Local.Output.WriteAsync(payload, default);
+        FlushResult flushResult = await secondStreams.Local.Output.WriteAsync(payload);
 
         // Assert: the new stream's write completes normally.
         Assert.That(flushResult.IsCompleted, Is.False);
@@ -1692,7 +1702,7 @@ public class SlicTransportTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(closeTask.IsCompleted, Is.False);
 
-        // Assert: DisposeAsync must complete (without the fix it deadlocks waiting for _writeSemaphore).
+        // Assert: DisposeAsync must complete.
         Task disposeTask = sut.Server.DisposeAsync().AsTask();
         Assert.That(async () => await disposeTask.WaitAsync(TimeSpan.FromSeconds(5)), Throws.Nothing);
 
