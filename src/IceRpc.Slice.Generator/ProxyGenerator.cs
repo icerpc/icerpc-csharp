@@ -86,7 +86,7 @@ internal static class ProxyGenerator
         if (op.StreamedParameter is Field streamParam)
         {
             builder.AddParameter(
-                OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
+                OperationExtensions.GetOutgoingStreamTypeString(streamParam, currentNamespace),
                 streamParam.ParameterName,
                 docComment: DocCommentFormatter.FormatOverview(streamParam.Comment, currentNamespace));
         }
@@ -374,7 +374,7 @@ internal static class ProxyGenerator
                     if (streamReturn.DataType.FixedSize is int fixedSize && !streamReturn.DataTypeIsOptional)
                     {
                         body.WriteLine($$"""
-                            var sliceP_returnValue = payloadContinuation.ToAsyncEnumerable<{{streamElemType}}>(
+                            var sliceP_returnValue = payloadContinuation.ToAsyncStream<{{streamElemType}}>(
                                 {{decodeLambda}},
                                 {{fixedSize}});
                             """);
@@ -382,7 +382,7 @@ internal static class ProxyGenerator
                     else
                     {
                         body.WriteLine($$"""
-                            var sliceP_returnValue = payloadContinuation.ToAsyncEnumerable<{{streamElemType}}>(
+                            var sliceP_returnValue = payloadContinuation.ToAsyncStream<{{streamElemType}}>(
                                 {{decodeLambda}},
                                 sender,
                                 sliceFeature: request.Features.Get<IceRpc.Features.ISliceFeature>());
@@ -437,7 +437,7 @@ internal static class ProxyGenerator
         if (streamParam is not null)
         {
             builder.AddParameter(
-                OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
+                OperationExtensions.GetOutgoingStreamTypeString(streamParam, currentNamespace),
                 streamParam.ParameterName);
         }
 
@@ -527,7 +527,7 @@ internal static class ProxyGenerator
 
         if (op.StreamedParameter is Field sp)
         {
-            builder.AddParameter(OperationExtensions.GetStreamTypeString(sp, currentNamespace), sp.ParameterName);
+            builder.AddParameter(OperationExtensions.GetOutgoingStreamTypeString(sp, currentNamespace), sp.ParameterName);
         }
 
         builder.AddParameter("IceRpc.Features.IFeatureCollection?", featuresParam, "null");
@@ -571,8 +571,8 @@ internal static class ProxyGenerator
                 $"""Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cref="{proxyName}" />.""")
             .AddBlock(
                 new FunctionBuilder(
-                    $"{accessModifier} static", 
-                    proxyName, $"Decode{proxyName}", 
+                    $"{accessModifier} static",
+                    proxyName, $"Decode{proxyName}",
                     FunctionType.ExpressionBody)
                         .AddComment(
                             "summary",

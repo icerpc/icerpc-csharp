@@ -94,17 +94,13 @@ internal sealed partial class ThermoFacade : IThermostatService
     }
 
     /// <summary>Publishes the readings to the clients currently monitoring the device.</summary>
-    internal async Task PublishAsync(IAsyncEnumerable<Reading> readings)
+    internal async Task PublishAsync(IAsyncStream<Reading> readings)
     {
-        // This method "owns" readings and its underlying multiplexed transport stream. We must iterate over the
-        // readings at least partially to dispose the async enumerator and close this multiplexed transport stream. If
-        // we forget to do that, the multiplexed transport stream remains open and the connection won't shutdown
-        // gracefully.
+        // This method "owns" readings and its underlying multiplexed transport stream.
+        using IAsyncStream<Reading> _ = readings;
 
         if (_shutdownToken.IsCancellationRequested)
         {
-            // Close the stream.
-            _ = readings.GetAsyncEnumerator().DisposeAsync().AsTask();
             return;
         }
 

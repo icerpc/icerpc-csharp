@@ -2,10 +2,9 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice.Operations.Internal;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice.Operations;
@@ -24,18 +23,19 @@ public static class PipeReaderExtensions
         public static PipeReader CreateEmptySliceStructPayload() => PipeReader.Create(_emptyStructPayload);
     }
 
-    /// <summary>Creates an async enumerable over a pipe reader to decode streamed elements.</summary>
+    /// <summary>Creates an async stream over a pipe reader to decode streamed elements.</summary>
     /// <typeparam name="T">The type of the element being decoded.</typeparam>
     /// <param name="reader">The pipe reader.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of one element.</param>
     /// <param name="sliceFeature">The Slice feature to customize the decoding.</param>
-    /// <returns>The async enumerable to decode and return the streamed elements.</returns>
+    /// <returns>The async stream to decode and return the streamed elements.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="elementSize" /> is equal of inferior to
     /// <c>0</c>.</exception>
-    /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use
-    /// the reader after this call.</remarks>
-    public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+    /// <remarks>The reader ownership is transferred to the returned async stream. The caller should no longer use
+    /// the reader after this call, and must dispose the returned async stream when done to release the reader.
+    /// </remarks>
+    public static IAsyncStream<T> ToAsyncStream<T>(
         this PipeReader reader,
         DecodeFunc<T> decodeFunc,
         int elementSize,
@@ -48,7 +48,7 @@ public static class PipeReaderExtensions
         }
 
         sliceFeature ??= SliceFeature.Default;
-        return reader.ToAsyncEnumerable(ReadAsync, DecodeBuffer);
+        return new AsyncStream<T>(reader, ReadAsync, DecodeBuffer);
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
@@ -90,16 +90,17 @@ public static class PipeReaderExtensions
         }
     }
 
-    /// <summary>Creates an async enumerable over a pipe reader to decode variable size streamed elements.</summary>
+    /// <summary>Creates an async stream over a pipe reader to decode variable size streamed elements.</summary>
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="reader">The pipe reader.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="sender">The proxy that sent the request, if applicable.</param>
     /// <param name="sliceFeature">The slice feature to customize the decoding.</param>
-    /// <returns>The async enumerable to decode and return the streamed members.</returns>
-    /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use
-    /// the reader after this call.</remarks>
-    public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+    /// <returns>The async stream to decode and return the streamed members.</returns>
+    /// <remarks>The reader ownership is transferred to the returned async stream. The caller should no longer use
+    /// the reader after this call, and must dispose the returned async stream when done to release the reader.
+    /// </remarks>
+    public static IAsyncStream<T> ToAsyncStream<T>(
         this PipeReader reader,
         DecodeFunc<T> decodeFunc,
         ISliceProxy? sender = null,
@@ -107,7 +108,7 @@ public static class PipeReaderExtensions
     {
         sliceFeature ??= SliceFeature.Default;
         ISliceProxy? baseProxy = sliceFeature.BaseProxy ?? sender;
-        return reader.ToAsyncEnumerable(ReadAsync, DecodeBuffer);
+        return new AsyncStream<T>(reader, ReadAsync, DecodeBuffer);
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
@@ -125,69 +126,5 @@ public static class PipeReaderExtensions
 
         ValueTask<ReadResult> ReadAsync(PipeReader reader, CancellationToken cancellationToken) =>
             reader.ReadSliceSegmentAsync(sliceFeature.MaxSegmentSize, cancellationToken);
-    }
-
-    /// <summary>Decodes an async enumerable from a pipe reader.</summary>
-    /// <param name="reader">The pipe reader.</param>
-    /// <param name="readFunc">The function used to read enough data to decode elements returned by the
-    /// enumerable.</param>
-    /// <param name="decodeBufferFunc">The function used to decode an element.</param>
-    /// <param name="cancellationToken">The cancellation token which is provided to <see
-    /// cref="IAsyncEnumerable{T}.GetAsyncEnumerator(CancellationToken)" />.</param>
-    private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this PipeReader reader,
-        Func<PipeReader, CancellationToken, ValueTask<ReadResult>> readFunc,
-        Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            while (true)
-            {
-                ReadResult readResult;
-
-                try
-                {
-                    readResult = await readFunc(reader, cancellationToken).ConfigureAwait(false);
-
-                    if (readResult.IsCanceled)
-                    {
-                        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                        throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
-                    }
-                    if (readResult.Buffer.IsEmpty)
-                    {
-                        Debug.Assert(readResult.IsCompleted);
-                        yield break;
-                    }
-                }
-                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-                {
-                    // Canceling the cancellation token is a normal way to complete an iteration.
-                    yield break;
-                }
-
-                IEnumerable<T> elements = decodeBufferFunc(readResult.Buffer);
-                reader.AdvanceTo(readResult.Buffer.End);
-
-                foreach (T item in elements)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        yield break;
-                    }
-                    yield return item;
-                }
-
-                if (readResult.IsCompleted)
-                {
-                    yield break;
-                }
-            }
-        }
-        finally
-        {
-            reader.Complete();
-        }
     }
 }

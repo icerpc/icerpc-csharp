@@ -152,7 +152,7 @@ public class StreamTests
         }
         pipe.Writer.Complete();
 
-        IAsyncEnumerable<int> decoded = pipe.Reader.ToAsyncEnumerable(
+        using IAsyncStream<int> decoded = pipe.Reader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4,
             SliceFeature.Default);
@@ -201,7 +201,7 @@ public class StreamTests
         }
         pipe.Writer.Complete();
 
-        IAsyncEnumerable<string> decoded = pipe.Reader.ToAsyncEnumerable(
+        using IAsyncStream<string> decoded = pipe.Reader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Act/Assert
@@ -231,7 +231,7 @@ public class StreamTests
 
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
-        IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
+        using IAsyncStream<MyEnum> values = payload.ToAsyncStream<MyEnum>(
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"),
             elementSize: 4,
             sliceFeature: null);
@@ -261,7 +261,7 @@ public class StreamTests
 
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
-        IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
+        using IAsyncStream<MyEnum> values = payload.ToAsyncStream<MyEnum>(
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
         await using IAsyncEnumerator<MyEnum> enumerator = values.GetAsyncEnumerator();
 
@@ -290,7 +290,7 @@ public class StreamTests
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
         int count = 0;
 
-        IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
+        using IAsyncStream<int> values = payload.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4,
             sliceFeature: null);
@@ -346,7 +346,7 @@ public class StreamTests
         using var cts = new CancellationTokenSource();
         int count = 0;
 
-        IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
+        using IAsyncStream<int> values = payload.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4,
             sliceFeature: null);
@@ -391,7 +391,7 @@ public class StreamTests
 
         using var cts = new CancellationTokenSource();
 
-        IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
+        using IAsyncStream<int> values = payload.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4,
             sliceFeature: null);
@@ -420,7 +420,7 @@ public class StreamTests
 
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
-        IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
+        using IAsyncStream<int> values = payload.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4,
             sliceFeature: null);
