@@ -58,22 +58,36 @@ internal sealed class Parser
                     continue;
                 }
 
+                ImmutableArray<INamedTypeSymbol> baseInterfaces = [];
                 IReadOnlyList<ServiceMethod> baseServiceMethods = [];
+
                 INamedTypeSymbol? baseServiceClass = GetBaseServiceClass(classSymbol);
+
                 if (baseServiceClass is not null)
                 {
-                    baseServiceMethods = GetServiceMethods(baseServiceClass.AllInterfaces);
+                    baseInterfaces = baseServiceClass.AllInterfaces;
+                    baseServiceMethods = GetServiceMethods(baseInterfaces);
                 }
 
-                IEnumerable<ServiceMethod> serviceMethods =
-                    GetServiceMethods(classSymbol.AllInterfaces).Except(baseServiceMethods);
+                // Partition the interfaces into those inherited from the base service class and those new in this
+                // class. Methods from inherited interfaces are already dispatched by the base; methods from new
+                // interfaces are what this class adds.
+                var newInterfaces = classSymbol.AllInterfaces
+                    // The explicit type argument is required because SymbolEqualityComparer.Default is typed as
+                    // IEqualityComparer<ISymbol>, which would otherwise infer Except's element type as ISymbol.
+                    .Except<INamedTypeSymbol>(baseInterfaces, SymbolEqualityComparer.Default)
+                    .ToImmutableArray();
 
-                // We check for duplicates only once per class.
-                var operationNames = new HashSet<string>();
+                IEnumerable<ServiceMethod> serviceMethods = GetServiceMethods(newInterfaces);
+
+                // We check for duplicates only once per class. Seed the set with the base service operation names so
+                // we also report collisions between an operation added by this class and a base operation.
+                var operationNames = new HashSet<string>(baseServiceMethods.Select(m => m.OperationName));
                 foreach (ServiceMethod method in serviceMethods)
                 {
                     if (!operationNames.Add(method.OperationName))
                     {
+                        // The diagnostic report is not fatal: we keep going.
                         _reportDiagnostic(
                             Diagnostic.Create(
                                 DiagnosticDescriptors.DuplicateOperationNames,
@@ -83,7 +97,7 @@ internal sealed class Parser
                     }
                 }
 
-                // Suppress duplicates, if any.
+                // Suppress duplicates, if any. Any such duplicate was reported above as an error.
                 serviceMethods = serviceMethods.Distinct();
 
                 string containingNamespace = classSymbol.ContainingNamespace.GetFullName();
