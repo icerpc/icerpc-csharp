@@ -29,13 +29,14 @@ static async Task<GeneratorResponse> BuildResponseAsync(
     ImmutableList<SliceFile> symbolFiles,
     Dictionary<string, string> options)
 {
+    const string fileName = "icerpc_build_telemetry.txt";
+
     if (symbolFiles.Count == 0)
     {
         return new GeneratorResponse { GeneratedFiles = [], Diagnostics = [] };
     }
 
     using var fileHashes = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-    int hashedFileCount = 0;
 
     foreach (SliceFile file in symbolFiles)
     {
@@ -44,23 +45,30 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         {
             content = File.ReadAllBytes(file.Path);
         }
-        catch
+        catch (Exception ex)
         {
-            continue;
+            return new GeneratorResponse
+            {
+                GeneratedFiles =
+                [
+                    new GeneratedFile
+                    {
+                        Path = fileName,
+                        Contents = $"Failed to report build telemetry: failed to read '{file.Path}': {ex}",
+                    }
+                ],
+                Diagnostics = [],
+            };
         }
 
         fileHashes.AppendData(SHA256.HashData(content));
-        hashedFileCount++;
     }
 
-    byte[] hashBytes = hashedFileCount == 0 ? [] : fileHashes.GetHashAndReset();
+    string compilationHash = Convert.ToHexString(fileHashes.GetHashAndReset()).ToLowerInvariant();
 
     // Determine the IceRPC version using the assembly version.
     var assembly = Assembly.GetExecutingAssembly();
     string toolVersion = assembly!.GetName().Version!.ToString();
-
-    string compilationHash = hashBytes.Length == 0 ?
-        string.Empty : Convert.ToHexString(hashBytes).ToLowerInvariant();
 
     var sliceTelemetryData = new SliceTelemetryData(
         RuntimeInformation.ProcessArchitecture.ToString(),
@@ -75,8 +83,6 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         toolVersion);
 
     string responseContent = await UploadTelemetryAsync(sliceTelemetryData);
-
-    string fileName = "icerpc_build_telemetry.txt";
 
     return new GeneratorResponse
     {
