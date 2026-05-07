@@ -406,6 +406,10 @@ public class StreamTests
 
         // Assert
         Assert.That(payload.IsReadCanceled, Is.True);
+        // We must await moveNextAwaitable before the enumerator's implicit DisposeAsync runs at end of scope:
+        // async iterators forbid concurrent MoveNextAsync/DisposeAsync calls, and would throw
+        // NotSupportedException if the in-flight MoveNextAsync hasn't completed yet.
+        Assert.That(await moveNextAwaitable, Is.False);
         Assert.That(() => payload.Completed, Is.Null);
     }
 
