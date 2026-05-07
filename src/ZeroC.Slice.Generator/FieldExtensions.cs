@@ -254,7 +254,7 @@ internal static class FieldExtensions
         /// <summary>Gets a value indicating whether this field has the cs::readonly attribute.</summary>
         internal bool IsReadonly => value.Attributes.HasAttribute(CSAttributes.CSReadonly);
 
-        /// <summary>Gets a value indicating whether this field maps to <c>ReadOnlyMemory&lt;T&gt;</c> for outgoing
+        /// <summary>Gets a value indicating whether this field maps to <c>ReadOnlyMemory{T}</c> for outgoing
         /// parameters (fixed-size primitive sequences without cs::type).</summary>
         internal bool IsReadOnlyMemoryParam =>
             value.DataType.Type is SequenceType seq

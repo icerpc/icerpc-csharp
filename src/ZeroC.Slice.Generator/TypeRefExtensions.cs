@@ -55,7 +55,7 @@ internal static class TypeRefExtensions
     }
 
     /// <summary>Returns the C# type string for an incoming parameter (decode target). Sequences map to arrays,
-    /// dictionaries map to Dictionary&lt;K,V&gt;. Respects cs::type attribute.</summary>
+    /// dictionaries map to Dictionary{K,V};. Respects cs::type attribute.</summary>
     internal static string IncomingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
     {
         string baseType = typeRef.Type switch
@@ -74,8 +74,8 @@ internal static class TypeRefExtensions
     }
 
     /// <summary>Returns the C# type string for an outgoing parameter (encode source). Sequences of fixed-size
-    /// primitives map to ReadOnlyMemory&lt;T&gt;, other sequences to IEnumerable&lt;T&gt;, dictionaries to
-    /// IEnumerable&lt;KeyValuePair&lt;K,V&gt;&gt;.</summary>
+    /// primitives map to ReadOnlyMemory{T}, other sequences to IEnumerable{T}, dictionaries to
+    /// IEnumerable{KeyValuePair{K,V}}.</summary>
     internal static string OutgoingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
     {
         bool ignoreOptional = false;
