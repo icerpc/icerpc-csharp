@@ -43,6 +43,7 @@
     <Project Path="tests/IceRpc.Quic.Tests/IceRpc.Quic.Tests.csproj" />
     <Project Path="tests/IceRpc.RequestContext.Tests/IceRpc.RequestContext.Tests.csproj" />
     <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
+    <Project Path="tests/IceRpc.ServiceGenerator.Tests/IceRpc.ServiceGenerator.Tests.csproj" />
     <Project Path="tests/IceRpc.Ice.Generator.Tests/IceRpc.Ice.Generator.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Generator.Tests/IceRpc.Slice.Generator.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
