@@ -881,7 +881,9 @@ public partial class OperationTests
         public ValueTask<PingableProxy> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
+
         public ValueTask OpWithTrailingOptionalValuesAsync(int p1, int? p2, int p3, int? p4, int? p5, IFeatureCollection features, CancellationToken cancellationToken) => default;
+
         public ValueTask OpWithTrailingOptionalValuesAndStreamAsync(int p1, int? p2, int p3, int? p4, int? p5, IAsyncStream<byte?> p6, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
@@ -908,6 +910,7 @@ public partial class OperationTests
     private sealed partial class MyDerivedOperationsService : IMyDerivedOperationsService
     {
         public ValueTask OpAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+
         public ValueTask OpDerivedAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 }

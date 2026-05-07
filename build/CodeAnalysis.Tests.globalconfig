@@ -21,6 +21,34 @@ dotnet_diagnostic.IDE0008.severity = none
 # SA0001: XML comment analysis is disabled due to project configuration
 dotnet_diagnostic.SA0001.severity = none
 
+# Test code is not a shipped API; XML doc-comment rules don't add value here.
+# SA1600: Elements should be documented
+dotnet_diagnostic.SA1600.severity = none
+
+# SA1601: Partial elements should be documented
+dotnet_diagnostic.SA1601.severity = none
+
+# SA1602: Enumeration items should be documented
+dotnet_diagnostic.SA1602.severity = none
+
+# SA1611: The documentation for parameter is missing
+dotnet_diagnostic.SA1611.severity = none
+
+# SA1615: Element return value should be documented
+dotnet_diagnostic.SA1615.severity = none
+
+# SA1618: The documentation for type parameter is missing
+dotnet_diagnostic.SA1618.severity = none
+
+# SA1623: The property's documentation summary text should begin with the appropriate text
+dotnet_diagnostic.SA1623.severity = none
+
+# SA1629: Documentation text should end with a period
+dotnet_diagnostic.SA1629.severity = none
+
+# SA1648: <inheritdoc> should be used with inheriting class
+dotnet_diagnostic.SA1648.severity = none
+
 # NUnit2005: Consider using Assert.That(actual, Is.EqualTo(expected))
 dotnet_diagnostic.NUnit2005.severity = none
 

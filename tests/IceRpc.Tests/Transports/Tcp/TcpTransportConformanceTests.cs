@@ -57,7 +57,6 @@ public class Ipv6TcpListenerConformanceTests : DuplexListenerConformanceTests
 
 internal class Ipv6SupportFixture
 {
-
     public static void FixtureSetUp()
     {
         // TODO: remove this if check once https://github.com/dotnet/runtime/issues/121848 is fixed.

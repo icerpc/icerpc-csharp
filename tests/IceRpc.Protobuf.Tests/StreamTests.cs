@@ -169,7 +169,7 @@ public class StreamTests
         async Task<InputMessage[]> DecodeDataAsync(PipeReader payload)
         {
             var inputMessages = new List<InputMessage>();
-            await foreach(var message in payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default))
+            await foreach (var message in payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default))
             {
                 inputMessages.Add(message);
             }

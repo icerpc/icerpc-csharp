@@ -45,7 +45,8 @@ public class SequenceCouplerTests
     private readonly SequenceCoupler _sut = new();
 
     /// <summary>Verifies that <see cref="SequenceCoupler.Concat" /> correctly concatenates two sequences.</summary>
-    [Test, TestCaseSource(nameof(ConcatSequencesSources))]
+    [Test]
+    [TestCaseSource(nameof(ConcatSequencesSources))]
     public void Concat_sequences(ReadOnlySequence<byte> first, ReadOnlySequence<byte> second)
     {
         ReadOnlySequence<byte> result = _sut.Concat(first, second);

@@ -299,9 +299,12 @@ public class StreamTests
         await foreach (int value in values)
         {
             count++;
-            if (value == 40) // last value of a chunk
+
+            // last value of a chunk
+            if (value == 40)
             {
-                if (count < 32) // 32 = 4 * 8
+                // 32 = 4 * 8
+                if (count < 32)
                 {
                     // Encodes 4 additional elements
                     EncodeData(pipe.Writer);

@@ -107,7 +107,8 @@ public sealed class RetryInterceptorTests
         Assert.That(entry.State["Operation"], Is.EqualTo("Op"));
     }
 
-    [Test, TestCaseSource(nameof(NotRetryableExceptionSource))]
+    [Test]
+    [TestCaseSource(nameof(NotRetryableExceptionSource))]
     public void Not_retryable_exception(Exception exception)
     {
         // Arrange
@@ -128,7 +129,8 @@ public sealed class RetryInterceptorTests
         Assert.That(attempts, Is.EqualTo(1));
     }
 
-    [Test, TestCaseSource(nameof(NotRetryableStatusCodeSource))]
+    [Test]
+    [TestCaseSource(nameof(NotRetryableStatusCodeSource))]
     public async Task No_retry_status_code(StatusCode statusCode)
     {
         // Arrange
@@ -225,7 +227,8 @@ public sealed class RetryInterceptorTests
         pipe.Writer.Complete();
     }
 
-    [Test, TestCaseSource(nameof(RetryWithOtherReplicaSource))]
+    [Test]
+    [TestCaseSource(nameof(RetryWithOtherReplicaSource))]
     public async Task Retry_with_other_replica(Protocol protocol, IInvoker next)
     {
         // Arrange

@@ -2,10 +2,10 @@
 
 using IceRpc.Features;
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.Time.Testing;
 using NUnit.Framework;
 using System.IO.Pipelines;
 using ZeroC.Slice.Codec;
-using Microsoft.Extensions.Time.Testing;
 
 namespace IceRpc.Deadline.Tests;
 
@@ -215,30 +215,6 @@ public sealed class DeadlineInterceptorTests
         Assert.That(encodedDeadline, Is.EqualTo(TargetUtc));
     }
 
-    private static readonly DateTime TargetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
-
-    private static IEnumerable<TestCaseData> DeadlineFeatureIsNormalizedToUtcSource
-    {
-        get
-        {
-            yield return new TestCaseData(TargetUtc).SetName("Utc");
-            yield return new TestCaseData(TargetUtc.ToLocalTime()).SetName("Local");
-            yield return new TestCaseData(
-                DateTime.SpecifyKind(TargetUtc.ToLocalTime(), DateTimeKind.Unspecified)).SetName("Unspecified");
-        }
-    }
-
-    private static DateTime ReadDeadline(OutgoingFieldValue field)
-    {
-        var pipe = new Pipe();
-        field.WriteAction!(pipe.Writer);
-        pipe.Writer.Complete();
-
-        pipe.Reader.TryRead(out var readResult);
-        var decoder = new SliceDecoder(readResult.Buffer);
-        return decoder.DecodeTimeStamp();
-    }
-
     [TestCase(0)]
     [TestCase(-5000)]
     public void Constructor_rejects_invalid_default_timeout(int milliseconds)
@@ -274,5 +250,29 @@ public sealed class DeadlineInterceptorTests
         Assert.That(
             () => new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false),
             Throws.Nothing);
+    }
+
+    private static readonly DateTime TargetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+
+    private static IEnumerable<TestCaseData> DeadlineFeatureIsNormalizedToUtcSource
+    {
+        get
+        {
+            yield return new TestCaseData(TargetUtc).SetName("Utc");
+            yield return new TestCaseData(TargetUtc.ToLocalTime()).SetName("Local");
+            yield return new TestCaseData(
+                DateTime.SpecifyKind(TargetUtc.ToLocalTime(), DateTimeKind.Unspecified)).SetName("Unspecified");
+        }
+    }
+
+    private static DateTime ReadDeadline(OutgoingFieldValue field)
+    {
+        var pipe = new Pipe();
+        field.WriteAction!(pipe.Writer);
+        pipe.Writer.Complete();
+
+        pipe.Reader.TryRead(out var readResult);
+        var decoder = new SliceDecoder(readResult.Buffer);
+        return decoder.DecodeTimeStamp();
     }
 }

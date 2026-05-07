@@ -18,7 +18,8 @@ public class ClientConnectionTests
 
     /// <summary>Verifies that <see cref="ClientConnection.ConnectAsync" /> returns a valid <see
     /// cref="TransportConnectionInformation" /></summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connect_returns_transport_connection_information(Protocol protocol)
     {
         // Arrange
@@ -112,7 +113,8 @@ public class ClientConnectionTests
             new Uri("icerpc://127.0.0.1:0"),
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         ServerAddress serverAddress = server.Listen();
-        await using var connection = new ClientConnection(serverAddress,
+        await using var connection = new ClientConnection(
+            serverAddress,
             multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
         await connection.ConnectAsync();
         await server.DisposeAsync();
@@ -154,7 +156,8 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connection_invoke_reconnect_after_underlying_connection_shutdown(Protocol protocol)
     {
         // Arrange
@@ -174,7 +177,6 @@ public class ClientConnectionTests
             serverAddress,
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         server.Listen();
-
         {
             // Create a separate scope to ensure the call to DisposeAsync runs after
             // request is disposed by the using directive.
@@ -187,7 +189,8 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connection_can_connect_after_connect_failure(Protocol protocol)
     {
         // Arrange
@@ -211,7 +214,8 @@ public class ClientConnectionTests
 
     /// <summary>Verifies that ClientConnection can dispatch a request sent by the server during the client's first
     /// request.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connection_can_dispatch_callbacks(Protocol protocol)
     {
         // Arrange

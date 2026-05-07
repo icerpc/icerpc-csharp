@@ -95,12 +95,14 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFD, 0xFF, 0xFF, 0xFF })]
     public void Decode_varint_invalid_data_fails(byte[] encodedBytes)
     {
-        Assert.That(() =>
-        {
-            var sut = new SliceDecoder(encodedBytes);
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(encodedBytes);
 
-            sut.DecodeVarInt32();
-        }, Throws.InstanceOf<InvalidDataException>());
+                sut.DecodeVarInt32();
+            },
+            Throws.InstanceOf<InvalidDataException>());
     }
 
     /// <summary>Tests the decoding of a variable size unsigned long.</summary>
@@ -108,9 +110,9 @@ public class NumericTypesDecodingTests
     /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x00 }, SliceEncoder.VarUInt62MinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarUInt62MaxValue)]
-    [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, (ulong)5)]
-    [TestCase(new byte[] { 0x01, 0x04 }, (ulong)256)]
-    [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, (ulong)16384)]
+    [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, 5UL)]
+    [TestCase(new byte[] { 0x01, 0x04 }, 256UL)]
+    [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, 16384UL)]
     public void Decode_varuint62_value(byte[] encodedBytes, ulong expected)
     {
         var sut = new SliceDecoder(encodedBytes);
@@ -127,17 +129,18 @@ public class NumericTypesDecodingTests
     [TestCase((ulong)uint.MaxValue + 1)]
     public void Decode_varuint_invalid_data_fails(ulong value)
     {
-        Assert.That(() =>
-        {
-            var buffer = new byte[256];
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter);
-            encoder.EncodeVarUInt62(value);
-            var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
-            var sut = new SliceDecoder(encodedBytes);
+        Assert.That(
+            () =>
+            {
+                var buffer = new byte[256];
+                var bufferWriter = new MemoryBufferWriter(buffer);
+                var encoder = new SliceEncoder(bufferWriter);
+                encoder.EncodeVarUInt62(value);
+                var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
+                var sut = new SliceDecoder(encodedBytes);
 
-            sut.DecodeVarUInt32();
-        }, Throws.InstanceOf<InvalidDataException>());
+                sut.DecodeVarUInt32();
+            },
+            Throws.InstanceOf<InvalidDataException>());
     }
-
 }
