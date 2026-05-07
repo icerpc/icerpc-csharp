@@ -144,8 +144,8 @@ internal static class OperationExtensions
             return fn.Build();
         }
 
-        /// <summary>Returns the C# return type for an operation (Task, Task&lt;T&gt;, or Task&lt;tuple&gt;).
-        /// Stream returns are included in the tuple with their stream type.</summary>
+        /// <summary>Returns the C# return type for an operation (<c>Task</c>, <c>Task&lt;T&gt;</c>, or
+        /// <c>Task&lt;tuple&gt;</c>). Stream returns are included in the tuple with their stream type.</summary>
         internal string GetClientReturnType(string currentNamespace) =>
             BuildReturnType("global::System.Threading.Tasks.Task", op, currentNamespace, fieldType: false);
 

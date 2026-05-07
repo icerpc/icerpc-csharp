@@ -51,7 +51,8 @@ internal static class DocCommentFormatter
     };
 
     /// <summary>Converts a C# type string into a form that can be safely used in cref attributes. Specifically, it
-    /// converts generic type parameters into their cref-friendly forms (e.g. IList{T}, IDictionary{T0, T1}).</summary>
+    /// converts generic type parameters into their cref-friendly forms (<c>IList{T}</c>, <c>IDictionary{T0, T1}</c>).
+    /// </summary>
     private static string FormatTypeString(string typeString)
     {
         // For generic types we have to convert them to their cref-friendly forms (e.g. IList{T}, IDictionary{T0, T1}).

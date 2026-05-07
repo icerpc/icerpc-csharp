@@ -35,7 +35,7 @@ public record class MultiplexedConnectionOptions
     /// />.</value>
     /// <remarks>Some multiplexed transports require the pool to return array-backed memory blocks. Slic over TCP
     /// does, because Slic's write buffers are allocated from this pool and passed down to the TCP transport,
-    /// whose multi-segment write path uses <see cref="System.Net.Sockets.Socket.SendAsync(System.Collections.Generic.IList{ArraySegment{byte}},
+    /// whose multi-segment write path uses <see cref="System.Net.Sockets.Socket.SendAsync(IList{ArraySegment{byte}},
     /// System.Net.Sockets.SocketFlags)" />. The QUIC transport has no such requirement.</remarks>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
