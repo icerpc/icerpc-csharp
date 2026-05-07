@@ -160,7 +160,7 @@ internal static class ServiceGenerator
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
                     {
                         body.WriteLine($$"""
-                            var sliceP_stream = payloadContinuation.ToAsyncEnumerable<{{streamElemType}}>(
+                            var sliceP_stream = payloadContinuation.ToAsyncStream<{{streamElemType}}>(
                                 {{decodeLambda}},
                                 {{fixedSize}});
                             """);
@@ -168,7 +168,7 @@ internal static class ServiceGenerator
                     else
                     {
                         body.WriteLine($$"""
-                            var sliceP_stream = payloadContinuation.ToAsyncEnumerable<{{streamElemType}}>(
+                            var sliceP_stream = payloadContinuation.ToAsyncStream<{{streamElemType}}>(
                                 {{decodeLambda}},
                                 sliceFeature: request.Features.Get<IceRpc.Features.ISliceFeature>());
                             """);
@@ -295,7 +295,7 @@ internal static class ServiceGenerator
         if (op.StreamedParameter is Field streamParam)
         {
             operationBuilder.AddParameter(
-                OperationExtensions.GetStreamTypeString(streamParam, currentNamespace),
+                OperationExtensions.GetIncomingStreamTypeString(streamParam, currentNamespace),
                 streamParam.ParameterName,
                 docComment: DocCommentFormatter.FormatOverview(streamParam.Comment, currentNamespace));
         }
