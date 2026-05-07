@@ -572,7 +572,8 @@ internal static class ProxyGenerator
             .AddBlock(
                 new FunctionBuilder(
                     $"{accessModifier} static",
-                    proxyName, $"Decode{proxyName}",
+                    proxyName,
+                    $"Decode{proxyName}",
                     FunctionType.ExpressionBody)
                         .AddComment(
                             "summary",

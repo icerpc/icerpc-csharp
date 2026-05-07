@@ -44,7 +44,7 @@ public class AsyncStreamTests
     {
         byte[] payload = EncodeInt32Values(1, 2, 3);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
-        IAsyncStream<int> stream = trackingReader.ToAsyncStream(
+        using IAsyncStream<int> stream = trackingReader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
@@ -63,7 +63,7 @@ public class AsyncStreamTests
     {
         byte[] payload = EncodeInt32Values(1, 2, 3);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
-        IAsyncStream<int> stream = trackingReader.ToAsyncStream(
+        using IAsyncStream<int> stream = trackingReader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
@@ -142,7 +142,7 @@ public class AsyncStreamTests
     public void GetAsyncEnumerator_throws_on_second_call()
     {
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>([0])));
-        IAsyncStream<int> stream = trackingReader.ToAsyncStream(
+        using IAsyncStream<int> stream = trackingReader.ToAsyncStream(
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
