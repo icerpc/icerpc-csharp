@@ -39,7 +39,7 @@ public class MetricsMiddleware : IDispatcher
             }
             return response;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
             _dispatchMetrics.RequestCancel();
             throw;
