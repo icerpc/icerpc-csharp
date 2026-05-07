@@ -21,6 +21,12 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
 
     private bool _disposed;
 
+    // Set when GetAsyncEnumerator is called. This enforces the single-enumerator contract even if the created
+    // enumerator is never advanced.
+    private bool _enumeratorCreated;
+
+    // Set when the iterator body starts executing (first MoveNextAsync/DisposeAsync on the enumerator). This lets
+    // Dispose distinguish "enumerator was created but never started" from "iteration actually started".
     private bool _iterationStarted;
 
     public void Dispose()
@@ -40,8 +46,8 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
         }
         else
         {
-            // No enumerator was ever created, hence no pending read can exist. Safe to complete the reader
-            // directly from this thread.
+            // No iteration has started (either no enumerator was created, or one was created but never started),
+            // hence no pending read can exist. Safe to complete the reader directly from this thread.
             _reader.Complete();
             _disposeCts.Dispose();
         }
@@ -50,11 +56,11 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_iterationStarted)
+        if (_enumeratorCreated)
         {
             throw new InvalidOperationException($"An {nameof(IAsyncStream<T>)} can only be enumerated once.");
         }
-        _iterationStarted = true;
+        _enumeratorCreated = true;
         return EnumerateAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
     }
 
@@ -70,6 +76,11 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
 
     private async IAsyncEnumerable<T> EnumerateAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        // Because this async method returns an IAsyncEnumerable<T>, it only starts executing when the caller starts
+        // iterating (calls MoveNextAsync on the enumerator). It does not execute when EnumerateAsync is called, or
+        // even when GetAsyncEnumerator is called on the returned IAsyncEnumerable<T>.
+        _iterationStarted = true;
+
         // Link the caller-provided token with our internal dispose token so that Dispose can unblock ReadAsync.
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,

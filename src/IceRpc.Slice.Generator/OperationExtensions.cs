@@ -59,7 +59,7 @@ internal static class OperationExtensions
         internal string EncodedReturnPayloadName => op.StreamedReturn?.Name == "Payload" ? "Payload_" : "Payload";
 
         /// <summary>Returns the C# type string for an outgoing (sent) streamed field. Non-optional stream uint8
-        /// maps to PipeReader, all others to IAsyncEnumerable{T}.</summary>
+        /// maps to <c>PipeReader</c>, all others to <c>IAsyncEnumerable&lt;T&gt;</c>.</summary>
         internal static string GetOutgoingStreamTypeString(Field streamField, string currentNamespace)
         {
             if (streamField.IsByteStream)
@@ -71,8 +71,8 @@ internal static class OperationExtensions
         }
 
         /// <summary>Returns the C# type string for an incoming (received) streamed field. Non-optional stream uint8
-        /// maps to PipeReader, all others to IceRpc.IAsyncStream{T} — a disposable wrapper that releases
-        /// the underlying transport reader when the consumer is done with the stream.</summary>
+        /// maps to <c>PipeReader</c>, all others to <c>IceRpc.IAsyncStream&lt;T&gt;</c> — a disposable wrapper that
+        /// releases the underlying transport reader when the consumer is done with the stream.</summary>
         internal static string GetIncomingStreamTypeString(Field streamField, string currentNamespace)
         {
             if (streamField.IsByteStream)

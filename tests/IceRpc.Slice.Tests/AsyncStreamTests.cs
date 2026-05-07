@@ -139,6 +139,20 @@ public class AsyncStreamTests
     }
 
     [Test]
+    public void Dispose_after_getting_enumerator_without_starting_iteration_completes_reader()
+    {
+        var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>([0])));
+        IAsyncStream<int> stream = trackingReader.ToAsyncStream(
+            (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+            elementSize: 4);
+
+        _ = stream.GetAsyncEnumerator();
+        stream.Dispose();
+
+        Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public void GetAsyncEnumerator_throws_on_second_call()
     {
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>([0])));
