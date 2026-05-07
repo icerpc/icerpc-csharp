@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Slice serialization library for C#.</Description>
@@ -19,7 +19,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="dunet" Version="1.11.3" />
+    <PackageReference Include="dunet" Version="1.16.2" />
   </ItemGroup>
   <!-- NuGet package contents-->
   <!-- There is no need to compile the well known types with the Slice compiler since they are all custom. -->
