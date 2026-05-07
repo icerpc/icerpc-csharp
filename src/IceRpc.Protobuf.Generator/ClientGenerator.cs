@@ -109,7 +109,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
 
     private static CodeBlock GenerateClientMethod(MethodDescriptor method, string scope)
     {
-        string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+        string returnType = method.OutputType.GetIncomingType(scope, method.IsServerStreaming);
 
         FunctionBuilder functionBuilder =
             new FunctionBuilder(
@@ -118,7 +118,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
                 $"{method.Name.ToPascalCase()}Async",
                 FunctionType.ExpressionBody)
             .AddParameter(
-                method.InputType.GetType(scope, method.IsClientStreaming),
+                method.InputType.GetOutgoingType(scope, method.IsClientStreaming),
                 method.IsClientStreaming ? "stream" : "message")
             .AddParameter("IceRpc.Features.IFeatureCollection?", "features", "null")
             .AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default")
@@ -156,7 +156,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
 
     private static CodeBlock GenerateInterfaceMethod(MethodDescriptor method, string scope)
     {
-        string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+        string returnType = method.OutputType.GetIncomingType(scope, method.IsServerStreaming);
 
         return
             new FunctionBuilder(
@@ -165,7 +165,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
                 $"{method.Name.ToPascalCase()}Async",
                 FunctionType.Declaration)
             .AddParameter(
-                method.InputType.GetType(scope, method.IsClientStreaming),
+                method.InputType.GetOutgoingType(scope, method.IsClientStreaming),
                 method.IsClientStreaming ? "stream" : "message")
             .AddParameter("IceRpc.Features.IFeatureCollection?", "features", "null")
             .AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default")

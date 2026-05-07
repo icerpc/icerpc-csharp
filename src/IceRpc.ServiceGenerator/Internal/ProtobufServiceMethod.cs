@@ -42,7 +42,8 @@ internal class ProtobufServiceMethod : ServiceMethod
     internal ProtobufServiceMethod(
         IMethodSymbol method,
         AttributeData attribute,
-        INamedTypeSymbol? asyncEnumerableSymbol)
+        INamedTypeSymbol? asyncEnumerableSymbol,
+        INamedTypeSymbol? asyncStreamSymbol)
     {
         ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
         Debug.Assert(
@@ -54,9 +55,9 @@ internal class ProtobufServiceMethod : ServiceMethod
         _methodName = method.Name;
 
         ITypeSymbol inputType = method.Parameters[0].Type;
-        // An IAsyncEnumerable input parameter denotes a client streaming RPC.
+        // An IAsyncStream input parameter denotes a client streaming RPC.
         bool isClientStreaming;
-        if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, asyncEnumerableSymbol))
+        if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, asyncStreamSymbol))
         {
             isClientStreaming = true;
             var genericType = (INamedTypeSymbol)inputType;
@@ -91,11 +92,15 @@ internal class ProtobufServiceMethod : ServiceMethod
 internal class ProtobufServiceMethodFactory : ServiceMethodFactory
 {
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
+    private readonly INamedTypeSymbol? _asyncStreamSymbol;
 
     internal ProtobufServiceMethodFactory(Compilation compilation)
-        : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.RpcMethods.RpcMethodAttribute")) =>
+        : base(compilation.GetTypeByMetadataName("IceRpc.Protobuf.RpcMethods.RpcMethodAttribute"))
+    {
         _asyncEnumerableSymbol = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        _asyncStreamSymbol = compilation.GetTypeByMetadataName("IceRpc.IAsyncStream`1");
+    }
 
     private protected override ServiceMethod CreateServiceMethod(IMethodSymbol methodSymbol, AttributeData attribute) =>
-        new ProtobufServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol);
+        new ProtobufServiceMethod(methodSymbol, attribute, _asyncEnumerableSymbol, _asyncStreamSymbol);
 }

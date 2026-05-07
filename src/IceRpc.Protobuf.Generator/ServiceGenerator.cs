@@ -30,7 +30,7 @@ public partial interface I{service.Name.ToPascalCase()}Service
 
     private static CodeBlock GenerateServiceMethod(MethodDescriptor method, string scope)
     {
-        string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+        string returnType = method.OutputType.GetOutgoingType(scope, method.IsServerStreaming);
 
         FunctionBuilder functionBuilder =
             new FunctionBuilder(
@@ -43,14 +43,14 @@ public partial interface I{service.Name.ToPascalCase()}Service
         if (method.IsClientStreaming)
         {
             functionBuilder.AddParameter(
-                method.InputType.GetType(scope, streaming: true),
+                method.InputType.GetIncomingType(scope, streaming: true),
                 "stream",
                 docComment: "The stream of input messages.");
         }
         else
         {
             functionBuilder.AddParameter(
-                method.InputType.GetType(scope, streaming: false),
+                method.InputType.GetIncomingType(scope, streaming: false),
                 "message",
                 docComment: "The input message.");
         }

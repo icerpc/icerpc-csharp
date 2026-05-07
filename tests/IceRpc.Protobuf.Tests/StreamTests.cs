@@ -28,7 +28,7 @@ public class StreamTests
         using var cts = new CancellationTokenSource();
         int count = 0;
 
-        IAsyncEnumerable<InputMessage> values = payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default);
+        using IAsyncStream<InputMessage> values = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
 
         // Act
         await foreach (InputMessage value in values.WithCancellation(cts.Token))
@@ -77,7 +77,7 @@ public class StreamTests
 
         using var cts = new CancellationTokenSource();
 
-        IAsyncEnumerable<InputMessage> values = payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default);
+        using IAsyncStream<InputMessage> values = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
 
         await using var enumerator = values.WithCancellation(cts.Token).GetAsyncEnumerator();
 
@@ -117,7 +117,7 @@ public class StreamTests
 
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
-        IAsyncEnumerable<InputMessage> values = payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default);
+        using IAsyncStream<InputMessage> values = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
         await using IAsyncEnumerator<InputMessage> enumerator = values.GetAsyncEnumerator();
 
         // Act/Assert
@@ -169,7 +169,8 @@ public class StreamTests
         async Task<InputMessage[]> DecodeDataAsync(PipeReader payload)
         {
             var inputMessages = new List<InputMessage>();
-            await foreach(var message in payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default))
+            using IAsyncStream<InputMessage> _stream = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
+            await foreach(var message in _stream)
             {
                 inputMessages.Add(message);
             }
@@ -355,7 +356,7 @@ public class StreamTests
 
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
-        IAsyncEnumerable<InputMessage> values = payload.ToAsyncEnumerable(InputMessage.Parser, 16 * 1024, default);
+        using IAsyncStream<InputMessage> values = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
 
         // Act
         int count = 0;
@@ -500,10 +501,9 @@ public class StreamTests
 
         async Task ConsumeDataAsync(PipeReader payload)
         {
-            IAsyncEnumerable<OutputMessage> stream = payload.ToAsyncEnumerable(
+            using IAsyncStream<OutputMessage> stream = payload.ToAsyncStream(
                 OutputMessage.Parser,
-                ProtobufFeature.Default.MaxMessageLength,
-                default);
+                ProtobufFeature.Default.MaxMessageLength);
 
             await foreach (var message in stream)
             {
@@ -592,10 +592,9 @@ public class StreamTests
 
         async Task ConsumeDataAsync(PipeReader payload)
         {
-            IAsyncEnumerable<OutputMessage> stream = payload.ToAsyncEnumerable(
+            using IAsyncStream<OutputMessage> stream = payload.ToAsyncStream(
                 OutputMessage.Parser,
-                ProtobufFeature.Default.MaxMessageLength,
-                default);
+                ProtobufFeature.Default.MaxMessageLength);
 
             await foreach (var message in stream)
             {
@@ -643,10 +642,9 @@ public class StreamTests
 
         static async Task<List<InputMessage>> ConsumeDataAsync(PipeReader payload)
         {
-            IAsyncEnumerable<InputMessage> stream = payload.ToAsyncEnumerable(
+            using IAsyncStream<InputMessage> stream = payload.ToAsyncStream(
                 InputMessage.Parser,
-                ProtobufFeature.Default.MaxMessageLength,
-                CancellationToken.None);
+                ProtobufFeature.Default.MaxMessageLength);
 
             var messages = new List<InputMessage>();
             await foreach (var message in stream)
@@ -767,10 +765,10 @@ public class StreamTests
         var outputMessages = await ConsumeDataAsync(stream);
         Assert.That(outputMessages, Has.Count.EqualTo(10));
         Assert.That(payloadContinuation, Is.Not.Null);
-        var inputMessages = await ConsumeDataAsync(
-            payloadContinuation.ToAsyncEnumerable(
-                InputMessage.Parser,
-                ProtobufFeature.Default.MaxMessageLength));
+        using IAsyncStream<InputMessage> inputStream = payloadContinuation.ToAsyncStream(
+            InputMessage.Parser,
+            ProtobufFeature.Default.MaxMessageLength);
+        var inputMessages = await ConsumeDataAsync(inputStream);
         Assert.That(inputMessages, Has.Count.EqualTo(10));
 
         static async Task<List<T>> ConsumeDataAsync<T>(IAsyncEnumerable<T> stream)

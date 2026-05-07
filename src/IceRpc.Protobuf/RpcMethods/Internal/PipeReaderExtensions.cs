@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 
 namespace IceRpc.Protobuf.RpcMethods.Internal;
 
@@ -22,10 +21,9 @@ internal static class PipeReaderExtensions
         this PipeReader reader,
         MessageParser<T> parser,
         int maxMessageLength,
-        CancellationToken cancellationToken) where T : IMessage<T>
+        CancellationToken cancellationToken) where T : class, IMessage<T>
     {
-        T? message = await ReadMessageAsync(
-            reader,
+        T? message = await reader.ReadProtobufMessageAsync(
             parser,
             maxMessageLength,
             cancellationToken).ConfigureAwait(false);
@@ -51,60 +49,35 @@ internal static class PipeReaderExtensions
         return message;
     }
 
-    /// <summary>Decodes an async enumerable from a pipe reader.</summary>
+    /// <summary>Creates an async stream over a pipe reader to decode Protobuf messages.</summary>
+    /// <typeparam name="T">The type of the message being decoded.</typeparam>
     /// <param name="reader">The pipe reader.</param>
     /// <param name="messageParser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
     /// <param name="maxMessageLength">The maximum allowed length.</param>
-    /// <param name="cancellationToken">The cancellation token which is provided to <see
-    /// cref="IAsyncEnumerable{T}.GetAsyncEnumerator(CancellationToken)" />.</param>
-    internal static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+    /// <returns>The async stream to decode and return the streamed messages.</returns>
+    /// <remarks>The reader ownership is transferred to the returned async stream. The caller should no longer use
+    /// the reader after this call, and must dispose the returned async stream when done to release the reader.
+    /// </remarks>
+    internal static IAsyncStream<T> ToAsyncStream<T>(
+        this PipeReader reader,
+        MessageParser<T> messageParser,
+        int maxMessageLength) where T : class, IMessage<T> =>
+        new AsyncStream<T>(reader, messageParser, maxMessageLength);
+
+    /// <summary>Reads a single Protobuf length-prefixed message from a <see cref="PipeReader" />.</summary>
+    /// <typeparam name="T">The type of the message being decoded.</typeparam>
+    /// <param name="reader">The pipe reader.</param>
+    /// <param name="messageParser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
+    /// <param name="maxMessageLength">The maximum allowed length.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The decoded message, or <see langword="null" /> when the reader's stream is empty (end of stream).
+    /// The <see langword="null" /> return value is used as a sentinel to signal end of stream; this is why
+    /// <typeparamref name="T" /> is constrained to be a reference type.</returns>
+    internal static async ValueTask<T?> ReadProtobufMessageAsync<T>(
         this PipeReader reader,
         MessageParser<T> messageParser,
         int maxMessageLength,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : IMessage<T>
-    {
-        try
-        {
-            while (true)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    yield break;
-                }
-
-                T? message;
-                try
-                {
-                    message = await ReadMessageAsync(
-                        reader,
-                        messageParser,
-                        maxMessageLength,
-                        cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-                {
-                    // Canceling the cancellation token is a normal way to complete an iteration.
-                    yield break;
-                }
-
-                if (message is null)
-                {
-                    yield break;
-                }
-                yield return message;
-            }
-        }
-        finally
-        {
-            reader.Complete();
-        }
-    }
-
-    private static async ValueTask<T?> ReadMessageAsync<T>(
-        PipeReader reader,
-        MessageParser<T> messageParser,
-        int maxMessageLength,
-        CancellationToken cancellationToken) where T : IMessage<T>
+        CancellationToken cancellationToken) where T : class, IMessage<T>
     {
         ReadResult readResult = await reader.ReadAtLeastAsync(5, cancellationToken).ConfigureAwait(false);
         // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
@@ -115,7 +88,7 @@ internal static class PipeReaderExtensions
 
         if (readResult.Buffer.IsEmpty)
         {
-            return default;
+            return null;
         }
 
         if (readResult.Buffer.Length < 5)

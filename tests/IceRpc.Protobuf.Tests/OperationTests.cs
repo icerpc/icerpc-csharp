@@ -548,10 +548,11 @@ public partial class OperationTests
             });
 
         public async ValueTask<Empty> ClientStreamingOpAsync(
-            IAsyncEnumerable<InputMessage> stream,
+            IAsyncStream<InputMessage> stream,
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
+            using IAsyncStream<InputMessage> _ = stream;
             await foreach (InputMessage message in stream)
             {
                 Messages.Add(message);
@@ -580,10 +581,11 @@ public partial class OperationTests
             }
         }
         public async ValueTask<IAsyncEnumerable<OutputMessage>> BidiStreamingOpAsync(
-            IAsyncEnumerable<InputMessage> stream,
+            IAsyncStream<InputMessage> stream,
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
+            using IAsyncStream<InputMessage> _ = stream;
             await foreach (InputMessage message in stream)
             {
                 Messages.Add(message);
