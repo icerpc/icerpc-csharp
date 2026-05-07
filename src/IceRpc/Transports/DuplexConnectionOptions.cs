@@ -21,7 +21,7 @@ public record class DuplexConnectionOptions
     /// <value>A pool of memory blocks used for buffer management. Defaults to <see cref="MemoryPool{T}.Shared"
     /// />.</value>
     /// <remarks>The built-in TCP transport requires the pool to return array-backed memory blocks, because its
-    /// multi-segment write path uses <see cref="System.Net.Sockets.Socket.SendAsync(System.Collections.Generic.IList{ArraySegment{byte}},
+    /// multi-segment write path uses <see cref="System.Net.Sockets.Socket.SendAsync(IList{ArraySegment{byte}},
     /// System.Net.Sockets.SocketFlags)" />. The Coloc transport has no such requirement.</remarks>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
