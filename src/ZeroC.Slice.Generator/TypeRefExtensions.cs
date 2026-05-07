@@ -75,7 +75,7 @@ internal static class TypeRefExtensions
 
     /// <summary>Returns the C# type string for an outgoing parameter (encode source). Sequences of fixed-size
     /// primitives map to <c>ReadOnlyMemory&lt;T&gt;</c>, other sequences to <c>IEnumerable&lt;T&gt;</c>, and
-    /// dictionaries to <c>IEnumerable&lt;KeyValuePair&lt;K,V&gt;</c>.</summary>
+    /// dictionaries to <c>IEnumerable&lt;KeyValuePair&lt;K,V&gt;&gt;</c>.</summary>
     internal static string OutgoingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
     {
         bool ignoreOptional = false;
