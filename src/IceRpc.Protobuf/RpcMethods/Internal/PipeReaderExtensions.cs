@@ -23,12 +23,11 @@ internal static class PipeReaderExtensions
         int maxMessageLength,
         CancellationToken cancellationToken) where T : class, IMessage<T>
     {
-        T? message = await reader.ReadProtobufMessageAsync(
+        T message = await reader.ReadProtobufMessageAsync(
             parser,
             maxMessageLength,
-            cancellationToken).ConfigureAwait(false);
-
-        Debug.Assert(message is not null);
+            cancellationToken).ConfigureAwait(false) ??
+            throw new InvalidDataException("The payload is empty; expected a Protobuf message.");
 
         // A unary payload must contain exactly one message; any trailing bytes indicate a framing error.
         ReadResult readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
