@@ -76,7 +76,7 @@ async Task ChangeSetPointAsync(ParseResult parseResult, CancellationToken cancel
 
 async Task MonitorAsync(ParseResult parseResult, CancellationToken cancellationToken)
 {
-    IAsyncEnumerable<Reading> readings = await thermostat.MonitorAsync(cancellationToken: cancellationToken);
+    using IAsyncStream<Reading> readings = await thermostat.MonitorAsync(cancellationToken: cancellationToken);
 
     // The iteration completes when cancellationToken is canceled.
     await foreach (Reading reading in readings.WithCancellation(cancellationToken))

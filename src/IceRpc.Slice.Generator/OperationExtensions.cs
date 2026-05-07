@@ -58,9 +58,9 @@ internal static class OperationExtensions
         /// </summary>
         internal string EncodedReturnPayloadName => op.StreamedReturn?.Name == "Payload" ? "Payload_" : "Payload";
 
-        /// <summary>Returns the C# type string for a streamed field (parameter or return).
-        /// Non-optional stream uint8 maps to PipeReader, all others to IAsyncEnumerable&lt;T&gt;.</summary>
-        internal static string GetStreamTypeString(Field streamField, string currentNamespace)
+        /// <summary>Returns the C# type string for an outgoing (sent) streamed field. Non-optional stream uint8
+        /// maps to <c>PipeReader</c>, all others to <c>IAsyncEnumerable&lt;T&gt;</c>.</summary>
+        internal static string GetOutgoingStreamTypeString(Field streamField, string currentNamespace)
         {
             if (streamField.IsByteStream)
             {
@@ -68,6 +68,19 @@ internal static class OperationExtensions
             }
             string elemType = streamField.DataType.FieldTypeString(streamField.DataTypeIsOptional, currentNamespace);
             return $"global::System.Collections.Generic.IAsyncEnumerable<{elemType}>";
+        }
+
+        /// <summary>Returns the C# type string for an incoming (received) streamed field. Non-optional stream uint8
+        /// maps to <c>PipeReader</c>, all others to <c>IceRpc.IAsyncStream&lt;T&gt;</c> — a disposable wrapper that
+        /// releases the underlying transport reader when the consumer is done with the stream.</summary>
+        internal static string GetIncomingStreamTypeString(Field streamField, string currentNamespace)
+        {
+            if (streamField.IsByteStream)
+            {
+                return "global::System.IO.Pipelines.PipeReader";
+            }
+            string elemType = streamField.DataType.FieldTypeString(streamField.DataTypeIsOptional, currentNamespace);
+            return $"global::IceRpc.IAsyncStream<{elemType}>";
         }
 
         /// <summary>Builds the EncodeStreamOf{Op} method for a streamed field (parameter or return value).</summary>
@@ -84,7 +97,7 @@ internal static class OperationExtensions
             bool isRequest)
         {
             string opName = op.Name;
-            string streamType = GetStreamTypeString(streamField, currentNamespace);
+            string streamType = GetOutgoingStreamTypeString(streamField, currentNamespace);
             string fieldKind = isRequest ? "argument" : "return value";
             string payloadKind = isRequest ? "request" : "response";
 
@@ -145,7 +158,7 @@ internal static class OperationExtensions
             {
                 if (op.StreamedReturn is Field streamReturn)
                 {
-                    string streamType = GetStreamTypeString(streamReturn, currentNamespace);
+                    string streamType = GetOutgoingStreamTypeString(streamReturn, currentNamespace);
                     string payloadName = op.EncodedReturnPayloadName;
                     return $"global::System.Threading.Tasks.ValueTask<(global::System.IO.Pipelines.PipeReader {payloadName}, {streamType} {streamReturn.Name})>";
                 }
@@ -182,7 +195,7 @@ internal static class OperationExtensions
 
                 if (op.StreamedParameter is Field streamParam)
                 {
-                    string streamType = GetStreamTypeString(streamParam, currentNamespace);
+                    string streamType = GetIncomingStreamTypeString(streamParam, currentNamespace);
                     parts.Add(includeNames ? $"{streamType} {streamParam.Name}" : streamType);
                 }
 
@@ -299,7 +312,7 @@ internal static class OperationExtensions
 
             if (op.StreamedReturn is Field streamReturn)
             {
-                string streamType = GetStreamTypeString(streamReturn, currentNamespace);
+                string streamType = GetIncomingStreamTypeString(streamReturn, currentNamespace);
                 parts.Add(includeNames ? $"{streamType} {streamReturn.Name}" : streamType);
             }
 
@@ -327,7 +340,7 @@ internal static class OperationExtensions
 
         if (op.StreamedReturn is Field streamReturn)
         {
-            string streamType = OperationExtensions.GetStreamTypeString(streamReturn, currentNamespace);
+            string streamType = OperationExtensions.GetOutgoingStreamTypeString(streamReturn, currentNamespace);
             parts.Add(includeNames ? $"{streamType} {streamReturn.Name}" : streamType);
         }
 
