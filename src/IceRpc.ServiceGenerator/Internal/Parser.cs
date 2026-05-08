@@ -107,8 +107,9 @@ internal sealed class Parser
                 // declaration, so the user's own declaration carries them.
                 string typeParameterList =
                     typeDeclaration.TypeParameterList?.WithoutTrivia().ToString() ?? string.Empty;
+                // Use Identifier.Text (not classSymbol.Name) so verbatim identifiers like @class keep their @.
                 var serviceClass = new ServiceClass(
-                    classSymbol.Name + typeParameterList,
+                    typeDeclaration.Identifier.Text + typeParameterList,
                     containingNamespace.Length > 0 ? containingNamespace : null,
                     typeDeclaration.Keyword.ValueText,
                     typeDeclaration.TypeParameterList?.Parameters.Count ?? 0,
