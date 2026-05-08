@@ -51,27 +51,6 @@ internal sealed class Parser
                 // stop if we're asked to
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                // The Service attribute is only valid on a class or a record class. Report a diagnostic and skip
-                // anything else (struct, record struct, interface).
-                SyntaxKind kind = typeDeclaration.Kind();
-                if (kind is not SyntaxKind.ClassDeclaration and not SyntaxKind.RecordDeclaration)
-                {
-                    string kindName = kind switch
-                    {
-                        SyntaxKind.StructDeclaration => "struct",
-                        SyntaxKind.RecordStructDeclaration => "record struct",
-                        SyntaxKind.InterfaceDeclaration => "interface",
-                        _ => typeDeclaration.Keyword.ValueText,
-                    };
-                    _reportDiagnostic(
-                        Diagnostic.Create(
-                            DiagnosticDescriptors.InvalidServiceTypeShape,
-                            typeDeclaration.Identifier.GetLocation(),
-                            kindName,
-                            typeDeclaration.Identifier.Text));
-                    continue;
-                }
-
                 SemanticModel semanticModel = _compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
                 INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration, _cancellationToken);
                 if (classSymbol is null)

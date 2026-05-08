@@ -73,38 +73,6 @@ public class ValidationTests
             $"Expected IRSG0001 for operation 'ping'. Got: {string.Join(", ", diagnostics.Select(d => d.ToString()))}");
     }
 
-    /// <summary>Verifies that the service generator reports IRSG0002 when the Service attribute is applied to
-    /// a struct, a record struct, or an interface.</summary>
-    [TestCase("struct")]
-    [TestCase("record struct")]
-    [TestCase("interface")]
-    public void Service_attribute_on_unsupported_type_reports_diagnostic(string typeKeyword)
-    {
-        // Arrange
-        string source = $$"""
-            using IceRpc;
-
-            namespace TestNs;
-
-            [Service]
-            public partial {{typeKeyword}} BadService
-            {
-            }
-            """;
-
-        // Act
-        ImmutableArray<Diagnostic> diagnostics = RunGenerator(source, "InvalidShapeTest");
-
-        // Assert
-        Assert.That(
-            diagnostics.Any(d =>
-                d.Id == "IRSG0002" &&
-                d.GetMessage(System.Globalization.CultureInfo.InvariantCulture)
-                    .Contains(typeKeyword, StringComparison.Ordinal)),
-            Is.True,
-            $"Expected IRSG0002 mentioning '{typeKeyword}'. Got: {string.Join(", ", diagnostics.Select(d => d.ToString()))}");
-    }
-
     private static ImmutableArray<Diagnostic> RunGenerator(string source, string assemblyName)
     {
         SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
