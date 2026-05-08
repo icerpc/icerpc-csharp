@@ -58,8 +58,11 @@ internal class Emitter
             ? "public override"
             : serviceClass.IsSealed ? "public" : "public virtual";
 
+        // In doc-comment crefs, generic type parameters use { } instead of < > (e.g. Foo{T}).
+        string crefName = serviceClass.Name.Replace('<', '{').Replace('>', '}');
+
         return @$"
-/// <summary>Dispatches an incoming request to a method of <see cref=""{serviceClass.Name}"" /> based on
+/// <summary>Dispatches an incoming request to a method of <see cref=""{crefName}"" /> based on
 /// the operation name carried by the request.</summary>
 /// <param name=""request"">The incoming request.</param>
 /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>

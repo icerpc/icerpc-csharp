@@ -24,10 +24,11 @@ internal class ServiceClass : ContainerDefinition
         string name,
         string? containingNamespace,
         string keyword,
+        int typeParameterCount,
         IReadOnlyList<ServiceMethod> serviceMethods,
         bool hasBaseServiceClass,
         bool isSealed)
-        : base(name, keyword)
+        : base(name, keyword, typeParameterCount)
     {
         ContainingNamespace = containingNamespace;
         ServiceMethods = serviceMethods;

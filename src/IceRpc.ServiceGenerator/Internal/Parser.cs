@@ -101,10 +101,17 @@ internal sealed class Parser
                 serviceMethods = serviceMethods.Distinct();
 
                 string containingNamespace = classSymbol.ContainingNamespace.GetFullName();
+                // Capture the type-parameter list (e.g. "<T1, T2>") in the name so the emitted partial declaration
+                // matches the user's generic type. WithoutTrivia gives a clean form with no source whitespace.
+                // Constraint clauses (where T : ...) are not captured: C# only requires them on one partial
+                // declaration, so the user's own declaration carries them.
+                string typeParameterList =
+                    typeDeclaration.TypeParameterList?.WithoutTrivia().ToString() ?? string.Empty;
                 var serviceClass = new ServiceClass(
-                    classSymbol.Name,
+                    classSymbol.Name + typeParameterList,
                     containingNamespace.Length > 0 ? containingNamespace : null,
                     typeDeclaration.Keyword.ValueText,
+                    typeDeclaration.TypeParameterList?.Parameters.Count ?? 0,
                     serviceMethods.ToList(),
                     hasBaseServiceClass: baseServiceClass is not null,
                     isSealed: classSymbol.IsSealed);
