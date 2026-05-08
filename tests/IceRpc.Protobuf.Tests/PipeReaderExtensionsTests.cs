@@ -87,7 +87,7 @@ public partial class PipeReaderExtensionsTests
 
     /// <summary>Verifies that a Protobuf message with the "compressed" flag (1) is rejected as
     /// <see cref="NotSupportedException" />. The message is well-formed Protobuf, but IceRPC doesn't
-    /// decompress it. The protocol layer maps this to <c>StatusCode.NotImplemented</c>.</summary>
+    /// decompress it. The protocol layer maps this to <c>StatusCode.NotSupported</c>.</summary>
     [Test]
     public void Decode_message_throws_not_supported_exception_for_compressed_flag()
     {
