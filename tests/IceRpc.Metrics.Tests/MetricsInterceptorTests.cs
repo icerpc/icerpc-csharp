@@ -109,13 +109,8 @@ public sealed class MetricsInterceptorTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
-        try
-        {
-            await sut.InvokeAsync(request, default);
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        Assert.ThrowsAsync<OperationCanceledException>(
+            async () => await sut.InvokeAsync(request, default));
 
         Assert.That(canceled, Is.Empty);
         Assert.That(failed, Is.EqualTo(new long[] { 1 }));

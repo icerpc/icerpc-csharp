@@ -108,13 +108,7 @@ public sealed class MetricsMiddlewareTests
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
-        try
-        {
-            await sut.DispatchAsync(request, default);
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await sut.DispatchAsync(request, default));
 
         Assert.That(canceled, Is.Empty);
         Assert.That(failed, Is.EqualTo(new long[] { 1 }));
@@ -158,13 +152,7 @@ public sealed class MetricsMiddlewareTests
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
-        try
-        {
-            await sut.DispatchAsync(request, default);
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.DispatchAsync(request, default));
 
         Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
         Assert.That(failed, Is.EqualTo(new long[] { 1 }));
