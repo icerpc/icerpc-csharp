@@ -87,7 +87,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_exceeds_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * Unsafe.SizeOf<int>()) + 256]);
         var encoder = new IceEncoder(buffer);
         encoder.EncodeSequence(
             Enumerable.Range(0, count),
@@ -111,7 +111,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_within_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * Unsafe.SizeOf<int>()) + 256]);
         var encoder = new IceEncoder(buffer);
         encoder.EncodeSequence(
             Enumerable.Range(0, count),

@@ -113,11 +113,11 @@ public sealed class IceProtocolConnectionTests
                 (StatusCode)1000,
                 StatusCode.InternalError,
                 "The dispatch failed with status code 1000. { Original StatusCode = 1000 }");
-
         }
     }
 
-    [Test, TestCaseSource(nameof(DispatchFailureSource))]
+    [Test]
+    [TestCaseSource(nameof(DispatchFailureSource))]
     public async Task Dispatcher_failure(
         InlineDispatcher dispatcher,
         StatusCode expectedStatusCode,
@@ -177,7 +177,8 @@ public sealed class IceProtocolConnectionTests
 
     /// <summary>Verifies that a StatusCode dispatched by the server is encoded as a ReplyStatus and decoded back to
     /// the expected StatusCode by the client.</summary>
-    [Test, TestCaseSource(nameof(StatusCodeRoundTripSource))]
+    [Test]
+    [TestCaseSource(nameof(StatusCodeRoundTripSource))]
     public async Task Response_reply_status_maps_to_expected_status_code(
         StatusCode dispatchStatusCode,
         StatusCode expectedStatusCode,
@@ -532,8 +533,8 @@ public sealed class IceProtocolConnectionTests
         dispatcher.ReleaseDispatch();
 
         // Assert
-        Assert.That(() =>
-            invokeTask,
+        Assert.That(
+            () => invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                 IceRpcError.ConnectionAborted));
 
@@ -563,8 +564,8 @@ public sealed class IceProtocolConnectionTests
         var invokeTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(() =>
-            invokeTask,
+        Assert.That(
+            () => invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled)
                 .And.With.Property("InnerException").EqualTo(failureException));
 

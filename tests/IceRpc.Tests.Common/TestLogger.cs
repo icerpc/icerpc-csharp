@@ -78,7 +78,7 @@ public class TestLogger : ILogger
 
         internal Scope(TestLogger logger) => _logger = logger;
     }
-};
+}
 
 /// <summary>An implementation of <see cref="ILoggerFactory"/> for creating <see cref="TestLogger"/> instances.
 /// </summary>

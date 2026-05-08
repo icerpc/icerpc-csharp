@@ -39,11 +39,12 @@ public class SlicTransportTests
         get
         {
             // Unexpected frames after connection establishment.
-            foreach (FrameType frameType in new FrameType[] {
-                    FrameType.Initialize,
-                    FrameType.InitializeAck,
-                    FrameType.Version
-                })
+            foreach (FrameType frameType in new FrameType[]
+            {
+                FrameType.Initialize,
+                FrameType.InitializeAck,
+                FrameType.Version,
+            })
             {
                 yield return new TestCaseData(
                     (IDuplexConnection connection) => WriteFrameAsync(connection, frameType),
@@ -56,11 +57,12 @@ public class SlicTransportTests
                 $"Received unexpected {nameof(FrameType.Pong)} frame.");
 
             // Stream frames which are not supposed to be sent on a non-started stream.
-            foreach (FrameType frameType in new FrameType[] {
-                    FrameType.StreamReadsClosed,
-                    FrameType.StreamWindowUpdate,
-                    FrameType.StreamWritesClosed
-                 })
+            foreach (FrameType frameType in new FrameType[]
+            {
+                FrameType.StreamReadsClosed,
+                FrameType.StreamWindowUpdate,
+                FrameType.StreamWritesClosed,
+            })
             {
                 yield return new TestCaseData(
                     (IDuplexConnection connection) => WriteStreamFrameAsync(connection, frameType, streamId: 4ul),
@@ -88,12 +90,16 @@ public class SlicTransportTests
                 "Invalid stream ID.");
 
             // Bogus stream frame with FrameSize=0 (stream ID not encoded)
-            yield return new TestCaseData((IDuplexConnection connection) =>
-                WriteFrameAsync(connection, FrameType.StreamLast, (ref SliceEncoder encoder) => { }),
+            yield return new TestCaseData(
+                (IDuplexConnection connection) => WriteFrameAsync(
+                    connection,
+                    FrameType.StreamLast,
+                    (ref SliceEncoder encoder) => { }),
                 "Invalid stream frame size.");
 
             // Encode a stream frame with a frame size inferior to the stream ID size.
-            yield return new TestCaseData((IDuplexConnection connection) =>
+            yield return new TestCaseData(
+                (IDuplexConnection connection) =>
                 {
                     var writer = new MemoryBufferWriter(new byte[1024]);
                     {
@@ -713,7 +719,8 @@ public class SlicTransportTests
         Assert.That(async () => await sut.Client.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
     }
 
-    [Test, TestCaseSource(nameof(ConnectionProtocolErrors))]
+    [Test]
+    [TestCaseSource(nameof(ConnectionProtocolErrors))]
     public async Task Connection_protocol_errors(
         Func<IDuplexConnection, Task> protocolAction,
         string expectedErrorMessage)
@@ -1202,7 +1209,8 @@ public class SlicTransportTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
-    [Test, TestCaseSource(nameof(InvalidConnectionFrames))]
+    [Test]
+    [TestCaseSource(nameof(InvalidConnectionFrames))]
     public async Task Write_connection_frame_with_invalid_body(string frameTypeStr, bool emptyBody)
     {
         FrameType frameType = Enum.Parse<FrameType>(frameTypeStr);
@@ -1707,8 +1715,20 @@ public class SlicTransportTests
         Assert.That(async () => await disposeTask.WaitAsync(TimeSpan.FromSeconds(5)), Throws.Nothing);
 
         // Tidy up the in-flight tasks. The duplex hold is released by the server connection dispose above.
-        try { await closeTask; } catch { }
-        try { await serverWriteTask; } catch { }
+        try
+        {
+            await closeTask;
+        }
+        catch
+        {
+        }
+        try
+        {
+            await serverWriteTask;
+        }
+        catch
+        {
+        }
     }
 
     [Test]
@@ -1822,7 +1842,7 @@ public class SlicTransportTests
         await writeTask2;
     }
 
-    private static async Task<(FrameType FrameType, ReadOnlySequence<byte> buffer)> ReadFrameAsync(
+    private static async Task<(FrameType FrameType, ReadOnlySequence<byte> Buffer)> ReadFrameAsync(
         DuplexConnectionReader reader)
     {
         while (true)

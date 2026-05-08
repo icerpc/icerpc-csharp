@@ -348,10 +348,15 @@ public sealed class ResettablePipeReaderDecoratorTests
     private sealed class MockPipeReader : PipeReader
     {
         internal bool CompleteCalled { get; private set; }
+
         internal Exception? CompleteException { get; private set; }
+
         internal SequencePosition Consumed { get; private set; }
+
         internal bool CancelPendingReadCalled { get; private set; }
+
         internal SequencePosition Examined { get; private set; }
+
         private readonly ReadResult _readResult;
 
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);

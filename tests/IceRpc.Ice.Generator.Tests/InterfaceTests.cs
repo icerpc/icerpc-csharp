@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using NUnit.Framework;
 using IceRpc.Ice.Codec;
+using NUnit.Framework;
 
 namespace IceRpc.Ice.Generator.Tests;
 

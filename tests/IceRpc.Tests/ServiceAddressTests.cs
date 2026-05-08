@@ -111,28 +111,29 @@ public class ServiceAddressTests
         get
         {
             ServiceAddress serviceAddress = new ServiceAddress(Protocol.Ice) with { Path = "/foo" };
-            return new[] {
+            return new[]
+            {
                 (serviceAddress, serviceAddress, true),
                 (serviceAddress, null, false),
                 (serviceAddress, new ServiceAddress(Protocol.IceRpc), false), // Different protocol.
+
                 // Relative service addresses
                 (
                     new ServiceAddress() with { Path = "/foo" },
                     new ServiceAddress() with { Path = "/bar" },
-                    false
-                ),
-                //  Params (Order does not matter)
+                    false),
+
+                // Params (Order does not matter)
                 (
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123&def=456")),
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?def=456&abc=123")),
-                    true
-                ),
-                //  AltServerAddresses (Order matters)
+                    true),
+
+                // AltServerAddresses (Order matters)
                 (
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-server=localhost:10000,localhost:10101")),
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-server=localhost:10101,localhost:10000")),
-                    false
-                ),
+                    false),
             };
         }
     }
@@ -148,8 +149,7 @@ public class ServiceAddressTests
             {
                 AltServerAddresses = ImmutableList.Create(
                     new ServerAddress(new Uri("ice://localhost:10000?transport=fizz")),
-                    new ServerAddress(new Uri("ice://localhost:10101?transport=buzz"))
-                )
+                    new ServerAddress(new Uri("ice://localhost:10101?transport=buzz")))
             };
 
             // Service address with Params
@@ -161,12 +161,10 @@ public class ServiceAddressTests
             {
                 (
                     serviceAddressWithAltServerAddresses,
-                    "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"
-                ),
+                    "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"),
                 (
                     serviceAddressWithParams,
-                    "icerpc:/?foo=bar"
-                )
+                    "icerpc:/?foo=bar"),
             };
         }
     }
@@ -209,7 +207,7 @@ public class ServiceAddressTests
 
     /// <summary>A collection of service address URI strings that are valid, with its expected path and fragment.
     /// </summary>
-    private static readonly (string uriString, string Path, string Fragment)[] _validServiceAddressUris =
+    private static readonly (string UriString, string Path, string Fragment)[] _validServiceAddressUris =
         new (string, string, string)[]
         {
             /* spellchecker:disable */
@@ -394,7 +392,8 @@ public class ServiceAddressTests
 
     /// <summary>Verifies that a service address can be converted into a string.</summary>
     /// <param name="serviceAddress">The service address.</param>
-    [Test, TestCaseSource(nameof(ServiceAddressToStringSource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressToStringSource))]
     public void Convert_a_service_address_to_a_string(ServiceAddress serviceAddress)
     {
         string str2 = serviceAddress.ToString();
@@ -404,7 +403,8 @@ public class ServiceAddressTests
 
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
     /// <param name="serviceAddress1">The service address to test.</param>
-    [Test, TestCaseSource(nameof(ServiceAddressHashCodeSource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressHashCodeSource))]
     public void Equal_service_addresses_produce_the_same_hash_code(ServiceAddress serviceAddress1)
     {
         var serviceAddress2 = new ServiceAddress(new Uri(serviceAddress1.ToString(), UriKind.RelativeOrAbsolute));
@@ -454,7 +454,8 @@ public class ServiceAddressTests
     /// <param name="uri">The URI to create the service address from.</param>
     /// <param name="path">The expected path for the parsed service address</param>
     /// <param name="fragment">The expected fragment for the parsed service address</param>
-    [Test, TestCaseSource(nameof(ServiceAddressUriSource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressUriSource))]
     public void Create_service_address_from_uri(Uri uri, string path, string fragment)
     {
         var serviceAddress = new ServiceAddress(uri);
@@ -465,17 +466,20 @@ public class ServiceAddressTests
 
     /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException" />.</summary>
     /// <param name="uri">The URI to parse as a service address</param>
-    [Test, TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
     public void Create_service_address_from_invalid_uri(Uri uri) =>
         Assert.That(() => new ServiceAddress(uri), Throws.ArgumentException);
 
-    [Test, TestCaseSource(nameof(AltServerAddressesSource))]
+    [Test]
+    [TestCaseSource(nameof(AltServerAddressesSource))]
     public void Create_service_address_with_alt_server(
         ServiceAddress serviceAddress,
         ServerAddress[] altServerAddresses) =>
         Assert.That(serviceAddress.AltServerAddresses, Is.EqualTo(altServerAddresses));
 
-    [Test, TestCaseSource(nameof(ServiceAddressToUriSource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressToUriSource))]
     public void Relative_service_address_to_uri(ServiceAddress serviceAddress, string expected)
     {
         // Act
@@ -485,7 +489,8 @@ public class ServiceAddressTests
         Assert.That(result.ToString(), Is.EqualTo(expected));
     }
 
-    [Test, TestCaseSource(nameof(ServiceAddressEqualitySource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressEqualitySource))]
     public void Service_address_equality(ServiceAddress serviceAddress1, ServiceAddress? serviceAddress2, bool expected)
     {
         // Act
@@ -495,7 +500,8 @@ public class ServiceAddressTests
         Assert.That(result, Is.EqualTo(expected));
     }
 
-    [Test, TestCaseSource(nameof(ServiceAddressToStringWithSetupSource))]
+    [Test]
+    [TestCaseSource(nameof(ServiceAddressToStringWithSetupSource))]
     public void Service_address_to_string(ServiceAddress serviceAddress, string expected)
     {
         // Act

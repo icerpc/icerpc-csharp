@@ -75,13 +75,13 @@ public class MetricsTests
         }
     }
 
-    [Test, TestCaseSource(nameof(MetricsTestCases))]
+    [Test]
+    [TestCaseSource(nameof(MetricsTestCases))]
     public void Metrics_events(
         string meterName,
         Action<MeterListener> metricsCallback,
         (long[] Active, long[] Pending, long[] Total, long[] TotalFailed) expected)
     {
-
         var active = new List<long>();
         var pending = new List<long>();
         var total = new List<long>();

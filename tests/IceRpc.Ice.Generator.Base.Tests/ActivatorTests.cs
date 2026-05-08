@@ -9,20 +9,6 @@ namespace IceRpc.Ice.Generator.Base.Tests;
 
 public class ActivatorTests
 {
-    private static IEnumerable<string> ReferencedAssembliesClassTypeIds
-    {
-        get
-        {
-            yield return typeof(ClassA).GetIceTypeId()!;
-            yield return typeof(ClassB).GetIceTypeId()!;
-            yield return typeof(ClassC).GetIceTypeId()!;
-            yield return typeof(ClassD).GetIceTypeId()!;
-            yield return "1";
-            yield return "2";
-            yield return "3";
-            yield return "4";
-        }
-    }
     public static IEnumerable<TestCaseData> ReferencedAssembliesClassTypeIdsWithType
     {
         get
@@ -64,7 +50,23 @@ public class ActivatorTests
         }
     }
 
-    [Test, TestCaseSource(nameof(ReferencedAssembliesClassTypeIds))]
+    private static IEnumerable<string> ReferencedAssembliesClassTypeIds
+    {
+        get
+        {
+            yield return typeof(ClassA).GetIceTypeId()!;
+            yield return typeof(ClassB).GetIceTypeId()!;
+            yield return typeof(ClassC).GetIceTypeId()!;
+            yield return typeof(ClassD).GetIceTypeId()!;
+            yield return "1";
+            yield return "2";
+            yield return "3";
+            yield return "4";
+        }
+    }
+
+    [Test]
+    [TestCaseSource(nameof(ReferencedAssembliesClassTypeIds))]
     public void Activator_cannot_create_instances_of_classes_defined_in_unknown_assemblies(string typeId)
     {
         var sut = IActivator.FromAssembly(typeof(IceDecoder).Assembly);
@@ -73,7 +75,8 @@ public class ActivatorTests
         Assert.That(instance, Is.Null);
     }
 
-    [Test, TestCaseSource(nameof(ReferencedAssembliesClassTypeIds))]
+    [Test]
+    [TestCaseSource(nameof(ReferencedAssembliesClassTypeIds))]
     public void Activator_cannot_create_instances_of_exceptions_defined_in_unknown_assemblies(string typeId)
     {
         var sut = IActivator.FromAssembly(typeof(IceDecoder).Assembly);
@@ -83,7 +86,8 @@ public class ActivatorTests
         Assert.That(instance, Is.Null);
     }
 
-    [Test, TestCaseSource(nameof(ReferencedAssembliesClassTypeIdsWithType))]
+    [Test]
+    [TestCaseSource(nameof(ReferencedAssembliesClassTypeIdsWithType))]
     public void Activator_can_create_instances_of_classes_defined_in_known_assemblies(
         Assembly assembly,
         string typeId,
@@ -97,7 +101,8 @@ public class ActivatorTests
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
     }
 
-    [Test, TestCaseSource(nameof(ReferencedAssembliesExceptionTypeIdsWithType))]
+    [Test]
+    [TestCaseSource(nameof(ReferencedAssembliesExceptionTypeIdsWithType))]
     public void Activator_can_create_instances_of_exceptions_defined_in_known_assemblies(
         Assembly assembly,
         string typeId,

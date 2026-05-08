@@ -46,7 +46,7 @@ public partial class OperationTests
         async IAsyncEnumerable<InputMessage> GetDataAsync()
         {
             await Task.Yield();
-            for (int i = 0 ; i < 10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 await Task.Yield();
                 yield return new InputMessage()
@@ -291,7 +291,7 @@ public partial class OperationTests
                 {
                     requestPayload = new PayloadPipeReaderDecorator(request.Payload);
                     request.PayloadContinuation = requestPayload;
-                    var response = await  next.InvokeAsync(request, cancellationToken);
+                    var response = await next.InvokeAsync(request, cancellationToken);
                     responsePayload = new PayloadPipeReaderDecorator(response.Payload);
                     response.Payload = responsePayload;
                     return response;
@@ -579,6 +579,7 @@ public partial class OperationTests
                 }
             }
         }
+
         public async ValueTask<IAsyncEnumerable<OutputMessage>> BidiStreamingOpAsync(
             IAsyncEnumerable<InputMessage> stream,
             IFeatureCollection features,
