@@ -11,6 +11,9 @@ public class AssertTraceListener : DefaultTraceListener
 {
     private static readonly AssertTraceListener _instance = new();
 
+    /// <summary>Sets the AssertTraceListener singleton as the default trace listener.</summary>
+    public static void Setup() => Trace.Listeners[0] = _instance;
+
     /// <summary>Delegate to <see cref="Assert.Fail(string?)"/></summary>
     public override void Fail(string? message) => Assert.Fail(message ?? "");
 
@@ -26,7 +29,4 @@ public class AssertTraceListener : DefaultTraceListener
             Assert.Fail($"{message}\n{detailMessage}");
         }
     }
-
-    /// <summary>Sets the AssertTraceListener singleton as the default trace listener.</summary>
-    public static void Setup() => Trace.Listeners[0] = _instance;
 }

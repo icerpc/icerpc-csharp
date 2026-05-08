@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Locator.Internal;
 using IceRpc.Ice;
+using IceRpc.Locator.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Locator.Tests;
@@ -247,8 +247,6 @@ public class LocatorServerAddressFinderTests
 
         private readonly SemaphoreSlim _semaphore = new(0);
 
-        internal void Release(int count) => _semaphore.Release(count);
-
         void IDisposable.Dispose() => _semaphore.Dispose();
 
         async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken)
@@ -258,6 +256,8 @@ public class LocatorServerAddressFinderTests
 
             return new ServiceAddress(new Uri("ice://localhost:10000/dummy?transport=unknown"));
         }
+
+        internal void Release(int count) => _semaphore.Release(count);
     }
 
     private sealed class ServerAddressCache : IServerAddressCache
@@ -265,7 +265,9 @@ public class LocatorServerAddressFinderTests
         public Dictionary<Location, ServiceAddress> Cache { get; } = new();
 
         public void Remove(Location location) => Cache.Remove(location);
+
         public void Set(Location location, ServiceAddress serviceAddress) => Cache[location] = serviceAddress;
+
         public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value) =>
             throw new NotImplementedException();
     }

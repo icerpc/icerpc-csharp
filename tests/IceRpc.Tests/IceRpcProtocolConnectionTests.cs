@@ -448,9 +448,9 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Verifies that a request whose path violates the constraints enforced by
     /// <see cref="ServiceAddress" /> is rejected at decode time, before it reaches the dispatcher.</summary>
-    [TestCase("/foo\r\nINJECTED")]   // CR/LF in path
-    [TestCase("/foo\0")]             // NUL in path
-    [TestCase("foo")]                // path without leading '/'
+    [TestCase("/foo\r\nINJECTED")] // CR/LF in path
+    [TestCase("/foo\0")] // NUL in path
+    [TestCase("foo")] // path without leading '/'
     public async Task Request_with_invalid_path_is_rejected(string path)
     {
         // Arrange
@@ -1865,9 +1865,10 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>A dispatcher that reads the request payload, the <see cref="PayloadReadStarted"/> task is completed
     /// after start reading the payload, and the <see cref="PayloadReadCompleted"/> task is completed after reading
     /// the full payload.</summary>
-    public sealed class ConsumePayloadDispatcher : IDispatcher
+    private sealed class ConsumePayloadDispatcher : IDispatcher
     {
         public Task PayloadReadCompleted => _completeTaskCompletionSource.Task;
+
         public Task PayloadReadStarted => _startTaskCompletionSource.Task;
 
         private readonly TaskCompletionSource _completeTaskCompletionSource =

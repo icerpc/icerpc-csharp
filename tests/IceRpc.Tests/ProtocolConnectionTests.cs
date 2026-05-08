@@ -319,7 +319,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies the handling of exceptions thrown from dispatch.</summary>
-    [Test, TestCaseSource(nameof(DispatcherThrowsExceptionSource))]
+    [Test]
+    [TestCaseSource(nameof(DispatcherThrowsExceptionSource))]
     public async Task Dispatcher_throws_exception(
         Protocol protocol,
         Exception thrownException,
@@ -343,7 +344,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that ShutdownRequested completes when the peer shuts down.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task ShutdownRequested_completes_when_peer_shuts_down(Protocol protocol, bool closeClientSide)
     {
         // Arrange
@@ -369,7 +371,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that ShutdownRequested completes when inactive.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task ShutdownRequested_completes_when_inactive(Protocol protocol)
     {
         // Arrange
@@ -397,7 +400,8 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
     /// deferred by the reading of the payload.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_read(
         Protocol protocol,
         bool isOneway)
@@ -438,7 +442,8 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
     /// deferred by the writing of the payload.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_write(
         Protocol protocol,
         bool isOneway)
@@ -497,7 +502,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that an abortive shutdown completes ShutdownRequested.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connection_abort_completes_shutdown_requested(Protocol protocol)
     {
         // Arrange
@@ -524,7 +530,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task Dispatch_cancellation_token_is_not_canceled(Protocol protocol, bool isOneway)
     {
         // Arrange
@@ -552,7 +559,8 @@ public sealed class ProtocolConnectionTests
         Assert.That(tokenCanceled, Is.False);
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Dispatch_returns_response_not_matching_request_response(Protocol protocol)
     {
         // Arrange
@@ -579,7 +587,8 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that disposing a server connection cancels dispatches even when shutdown is already in
     /// progress.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Dispose_cancels_dispatches(Protocol protocol)
     {
         // Arrange
@@ -616,7 +625,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing the client connection aborts pending invocations.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Dispose_aborts_pending_invocations(Protocol protocol)
     {
         // Arrange
@@ -641,7 +651,8 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see cref="IceRpcException" />.
     /// </summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Invoke_on_shutdown_connection_fails_with_invocation_refused(Protocol protocol)
     {
         // Arrange
@@ -662,7 +673,8 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync raise ObjectDisposedException if the
     /// connection is disposed.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
     public async Task Operation_throws_object_disposed_exception(
         Protocol protocol,
         Func<IProtocolConnection, Task> operation,
@@ -684,7 +696,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task Payload_completed_on_valid_request(Protocol protocol, bool isOneway)
     {
         // Arrange
@@ -712,7 +725,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Ensures that the response payload is completed on a valid response.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Payload_completed_on_valid_response(Protocol protocol)
     {
         // Arrange
@@ -740,7 +754,8 @@ public sealed class ProtocolConnectionTests
         _ = await responseTask;
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Receive_payload(Protocol protocol)
     {
         // Arrange
@@ -776,7 +791,8 @@ public sealed class ProtocolConnectionTests
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(expectedPayload));
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Request_with_large_header(Protocol protocol)
     {
         // Arrange
@@ -851,7 +867,8 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Send_payload(Protocol protocol)
     {
         // Arrange
@@ -885,7 +902,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that ConnectAsync is canceled by its cancellation token.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connect_cancellation(Protocol protocol)
     {
         // Arrange
@@ -902,7 +920,8 @@ public sealed class ProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_throws_if_not_connected(Protocol protocol)
     {
         // Arrange
@@ -915,7 +934,8 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InstanceOf<InvalidOperationException>());
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Connect_throws_object_disposed_exception_after_dispose(Protocol protocol)
     {
         // Arrange
@@ -933,7 +953,8 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that disposing the client connection aborts the server connection and that the shutdown call
     /// on the server connection immediately reports the correct error even if there is a pending two-way dispatch.
     /// </summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Dispose_client_connection_aborts_server_connection(Protocol protocol)
     {
         // Arrange
@@ -970,7 +991,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies connection shutdown is successful</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task Shutdown_connection(Protocol protocol, bool closeClientSide)
     {
         // Arrange
@@ -996,7 +1018,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Ensure that ShutdownAsync fails when ConnectAsync is in progress.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_when_connect_is_in_progress(Protocol protocol)
     {
         // Arrange
@@ -1012,7 +1035,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that the cancellation of a shutdown does not abort invocations.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task Shutdown_cancellation_does_not_abort_invocations(Protocol protocol, bool closeClientSide)
     {
         // Arrange
@@ -1042,7 +1066,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to finish.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task Shutdown_waits_for_pending_invocation_and_dispatch_to_finish(
         Protocol protocol,
         bool closeClientSide)
@@ -1088,7 +1113,8 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that a client connection shutdown cancels left-over dispatches in the server.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_cancels_left_over_dispatches_in_server(Protocol protocol)
     {
         // Arrange

@@ -110,11 +110,17 @@ public partial class ServiceTests
     }
 
     [Service]
-    internal partial class MultipleServices2 : BaseImplementsMultipleServices { }
+    internal partial class MultipleServices2 : BaseImplementsMultipleServices
+    {
+    }
 
     [Service]
-    internal partial class ProtoLessService { }
+    internal partial class ProtoLessService
+    {
+    }
 
     [Service]
-    internal partial class DerivedMultipleServices : MultipleServices { }
+    internal partial class DerivedMultipleServices : MultipleServices
+    {
+    }
 }

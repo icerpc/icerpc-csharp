@@ -9,6 +9,24 @@ using System.Net.Security;
 
 namespace IceRpc.Tests.Common;
 
+/// <summary>Extension methods for setting up the test multiplexed transport in an <see cref="IServiceCollection"/>.
+/// </summary>
+public static class TestMultiplexedTransportDecoratorServiceCollectionExtensions
+{
+    /// <summary>Installs the test multiplexed transport decorator.</summary>
+    public static IServiceCollection AddTestMultiplexedTransportDecorator(
+        this IServiceCollection services,
+        MultiplexedTransportOperationsOptions? clientOperationsOptions = null,
+        MultiplexedTransportOperationsOptions? serverOperationsOptions = null)
+    {
+        services.AddSingletonTransportDecorator<IMultiplexedClientTransport, TestMultiplexedClientTransportDecorator>(
+            clientTransport => new TestMultiplexedClientTransportDecorator(clientTransport, clientOperationsOptions));
+        services.AddSingletonTransportDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
+            serverTransport => new TestMultiplexedServerTransportDecorator(serverTransport, serverOperationsOptions));
+        return services;
+    }
+}
+
 /// <summary>This enumeration describes the multiplexed transport operations.</summary>
 [Flags]
 public enum MultiplexedTransportOperations
@@ -504,23 +522,5 @@ internal sealed class TestPipeReader : PipeReader
         _decoratee = decoratee;
         _operations = operations;
         _streamInput = streamInput;
-    }
-}
-
-/// <summary>Extension methods for setting up the test multiplexed transport in an <see cref="IServiceCollection"
-/// />.</summary>
-public static class TestMultiplexedTransportDecoratorServiceCollectionExtensions
-{
-    /// <summary>Installs the test multiplexed transport decorator.</summary>
-    public static IServiceCollection AddTestMultiplexedTransportDecorator(
-        this IServiceCollection services,
-        MultiplexedTransportOperationsOptions? clientOperationsOptions = null,
-        MultiplexedTransportOperationsOptions? serverOperationsOptions = null)
-    {
-        services.AddSingletonTransportDecorator<IMultiplexedClientTransport, TestMultiplexedClientTransportDecorator>(
-            clientTransport => new TestMultiplexedClientTransportDecorator(clientTransport, clientOperationsOptions));
-        services.AddSingletonTransportDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
-            serverTransport => new TestMultiplexedServerTransportDecorator(serverTransport, serverOperationsOptions));
-        return services;
     }
 }

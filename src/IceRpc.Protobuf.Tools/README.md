@@ -89,18 +89,20 @@ for Linux and macOS from the [Google Protobuf release page][google-protobuf-rele
 
 ## Build telemetry
 
-The `IceRpc.Protobuf.Tools` package collects anonymous build telemetry data about general usage. Participation in this
-program is optional, and you may opt out if you’d prefer not to share any information.
+The `IceRpc.Protobuf.Tools` package collects pseudonymous build telemetry data about general usage. Participation in
+this program is optional, and you may opt out if you’d prefer not to share any information.
 
-This package includes `protoc-gen-icerpc-build-telemetry`, a protoc plug-in that sends anonymous build telemetry data
-over a secure connection to the IceRPC build telemetry server during the compilation of Protobuf files.
+This package includes `protoc-gen-icerpc-build-telemetry`, a protoc plug-in that sends pseudonymous build telemetry
+data over a secure connection to the IceRPC build telemetry server during the compilation of Protobuf files.
 This data includes:
 
 - The IceRPC version.
 - The system's operating system, version, and platform architecture.
 - The source of the telemetry data (`IceRpc.Protobuf.Tools`).
 - The number of Protobuf files being compiled.
-- A SHA256 hash computed from the Protobuf files being compiled.
+- A SHA256 hash computed from the Protobuf files being compiled. This hash is a deterministic, unsalted fingerprint
+  of the schema set: the same `.proto` inputs always produce the same hash, so repeated builds of the same schema
+  set are linkable across machines and over time.
 
 This data is used to help the IceRPC team understand how the tools are being used and to prioritize future development
 efforts. The data is stored in a private database and is not shared with any third parties.

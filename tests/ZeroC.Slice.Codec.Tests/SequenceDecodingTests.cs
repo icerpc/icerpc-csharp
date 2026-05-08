@@ -90,7 +90,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_with_bit_sequence_exceeds_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<long?>() + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * Unsafe.SizeOf<long?>()) + 256]);
         var encoder = new SliceEncoder(buffer);
         long?[] seq = new long?[count];
         encoder.EncodeSequenceOfOptionals(
@@ -139,7 +139,7 @@ public class SequenceDecodingTests
         B = 2,
         C = 3,
         D = 4,
-    };
+    }
 
     [Test]
     public void Decode_sequence_with_element_action()
@@ -177,7 +177,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_with_bit_sequence_within_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<long?>() + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * Unsafe.SizeOf<long?>()) + 256]);
         var encoder = new SliceEncoder(buffer);
         long?[] seq = new long?[count];
         encoder.EncodeSequenceOfOptionals(
@@ -202,7 +202,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_exceeds_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * Unsafe.SizeOf<int>()) + 256]);
         var encoder = new SliceEncoder(buffer);
         encoder.EncodeSequence(
             Enumerable.Range(0, count),
@@ -226,7 +226,7 @@ public class SequenceDecodingTests
     public void Decode_sequence_within_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * Unsafe.SizeOf<int>() + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * Unsafe.SizeOf<int>()) + 256]);
         var encoder = new SliceEncoder(buffer);
         encoder.EncodeSequence(
             Enumerable.Range(0, count),

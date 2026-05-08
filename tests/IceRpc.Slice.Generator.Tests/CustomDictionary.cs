@@ -34,17 +34,27 @@ public class CustomDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TK
 
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) =>
         ((ICollection<KeyValuePair<TKey, TValue>>)_source).CopyTo(array, arrayIndex);
+
     public bool Remove(KeyValuePair<TKey, TValue> item) =>
         ((ICollection<KeyValuePair<TKey, TValue>>)_source).Remove(item);
+
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) =>
         ((IDictionary<TKey, TValue>)_source).TryGetValue(key, out value);
+
     public void Add(TKey key, TValue value) => _source.Add(key, value);
+
     public void Add(KeyValuePair<TKey, TValue> item) => _source.Add(item.Key, item.Value);
+
     void ICollection<KeyValuePair<TKey, TValue>>.Clear() => _source.Clear();
+
     bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) => _source.Contains(item);
+
     bool IDictionary<TKey, TValue>.ContainsKey(TKey key) => _source.ContainsKey(key);
+
     IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() =>
         _source.GetEnumerator();
+
     IEnumerator IEnumerable.GetEnumerator() => _source.GetEnumerator();
+
     bool IDictionary<TKey, TValue>.Remove(TKey key) => _source.Remove(key);
 }
