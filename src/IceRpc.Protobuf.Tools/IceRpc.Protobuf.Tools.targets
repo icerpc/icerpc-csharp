@@ -134,7 +134,7 @@
   <Target Name="ProtoTelemetryClean" BeforeTargets="ProtoClean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
     <ItemGroup>
       <_ProtoTelemetryFiles
-        Include="$([MSBuild]::EnsureTrailingSlash($([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)'))))*.icerpc_build_telemetry.txt" />
+        Include="$(IntermediateOutputPath)/*.icerpc_build_telemetry.txt" />
     </ItemGroup>
     <Delete Files="@(_ProtoTelemetryFiles)" Condition="'@(_ProtoTelemetryFiles)' != ''" />
   </Target>
