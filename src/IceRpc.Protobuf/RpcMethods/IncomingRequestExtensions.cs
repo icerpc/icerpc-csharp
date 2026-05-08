@@ -26,8 +26,8 @@ public static class IncomingRequestExtensions
         MessageParser<TInput> inputParser,
         TService service,
         Func<TService, TInput, IFeatureCollection, CancellationToken, ValueTask<TOutput>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
@@ -60,17 +60,19 @@ public static class IncomingRequestExtensions
         this IncomingRequest request,
         MessageParser<TInput> inputParser,
         TService service,
-        Func<TService, IAsyncEnumerable<TInput>, IFeatureCollection, CancellationToken, ValueTask<TOutput>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        Func<TService, IAsyncStream<TInput>, IFeatureCollection, CancellationToken, ValueTask<TOutput>> method,
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
 
-        IAsyncEnumerable<TInput> input = request.DetachPayload().ToAsyncEnumerable(
+        // Ownership of the input stream is transferred to the user method.
+#pragma warning disable CA2000 // Dispose objects before losing scope
+        IAsyncStream<TInput> input = request.DetachPayload().ToAsyncStream(
             inputParser,
-            protobufFeature.MaxMessageLength,
-            CancellationToken.None);
+            protobufFeature.MaxMessageLength);
+#pragma warning restore CA2000
 
         TOutput output = await method(service, input, request.Features, cancellationToken).ConfigureAwait(false);
 
@@ -96,8 +98,8 @@ public static class IncomingRequestExtensions
         MessageParser<TInput> inputParser,
         TService service,
         Func<TService, TInput, IFeatureCollection, CancellationToken, ValueTask<IAsyncEnumerable<TOutput>>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
@@ -130,20 +132,22 @@ public static class IncomingRequestExtensions
         this IncomingRequest request,
         MessageParser<TInput> inputParser,
         TService service,
-        Func<TService, IAsyncEnumerable<TInput>, IFeatureCollection, CancellationToken, ValueTask<IAsyncEnumerable<TOutput>>> method,
-        CancellationToken cancellationToken) where TInput : IMessage<TInput>
-                                             where TOutput : IMessage<TOutput>
+        Func<TService, IAsyncStream<TInput>, IFeatureCollection, CancellationToken, ValueTask<IAsyncEnumerable<TOutput>>> method,
+        CancellationToken cancellationToken) where TInput : class, IMessage<TInput>
+                                             where TOutput : class, IMessage<TOutput>
                                              where TService : class
     {
         IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
 
-        IAsyncEnumerable<TInput> input = request.DetachPayload().ToAsyncEnumerable(
+        // Ownership of the input stream is transferred to the user method.
+#pragma warning disable CA2000 // Dispose objects before losing scope
+        IAsyncStream<TInput> input = request.DetachPayload().ToAsyncStream(
             inputParser,
-            protobufFeature.MaxMessageLength,
-            CancellationToken.None);
+            protobufFeature.MaxMessageLength);
+#pragma warning restore CA2000
 
-        IAsyncEnumerable<TOutput> output = await method(service, input, request.Features, cancellationToken)
-            .ConfigureAwait(false);
+        IAsyncEnumerable<TOutput> output =
+            await method(service, input, request.Features, cancellationToken).ConfigureAwait(false);
 
         return new OutgoingResponse(request)
         {

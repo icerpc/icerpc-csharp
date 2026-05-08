@@ -39,7 +39,7 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -89,8 +89,8 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
-                                                       where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TInput : class, IMessage<TInput>
+                                                       where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -129,7 +129,7 @@ public static class InvokerExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<IAsyncEnumerable<TOutput>> InvokeServerStreamingAsync<TOutput>(
+    public static Task<IAsyncStream<TOutput>> InvokeServerStreamingAsync<TOutput>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
@@ -138,7 +138,7 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -179,7 +179,7 @@ public static class InvokerExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<IAsyncEnumerable<TOutput>> InvokeBidiStreamingAsync<TInput, TOutput>(
+    public static Task<IAsyncStream<TOutput>> InvokeBidiStreamingAsync<TInput, TOutput>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
@@ -188,8 +188,8 @@ public static class InvokerExtensions
         ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
-                                                       where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken = default) where TInput : class, IMessage<TInput>
+                                                       where TOutput : class, IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -219,7 +219,7 @@ public static class InvokerExtensions
         MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
-        CancellationToken cancellationToken) where TOutput : IMessage<TOutput>
+        CancellationToken cancellationToken) where TOutput : class, IMessage<TOutput>
     {
         try
         {
@@ -247,10 +247,10 @@ public static class InvokerExtensions
         }
     }
 
-    private static async Task<IAsyncEnumerable<TOutput>> ReceiveStreamingResponseAsync<TOutput>(
+    private static async Task<IAsyncStream<TOutput>> ReceiveStreamingResponseAsync<TOutput>(
         MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
-        OutgoingRequest request) where TOutput : IMessage<TOutput>
+        OutgoingRequest request) where TOutput : class, IMessage<TOutput>
     {
         try
         {
@@ -259,10 +259,9 @@ public static class InvokerExtensions
             {
                 IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
                 PipeReader payload = response.DetachPayload();
-                return payload.ToAsyncEnumerable(
+                return payload.ToAsyncStream(
                     messageParser,
-                    protobufFeature.MaxMessageLength,
-                    CancellationToken.None);
+                    protobufFeature.MaxMessageLength);
             }
             else
             {

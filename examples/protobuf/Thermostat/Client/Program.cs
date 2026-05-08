@@ -79,7 +79,7 @@ async Task ChangeSetPointAsync(ParseResult parseResult, CancellationToken cancel
 
 async Task MonitorAsync(ParseResult parseResult, CancellationToken cancellationToken)
 {
-    IAsyncEnumerable<Reading> readings = await thermostat.MonitorAsync(
+    using IAsyncStream<Reading> readings = await thermostat.MonitorAsync(
         new Empty(),
         cancellationToken: cancellationToken);
 
