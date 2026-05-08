@@ -55,13 +55,19 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <PropertyGroup>
-    <!--
-      Manifest tracking every output path produced by the most recent Slicec run. Used to detect and delete
-      stale outputs when SliceFile items are removed or reconfigured (see _SlicecPruneStaleOutputs).
-    -->
-    <_SlicecOutputManifest>$(BaseIntermediateOutputPath)slicec.outputs.txt</_SlicecOutputManifest>
-  </PropertyGroup>
+  <!--
+    Compute the path of the manifest tracking every output produced by the most recent Slicec run. Stored
+    under $(IntermediateOutputPath) so each configuration/TargetFramework has its own copy and parallel
+    multi-target inner builds don't race on a shared file.
+
+    This must run inside a target rather than as a top-level <PropertyGroup>, because $(IntermediateOutputPath)
+    is set by the SDK targets that get imported AFTER this file - at top-level evaluation time it is empty.
+  -->
+  <Target Name="_InitSlicecManifestPath">
+    <PropertyGroup>
+      <_SlicecOutputManifest>$(IntermediateOutputPath)slicec.outputs.txt</_SlicecOutputManifest>
+    </PropertyGroup>
+  </Target>
 
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <ItemGroup>
@@ -85,11 +91,15 @@
     Delete generated files recorded in the previous build's manifest that the current build no longer produces.
     Without this, a removed/renamed .slice file (or a SliceFile whose OutputDir or IceRpc metadata changed) leaves
     orphan .cs files behind that the SDK's default Compile glob keeps picking up.
+
+    BeforeTargets covers both the SliceFile-present case (Slicec/SlicecClean) and the SliceFile-empty case where
+    those targets are skipped by their conditions but stale files from a previous build still need pruning
+    (CoreCompile/Clean).
   -->
   <Target Name="_SlicecPruneStaleOutputs"
-          BeforeTargets="Slicec;SlicecClean"
-          DependsOnTargets="_ComputeSliceFiles"
-          Condition="Exists('$(_SlicecOutputManifest)')">
+          BeforeTargets="Slicec;CoreCompile;SlicecClean;Clean"
+          DependsOnTargets="_InitSlicecManifestPath;_ComputeSliceFiles"
+          Condition="Exists('$(IntermediateOutputPath)slicec.outputs.txt')">
     <ReadLinesFromFile File="$(_SlicecOutputManifest)">
       <Output TaskParameter="Lines" ItemName="_PreviousSlicecOutput" />
     </ReadLinesFromFile>
@@ -97,6 +107,22 @@
       <_CurrentSlicecOutput Include="%(_SliceFile.GeneratedPath)" />
       <_CurrentSlicecOutput Include="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
       <_StaleSlicecOutput Include="@(_PreviousSlicecOutput)" Exclude="@(_CurrentSlicecOutput)" />
+      <!--
+        The SDK's default Compile glob captured these paths during item evaluation, with project-relative
+        Identities. We materialize the relative form into its own item so that <Compile Remove> can match it
+        - inlining the MakeRelative call inside an item transform pattern doesn't evaluate the property
+        function as expected.
+      -->
+      <_StaleSlicecOutputRelative
+        Include="$([MSBuild]::MakeRelative($(MSBuildProjectDirectory), %(_StaleSlicecOutput.Identity)))"
+        Condition="'%(_StaleSlicecOutput.Identity)' != ''" />
+      <!--
+        Remove now, otherwise csc still reports the stale files as inputs and fails with CS2001 once we
+        delete them on disk. We try both the absolute and relative form to cover Compile entries added by
+        either explicit ProjectReference users or the SDK glob.
+      -->
+      <Compile Remove="@(_StaleSlicecOutput)" />
+      <Compile Remove="@(_StaleSlicecOutputRelative)" />
     </ItemGroup>
     <Delete Files="@(_StaleSlicecOutput)" />
   </Target>
@@ -134,19 +160,20 @@
   <!-- Record this build's outputs so the next build can prune anything we no longer produce. -->
   <Target Name="_SlicecWriteOutputManifest"
           AfterTargets="Slicec"
+          DependsOnTargets="_InitSlicecManifestPath"
           Condition="@(SliceFile) != ''">
     <ItemGroup>
       <_AllSlicecOutput Include="%(_SliceFile.GeneratedPath)" />
       <_AllSlicecOutput Include="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
     </ItemGroup>
-    <MakeDir Directories="$(BaseIntermediateOutputPath)" />
+    <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile
       File="$(_SlicecOutputManifest)"
       Lines="@(_AllSlicecOutput)"
       Overwrite="true" />
   </Target>
 
-  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
+  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_InitSlicecManifestPath;_ComputeSliceFiles">
     <Delete Files="%(_SliceFile.GeneratedPath)" />
     <Delete Files="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
     <Delete Files="$(_SlicecOutputManifest)" Condition="Exists('$(_SlicecOutputManifest)')" />
