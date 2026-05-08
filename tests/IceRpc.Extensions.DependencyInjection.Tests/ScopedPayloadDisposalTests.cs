@@ -47,14 +47,11 @@ public sealed class ScopedPayloadDisposalTests
         var lazyPayload = (LazyScopedPipeReader)response.Payload;
         Assert.That(lazyPayload.CapturedClient.IsDisposed, Is.True);
 
-        // Assert: this is what the protocol connection does at IceRpcProtocolConnection.cs:~1101 —
-        // payloadWriter.CopyFromAsync(response.Payload, ...). Because the scope is already gone, the first ReadAsync
+        // Assert: this mimics what the protocol connection does. Because the scope is already gone, the first ReadAsync
         // surfaces ObjectDisposedException from the scoped dependency.
         Assert.That(
             async () => await response.Payload.ReadAsync(),
             Throws.InstanceOf<ObjectDisposedException>());
-
-        response.Payload.Complete();
     }
 
     public interface IScopedHttpClient
