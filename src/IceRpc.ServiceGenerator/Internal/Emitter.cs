@@ -58,7 +58,7 @@ internal class Emitter
             ? "public override"
             : serviceClass.IsSealed ? "public" : "public virtual";
 
-        // In doc-comment crefs, generic type parameters use { } instead of < > (e.g. Foo{T}).
+        // In a doc-comment cref, generic type parameters use { } instead of < > (e.g. Foo{T}).
         string crefName = serviceClass.Name.Replace('<', '{').Replace('>', '}');
 
         return @$"
