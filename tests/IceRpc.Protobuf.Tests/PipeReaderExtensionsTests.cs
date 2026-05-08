@@ -132,16 +132,16 @@ public partial class PipeReaderExtensionsTests
         pipe.Reader.Complete();
     }
 
-    /// <summary>Verifies that a length whose high bit is set (decoded as a negative <see cref="int" />) is
-    /// rejected as <see cref="InvalidDataException" /> before reaching <c>ReadAtLeastAsync</c>, which would
-    /// otherwise throw <see cref="ArgumentOutOfRangeException" />.</summary>
+    /// <summary>Verifies that a length greater than <see cref="int.MaxValue" /> (i.e. with the high bit set
+    /// in the unsigned 32-bit envelope) is rejected as <see cref="InvalidDataException" /> before reaching
+    /// <c>ReadAtLeastAsync</c>, which only accepts an int-sized length.</summary>
     [Test]
-    public void Decode_message_throws_invalid_data_exception_for_negative_message_length()
+    public void Decode_message_throws_invalid_data_exception_for_message_length_exceeding_int32_max()
     {
         // Arrange
         var pipe = new Pipe();
         pipe.Writer.Write(new byte[] { 0 });
-        // 0xFFFFFFFF as big-endian — decodes to -1 as Int32.
+        // 0xFFFFFFFF as big-endian — uint.MaxValue, well above int.MaxValue.
         pipe.Writer.Write(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
         pipe.Writer.Complete();
 
