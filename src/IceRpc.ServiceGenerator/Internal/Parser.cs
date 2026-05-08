@@ -34,7 +34,7 @@ internal sealed class Parser
         ];
     }
 
-    internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
+    internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<TypeDeclarationSyntax> typeDeclarations)
     {
         if (_serviceAttribute is null)
         {
@@ -44,15 +44,36 @@ internal sealed class Parser
 
         var serviceDefinitions = new List<ServiceClass>();
         // we enumerate by syntax tree, to minimize the need to instantiate semantic models (since they're expensive)
-        foreach (IGrouping<SyntaxTree, ClassDeclarationSyntax> group in classes.GroupBy(x => x.SyntaxTree))
+        foreach (IGrouping<SyntaxTree, TypeDeclarationSyntax> group in typeDeclarations.GroupBy(x => x.SyntaxTree))
         {
-            foreach (ClassDeclarationSyntax classDeclaration in group)
+            foreach (TypeDeclarationSyntax typeDeclaration in group)
             {
                 // stop if we're asked to
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                SemanticModel semanticModel = _compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-                INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration, _cancellationToken);
+                // The Service attribute is only valid on a class or a record class. Report a diagnostic and skip
+                // anything else (struct, record struct, interface).
+                SyntaxKind kind = typeDeclaration.Kind();
+                if (kind is not SyntaxKind.ClassDeclaration and not SyntaxKind.RecordDeclaration)
+                {
+                    string kindName = kind switch
+                    {
+                        SyntaxKind.StructDeclaration => "struct",
+                        SyntaxKind.RecordStructDeclaration => "record struct",
+                        SyntaxKind.InterfaceDeclaration => "interface",
+                        _ => typeDeclaration.Keyword.ValueText,
+                    };
+                    _reportDiagnostic(
+                        Diagnostic.Create(
+                            DiagnosticDescriptors.InvalidServiceTypeShape,
+                            typeDeclaration.Identifier.GetLocation(),
+                            kindName,
+                            typeDeclaration.Identifier.Text));
+                    continue;
+                }
+
+                SemanticModel semanticModel = _compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+                INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration, _cancellationToken);
                 if (classSymbol is null)
                 {
                     continue;
@@ -91,9 +112,9 @@ internal sealed class Parser
                         _reportDiagnostic(
                             Diagnostic.Create(
                                 DiagnosticDescriptors.DuplicateOperationNames,
-                                classDeclaration.GetLocation(),
+                                typeDeclaration.GetLocation(),
                                 method.OperationName,
-                                classDeclaration.Identifier.Text));
+                                typeDeclaration.Identifier.Text));
                     }
                 }
 
@@ -104,7 +125,7 @@ internal sealed class Parser
                 var serviceClass = new ServiceClass(
                     classSymbol.Name,
                     containingNamespace.Length > 0 ? containingNamespace : null,
-                    classDeclaration.Keyword.ValueText,
+                    typeDeclaration.Keyword.ValueText,
                     serviceMethods.ToList(),
                     hasBaseServiceClass: baseServiceClass is not null,
                     isSealed: classSymbol.IsSealed);
@@ -115,7 +136,7 @@ internal sealed class Parser
                     kind == SyntaxKind.StructDeclaration ||
                     kind == SyntaxKind.RecordDeclaration;
 
-                SyntaxNode? parentNode = classDeclaration.Parent;
+                SyntaxNode? parentNode = typeDeclaration.Parent;
                 ContainerDefinition? container = serviceClass;
                 if (parentNode is TypeDeclarationSyntax parentType && IsAllowedKind(parentType.Kind()))
                 {
