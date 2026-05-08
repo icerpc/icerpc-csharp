@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using NUnit.Framework;
 using IceRpc.Internal; // NotFoundDispatcher
 using IceRpc.Tests.Common;
+using NUnit.Framework;
 using System.Net.Quic;
 using System.Security.Cryptography.X509Certificates;
 

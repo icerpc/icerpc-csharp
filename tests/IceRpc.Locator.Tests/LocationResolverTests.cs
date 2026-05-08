@@ -174,8 +174,11 @@ public class LocationResolverTests
             _adapterIdServiceAddress = adapterIdServiceAddress;
             _insertionTime = insertionTime ?? Timeout.InfiniteTimeSpan;
         }
+
         public void Remove(Location location) => Removed.Add(location);
+
         public void Set(Location location, ServiceAddress serviceAddress) => throw new NotImplementedException();
+
         public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
         {
             if ((location.IsAdapterId && _adapterIdServiceAddress is null) ||

@@ -96,10 +96,11 @@ public class DictionaryMappingTests
     public async Task Operation_returning_a_dictionary_of_string()
     {
         // Arrange
-        var value = new Dictionary<string, string> {
+        var value = new Dictionary<string, string>
+        {
             ["0"] = "0",
             ["1"] = "1",
-            ["2"] = "2"
+            ["2"] = "2",
         };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfString(value);

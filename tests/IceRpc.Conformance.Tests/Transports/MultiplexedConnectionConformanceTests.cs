@@ -343,13 +343,17 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Act/Assert
 
-        Assert.That(async () => await sut.Client.CloseAsync(
-            MultiplexedConnectionCloseError.NoError,
-            CancellationToken.None), Throws.Nothing);
+        Assert.That(
+            async () => await sut.Client.CloseAsync(
+                MultiplexedConnectionCloseError.NoError,
+                CancellationToken.None),
+            Throws.Nothing);
 
-        Assert.That(async () => await sut.Server.CloseAsync(
-            MultiplexedConnectionCloseError.NoError,
-            CancellationToken.None), Throws.Nothing);
+        Assert.That(
+            async () => await sut.Server.CloseAsync(
+                MultiplexedConnectionCloseError.NoError,
+                CancellationToken.None),
+            Throws.Nothing);
     }
 
     [Test]

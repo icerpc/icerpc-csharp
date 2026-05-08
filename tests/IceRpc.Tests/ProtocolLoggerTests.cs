@@ -17,7 +17,8 @@ public sealed class ProtocolLoggerTests
 {
     private static List<Protocol> Protocols => new() { Protocol.IceRpc, Protocol.Ice };
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Log_connection_accepted_and_connection_connected(Protocol protocol)
     {
         // Arrange
@@ -86,7 +87,8 @@ public sealed class ProtocolLoggerTests
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Log_connection_connected_failed(Protocol protocol)
     {
         // Arrange
@@ -134,7 +136,8 @@ public sealed class ProtocolLoggerTests
         Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>());
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Log_connection_dispose_without_shutdown(Protocol protocol)
     {
         // Arrange
@@ -180,7 +183,8 @@ public sealed class ProtocolLoggerTests
 
         Assert.That(entry, Is.Not.Null);
         Assert.That(entry.State["Kind"], Is.EqualTo("Server"));
-        Assert.That(entry.State["LocalNetworkAddress"]?.ToString(),
+        Assert.That(
+            entry.State["LocalNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress.ToString()));
         Assert.That(
             entry.State["RemoteNetworkAddress"]?.ToString(),
@@ -203,7 +207,8 @@ public sealed class ProtocolLoggerTests
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Log_start_stop_accept(Protocol protocol)
     {
         // Arrange
@@ -233,7 +238,8 @@ public sealed class ProtocolLoggerTests
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test]
+    [TestCaseSource(nameof(Protocols))]
     public async Task Log_connection_shutdown(Protocol protocol)
     {
         // Arrange
@@ -257,7 +263,6 @@ public sealed class ProtocolLoggerTests
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
 
         var clientConnectionInformation = await clientConnection.ConnectAsync(default);
-
         {
             using var request = new OutgoingRequest(
                 new ServiceAddress(protocol)
@@ -376,7 +381,7 @@ public sealed class ProtocolLoggerTests
 
     // A multiplexed server transport decorators that wraps the listeners it creates with a listener
     // that creates multiplexed connections that will fail during connect.
-    internal sealed class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
+    private sealed class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
     {
         public string DefaultName => _decoratee.DefaultName;
 
@@ -427,6 +432,7 @@ public sealed class ProtocolLoggerTests
             throw new InvalidOperationException("Connect failed.");
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
             _decoratee.AcceptStreamAsync(cancellationToken);
 

@@ -73,7 +73,7 @@ public class ServerAddressTests
              "host",
              10000,
              null,
-             new Dictionary<string, string>{ ["xyz"] = "" }),
+             new Dictionary<string, string> { ["xyz"] = "" }),
             (new Uri("icerpc://host:10000?xyz&adapter-id=ok"),
              "host",
              10000,
@@ -90,7 +90,8 @@ public class ServerAddressTests
 
     /// <summary>Verifies that a server address can be correctly converted into a string.</summary>
     /// <param name="uri1">The server address URI to test.</param>
-    [Test, TestCaseSource(nameof(ServerAddressToStringSource))]
+    [Test]
+    [TestCaseSource(nameof(ServerAddressToStringSource))]
     public void Convert_an_server_address_into_a_string(Uri uri1)
     {
         var serverAddress1 = new ServerAddress(uri1);
@@ -138,17 +139,17 @@ public class ServerAddressTests
     }
 
     /// <summary>Verifies that ServerAddress's constructor fails when a URI is not a valid server address.</summary>
-    [TestCase("icerpc://host:10000/category/name")]                // unexpected path
-    [TestCase("icerpc://host:10000#fragment")]                     // unexpected fragment
-    [TestCase("icerpc://host:10000?alt-server=host2")]           // alt-server is service address only
-    [TestCase("icerpc://host:10000?=bar")]                         // empty param name
-    [TestCase("icerpc:///foo")]                                    // path, empty authority
-    [TestCase("icerpc:///")]                                       // empty authority
-    [TestCase("icerpc://")]                                        // empty authority
-    [TestCase("icerpc:/foo")]                                      // no authority
-    [TestCase("icerpc:")]                                          // no authority
-    [TestCase("foo://host:10000")]                                 // protocol not supported
-    [TestCase("icerpc://user:password@host:10000")]                // bad user-info
+    [TestCase("icerpc://host:10000/category/name")] // unexpected path
+    [TestCase("icerpc://host:10000#fragment")] // unexpected fragment
+    [TestCase("icerpc://host:10000?alt-server=host2")] // alt-server is service address only
+    [TestCase("icerpc://host:10000?=bar")] // empty param name
+    [TestCase("icerpc:///foo")] // path, empty authority
+    [TestCase("icerpc:///")] // empty authority
+    [TestCase("icerpc://")] // empty authority
+    [TestCase("icerpc:/foo")] // no authority
+    [TestCase("icerpc:")] // no authority
+    [TestCase("foo://host:10000")] // protocol not supported
+    [TestCase("icerpc://user:password@host:10000")] // bad user-info
     public void Cannot_create_server_address_from_non_server_address_uri(Uri uri) =>
         Assert.Catch<ArgumentException>(() => new ServerAddress(uri));
 
@@ -158,7 +159,8 @@ public class ServerAddressTests
     /// <param name="port">The expected port for the new server address.</param>
     /// <param name="transport">The expected transport for the new server address.</param>
     /// <param name="parameters">The expected parameters for the new server address.</param>
-    [Test, TestCaseSource(nameof(ServerAddressUriSource))]
+    [Test]
+    [TestCaseSource(nameof(ServerAddressUriSource))]
     public void Create_server_address_from_valid_uri(
         Uri uri,
         string host,

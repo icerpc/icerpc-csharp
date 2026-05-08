@@ -174,7 +174,7 @@ public class StreamTests
         {
             var inputMessages = new List<InputMessage>();
             using IAsyncStream<InputMessage> _stream = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
-            await foreach(var message in _stream)
+            await foreach (var message in _stream)
             {
                 inputMessages.Add(message);
             }

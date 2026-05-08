@@ -12,6 +12,7 @@ public sealed class PayloadPipeWriterDecorator : PipeWriter
 
     private readonly TaskCompletionSource<Exception?> _completed =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly PipeWriter _decoratee;
 
     /// <inheritdoc/>

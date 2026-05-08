@@ -51,7 +51,8 @@ public sealed partial class ExceptionTests
         }
     }
 
-    [Test, TestCaseSource(nameof(SliceDispatchThrowsMultipleExceptionsSource))]
+    [Test]
+    [TestCaseSource(nameof(SliceDispatchThrowsMultipleExceptionsSource))]
     public void Slice_operation_throws_exception_with_multiple_exceptions_in_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
@@ -73,7 +74,8 @@ public sealed partial class ExceptionTests
         }
     }
 
-    [Test, TestCaseSource(nameof(SliceDispatchThrowsMyExceptionSource))]
+    [Test]
+    [TestCaseSource(nameof(SliceDispatchThrowsMyExceptionSource))]
     public void Slice_operation_throws_exception_with_my_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
@@ -95,7 +97,8 @@ public sealed partial class ExceptionTests
         }
     }
 
-    [Test, TestCaseSource(nameof(SliceDispatchThrowsNothingSource))]
+    [Test]
+    [TestCaseSource(nameof(SliceDispatchThrowsNothingSource))]
     public void Slice_operation_throws_exception_with_no_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)

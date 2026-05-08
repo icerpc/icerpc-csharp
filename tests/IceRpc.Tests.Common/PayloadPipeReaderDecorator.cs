@@ -39,6 +39,7 @@ public sealed class PayloadPipeReaderDecorator : PipeReader
 
     private readonly TaskCompletionSource<Exception?> _completed =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly PipeReader _decoratee;
     private bool _holdRead;
     private TaskCompletionSource? _holdReadTcs;

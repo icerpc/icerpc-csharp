@@ -168,7 +168,6 @@ public abstract class MultiplexedStreamConformanceTests
 
         foreach (IMultiplexedStream stream in remoteStreams)
         {
-
             stream.Input.Complete();
             if (isBidirectional)
             {

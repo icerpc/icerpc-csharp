@@ -125,7 +125,8 @@ public class BitSequenceWriterTests
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
     /// <param name="writes">The number of writes to make to move the BitSequenceWriter to the final span.</param>
-    [Test, TestCaseSource(nameof(WriteClearsDataSource))]
+    [Test]
+    [TestCaseSource(nameof(WriteClearsDataSource))]
     public void Write_bit_sequence_clears_memory(
         byte[] firstBytes,
         byte[] secondBytes,
@@ -157,7 +158,8 @@ public class BitSequenceWriterTests
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    [Test, TestCaseSource(nameof(WriteFailsDataSource))]
+    [Test]
+    [TestCaseSource(nameof(WriteFailsDataSource))]
     public void Write_fails(
         byte[] firstBytes,
         byte[] secondBytes,
@@ -165,21 +167,22 @@ public class BitSequenceWriterTests
     {
         // We cannot follow traditional AAA with this test as the writer must be accessible inside of the lambda
         // expression. Thus the arrange and act sections were moved into the NUnit assertion.
-        Assert.That(() =>
-        {
-            // Arrange
-            int additionalMemSize = additionalMemory?.Sum(m => m.Length) ?? 0;
-            int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
-            var writer = new BitSequenceWriter(firstBytes, secondBytes, additionalMemory);
-            for (int i = 0; i < size; ++i)
+        Assert.That(
+            () =>
             {
-                writer.Write(true);
-            }
+                // Arrange
+                int additionalMemSize = additionalMemory?.Sum(m => m.Length) ?? 0;
+                int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
+                var writer = new BitSequenceWriter(firstBytes, secondBytes, additionalMemory);
+                for (int i = 0; i < size; ++i)
+                {
+                    writer.Write(true);
+                }
 
-            // Act
-            writer.Write(false);
-
-        }, Throws.InvalidOperationException);
+                // Act
+                writer.Write(false);
+            },
+            Throws.InvalidOperationException);
     }
 
     private static bool IsSet(int bitIndex, byte pattern) => (pattern & (1 << (bitIndex % 8))) != 0;
