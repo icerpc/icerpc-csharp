@@ -17,9 +17,8 @@ public class ServiceGenerator : IIncrementalGenerator
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // We accept any TypeDeclarationSyntax (class, record class, struct, record struct, interface) so that the
-        // parser can report a diagnostic for unsupported shapes (e.g. struct, record struct, interface) instead of
-        // silently ignoring them.
+        // We accept any TypeDeclarationSyntax (in practice, a class or record class, since ServiceAttribute's
+        // AttributeUsage restricts it to classes) so that record classes are picked up alongside plain classes.
         IncrementalValuesProvider<TypeDeclarationSyntax> typeDeclarations =
             context.SyntaxProvider
                 .ForAttributeWithMetadataName(
