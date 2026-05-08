@@ -121,20 +121,27 @@ internal sealed partial class ThermoFacade : IThermostatService
             oldPublishCts.Dispose();
         }
 
-        await foreach (Reading reading in readings.WithCancellation(cancellationToken))
+        try
         {
-            Console.WriteLine($"Publishing: {reading}");
-
-            lock (_mutex)
+            await foreach (Reading reading in readings.WithCancellation(cancellationToken))
             {
-                _latestReading = reading;
+                Console.WriteLine($"Publishing: {reading}");
 
-                foreach (ChannelWriter<Reading> writer in _channelWriters)
+                lock (_mutex)
                 {
-                    // This always succeeds.
-                    writer.TryWrite(reading);
+                    _latestReading = reading;
+
+                    foreach (ChannelWriter<Reading> writer in _channelWriters)
+                    {
+                        // This always succeeds.
+                        writer.TryWrite(reading);
+                    }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on shutdown or when superseded by a newer publish task.
         }
 
         lock (_mutex)
