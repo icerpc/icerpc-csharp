@@ -1,9 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -168,6 +173,48 @@ public partial class OperationTests
         // Assert
         Assert.That(fields, Is.Not.Null);
         Assert.That(fields, Contains.Key(RequestFieldKey.Idempotent));
+    }
+
+    /// <summary>Verifies that when a peer sends a request with a malformed Protobuf payload (here, a
+    /// tampered envelope length that overruns the actual message), the server returns a response with
+    /// <see cref="StatusCode.InvalidData" />. This pins down the full path: the decoder wraps the
+    /// underlying <see cref="InvalidProtocolBufferException" /> as <see cref="InvalidDataException" />,
+    /// and the icerpc protocol layer maps that to <c>StatusCode.InvalidData</c>.</summary>
+    [Test]
+    public async Task Unary_rpc_with_malformed_protobuf_payload_returns_invalid_data()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyOperationsService())
+            .BuildServiceProvider(validateScopes: true);
+        provider.GetRequiredService<Server>().Listen();
+        ClientConnection clientConnection = provider.GetRequiredService<ClientConnection>();
+
+        // Build a tampered envelope: claim one extra byte and append a single 0xFF — a varint with the
+        // continuation bit set and no follow-up byte, which Protobuf treats as a truncated tag.
+        var validMessage = new InputMessage { P1 = "hi", P2 = 1 };
+        int actualLength = validMessage.CalculateSize();
+        var pipe = new Pipe();
+        pipe.Writer.Write(new byte[] { 0 });
+        Span<byte> lengthBytes = pipe.Writer.GetSpan(4);
+        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, actualLength + 1);
+        pipe.Writer.Advance(4);
+        validMessage.WriteTo(pipe.Writer);
+        pipe.Writer.Write(new byte[] { 0xFF });
+        pipe.Writer.Complete();
+
+        using var request = new OutgoingRequest(
+            new ServiceAddress(new Uri("icerpc:/icerpc.protobuf.tests.MyOperations")))
+        {
+            Operation = "UnaryOp",
+            Payload = pipe.Reader,
+        };
+
+        // Act
+        IncomingResponse response = await clientConnection.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.InvalidData));
     }
 
     [Test]

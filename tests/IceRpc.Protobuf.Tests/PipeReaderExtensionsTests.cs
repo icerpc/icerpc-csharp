@@ -154,6 +154,40 @@ public partial class PipeReaderExtensionsTests
         pipe.Reader.Complete();
     }
 
+    /// <summary>Verifies that a tampered envelope whose length field claims more bytes than the actual
+    /// message contains is rejected as <see cref="InvalidDataException" />. We slice <c>ParseFrom</c>'s
+    /// input to exactly the envelope's claimed length, so trailing malformed bytes inside the envelope
+    /// cause <c>ParseFrom</c> to throw <see cref="InvalidProtocolBufferException" />, which we wrap as
+    /// <see cref="InvalidDataException" /> so the protocol layer maps it to <c>StatusCode.InvalidData</c>.
+    /// </summary>
+    [Test]
+    public void Decode_message_throws_invalid_data_exception_for_envelope_length_overrun()
+    {
+        // Arrange: serialize a valid StringValue, claim one extra byte in the envelope length, and append a
+        // single 0xFF — a varint with the continuation bit set and no follow-up byte, which Protobuf treats
+        // as a truncated tag.
+        var validMessage = new StringValue { Value = "hi" };
+        int actualLength = validMessage.CalculateSize();
+
+        var pipe = new Pipe();
+        pipe.Writer.Write(new byte[] { 0 });
+        Span<byte> lengthBytes = pipe.Writer.GetSpan(4);
+        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, actualLength + 1);
+        pipe.Writer.Advance(4);
+        validMessage.WriteTo(pipe.Writer);
+        pipe.Writer.Write(new byte[] { 0xFF });
+        pipe.Writer.Complete();
+
+        // Act & Assert
+        InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await pipe.Reader.DecodeProtobufMessageAsync(
+                StringValue.Parser,
+                maxMessageLength: 1024,
+                CancellationToken.None));
+        Assert.That(exception!.InnerException, Is.InstanceOf<InvalidProtocolBufferException>());
+        pipe.Reader.Complete();
+    }
+
     private static void WriteLengthPrefixedMessage(PipeWriter writer, IMessage message)
     {
         writer.Write(new byte[] { 0 }); // Not compressed

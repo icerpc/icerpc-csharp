@@ -157,8 +157,18 @@ internal static class PipeReaderExtensions
                 $"The payload has {readResult.Buffer.Length} bytes, but {messageLength} bytes were expected.");
         }
 
-        // TODO: Does ParseFrom check it read all the bytes?
-        T message = messageParser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
+        T message;
+        try
+        {
+            // ParseFrom reads tags until end-of-input and throws InvalidProtocolBufferException on a
+            // truncated field, so passing an exact-length slice means it either consumes every byte or
+            // throws.
+            message = messageParser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
+        }
+        catch (InvalidProtocolBufferException exception)
+        {
+            throw new InvalidDataException("Failed to decode the Protobuf message.", exception);
+        }
         reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
         return message;
 
