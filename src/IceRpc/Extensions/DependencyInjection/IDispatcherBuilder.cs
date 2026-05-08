@@ -4,6 +4,14 @@ namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides the mechanism to configure a dispatcher when using Dependency Injection (DI). Each request is
 /// dispatched in its own scope.</summary>
+/// <remarks>The per-request DI scope is disposed as soon as the dispatcher returns its
+/// <see cref="OutgoingResponse" />. The protocol connection then reads <c>response.Payload</c> (and
+/// <c>response.PayloadContinuation</c>) to send the response on the wire — at which point the scope is already gone.
+/// As a result, a response payload that lazily pulls from a scoped service (for example a streamed reply backed by
+/// a scoped <c>HttpClient</c> or by EF Core) will encounter an <see cref="ObjectDisposedException" /> partway through
+/// transmission. To avoid this, materialize the response data inside the dispatcher (under the scope) — for example
+/// by reading it into a buffer or pipe before returning the response — rather than relying on lazy reads from a
+/// scoped dependency.</remarks>
 public interface IDispatcherBuilder
 {
     /// <summary>Gets the service provider.</summary>
