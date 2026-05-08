@@ -220,12 +220,13 @@ public class SlicingTests
 
         // Act/Assert
 
-        Assert.That(() =>
-        {
-            var decoder = new IceDecoder(buffer.WrittenMemory); // no activator
-            decoder.DecodeException();
-        },
-        Throws.InstanceOf<InvalidDataException>());
+        Assert.That(
+            () =>
+            {
+                var decoder = new IceDecoder(buffer.WrittenMemory); // no activator
+                decoder.DecodeException();
+            },
+            Throws.InstanceOf<InvalidDataException>());
     }
 
     [Test]

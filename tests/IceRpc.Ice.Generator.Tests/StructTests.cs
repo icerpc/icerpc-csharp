@@ -92,7 +92,6 @@ public sealed class StructTests
         var decoder = new IceDecoder(buffer.WrittenMemory);
         Assert.That(decoder.DecodeInt(), Is.EqualTo(expected.A));
         Assert.That(decoder.DecodeProxy<AnotherPingableProxy>(), Is.EqualTo(expected.I));
-
     }
 
     [Test]

@@ -38,7 +38,6 @@ public sealed class LoggerMiddlewareTests
         Assert.That(
             entry.State["RemoteNetworkAddress"],
             Is.EqualTo(FakeConnectionContext.Instance.TransportConnectionInformation.RemoteNetworkAddress));
-
     }
 
     [Test]

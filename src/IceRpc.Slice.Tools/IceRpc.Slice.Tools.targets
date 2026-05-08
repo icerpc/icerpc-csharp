@@ -66,6 +66,10 @@
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
+      <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-gen-icerpc-build-telemetry$(_SliceGeneratorScriptExtension)</Generators>
+        <TelemetryPath>$([MSBuild]::NormalizePath('%(OutputDir)/icerpc_build_telemetry.txt'))</TelemetryPath>
+      </_SliceFile>
     </ItemGroup>
   </Target>
 
@@ -101,6 +105,7 @@
 
   <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
     <Delete Files="%(_SliceFile.GeneratedPath)" />
+    <Delete Files="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
   </Target>
 
   <!-- Package SliceFile items -->

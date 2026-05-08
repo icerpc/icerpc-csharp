@@ -21,6 +21,25 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
     private readonly Func<CancellationToken, Task<IProtocolConnection>> _acceptServerConnectionAsync;
     private IProtocolConnection? _server;
 
+    internal ClientServerProtocolConnection(
+        IProtocolConnection clientProtocolConnection,
+        Func<CancellationToken, Task<IProtocolConnection>> acceptServerConnectionAsync)
+    {
+        _acceptServerConnectionAsync = acceptServerConnectionAsync;
+        Client = clientProtocolConnection;
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
+    {
+        await Client.DisposeAsync();
+
+        if (_server is not null)
+        {
+            await _server.DisposeAsync();
+        }
+    }
+
     /// <summary>Accepts and connects the server connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The shutdown requested task returned by <see cref="IProtocolConnection.ConnectAsync"/>.</returns>
@@ -58,24 +77,5 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
             throw;
         }
         return ((await clientProtocolConnectionTask).ShutdownRequested, serverShutdownRequested);
-    }
-
-    /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
-        await Client.DisposeAsync();
-
-        if (_server is not null)
-        {
-            await _server.DisposeAsync();
-        }
-    }
-
-    internal ClientServerProtocolConnection(
-        IProtocolConnection clientProtocolConnection,
-        Func<CancellationToken, Task<IProtocolConnection>> acceptServerConnectionAsync)
-    {
-        _acceptServerConnectionAsync = acceptServerConnectionAsync;
-        Client = clientProtocolConnection;
     }
 }

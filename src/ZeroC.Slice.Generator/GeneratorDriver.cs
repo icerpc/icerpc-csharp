@@ -27,9 +27,9 @@ internal static class GeneratorDriver
         using Stream stdout = Console.OpenStandardOutput();
         var writer = PipeWriter.Create(stdout);
 
-        await Symbols.Generator.RunAsync(reader, writer, RunCore).ConfigureAwait(false);
+        await Symbols.Generator.RunAsync(reader, writer, TransformAsync).ConfigureAwait(false);
 
-        GeneratorResponse RunCore(ImmutableList<SliceFile> symbolFiles, Dictionary<string, string> options)
+        Task<GeneratorResponse> TransformAsync(ImmutableList<SliceFile> symbolFiles, Dictionary<string, string> options)
         {
             // Validate CS attributes before generation.
             //
@@ -124,11 +124,11 @@ internal static class GeneratorDriver
                 }
             }
 
-            return new GeneratorResponse
+            return Task.FromResult(new GeneratorResponse
             {
                 GeneratedFiles = generatedFiles,
                 Diagnostics = diagnostics,
-            };
+            });
         }
     }
 }

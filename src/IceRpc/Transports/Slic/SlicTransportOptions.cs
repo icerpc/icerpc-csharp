@@ -39,29 +39,58 @@ public sealed record class SlicTransportOptions
             throw new ArgumentException(
                 $"The {nameof(InitialStreamWindowSize)} value cannot be less than 1 KB.",
                 nameof(value)) :
-            value > MaxWindowSize ?
-            throw new ArgumentException(
-                $"The {nameof(InitialStreamWindowSize)} value cannot be larger than {MaxWindowSize}.",
-                nameof(value)) :
             value;
     }
 
     /// <summary>Gets or sets the maximum stream frame size in bytes.</summary>
-    /// <value>The maximum stream frame size in bytes. It can't be less than <c>1</c> KB. Defaults to <c>32</c>
-    /// KB.</value>
+    /// <value>The maximum stream frame size in bytes. It can't be less than <c>1</c> KB or greater than
+    /// <c>16,777,215</c> (2^24 - 1). Defaults to <c>32</c> KB.</value>
     public int MaxStreamFrameSize
     {
         get => _maxStreamFrameSize;
-        set => _maxStreamFrameSize = value >= 1024 ? value :
+        set => _maxStreamFrameSize =
+            value < 1024 ?
             throw new ArgumentException(
-                $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1KB.",
-                nameof(value));
+                $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1 KB.",
+                nameof(value)) :
+            value > MaxStreamFrameSizeCeiling ?
+            throw new ArgumentException(
+                $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxStreamFrameSizeCeiling}.",
+                nameof(value)) :
+            value;
     }
+
+    /// <summary>Gets or sets the per-connection pause writer threshold. It defines the maximum amount of data that
+    /// Slic buffers locally on the connection's outbound pipe before
+    /// <see cref="System.IO.Pipelines.PipeWriter.FlushAsync" /> on the underlying pipe starts blocking. This bounds the
+    /// memory used by the connection's outbound buffering when a peer is slow or not reading.</summary>
+    /// <value>The pause writer threshold in bytes. Set to <c>0</c> to disable this flow control mechanism. Otherwise,
+    /// it can't be less than <c>1</c> KB. Defaults to <c>64</c> KB (the <see cref="System.IO.Pipelines.Pipe" />
+    /// default).</value>
+    // The default specified by System.IO.Pipelines.PipeOptions.
+    public int PauseWriterThreshold { get; set => field = ValidatePauseWriterThreshold(value); } = 65_536;
+
+    // Upper bound on MaxStreamFrameSize (local and peer-advertised). Matches HTTP/2's SETTINGS_MAX_FRAME_SIZE
+    // ceiling. Larger frames worsen head-of-line blocking across multiplexed streams without improving
+    // throughput at any realistic link speed.
+    internal const int MaxStreamFrameSizeCeiling = 16_777_215;
+
+    private static int ValidatePauseWriterThreshold(int value) =>
+        value < 0 ?
+            throw new ArgumentException(
+                $"The {nameof(PauseWriterThreshold)} value cannot be negative.",
+                nameof(value)) :
+            value > 0 && value < 1024 ?
+            throw new ArgumentException(
+                $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB unless it is 0.",
+                nameof(value)) :
+            value;
 
     // We use the HTTP/2 maximum window size (2GB).
     internal const int MaxWindowSize = int.MaxValue;
 
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(30);
+
     // The default specified in the HTTP/2 specification.
     private int _initialStreamWindowSize = 65_536;
     private int _maxStreamFrameSize = 32_768;
