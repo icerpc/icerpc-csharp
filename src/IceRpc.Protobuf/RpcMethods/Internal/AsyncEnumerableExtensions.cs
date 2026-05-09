@@ -163,7 +163,7 @@ internal static class AsyncEnumerableExtensions
                     _asyncEnumerator.Current.WriteTo(_pipe.Writer);
                     int length = checked((int)_pipe.Writer.UnflushedBytes - written);
                     written += length;
-                    BinaryPrimitives.WriteInt32BigEndian(lengthPlaceholder, length - 5);
+                    BinaryPrimitives.WriteUInt32BigEndian(lengthPlaceholder, (uint)(length - 5));
                     ValueTask<bool> moveNext = _asyncEnumerator.MoveNextAsync();
 
                     if (moveNext.IsCompletedSuccessfully)
