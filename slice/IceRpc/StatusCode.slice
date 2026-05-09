@@ -37,4 +37,8 @@ unchecked enum StatusCode : varuint62 {
 
     /// The caller is not authorized to access the requested resource.
     Unauthorized
+
+    /// The dispatch failed because the request requires a feature that the server or the target service does not
+    /// support.
+    NotSupported
 }

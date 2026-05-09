@@ -1212,6 +1212,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException => StatusCode.InvalidData,
+                        NotSupportedException => StatusCode.NotSupported,
                         IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
                             StatusCode.TruncatedPayload,
                         _ => StatusCode.InternalError
