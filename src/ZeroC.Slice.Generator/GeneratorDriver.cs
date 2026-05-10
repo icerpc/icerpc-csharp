@@ -61,9 +61,9 @@ internal static class GeneratorDriver
                     {
                         Level = DiagnosticLevel.Error,
                         Message =
-                            $"Multiple source files have the same filename '{fileName}': " +
+                            $"Multiple source files have the same file name '{fileName}': " +
                             $"'{previousPath}' and '{file.Path}'. " +
-                            "Generated files are written to a common directory, so source files must have unique filenames.",
+                            "Generated files are written to a common directory, so source files must have unique file names.",
                     });
                 }
                 else

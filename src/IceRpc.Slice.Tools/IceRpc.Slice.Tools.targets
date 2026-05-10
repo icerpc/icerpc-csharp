@@ -36,7 +36,7 @@
       <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       <Link
         Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
-      >%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
+      >%(LinkBase)%(RecursiveDir)%(FileName)%(Extension)</Link>
     </SliceFile>
   </ItemGroup>
 
@@ -60,11 +60,11 @@
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
         <Generators>%(_SliceFile.Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).cs'))</GeneratedPath>
       </_SliceFile>
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</GeneratedPath>
+        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-gen-icerpc-build-telemetry$(_SliceGeneratorScriptExtension)</Generators>
