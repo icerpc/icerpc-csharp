@@ -56,19 +56,11 @@
     />
   </ItemGroup>
   <!--
-    Compute the path of the manifest tracking every output produced by the most recent Slicec run. Stored
-    under $(IntermediateOutputPath) so each configuration/TargetFramework has its own copy and parallel
-    multi-target inner builds don't race on a shared file.
-
-    This must run inside a target rather than as a top-level <PropertyGroup>, because $(IntermediateOutputPath)
-    is set by the SDK targets that get imported AFTER this file - at top-level evaluation time it is empty.
+    The manifest tracking every output produced by the most recent Slicec run is stored at
+    $(IntermediateOutputPath)slicec.outputs.txt - this gives each configuration/TargetFramework its own copy
+    so parallel multi-target inner builds don't race on a shared file. $(IntermediateOutputPath) is only
+    available after the SDK targets are imported, so we reference it inline (not via a top-level property).
   -->
-  <Target Name="_InitSlicecManifestPath">
-    <PropertyGroup>
-      <_SlicecOutputManifest>$(IntermediateOutputPath)slicec.outputs.txt</_SlicecOutputManifest>
-    </PropertyGroup>
-  </Target>
-
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
@@ -98,9 +90,9 @@
   -->
   <Target Name="_SlicecPruneStaleOutputs"
           BeforeTargets="Slicec;CoreCompile;SlicecClean;Clean"
-          DependsOnTargets="_InitSlicecManifestPath;_ComputeSliceFiles"
+          DependsOnTargets="_ComputeSliceFiles"
           Condition="Exists('$(IntermediateOutputPath)slicec.outputs.txt')">
-    <ReadLinesFromFile File="$(_SlicecOutputManifest)">
+    <ReadLinesFromFile File="$(IntermediateOutputPath)slicec.outputs.txt">
       <Output TaskParameter="Lines" ItemName="_PreviousSlicecOutput" />
     </ReadLinesFromFile>
     <ItemGroup>
@@ -160,7 +152,6 @@
   <!-- Record this build's outputs so the next build can prune anything we no longer produce. -->
   <Target Name="_SlicecWriteOutputManifest"
           AfterTargets="Slicec"
-          DependsOnTargets="_InitSlicecManifestPath"
           Condition="@(SliceFile) != ''">
     <ItemGroup>
       <_AllSlicecOutput Include="%(_SliceFile.GeneratedPath)" />
@@ -168,15 +159,16 @@
     </ItemGroup>
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile
-      File="$(_SlicecOutputManifest)"
+      File="$(IntermediateOutputPath)slicec.outputs.txt"
       Lines="@(_AllSlicecOutput)"
       Overwrite="true" />
   </Target>
 
-  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_InitSlicecManifestPath;_ComputeSliceFiles">
+  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
     <Delete Files="%(_SliceFile.GeneratedPath)" />
     <Delete Files="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
-    <Delete Files="$(_SlicecOutputManifest)" Condition="Exists('$(_SlicecOutputManifest)')" />
+    <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt"
+            Condition="Exists('$(IntermediateOutputPath)slicec.outputs.txt')" />
   </Target>
 
   <!-- Package SliceFile items -->
