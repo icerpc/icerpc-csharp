@@ -29,10 +29,6 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
     // Dispose distinguish "enumerator was created but never started" from "iteration actually started".
     private bool _iterationStarted;
 
-    /// <summary>Disposes this stream.</summary>
-    /// <remarks>This method may be called concurrently with an in-flight <c>MoveNextAsync</c> on the stream's
-    /// enumerator: the in-flight read is unblocked and the consumer's <c>MoveNextAsync</c> throws
-    /// <see cref="ObjectDisposedException" />. Calling it a second time is a no-op.</remarks>
     public void Dispose()
     {
         if (_disposed)
