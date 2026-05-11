@@ -33,7 +33,7 @@
       <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       <Link
         Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
-      >%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
+      >%(LinkBase)%(RecursiveDir)%(FileName)%(Extension)</Link>
     </ProtoFile>
   </ItemGroup>
 

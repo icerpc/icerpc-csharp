@@ -119,7 +119,7 @@
 
     <Copy
       SourceFiles="@(ProtocCompiler)"
-      DestinationFiles="@(ProtocCompiler->'$(MSBuildThisFileDirectory)obj/tools/%(Prefix)/%(Filename)%(Extension)')"
+      DestinationFiles="@(ProtocCompiler->'$(MSBuildThisFileDirectory)obj/tools/%(Prefix)/%(FileName)%(Extension)')"
       SkipUnchangedFiles="true" />
 
   </Target>
