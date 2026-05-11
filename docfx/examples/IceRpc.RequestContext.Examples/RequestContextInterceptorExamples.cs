@@ -27,7 +27,7 @@ public static class RequestContextInterceptorExamples
             {
                 ["UserId"] = Environment.UserName.ToLowerInvariant(),
                 ["MachineName"] = Environment.MachineName
-            }).ToImmutableDictionary());
+            }.ToImmutableDictionary()));
         #endregion
 
         {
