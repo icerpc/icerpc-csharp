@@ -16,7 +16,6 @@ public sealed class RequestContextFeature : IRequestContextFeature
     /// <summary>Constructs a request context feature wrapping the specified dictionary.</summary>
     /// <param name="value">The dictionary held by the new feature. It is copied to an
     /// <see cref="ImmutableDictionary{TKey, TValue}" /> unless it is already one, so post-construction mutations
-    /// to <paramref name="value" /> (and casts of the feature's <c>Value</c> back to a mutable dictionary) cannot
-    /// alter the feature.</param>
+    /// to <paramref name="value" /> cannot alter the feature.</param>
     public RequestContextFeature(IReadOnlyDictionary<string, string> value) => Value = value.ToImmutableDictionary();
 }
