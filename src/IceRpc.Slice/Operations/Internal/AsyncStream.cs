@@ -110,9 +110,12 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
                 }
                 catch (OperationCanceledException) when (linkedToken.IsCancellationRequested)
                 {
-                    // Canceling the cancellation token (caller token or our dispose token) is a normal way to
-                    // complete an iteration.
-                    yield break;
+                    // Re-issue the cancellation with the caller's token so the OCE that propagates carries the
+                    // token the caller passed in (not our internal linkedToken). When _disposed is the only
+                    // source, surface dispose-mid-iteration as ObjectDisposedException.
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Debug.Assert(_disposed);
+                    throw new ObjectDisposedException(nameof(AsyncStream<>), "The stream was disposed while reading.");
                 }
 
                 IEnumerable<T> elements = _decodeBufferFunc(readResult.Buffer);
@@ -120,10 +123,8 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
 
                 foreach (T item in elements)
                 {
-                    if (linkedToken.IsCancellationRequested)
-                    {
-                        yield break;
-                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ObjectDisposedException.ThrowIf(_disposed, this);
                     yield return item;
                 }
 

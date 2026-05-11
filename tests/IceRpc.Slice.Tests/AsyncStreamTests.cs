@@ -76,7 +76,7 @@ public class AsyncStreamTests
     }
 
     [Test]
-    public async Task Dispose_during_iteration_unblocks_pending_read_and_completes_reader_once()
+    public async Task Dispose_during_iteration_throws_ObjectDisposedException_and_completes_reader()
     {
         // A pipe whose writer never produces data: ReadAsync blocks until we cancel.
         var pipe = new Pipe();
@@ -93,10 +93,7 @@ public class AsyncStreamTests
 
         stream.Dispose();
 
-        // The pending ReadAsync is unblocked via CancelPendingRead through our linked CTS; the iterator's finally
-        // calls Complete. MoveNextAsync should return false (graceful end-of-stream).
-        bool moved = await moveNext;
-        Assert.That(moved, Is.False);
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await moveNext);
 
         await enumerator.DisposeAsync();
         pipe.Writer.Complete();
@@ -105,7 +102,7 @@ public class AsyncStreamTests
     }
 
     [Test]
-    public async Task Caller_cancellation_token_unblocks_pending_read_and_completes_reader()
+    public async Task Caller_cancellation_token_throws_OperationCanceledException_and_completes_reader()
     {
         // A pipe whose writer never produces data: ReadAsync blocks until cancellation.
         var pipe = new Pipe();
@@ -126,10 +123,9 @@ public class AsyncStreamTests
 
         cts.Cancel();
 
-        // The pending ReadAsync is unblocked through the linked CTS; the iterator's finally completes the reader.
-        // MoveNextAsync returns false (graceful end-of-stream) since the OCE is swallowed by the iterator.
-        bool moved = await moveNext;
-        Assert.That(moved, Is.False);
+        OperationCanceledException? exception = Assert.ThrowsAsync<OperationCanceledException>(
+            async () => await moveNext);
+        Assert.That(exception!.CancellationToken, Is.EqualTo(cts.Token));
 
         await enumerator.DisposeAsync();
         stream.Dispose();

@@ -332,12 +332,13 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that canceling the iteration using an injected cancellation token completes the pipe reader from
-    /// which the stream elements are being decoded.</summary>
-    /// <remarks>This test is similar to <see cref="Decoding_completes_when_enumerator_read_is_canceled" /> but
+    /// <summary>Test that canceling the iteration using an injected cancellation token throws
+    /// <see cref="OperationCanceledException" /> and completes the pipe reader from which the stream elements are
+    /// being decoded.</summary>
+    /// <remarks>This test is similar to <see cref="Decoding_throws_when_enumerator_read_is_canceled" /> but
     /// uses a higher level API.</remarks>
     [Test]
-    public async Task Decoding_completes_when_iteration_is_canceled()
+    public async Task Decoding_throws_when_iteration_is_canceled()
     {
         // Arrange
         var pipe = new Pipe();
@@ -355,20 +356,23 @@ public class StreamTests
             sliceFeature: null);
 
         // Act
-        await foreach (int value in values.WithCancellation(cts.Token))
+        OperationCanceledException? ex = Assert.ThrowsAsync<OperationCanceledException>(async () =>
         {
-            count++;
-            if (value == 20)
+            await foreach (int value in values.WithCancellation(cts.Token))
             {
-                // It's also ok to just abandon the iteration (tested in another test).
-                cts.Cancel();
+                count++;
+                if (value == 20)
+                {
+                    cts.Cancel();
+                }
             }
-        }
+        });
 
         // Assert
-        Assert.That(count, Is.EqualTo(2)); // read 2 elements
-        Assert.That(() => payload.Completed, Is.Null);
-        Assert.That(async () => (await pipe.Writer.FlushAsync()).IsCompleted, Is.True);
+        Assert.That(ex!.CancellationToken, Is.EqualTo(cts.Token));
+        Assert.That(count, Is.EqualTo(2)); // read 2 elements before cancellation
+        // The iterator's finally completes the pipe reader with no exception.
+        Assert.That(await payload.Completed, Is.Null);
 
         // Cleanup
         pipe.Writer.Complete();
@@ -383,10 +387,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Tests that canceling the iteration while the decode function is waiting to read data, cancels
-    /// the read operation and completes the enumerable and pipe reader.</summary>
+    /// <summary>Tests that canceling the iteration while the decode function is waiting to read data cancels
+    /// the read operation, throws <see cref="OperationCanceledException" />, and completes the pipe reader.</summary>
     [Test]
-    public async Task Decoding_completes_when_enumerator_read_is_canceled()
+    public async Task Decoding_throws_when_enumerator_read_is_canceled()
     {
         // Arrange
         var payload = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
@@ -412,8 +416,11 @@ public class StreamTests
         // We must await moveNextAwaitable before the enumerator's implicit DisposeAsync runs at end of scope:
         // async iterators forbid concurrent MoveNextAsync/DisposeAsync calls, and would throw
         // NotSupportedException if the in-flight MoveNextAsync hasn't completed yet.
-        Assert.That(await moveNextAwaitable, Is.False);
-        Assert.That(() => payload.Completed, Is.Null);
+        OperationCanceledException? exception = Assert.ThrowsAsync<OperationCanceledException>(
+            async () => await moveNextAwaitable);
+        Assert.That(exception!.CancellationToken, Is.EqualTo(cts.Token));
+        // The iterator's finally completes the pipe reader with no exception.
+        Assert.That(await payload.Completed, Is.Null);
     }
 
     /// <summary>Tests that stopping the full enumerable correctly completes the pipe reader.</summary>

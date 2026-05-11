@@ -83,9 +83,15 @@ async Task MonitorAsync(ParseResult parseResult, CancellationToken cancellationT
         new Empty(),
         cancellationToken: cancellationToken);
 
-    // The iteration completes when cancellationToken is canceled.
-    await foreach (Reading reading in readings.WithCancellation(cancellationToken))
+    try
     {
-        Console.WriteLine(reading);
+        await foreach (Reading reading in readings.WithCancellation(cancellationToken))
+        {
+            Console.WriteLine(reading);
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // Expected, iteration ends when the caller token is cancelled on Ctrl-C.
     }
 }
