@@ -34,7 +34,7 @@ internal sealed class Parser
         ];
     }
 
-    internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
+    internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<TypeDeclarationSyntax> typeDeclarations)
     {
         if (_serviceAttribute is null)
         {
@@ -44,53 +44,67 @@ internal sealed class Parser
 
         var serviceDefinitions = new List<ServiceClass>();
         // we enumerate by syntax tree, to minimize the need to instantiate semantic models (since they're expensive)
-        foreach (IGrouping<SyntaxTree, ClassDeclarationSyntax> group in classes.GroupBy(x => x.SyntaxTree))
+        foreach (IGrouping<SyntaxTree, TypeDeclarationSyntax> group in typeDeclarations.GroupBy(x => x.SyntaxTree))
         {
-            foreach (ClassDeclarationSyntax classDeclaration in group)
+            foreach (TypeDeclarationSyntax typeDeclaration in group)
             {
                 // stop if we're asked to
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                SemanticModel semanticModel = _compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-                INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration, _cancellationToken);
+                SemanticModel semanticModel = _compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+                INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration, _cancellationToken);
                 if (classSymbol is null)
                 {
                     continue;
                 }
 
+                ImmutableArray<INamedTypeSymbol> baseInterfaces = [];
                 IReadOnlyList<ServiceMethod> baseServiceMethods = [];
+
                 INamedTypeSymbol? baseServiceClass = GetBaseServiceClass(classSymbol);
+
                 if (baseServiceClass is not null)
                 {
-                    baseServiceMethods = GetServiceMethods(baseServiceClass.AllInterfaces);
+                    baseInterfaces = baseServiceClass.AllInterfaces;
+                    baseServiceMethods = GetServiceMethods(baseInterfaces);
                 }
 
-                IEnumerable<ServiceMethod> serviceMethods =
-                    GetServiceMethods(classSymbol.AllInterfaces).Except(baseServiceMethods);
+                // Partition the interfaces into those inherited from the base service class and those new in this
+                // class. Methods from inherited interfaces are already dispatched by the base; methods from new
+                // interfaces are what this class adds.
+                var newInterfaces = classSymbol.AllInterfaces
+                    // The explicit type argument is required because SymbolEqualityComparer.Default is typed as
+                    // IEqualityComparer<ISymbol>, which would otherwise infer Except's element type as ISymbol.
+                    .Except<INamedTypeSymbol>(baseInterfaces, SymbolEqualityComparer.Default)
+                    .ToImmutableArray();
 
-                // We check for duplicates only once per class.
-                var operationNames = new HashSet<string>();
+                IEnumerable<ServiceMethod> serviceMethods = GetServiceMethods(newInterfaces);
+
+                // We check for duplicates only once per class. Seed the set with the base service operation names so
+                // we also report collisions between an operation added by this class and a base operation.
+                var operationNames = new HashSet<string>(baseServiceMethods.Select(m => m.OperationName));
                 foreach (ServiceMethod method in serviceMethods)
                 {
                     if (!operationNames.Add(method.OperationName))
                     {
+                        // The diagnostic report is not fatal: we keep going.
                         _reportDiagnostic(
                             Diagnostic.Create(
                                 DiagnosticDescriptors.DuplicateOperationNames,
-                                classDeclaration.GetLocation(),
+                                typeDeclaration.GetLocation(),
                                 method.OperationName,
-                                classDeclaration.Identifier.Text));
+                                typeDeclaration.Identifier.Text));
                     }
                 }
 
-                // Suppress duplicates, if any.
+                // Suppress duplicates, if any. Any such duplicate was reported above as an error.
                 serviceMethods = serviceMethods.Distinct();
 
                 string containingNamespace = classSymbol.ContainingNamespace.GetFullName();
                 var serviceClass = new ServiceClass(
                     classSymbol.Name,
                     containingNamespace.Length > 0 ? containingNamespace : null,
-                    classDeclaration.Keyword.ValueText,
+                    typeDeclaration.Keyword.ValueText,
                     serviceMethods.ToList(),
                     hasBaseServiceClass: baseServiceClass is not null,
                     isSealed: classSymbol.IsSealed);
@@ -101,7 +115,7 @@ internal sealed class Parser
                     kind == SyntaxKind.StructDeclaration ||
                     kind == SyntaxKind.RecordDeclaration;
 
-                SyntaxNode? parentNode = classDeclaration.Parent;
+                SyntaxNode? parentNode = typeDeclaration.Parent;
                 ContainerDefinition? container = serviceClass;
                 if (parentNode is TypeDeclarationSyntax parentType && IsAllowedKind(parentType.Kind()))
                 {

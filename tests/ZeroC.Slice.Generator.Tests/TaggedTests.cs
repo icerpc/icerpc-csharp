@@ -59,7 +59,7 @@ internal class TaggedTests
             10,
             new MyStruct(20, 20),
             MyEnum.Enum1,
-            new byte[] { 1, 2, 3},
+            new byte[] { 1, 2, 3 },
             "hello world!"),
         new MyStructWithTaggedFields(),
         new MyStructWithTaggedFields(
@@ -70,7 +70,8 @@ internal class TaggedTests
             "hello world!"),
     };
 
-    [Test, TestCaseSource(nameof(DecodeSliceTaggedFieldsSource))]
+    [Test]
+    [TestCaseSource(nameof(DecodeSliceTaggedFieldsSource))]
     public void Decode_slice_tagged_fields(MyStructWithTaggedFields expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -110,7 +111,8 @@ internal class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeSliceTaggedFieldsSource))]
+    [Test]
+    [TestCaseSource(nameof(EncodeSliceTaggedFieldsSource))]
     public void Encode_slice_tagged_fields(MyStructWithTaggedFields expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -144,7 +146,8 @@ internal class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(SkipSliceTaggedFieldsSource))]
+    [Test]
+    [TestCaseSource(nameof(SkipSliceTaggedFieldsSource))]
     public void Skip_slice_tagged_fields(MyStructWithTaggedFields value)
     {
         // Arrange

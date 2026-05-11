@@ -42,7 +42,7 @@ public class DictionaryDecodingTests
     public void Decode_dictionary_exceeds_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>()) + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>())) + 256]);
         var encoder = new IceEncoder(buffer);
         var dict = Enumerable.Range(0, count).ToDictionary(k => k, v => (long)v);
         encoder.EncodeDictionary(
@@ -71,7 +71,7 @@ public class DictionaryDecodingTests
     public void Decode_dictionary_within_max_collection_allocation(int count)
     {
         // Arrange
-        var buffer = new MemoryBufferWriter(new byte[count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>()) + 256]);
+        var buffer = new MemoryBufferWriter(new byte[(count * (Unsafe.SizeOf<int>() + Unsafe.SizeOf<long>())) + 256]);
         var encoder = new IceEncoder(buffer);
         var dict = Enumerable.Range(0, count).ToDictionary(k => k, v => (long)v);
         encoder.EncodeDictionary(

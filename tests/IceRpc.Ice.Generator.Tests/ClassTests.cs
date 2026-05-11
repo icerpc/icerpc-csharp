@@ -3,6 +3,7 @@
 using IceRpc.Ice.Codec;
 using NUnit.Framework;
 using System.IO.Pipelines;
+
 namespace IceRpc.Ice.Generator.Tests;
 
 [Parallelizable(ParallelScope.All)]

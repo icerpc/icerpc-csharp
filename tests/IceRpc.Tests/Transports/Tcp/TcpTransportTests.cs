@@ -2,9 +2,9 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Tcp;
-using System.Collections.Immutable;
 using IceRpc.Transports.Tcp.Internal;
 using NUnit.Framework;
+using System.Collections.Immutable;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -150,10 +150,12 @@ public class TcpTransportTests
         {
             // macOS appears to have a low limit of a little more than 256KB for the receive buffer and
             // 64KB for the send buffer.
-            Assert.That(serverConnection.Socket.SendBufferSize,
-                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
-            Assert.That(serverConnection.Socket.ReceiveBufferSize,
-                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
+            Assert.That(
+                serverConnection.Socket.SendBufferSize,
+                Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
+            Assert.That(
+                serverConnection.Socket.ReceiveBufferSize,
+                Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
         }
         else if (OperatingSystem.IsLinux())
         {
@@ -333,7 +335,7 @@ public class TcpTransportTests
                     new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = transportName },
                     new DuplexConnectionOptions(),
                     clientAuthenticationOptions: null).Dispose(),
-           Throws.Nothing);
+            Throws.Nothing);
 
     [Test]
     public void Create_connection_to_valid_ssl_address() =>
@@ -346,7 +348,7 @@ public class TcpTransportTests
                     {
                         ApplicationProtocols = [new SslApplicationProtocol("ice")]
                     }).Dispose(),
-           Throws.Nothing);
+            Throws.Nothing);
 
     [TestCase(null)]
     [TestCase("tcp")]
@@ -357,7 +359,7 @@ public class TcpTransportTests
                     new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = transportName },
                     new DuplexConnectionOptions(),
                     serverAuthenticationOptions: DefaultSslServerAuthenticationOptions).DisposeAsync(),
-           Throws.Nothing);
+            Throws.Nothing);
 
     [Test]
     public void Listen_on_valid_ssl_address() =>
@@ -367,7 +369,7 @@ public class TcpTransportTests
                     new TransportAddress { Host = "127.0.0.1", Port = 0, TransportName = "ssl" },
                     new DuplexConnectionOptions(),
                     serverAuthenticationOptions: DefaultSslServerAuthenticationOptionsWithIceAlpn).DisposeAsync(),
-           Throws.Nothing);
+            Throws.Nothing);
 
     [TestCase("foo", typeof(NotSupportedException))]
     [TestCase("ssl", typeof(ArgumentNullException))] // ssl without authentication options

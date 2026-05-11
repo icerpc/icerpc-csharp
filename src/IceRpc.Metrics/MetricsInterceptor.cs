@@ -37,7 +37,7 @@ public class MetricsInterceptor : IInvoker
             }
             return response;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
             _invocationMetrics.RequestCancel();
             throw;

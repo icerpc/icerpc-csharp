@@ -7,17 +7,18 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4">
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.11.2">
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.13.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
-    <PackageReference Include="NUnit" Version="4.4.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.2.0" />
+    <PackageReference Include="NUnit" Version="4.6.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,7 +26,7 @@
     <ProjectReference Include="../../src/IceRpc.Ice/IceRpc.Ice.csproj" />
     <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
     <ProjectReference Include="../../src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
-    <ProjectReference Include="../../src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" OutputItemType="Analyzer" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <!-- Reference the built-in Slice files -->
     <SliceDirectory Include="../../slice" />

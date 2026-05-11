@@ -55,7 +55,8 @@ public class WellKnownTypesTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(WellKnownWithOptionalsSource))]
+    [Test]
+    [TestCaseSource(nameof(WellKnownWithOptionalsSource))]
     public void Decode_struct_with_optional_custom_fields(
         TimeSpan? durationValue,
         DateTime? timeStampValue,
@@ -128,7 +129,8 @@ public class WellKnownTypesTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(WellKnownWithOptionalsSource))]
+    [Test]
+    [TestCaseSource(nameof(WellKnownWithOptionalsSource))]
     public void Encode_struct_with_optional_custom_fields(
         TimeSpan? durationValue,
         DateTime? timeStampValue,

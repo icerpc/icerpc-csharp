@@ -6,14 +6,16 @@ namespace IceRpc.Protobuf.Generator;
 
 internal static class MessageDescriptorExtensions
 {
-    internal static string GetType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
+    internal static string GetIncomingType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
     {
         string csharpType = messageDescriptor.GetQualifiedTypeName(scope);
-        if (streaming)
-        {
-            csharpType = $"global::System.Collections.Generic.IAsyncEnumerable<{csharpType}>";
-        }
-        return csharpType;
+        return streaming ? $"global::IceRpc.IAsyncStream<{csharpType}>" : csharpType;
+    }
+
+    internal static string GetOutgoingType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
+    {
+        string csharpType = messageDescriptor.GetQualifiedTypeName(scope);
+        return streaming ? $"global::System.Collections.Generic.IAsyncEnumerable<{csharpType}>" : csharpType;
     }
 
     internal static string GetParserType(this MessageDescriptor messageDescriptor, string scope) =>

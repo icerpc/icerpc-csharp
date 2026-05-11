@@ -428,6 +428,7 @@ public partial class OperationTests
     private sealed partial class MyDerivedOperationsService : IMyDerivedOperationsService
     {
         public ValueTask OpAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+
         public ValueTask OpDerivedAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 }

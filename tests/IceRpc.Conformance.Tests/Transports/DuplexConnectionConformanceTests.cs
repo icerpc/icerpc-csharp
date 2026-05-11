@@ -3,10 +3,10 @@
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Net.Security;
 using ZeroC.Tests.Common;
@@ -435,9 +435,10 @@ public abstract class DuplexConnectionConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Server.WriteAsync(new ReadOnlySequence<byte>(new byte[1]),
+            async () => await sut.Server.WriteAsync(
+                new ReadOnlySequence<byte>(new byte[1]),
                 CancellationToken.None),
-                Throws.Exception);
+            Throws.Exception);
     }
 
     /// <summary>Verifies that calling write fails with <see cref="IceRpcError.ConnectionAborted" />

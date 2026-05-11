@@ -8,6 +8,24 @@ using System.Net.Security;
 
 namespace IceRpc.Tests.Common;
 
+/// <summary>Extension methods for setting up the test duplex transport in an <see cref="IServiceCollection" />.
+/// </summary>
+public static class TestDuplexTransportDecoratorServiceCollectionExtensions
+{
+    /// <summary>Installs the test duplex transport decorator.</summary>
+    public static IServiceCollection AddTestDuplexTransportDecorator(
+        this IServiceCollection services,
+        DuplexTransportOperationsOptions? clientOperationsOptions = null,
+        DuplexTransportOperationsOptions? serverOperationsOptions = null)
+    {
+        services.AddSingletonTransportDecorator<IDuplexClientTransport, TestDuplexClientTransportDecorator>(
+            clientTransport => new TestDuplexClientTransportDecorator(clientTransport, clientOperationsOptions));
+        services.AddSingletonTransportDecorator<IDuplexServerTransport, TestDuplexServerTransportDecorator>(
+            serverTransport => new TestDuplexServerTransportDecorator(serverTransport, serverOperationsOptions));
+        return services;
+    }
+}
+
 /// <summary>This enumeration describes the duplex transport operations.</summary>
 [Flags]
 public enum DuplexTransportOperations
@@ -257,23 +275,5 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
         _decoratee = decoratee;
         _readDecorator = operationsOptions.ReadDecorator;
         Operations = new(operationsOptions);
-    }
-}
-
-/// <summary>Extension methods for setting up the test duplex transport in an <see cref="IServiceCollection"
-/// />.</summary>
-public static class TestDuplexTransportDecoratorServiceCollectionExtensions
-{
-    /// <summary>Installs the test duplex transport decorator.</summary>
-    public static IServiceCollection AddTestDuplexTransportDecorator(
-        this IServiceCollection services,
-        DuplexTransportOperationsOptions? clientOperationsOptions = null,
-        DuplexTransportOperationsOptions? serverOperationsOptions = null)
-    {
-        services.AddSingletonTransportDecorator<IDuplexClientTransport, TestDuplexClientTransportDecorator>(
-            clientTransport => new TestDuplexClientTransportDecorator(clientTransport, clientOperationsOptions));
-        services.AddSingletonTransportDecorator<IDuplexServerTransport, TestDuplexServerTransportDecorator>(
-            serverTransport => new TestDuplexServerTransportDecorator(serverTransport, serverOperationsOptions));
-        return services;
     }
 }

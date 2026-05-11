@@ -14,9 +14,10 @@ public class IdentityTests
     [TestCase("foo", "bar", "/bar/foo")]
     [TestCase("foo", "", "/foo")]
     [TestCase("test", "\x7f€", "/%7F%E2%82%AC/test")]
-    [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
-              "greek \ud800\udd6a",
-              "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24")]
+    [TestCase(
+        "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+        "greek \ud800\udd6a",
+        "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24")]
     [TestCase("/foo", "", "/%2Ffoo")] // cSpell:disable-line
     [TestCase("/foo", "bar", "/bar/%2Ffoo")] // cSpell:disable-line
     [TestCase("/foo", "/bar/", "/%2Fbar%2F/%2Ffoo")] // cSpell:disable-line

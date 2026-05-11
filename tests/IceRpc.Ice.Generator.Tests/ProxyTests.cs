@@ -19,7 +19,8 @@ public partial class ProxyTests
         var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
 
         // Act & Assert
-        Assert.That(() => new PingableProxy(InvalidInvoker.Instance, serviceAddress),
+        Assert.That(
+            () => new PingableProxy(InvalidInvoker.Instance, serviceAddress),
             Throws.TypeOf<ArgumentException>());
     }
 
@@ -31,7 +32,7 @@ public partial class ProxyTests
 
         // Act & Assert
         Assert.That(
-            () => new PingableProxy{ Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress },
+            () => new PingableProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress },
             Throws.TypeOf<ArgumentException>());
     }
 
@@ -39,7 +40,7 @@ public partial class ProxyTests
     public void Proxy_has_default_service_path_with_ice_protocol()
     {
         // Arrange
-        var proxy = new PingableProxy{ Invoker = InvalidInvoker.Instance };
+        var proxy = new PingableProxy { Invoker = InvalidInvoker.Instance };
 
         // Assert
         Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(PingableProxy.DefaultServicePath));
@@ -112,25 +113,27 @@ public partial class ProxyTests
     [TestCase("ice://host/path?transport=opaque&t=1&v=1234&foo=bar")] // unknown param
     [TestCase("ice://host/path?transport=opaque&e=2.0&t=1&v=1234")] // bad e
     public void Encode_invalid_opaque_proxy_fails(ServiceAddress serviceAddress) =>
-        Assert.That(() =>
-        {
-            var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new IceEncoder(bufferWriter);
-            encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
-        },
-        Throws.TypeOf<FormatException>());
+        Assert.That(
+            () =>
+            {
+                var bufferWriter = new MemoryBufferWriter(new byte[256]);
+                var encoder = new IceEncoder(bufferWriter);
+                encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
+            },
+            Throws.TypeOf<FormatException>());
 
     // we have to use icerpc since these paths are not valid for ice
     [TestCase("icerpc://host:10000")]
     [TestCase("icerpc://host:10000/foo/")]
     public void Encode_proxy_with_null_identity_fails(ServiceAddress serviceAddress) =>
-        Assert.That(() =>
-        {
-            var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new IceEncoder(bufferWriter);
-            encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
-        },
-        Throws.TypeOf<ArgumentException>());
+        Assert.That(
+            () =>
+            {
+                var bufferWriter = new MemoryBufferWriter(new byte[256]);
+                var encoder = new IceEncoder(bufferWriter);
+                encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
+            },
+            Throws.TypeOf<ArgumentException>());
 
     [Test]
     public async Task Downcast_proxy_with_as_async_succeeds()

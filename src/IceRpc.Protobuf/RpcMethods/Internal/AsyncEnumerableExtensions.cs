@@ -20,14 +20,14 @@ internal static class AsyncEnumerableExtensions
     /// <remarks>This extension method is used to encode streaming parameters and streaming return values.</remarks>
     internal static PipeReader ToPipeReader<T>(
         this IAsyncEnumerable<T> asyncEnumerable,
-        ProtobufEncodeOptions? encodeOptions = null) where T : IMessage<T> =>
+        ProtobufEncodeOptions? encodeOptions = null) where T : class, IMessage<T> =>
         new AsyncEnumerablePipeReader<T>(asyncEnumerable, encodeOptions);
 
     // Overriding ReadAtLeastAsyncCore or CopyToAsync methods for this reader is not critical since this reader is
     // mostly used by the IceRPC core to copy the encoded data for the enumerable to the network stream. This copy
     // doesn't use these methods.
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable.
-    private class AsyncEnumerablePipeReader<T> : PipeReader where T : IMessage<T>
+    private class AsyncEnumerablePipeReader<T> : PipeReader where T : class, IMessage<T>
 #pragma warning restore CA1001
     {
         // Disposed in Complete.
@@ -163,7 +163,7 @@ internal static class AsyncEnumerableExtensions
                     _asyncEnumerator.Current.WriteTo(_pipe.Writer);
                     int length = checked((int)_pipe.Writer.UnflushedBytes - written);
                     written += length;
-                    BinaryPrimitives.WriteInt32BigEndian(lengthPlaceholder, length - 5);
+                    BinaryPrimitives.WriteUInt32BigEndian(lengthPlaceholder, (uint)(length - 5));
                     ValueTask<bool> moveNext = _asyncEnumerator.MoveNextAsync();
 
                     if (moveNext.IsCompletedSuccessfully)

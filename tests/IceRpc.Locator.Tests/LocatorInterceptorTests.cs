@@ -182,6 +182,7 @@ public class LocatorInterceptorTests
         /// <summary><see langword="true" /> if the last call asked to refresh the cache; otherwise,
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
+
         private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
 
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
@@ -200,6 +201,7 @@ public class LocatorInterceptorTests
         /// <summary><see langword="true" /> if the last call asked to refresh the cache; otherwise,
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
+
         private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
 
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(

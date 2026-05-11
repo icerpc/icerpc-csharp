@@ -9,12 +9,6 @@
     Runtime="NET"
   />
   <UsingTask
-    TaskName="IceRpc.Protobuf.Tools.OutputHashTask"
-    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
-    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
-    Runtime="NET"
-  />
-  <UsingTask
     TaskName="IceRpc.Protobuf.Tools.ProtocTask"
     TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
@@ -130,6 +124,19 @@
     <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
     <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
     <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
+  </Target>
+
+  <!--
+    The telemetry plug-in writes hash-based transcript file names. At clean time, these tools do not
+    recompute or know that hash, so we cannot delete a single exact file name; instead we delete all
+    telemetry transcript files in the project's intermediate output directory.
+  -->
+  <Target Name="ProtoTelemetryClean" BeforeTargets="ProtoClean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
+    <ItemGroup>
+      <_ProtoTelemetryFiles
+        Include="$(IntermediateOutputPath)/*.icerpc_build_telemetry.txt" />
+    </ItemGroup>
+    <Delete Files="@(_ProtoTelemetryFiles)" Condition="'@(_ProtoTelemetryFiles)' != ''" />
   </Target>
 
   <!-- Package ProtoFile items -->

@@ -77,24 +77,26 @@ public class NumericTypesEncodingTests
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
-        Assert.That(() =>
-        {
-            // Arrange
-            var buffer = new byte[256];
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter);
+        Assert.That(
+            () =>
+            {
+                // Arrange
+                var buffer = new byte[256];
+                var bufferWriter = new MemoryBufferWriter(buffer);
+                var encoder = new SliceEncoder(bufferWriter);
 
-            // Act
-            encoder.EncodeVarInt62(value);
-        }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+                // Act
+                encoder.EncodeVarInt62(value);
+            },
+            Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
     /// <summary>Tests the encoding of a variable size unsigned long.</summary>
     /// <param name="value">The ulong to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
     [TestCase(SliceEncoder.VarUInt62MinValue, new byte[] { 0x00 })]
-    [TestCase((ulong)512, new byte[] { 0x01, 0x08 })]
-    [TestCase((ulong)32768, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
+    [TestCase(512UL, new byte[] { 0x01, 0x08 })]
+    [TestCase(32768UL, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
     [TestCase(SliceEncoder.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
     public void Encode_varuint62_value(ulong value, byte[] expected)
     {
@@ -112,8 +114,8 @@ public class NumericTypesEncodingTests
     /// <param name="value">The ulong to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
     [TestCase(SliceEncoder.VarUInt62MinValue, new byte[] { 0x00 })]
-    [TestCase((ulong)512, new byte[] { 0x01, 0x08 })]
-    [TestCase((ulong)32768, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
+    [TestCase(512UL, new byte[] { 0x01, 0x08 })]
+    [TestCase(32768UL, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
     [TestCase(SliceEncoder.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
     public void Encode_varuint62_value_with_a_fixed_number_of_bytes(ulong value, byte[] expected)
     {
@@ -136,13 +138,14 @@ public class NumericTypesEncodingTests
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
-        Assert.That(() =>
-        {
-            var buffer = new byte[numBytes];
+        Assert.That(
+            () =>
+            {
+                var buffer = new byte[numBytes];
 
-            SliceEncoder.EncodeVarUInt62(value, buffer);
-
-        }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+                SliceEncoder.EncodeVarUInt62(value, buffer);
+            },
+            Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
     /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)" /> will throw an ArgumentOutOfRangeException
@@ -153,14 +156,16 @@ public class NumericTypesEncodingTests
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
-        Assert.That(() =>
-        {
-            var buffer = new byte[256];
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter);
+        Assert.That(
+            () =>
+            {
+                var buffer = new byte[256];
+                var bufferWriter = new MemoryBufferWriter(buffer);
+                var encoder = new SliceEncoder(bufferWriter);
 
-            encoder.EncodeVarUInt62(value);
-        }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+                encoder.EncodeVarUInt62(value);
+            },
+            Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
     [Test]

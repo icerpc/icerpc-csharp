@@ -97,7 +97,10 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
 
     /// <summary>Constructs a decorator that does nothing until it is enabled by a call to <see cref="Enable"/>.
     /// </summary>
-    internal SlicDuplexConnectionDecorator(IDuplexConnection decoratee, Action sendReadPing, Action sendWritePing)
+    internal SlicDuplexConnectionDecorator(
+        IDuplexConnection decoratee,
+        Action sendReadPing,
+        Action sendWritePing)
         : this(decoratee)
     {
         _readTimer = new Timer(_ => sendReadPing());

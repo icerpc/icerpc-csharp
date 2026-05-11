@@ -4,8 +4,6 @@ namespace IceRpc.Slice.Generator.Tests;
 
 internal class InvalidProxy : ISliceProxy
 {
-    internal static InvalidProxy Instance { get; } = new InvalidProxy();
-
     public SliceEncodeOptions? EncodeOptions
     {
         get => throw new NotImplementedException();
@@ -24,5 +22,9 @@ internal class InvalidProxy : ISliceProxy
         init { }
     }
 
-    private InvalidProxy() { }
+    internal static InvalidProxy Instance { get; } = new InvalidProxy();
+
+    private InvalidProxy()
+    {
+    }
 }

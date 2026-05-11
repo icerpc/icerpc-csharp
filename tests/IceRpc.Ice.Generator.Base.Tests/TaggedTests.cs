@@ -92,7 +92,8 @@ public class TaggedTests
             "hello world!")
     };
 
-    [Test, TestCaseSource(nameof(DecodeTaggedFieldsSource))]
+    [Test]
+    [TestCaseSource(nameof(DecodeTaggedFieldsSource))]
     public void Decode_tagged_fields(ClassWithTaggedFields expected)
     {
         // Arrange
@@ -247,7 +248,8 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeTaggedFieldsSource))]
+    [Test]
+    [TestCaseSource(nameof(EncodeTaggedFieldsSource))]
     public void Encode_tagged_fields(ClassWithTaggedFields c)
     {
         // Arrange
@@ -370,7 +372,8 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(SkipTaggedFieldsSourceWithClassFormat))]
+    [Test]
+    [TestCaseSource(nameof(SkipTaggedFieldsSourceWithClassFormat))]
     public void Skip_tagged_fields(ClassWithTaggedFields expected, ClassFormat classFormat)
     {
         // Arrange

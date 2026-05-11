@@ -39,11 +39,12 @@ public class SlicTransportTests
         get
         {
             // Unexpected frames after connection establishment.
-            foreach (FrameType frameType in new FrameType[] {
-                    FrameType.Initialize,
-                    FrameType.InitializeAck,
-                    FrameType.Version
-                })
+            foreach (FrameType frameType in new FrameType[]
+            {
+                FrameType.Initialize,
+                FrameType.InitializeAck,
+                FrameType.Version,
+            })
             {
                 yield return new TestCaseData(
                     (IDuplexConnection connection) => WriteFrameAsync(connection, frameType),
@@ -56,11 +57,12 @@ public class SlicTransportTests
                 $"Received unexpected {nameof(FrameType.Pong)} frame.");
 
             // Stream frames which are not supposed to be sent on a non-started stream.
-            foreach (FrameType frameType in new FrameType[] {
-                    FrameType.StreamReadsClosed,
-                    FrameType.StreamWindowUpdate,
-                    FrameType.StreamWritesClosed
-                 })
+            foreach (FrameType frameType in new FrameType[]
+            {
+                FrameType.StreamReadsClosed,
+                FrameType.StreamWindowUpdate,
+                FrameType.StreamWritesClosed,
+            })
             {
                 yield return new TestCaseData(
                     (IDuplexConnection connection) => WriteStreamFrameAsync(connection, frameType, streamId: 4ul),
@@ -88,12 +90,16 @@ public class SlicTransportTests
                 "Invalid stream ID.");
 
             // Bogus stream frame with FrameSize=0 (stream ID not encoded)
-            yield return new TestCaseData((IDuplexConnection connection) =>
-                WriteFrameAsync(connection, FrameType.StreamLast, (ref SliceEncoder encoder) => { }),
+            yield return new TestCaseData(
+                (IDuplexConnection connection) => WriteFrameAsync(
+                    connection,
+                    FrameType.StreamLast,
+                    (ref SliceEncoder encoder) => { }),
                 "Invalid stream frame size.");
 
             // Encode a stream frame with a frame size inferior to the stream ID size.
-            yield return new TestCaseData((IDuplexConnection connection) =>
+            yield return new TestCaseData(
+                (IDuplexConnection connection) =>
                 {
                     var writer = new MemoryBufferWriter(new byte[1024]);
                     {
@@ -713,7 +719,8 @@ public class SlicTransportTests
         Assert.That(async () => await sut.Client.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
     }
 
-    [Test, TestCaseSource(nameof(ConnectionProtocolErrors))]
+    [Test]
+    [TestCaseSource(nameof(ConnectionProtocolErrors))]
     public async Task Connection_protocol_errors(
         Func<IDuplexConnection, Task> protocolAction,
         string expectedErrorMessage)
@@ -1202,7 +1209,8 @@ public class SlicTransportTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
-    [Test, TestCaseSource(nameof(InvalidConnectionFrames))]
+    [Test]
+    [TestCaseSource(nameof(InvalidConnectionFrames))]
     public async Task Write_connection_frame_with_invalid_body(string frameTypeStr, bool emptyBody)
     {
         FrameType frameType = Enum.Parse<FrameType>(frameTypeStr);
@@ -1430,7 +1438,411 @@ public class SlicTransportTests
         Assert.That(sut.Client.DisposeAsync, Throws.Nothing);
     }
 
-    private static async Task<(FrameType FrameType, ReadOnlySequence<byte> buffer)> ReadFrameAsync(
+    [Test]
+    public void PauseWriterThreshold_default_value()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(options.PauseWriterThreshold, Is.EqualTo(65_536));
+    }
+
+    [Test]
+    public void PauseWriterThreshold_below_minimum_throws()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = 1023, Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void PauseWriterThreshold_negative_throws()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = -1, Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void PauseWriterThreshold_at_minimum_succeeds()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = 1024, Throws.Nothing);
+        Assert.That(options.PauseWriterThreshold, Is.EqualTo(1024));
+    }
+
+    [Test]
+    public void PauseWriterThreshold_zero_succeeds()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.PauseWriterThreshold = 0, Throws.Nothing);
+        Assert.That(options.PauseWriterThreshold, Is.Zero);
+    }
+
+    /// <summary>Verifies that <see cref="SlicTransportOptions.PauseWriterThreshold"/> = 0 disables connection-level
+    /// flow control: a write can fill the outbound pipe arbitrarily without parking on FlushAsync, even when the
+    /// background writer task can't drain the pipe.</summary>
+    [Test]
+    public async Task Large_write_completes_with_pause_writer_threshold_disabled()
+    {
+        // Arrange: PauseWriterThreshold = 0 on the client disables the per-connection pipe pause. Hold the duplex
+        // Write so the background writer task cannot drain the outbound pipe — with any non-zero threshold the
+        // FlushAsync would park; with 0 it must complete. The peer window is sized well above the payload so the
+        // write isn't bounded by Slic's per-stream send credit.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 256 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 0);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        // Act: write a payload much larger than the default Pipe pauseWriterThreshold (64 KB) into the held
+        // outbound pipe. Stays comfortably within the peer's 256 KB send credit so the write isn't gated by
+        // peer-window flow control. The cancellation token bounds the test in case the threshold isn't actually
+        // disabled — WriteAsync would otherwise park indefinitely on FlushAsync.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        byte[] payload = new byte[128 * 1024];
+        try
+        {
+            FlushResult flushResult = await streams.Local.Output.WriteAsync(payload, cts.Token);
+
+            // Assert: the write completes without the background writer task draining anything.
+            Assert.That(flushResult.IsCompleted, Is.False);
+            Assert.That(flushResult.IsCanceled, Is.False);
+        }
+        finally
+        {
+            duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+        }
+
+        // Once the background writer task drains the pipe, all bytes must reach the peer.
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1, cts.Token);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
+    }
+
+    /// <summary>Verifies that a write blocked on peer-granted send credit (peer window exhausted) can be
+    /// canceled.</summary>
+    [Test]
+    public async Task Stream_write_cancellation_while_blocked_on_peer_credit()
+    {
+        // Arrange: use a small peer window so it's easy to exhaust.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 4 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Exhaust the peer's window without reading.
+        byte[] payload = new byte[(4 * 1024) - 1];
+        _ = await streams.Local.Output.WriteAsync(payload, default);
+
+        using var writeCts = new CancellationTokenSource();
+
+        // Act: the next write blocks on AcquireSendCreditAsync because the peer window is exhausted.
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, writeCts.Token);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(writeTask.IsCompleted, Is.False);
+        writeCts.Cancel();
+
+        // Assert
+        Assert.That(
+            async () => await writeTask,
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that a write blocked on the connection-level pipe pause (PauseWriterThreshold reached)
+    /// can be canceled.</summary>
+    [Test]
+    public async Task Stream_write_cancellation_while_blocked_on_pipe_threshold()
+    {
+        // Arrange: use a small PauseWriterThreshold and hold the duplex Write so the connection-level outbound
+        // pipe fills up and FlushAsync parks.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 4 * 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Hold duplex writes so the background writer task can't drain the connection-level pipe.
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        using var writeCts = new CancellationTokenSource();
+
+        try
+        {
+            // Act: this write fills the connection-level pipe past PauseWriterThreshold and parks on FlushAsync.
+            ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(
+                new byte[8 * 1024],
+                writeCts.Token);
+            await Task.Delay(TimeSpan.FromMilliseconds(50));
+            Assert.That(writeTask.IsCompleted, Is.False);
+            writeCts.Cancel();
+
+            // Assert
+            Assert.That(
+                async () => await writeTask,
+                Throws.InstanceOf<OperationCanceledException>());
+        }
+        finally
+        {
+            duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+        }
+    }
+
+    /// <summary>Verifies that the connection remains usable after a write parked on the connection-level pipe pause
+    /// is canceled. The cancellation cancels the FlushAsync wait (and completes the writer side of the affected
+    /// stream), but the underlying connection is not aborted — a new stream on the same connection can still be
+    /// created and written to.</summary>
+    [Test]
+    public async Task Connection_remains_usable_after_canceled_pipe_threshold_write()
+    {
+        // Arrange: same configuration as Stream_write_cancellation_while_blocked_on_pipe_threshold.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 4 * 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        using var firstStreams = await sut.CreateAndAcceptStreamAsync();
+
+        // Hold duplex writes so the background writer task can't drain the connection-level pipe.
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        using var writeCts = new CancellationTokenSource();
+
+        ValueTask<FlushResult> firstWriteTask = firstStreams.Local.Output.WriteAsync(
+            new byte[8 * 1024],
+            writeCts.Token);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(firstWriteTask.IsCompleted, Is.False);
+        writeCts.Cancel();
+
+        Assert.That(async () => await firstWriteTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Act: release the duplex hold so the background writer task can drain, then open a new stream and write on
+        // it. This proves the connection itself is unaffected by the cancellation.
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+
+        using var secondStreams = await sut.CreateAndAcceptStreamAsync();
+        byte[] payload = new byte[1024];
+        FlushResult flushResult = await secondStreams.Local.Output.WriteAsync(payload);
+
+        // Assert: the new stream's write completes normally.
+        Assert.That(flushResult.IsCompleted, Is.False);
+        Assert.That(flushResult.IsCanceled, Is.False);
+
+        ReadResult readResult = await secondStreams.Remote.Input.ReadAtLeastAsync(payload.Length);
+        Assert.That((int)readResult.Buffer.Length, Is.GreaterThanOrEqualTo(payload.Length));
+        secondStreams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+    }
+
+    /// <summary>Verifies that a server-side dispose does not deadlock when the outbound pipe is paused
+    /// (PauseWriterThreshold reached) and a concurrent server-side <see cref="IMultiplexedConnection.CloseAsync"/> is
+    /// parked on FlushAsync while holding the connection's write semaphore.</summary>
+    [Test]
+    public async Task Server_dispose_does_not_deadlock_when_close_is_blocked_on_pipe_threshold()
+    {
+        // Arrange: small server-side PauseWriterThreshold. We apply the duplex Write hold *after* the handshake, so
+        // the connection establishes normally and only subsequent server-side writes accumulate in the pipe.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(options =>
+        {
+            options.PauseWriterThreshold = 1024;
+            options.InitialStreamWindowSize = 128 * 1024;
+        });
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        var serverDuplexConnection =
+            provider.GetRequiredService<TestDuplexServerTransportDecorator>().LastAcceptedConnection;
+        serverDuplexConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        // Push enough server-side stream data into the outbound pipe to exceed PauseWriterThreshold. This write parks
+        // on FlushAsync; CloseAsync below cancels _closedCts which cancels the write's writeCts and releases the write
+        // semaphore — but the bytes remain buffered, leaving the pipe past PauseWriterThreshold.
+        Task<FlushResult> serverWriteTask = streams.Remote.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(serverWriteTask.IsCompleted, Is.False);
+
+        // Act: server.CloseAsync(None) writes the Close frame and parks on FlushAsync(None) while holding
+        // _writeSemaphore. server.DisposeAsync waits for _writeSemaphore.
+        Task closeTask = sut.Server.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(closeTask.IsCompleted, Is.False);
+
+        // Assert: DisposeAsync must complete.
+        Task disposeTask = sut.Server.DisposeAsync().AsTask();
+        Assert.That(async () => await disposeTask.WaitAsync(TimeSpan.FromSeconds(5)), Throws.Nothing);
+
+        // Tidy up the in-flight tasks. The duplex hold is released by the server connection dispose above.
+        try
+        {
+            await closeTask;
+        }
+        catch
+        {
+        }
+        try
+        {
+            await serverWriteTask;
+        }
+        catch
+        {
+        }
+    }
+
+    [Test]
+    public async Task Large_write_completes_with_small_pause_writer_threshold()
+    {
+        // Arrange: peer advertises a large window (256 KB) but local PauseWriterThreshold is small (8 KB).
+        // The write of 256 KB must be chunked through the PauseWriterThreshold without deadlocking.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 256 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 8 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: write a payload much larger than PauseWriterThreshold.
+        byte[] payload = new byte[256 * 1024];
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+
+        // The peer reads everything.
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+
+        // Assert: the write completes without deadlock and all bytes are received.
+        await writeTask;
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
+    }
+
+    [TestCase(1024)]
+    [TestCase(4 * 1024)]
+    [TestCase(64 * 1024)]
+    public async Task Write_completes_with_various_pause_writer_thresholds(int threshold)
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = threshold);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: write a payload larger than PauseWriterThreshold.
+        byte[] payload = new byte[64 * 1024];
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+
+        int totalRead = 0;
+        while (totalRead < payload.Length)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(1);
+            totalRead += (int)readResult.Buffer.Length;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+
+        // Assert
+        await writeTask;
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
+    }
+
+    [Test]
+    public async Task Concurrent_streams_with_small_pause_writer_threshold()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 8 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams1 = await sut.CreateAndAcceptStreamAsync();
+        using var streams2 = await sut.CreateAndAcceptStreamAsync();
+
+        // Act: both streams write concurrently.
+        byte[] payload = new byte[32 * 1024];
+
+        ValueTask<FlushResult> writeTask1 = streams1.Local.Output.WriteAsync(payload, default);
+        ValueTask<FlushResult> writeTask2 = streams2.Local.Output.WriteAsync(payload, default);
+
+        // Read from both streams concurrently.
+        async Task ReadAllAsync(PipeReader reader, int expectedBytes)
+        {
+            int totalRead = 0;
+            while (totalRead < expectedBytes)
+            {
+                ReadResult readResult = await reader.ReadAtLeastAsync(1);
+                totalRead += (int)readResult.Buffer.Length;
+                reader.AdvanceTo(readResult.Buffer.End);
+            }
+        }
+
+        await Task.WhenAll(
+            ReadAllAsync(streams1.Remote.Input, payload.Length),
+            ReadAllAsync(streams2.Remote.Input, payload.Length));
+
+        // Assert: both writes complete.
+        await writeTask1;
+        await writeTask2;
+    }
+
+    private static async Task<(FrameType FrameType, ReadOnlySequence<byte> Buffer)> ReadFrameAsync(
         DuplexConnectionReader reader)
     {
         while (true)

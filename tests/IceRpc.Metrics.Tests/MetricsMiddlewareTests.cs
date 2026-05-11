@@ -41,19 +41,77 @@ public sealed class MetricsMiddlewareTests
             });
 
         using var dispatchMetrics = new DispatchMetrics(meterName);
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new OperationCanceledException());
+        using var cts = new CancellationTokenSource();
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            throw new OperationCanceledException(cancellationToken));
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
+        cts.Cancel();
 
         try
         {
-            await sut.DispatchAsync(request, default);
+            await sut.DispatchAsync(request, cts.Token);
         }
         catch (OperationCanceledException)
         {
         }
 
         Assert.That(canceled, Is.EqualTo(new long[] { 1 }));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
+    }
+
+    /// <summary>Verifies that an OperationCanceledException carrying a token other than the dispatch token is
+    /// counted as a failure, not a cancellation.</summary>
+    [Test]
+    public async Task Operation_canceled_exception_with_unrelated_token_publishes_failed_measurement()
+    {
+        const string meterName = "Test.UnrelatedOce.IceRpc.Dispatch";
+        var canceled = new List<long>();
+        var current = new List<long>();
+        var failed = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "canceled-requests":
+                    {
+                        canceled.Add(measurement);
+                        break;
+                    }
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "failed-requests":
+                    {
+                        failed.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var dispatchMetrics = new DispatchMetrics(meterName);
+        using var unrelatedCts = new CancellationTokenSource();
+        unrelatedCts.Cancel();
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            throw new OperationCanceledException(unrelatedCts.Token));
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
+
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await sut.DispatchAsync(request, default));
+
+        Assert.That(canceled, Is.Empty);
+        Assert.That(failed, Is.EqualTo(new long[] { 1 }));
         Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
         Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
@@ -94,13 +152,7 @@ public sealed class MetricsMiddlewareTests
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
-        try
-        {
-            await sut.DispatchAsync(request, default);
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.DispatchAsync(request, default));
 
         Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
         Assert.That(failed, Is.EqualTo(new long[] { 1 }));

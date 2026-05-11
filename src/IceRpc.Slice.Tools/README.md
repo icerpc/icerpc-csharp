@@ -110,6 +110,38 @@ You need to reference the following NuGet packages to compile the generated C# c
 Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slice.Codec][zeroc-slice-codec],
 [IceRpc][icerpc] and [System.IO.Pipelines][system-io-pipelines].
 
+## Build telemetry
+
+The `IceRpc.Slice.Tools` package collects pseudonymous build telemetry data about general usage. Participation in this
+program is optional, and you may opt out if you’d prefer not to share any information.
+
+This package includes `slicec-gen-icerpc-build-telemetry`, a slicec plug-in that sends pseudonymous build telemetry
+data over a secure connection to the IceRPC build telemetry server during the compilation of Slice files.
+
+This data includes:
+
+- The IceRPC version.
+- The system's operating system, version, and platform architecture.
+- The .NET runtime version used by the build.
+- Whether the build was executed in a continuous integration (CI) environment.
+- The number of Slice source files in the compilation.
+- A SHA256 hash computed from the Slice source files being compiled. This hash is a deterministic, unsalted
+  fingerprint of the schema set: the same Slice inputs always produce the same hash, so repeated builds of the
+  same schema set are linkable across machines and over time.
+
+This data is used to help the IceRPC team understand how the tools are being used and to prioritize future development
+efforts. The data is stored in a private database and is not shared with any third parties.
+
+To opt out of the build telemetry program, add the following property to your C# project file:
+
+```xml
+<PropertyGroup>
+ <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
+</PropertyGroup>
+```
+
+Setting this property to `false` completely disables the computation and collection of telemetry.
+
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [icerpc-slice]: https://www.nuget.org/packages/IceRpc.Slice

@@ -112,28 +112,28 @@ public class SlicecTask : ToolTask
                 return;
             }
 
-            diagnostic.SourceSpan ??= new SourceSpan();
+            var diagnosticSpan = diagnostic.Snippet?.SourceSpan ?? new SourceSpan();
             diagnostic.Notes ??= Array.Empty<Note>();
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
                 diagnostic.Message,
                 diagnostic.ErrorCode,
-                diagnostic.SourceSpan.File,
-                diagnostic.SourceSpan.Start,
-                diagnostic.SourceSpan.End);
+                diagnosticSpan.File,
+                diagnosticSpan.Start,
+                diagnosticSpan.End);
 
             foreach (Note note in diagnostic.Notes)
             {
-                note.SourceSpan ??= diagnostic.SourceSpan;
+                var noteSpan = note.Snippet?.SourceSpan ?? diagnosticSpan;
                 Log.LogMessage(
                     "",
                     "",
                     "",
-                    note.SourceSpan.File,
-                    note.SourceSpan.Start.Row,
-                    note.SourceSpan.Start.Column,
-                    note.SourceSpan.End.Row,
-                    note.SourceSpan.End.Column,
+                    noteSpan.File,
+                    noteSpan.Start.Row,
+                    noteSpan.Start.Column,
+                    noteSpan.End.Row,
+                    noteSpan.End.Column,
                     MessageImportance.High,
                     note.Message);
             }

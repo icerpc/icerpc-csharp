@@ -30,7 +30,8 @@ public class WellKnownTypesTests
         }
     }
 
-    [Test, TestCaseSource(nameof(DurationSource))]
+    [Test]
+    [TestCaseSource(nameof(DurationSource))]
     public void Decode_duration(TimeSpan duration)
     {
         var buffer = new byte[256];
@@ -46,7 +47,8 @@ public class WellKnownTypesTests
         Assert.That(decodedDuration, Is.EqualTo(duration));
     }
 
-    [Test, TestCaseSource(nameof(DurationSource))]
+    [Test]
+    [TestCaseSource(nameof(DurationSource))]
     public void Encode_duration(TimeSpan duration)
     {
         var buffer = new byte[256];
@@ -61,7 +63,8 @@ public class WellKnownTypesTests
         Assert.That(decodedDuration, Is.EqualTo(duration));
     }
 
-    [Test, TestCaseSource(nameof(TimeStampSource))]
+    [Test]
+    [TestCaseSource(nameof(TimeStampSource))]
     public void Decode_timeStamp(DateTime timeStamp)
     {
         var buffer = new byte[256];
@@ -77,7 +80,8 @@ public class WellKnownTypesTests
         Assert.That(decodedTimeStamp, Is.EqualTo(timeStamp.ToUniversalTime()));
     }
 
-    [Test, TestCaseSource(nameof(TimeStampSource))]
+    [Test]
+    [TestCaseSource(nameof(TimeStampSource))]
     public void Encode_timeStamp(DateTime timeStamp)
     {
         var buffer = new byte[256];

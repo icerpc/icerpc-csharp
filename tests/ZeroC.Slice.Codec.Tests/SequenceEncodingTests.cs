@@ -24,14 +24,15 @@ public class SequenceEncodingTests
                 yield return new TestCaseData(ImmutableArray.CreateRange(values));
                 yield return new TestCaseData(new ArraySegment<int>(values.ToArray()));
                 yield return new TestCaseData(values.ToArray());
-            };
+            }
         }
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T})" /> with a
     /// value type.</summary>
     /// <param name="expected">The enumerable to be encoded.</param>
-    [Test, TestCaseSource(nameof(SequenceLongData))]
+    [Test]
+    [TestCaseSource(nameof(SequenceLongData))]
     public void Encode_fixed_sized_numeric_sequence(IEnumerable<int> expected)
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);

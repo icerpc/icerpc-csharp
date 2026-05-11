@@ -45,15 +45,16 @@ public partial class ProxyTests
     public void Decode_relative_proxy()
     {
         // Act/Assert
-        Assert.That(() =>
-        {
-            var bufferWriter = new MemoryBufferWriter(new byte[256]);
-            var encoder = new SliceEncoder(bufferWriter);
-            encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
-            var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
-            return decoder.DecodePingableProxy().Invoker;
-        },
-        Is.EqualTo(InvalidInvoker.Instance));
+        Assert.That(
+            () =>
+            {
+                var bufferWriter = new MemoryBufferWriter(new byte[256]);
+                var encoder = new SliceEncoder(bufferWriter);
+                encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
+                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
+                return decoder.DecodePingableProxy().Invoker;
+            },
+            Is.EqualTo(InvalidInvoker.Instance));
     }
 
     /// <summary>Verifies that a proxy decoded from an incoming request has the invalid invoker by default.</summary>
