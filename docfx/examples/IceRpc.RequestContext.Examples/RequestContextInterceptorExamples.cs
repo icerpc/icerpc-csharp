@@ -2,6 +2,7 @@
 
 using GreeterExample;
 using IceRpc.Features;
+using System.Collections.Immutable;
 using VisitorCenter;
 
 namespace IceRpc.RequestContext.Examples;
@@ -22,11 +23,11 @@ public static class RequestContextInterceptorExamples
 
         // Create a feature collection holding an IRequestContextFeature.
         IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
-            new RequestContextFeature
+            new RequestContextFeature(new Dictionary<string, string>
             {
                 ["UserId"] = Environment.UserName.ToLowerInvariant(),
                 ["MachineName"] = Environment.MachineName
-            });
+            }));
         #endregion
 
         {
@@ -52,19 +53,18 @@ public static class RequestContextInterceptorExamples
     public static void UpdateRequestContextInInterceptor()
     {
         #region UpdateRequestContextInInterceptor
-        // An interceptor that adds an entry to the request context. The pattern is to build a new
-        // dictionary from any existing entries and install a new feature, rather than attempting to
-        // mutate the existing one.
+        // An interceptor that adds an entry to the request context. Since the existing context is
+        // read-only, the pattern is to build a new dictionary that includes any existing entries
+        // and install a new feature.
         _ = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
             {
                 IRequestContextFeature? feature = request.Features.Get<IRequestContextFeature>();
-                var updated = feature is null
-                    ? new Dictionary<string, string>()
-                    : new Dictionary<string, string>(feature.Value);
-                updated["CorrelationId"] = Guid.NewGuid().ToString();
+                ImmutableDictionary<string, string> dictionary =
+                    feature?.Value.ToImmutableDictionary() ?? ImmutableDictionary<string, string>.Empty;
+                dictionary = dictionary.Add("CorrelationId", Guid.NewGuid().ToString());
                 request.Features = request.Features.With<IRequestContextFeature>(
-                    new RequestContextFeature(updated));
+                    new RequestContextFeature(dictionary));
                 return next.InvokeAsync(request, cancellationToken);
             }))
             .UseRequestContext();

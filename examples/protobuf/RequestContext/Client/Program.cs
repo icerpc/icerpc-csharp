@@ -19,11 +19,11 @@ var greeter = new GreeterClient(pipeline);
 
 // Create a feature collection holding an IRequestContextFeature.
 IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
-    new RequestContextFeature
+    new RequestContextFeature(new Dictionary<string, string>
     {
         ["UserId"] = Environment.UserName.ToLowerInvariant(),
         ["MachineName"] = Environment.MachineName
-    });
+    }));
 
 // The request context interceptor encodes the request context feature into the request context field.
 var request = new GreetRequest { Name = Environment.UserName };
