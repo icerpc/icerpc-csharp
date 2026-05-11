@@ -23,14 +23,30 @@ public sealed record class ServerOptions
     /// <summary>Gets or sets the maximum number of accepted server connections. Once the maximum number of connections
     /// has been reached, the server will refuse any new connections.</summary>
     /// <value>The maximum number of connections. Defaults to <c>0</c>, meaning unlimited.</value>
-    public int MaxConnections { get; set; }
+    public int MaxConnections
+    {
+        get => _maxConnections;
+        set => _maxConnections = value >= 0 ? value :
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"{nameof(MaxConnections)} must be greater than or equal to 0 (where 0 means unlimited).");
+    }
 
     /// <summary>Gets or sets the maximum number of server connections waiting for connection establishment to complete.
     /// Once the maximum number of pending connections has been reached, the server will stop accepting new connections
     /// to ensure that the transport rejects new connections once its connection backlog is full.</summary>
     /// <value>The maximum number of connection waiting for connection establishment to complete. Defaults to
     /// <c>100</c>.</value>
-    public int MaxPendingConnections { get; set; } = 100;
+    public int MaxPendingConnections
+    {
+        get => _maxPendingConnections;
+        set => _maxPendingConnections = value > 0 ? value :
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"{nameof(MaxPendingConnections)} must be greater than 0.");
+    }
 
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>
@@ -54,5 +70,7 @@ public sealed record class ServerOptions
     }
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+    private int _maxConnections;
+    private int _maxPendingConnections = 100;
     private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 }
