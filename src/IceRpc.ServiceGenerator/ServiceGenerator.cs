@@ -50,8 +50,8 @@ public class ServiceGenerator : IIncrementalGenerator
         {
             string result = emitter.Emit(serviceClass, context.CancellationToken);
             string fullName = serviceClass.ContainingNamespace is null ?
-                serviceClass.FullName :
-                $"{serviceClass.ContainingNamespace}.{serviceClass.FullName}";
+                serviceClass.FullFileName :
+                $"{serviceClass.ContainingNamespace}.{serviceClass.FullFileName}";
 
             context.AddSource($"{fullName}.g.cs", SourceText.From(result, Encoding.UTF8));
         }
