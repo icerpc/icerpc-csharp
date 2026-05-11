@@ -8,7 +8,7 @@
     ],
     "identity": "IceRpc.Ice.Server",
     "name": "IceRPC + Ice Server",
-    "description": "A project template for creating an IceRPC + Ice (ice protocol) server console application.",
+    "description": "A project template for creating an IceRPC + Ice server console application.",
     "shortName": "icerpc-ice-server",
     "tags": {
         "language": "C#",

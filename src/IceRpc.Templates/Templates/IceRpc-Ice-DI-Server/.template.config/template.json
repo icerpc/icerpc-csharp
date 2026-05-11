@@ -8,7 +8,7 @@
     ],
     "identity":"IceRpc.Ice.DI.Server",
     "name":"IceRPC + Ice DI Server",
-    "description":"A project template for creating an IceRPC + Ice (ice protocol) server console application using Microsoft's DI container.",
+    "description":"A project template for creating an IceRPC + Ice server console application using Microsoft's DI container.",
     "shortName":"icerpc-ice-di-server",
     "tags":{
         "language":"C#",
