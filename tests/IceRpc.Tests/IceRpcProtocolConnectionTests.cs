@@ -445,6 +445,76 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.Nothing);
     }
 
+    /// <summary>Verifies that a request whose header contains duplicate field keys is rejected as a clean
+    /// wire-protocol error (<see cref="IceRpcError.IceRpcError" />), rather than surfacing the underlying
+    /// <see cref="System.ArgumentException" /> from <see cref="Dictionary{TKey, TValue}.Add" />.</summary>
+    [Test]
+    public async Task Request_with_duplicate_field_key_is_refused()
+    {
+        // Arrange
+        var taskExceptionObserver = new TestTaskExceptionObserver();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator()
+            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        IMultiplexedConnection clientTransportConnection = clientTransport.LastCreatedConnection;
+        IMultiplexedStream stream = await clientTransportConnection.CreateStreamAsync(bidirectional: true, default);
+
+        byte[] requestBytes = EncodeRequestWithDuplicateFieldKey();
+
+        // Act - write the manufactured request directly to the multiplexed stream.
+        stream.Output.Write(requestBytes);
+        await stream.Output.FlushAsync();
+        stream.Output.CompleteOutput(success: true);
+
+        // Assert
+        Assert.That(
+            async () => await taskExceptionObserver.DispatchRefusedException,
+            Is.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError)
+                .And.Message.Contains("Received invalid icerpc request header."));
+
+        // The server doesn't write a response — the request header decode fails first — so the client
+        // observes the stream being aborted with TruncatedData when it tries to read the response.
+        Assert.That(
+            async () => await stream.Input.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        static byte[] EncodeRequestWithDuplicateFieldKey()
+        {
+            var buffer = new MemoryBufferWriter(new byte[256]);
+            var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+
+            // 2-byte varuint62 header-size placeholder (matches the default _headerSizeLength).
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+            long headerStart = encoder.EncodedByteCount;
+
+            // IceRpcRequestHeader: a valid path and operation so decoding reaches the field dictionary.
+            encoder.EncodeString("/foo");
+            encoder.EncodeString("op");
+
+            // Fields dictionary: count=2 with the same key, which is what triggers the bug.
+            encoder.EncodeSize(2);
+            for (int i = 0; i < 2; i++)
+            {
+                encoder.EncodeRequestFieldKey(RequestFieldKey.Context);
+                encoder.EncodeSize(1);
+                encoder.EncodeUInt8((byte)i);
+            }
+
+            int headerSize = (int)(encoder.EncodedByteCount - headerStart);
+            SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
+            return buffer.WrittenMemory.ToArray();
+        }
+    }
+
     /// <summary>Verifies that a request whose path violates the constraints enforced by
     /// <see cref="ServiceAddress" /> is rejected at decode time, before it reaches the dispatcher.</summary>
     [TestCase("/foo\r\nINJECTED")]   // CR/LF in path
