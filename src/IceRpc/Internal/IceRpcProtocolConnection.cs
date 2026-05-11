@@ -854,7 +854,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     // Create a ROS reference to the field value by slicing the fields pipe reader ROS.
                     ReadOnlySequence<byte> value = readResult.Buffer.Slice(fieldsDecoder.Consumed, valueSize);
-                    fields.Add(key, value);
+                    try
+                    {
+                        fields.Add(key, value);
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        throw new InvalidDataException(
+                            $"Received icerpc header with duplicate field key '{key}'.", exception);
+                    }
 
                     // Skip the field value to prepare the decoder to read the next field value.
                     fieldsDecoder.Skip(valueSize);
