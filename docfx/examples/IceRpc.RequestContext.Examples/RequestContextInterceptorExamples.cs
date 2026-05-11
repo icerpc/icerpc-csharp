@@ -53,9 +53,9 @@ public static class RequestContextInterceptorExamples
     public static void UpdateRequestContextInInterceptor()
     {
         #region UpdateRequestContextInInterceptor
-        // An interceptor that adds an entry to the request context. Since the existing context is
-        // read-only, the pattern is to build a new dictionary that includes any existing entries
-        // and install a new feature.
+        // An interceptor that adds an entry to the request context. Since IRequestContextFeature.Value is
+        // read-only, the pattern is to retrieve the existing entries as an ImmutableDictionary, add the new
+        // entry to produce a new ImmutableDictionary, then install a new feature wrapping the result.
         _ = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
             {
