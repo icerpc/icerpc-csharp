@@ -29,6 +29,10 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
     // Dispose distinguish "enumerator was created but never started" from "iteration actually started".
     private bool _iterationStarted;
 
+    /// <summary>Disposes this stream.</summary>
+    /// <remarks>This method may be called concurrently with an in-flight <c>MoveNextAsync</c> on the stream's
+    /// enumerator: the in-flight read is unblocked and the consumer's <c>MoveNextAsync</c> throws
+    /// <see cref="ObjectDisposedException" />. Calling it a second time is a no-op.</remarks>
     public void Dispose()
     {
         if (_disposed)
@@ -114,6 +118,9 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
                     // token the caller passed in (not our internal linkedToken). When _disposed is the only
                     // source, surface dispose-mid-iteration as ObjectDisposedException.
                     cancellationToken.ThrowIfCancellationRequested();
+                    // Safe to read _disposed without a barrier: Dispose writes _disposed before calling
+                    // _disposeCts.Cancel(), and observing the cancellation here establishes happens-before
+                    // with that write.
                     Debug.Assert(_disposed);
                     throw new ObjectDisposedException(nameof(AsyncStream<>), "The stream was disposed while reading.");
                 }
@@ -124,6 +131,10 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
                 foreach (T item in elements)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    // No memory barrier needed: this read is just an early-out optimization. If we miss a
+                    // concurrent write to _disposed, the next ReadAsync call observes the cancellation of
+                    // _disposeCts (which has its own synchronization) and we surface ObjectDisposedException
+                    // from the catch block above.
                     ObjectDisposedException.ThrowIf(_disposed, this);
                     yield return item;
                 }
