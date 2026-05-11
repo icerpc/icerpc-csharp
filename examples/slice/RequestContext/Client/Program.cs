@@ -2,6 +2,7 @@
 
 using IceRpc;
 using IceRpc.Features;
+using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
@@ -20,11 +21,11 @@ var greeter = new GreeterProxy(pipeline);
 
 // Create a feature collection holding an IRequestContextFeature.
 IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
-    new RequestContextFeature
+    new RequestContextFeature(new Dictionary<string, string>
     {
         ["UserId"] = Environment.UserName.ToLowerInvariant(),
         ["MachineName"] = Environment.MachineName
-    });
+    }.ToImmutableDictionary()));
 
 // The request context interceptor encodes the request context feature into the request context field.
 string greeting = await greeter.GreetAsync(Environment.UserName, features);

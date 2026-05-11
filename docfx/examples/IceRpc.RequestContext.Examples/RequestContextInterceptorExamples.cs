@@ -2,6 +2,7 @@
 
 using GreeterExample;
 using IceRpc.Features;
+using System.Collections.Immutable;
 using VisitorCenter;
 
 namespace IceRpc.RequestContext.Examples;
@@ -22,11 +23,11 @@ public static class RequestContextInterceptorExamples
 
         // Create a feature collection holding an IRequestContextFeature.
         IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
-            new RequestContextFeature
+            new RequestContextFeature(new Dictionary<string, string>
             {
                 ["UserId"] = Environment.UserName.ToLowerInvariant(),
                 ["MachineName"] = Environment.MachineName
-            });
+            }.ToImmutableDictionary()));
         #endregion
 
         {
@@ -47,5 +48,26 @@ public static class RequestContextInterceptorExamples
             new GreetRequest { Name = Environment.UserName }, features);
         #endregion
         }
+    }
+
+    public static void UpdateRequestContextInInterceptor()
+    {
+        #region UpdateRequestContextInInterceptor
+        // An interceptor that adds an entry to the request context. Since IRequestContextFeature.Value is
+        // read-only, the pattern is to retrieve the existing entries as an ImmutableDictionary, add the new
+        // entry to produce a new ImmutableDictionary, then install a new feature wrapping the result.
+        _ = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
+            {
+                IRequestContextFeature? feature = request.Features.Get<IRequestContextFeature>();
+                ImmutableDictionary<string, string> dictionary =
+                    feature?.Value.ToImmutableDictionary() ?? ImmutableDictionary<string, string>.Empty;
+                dictionary = dictionary.Add("CorrelationId", Guid.NewGuid().ToString());
+                request.Features = request.Features.With<IRequestContextFeature>(
+                    new RequestContextFeature(dictionary));
+                return next.InvokeAsync(request, cancellationToken);
+            }))
+            .UseRequestContext();
+        #endregion
     }
 }
