@@ -60,6 +60,34 @@ public partial class SupportedShapesTests
         Assert.That(await sliceProxy.OpSliceWithArgsAsync("Nested"), Is.EqualTo("Nested"));
     }
 
+    /// <summary>Verifies that the service generator correctly emits the enclosing type when the service is nested
+    /// inside a record struct.</summary>
+    [Test]
+    public async Task Service_can_be_nested_in_a_record_struct()
+    {
+        var service = new RecordStructOuter.RecordStructLeaf();
+        var invoker = new ColocInvoker(service);
+
+        var sliceProxy = new SliceGreeterProxy(invoker);
+
+        Assert.That(async () => await sliceProxy.OpSliceAsync(), Throws.Nothing);
+        Assert.That(await sliceProxy.OpSliceWithArgsAsync("RecordStruct"), Is.EqualTo("RecordStruct"));
+    }
+
+    /// <summary>Verifies that the service generator correctly emits the enclosing type when the service is nested
+    /// inside an interface.</summary>
+    [Test]
+    public async Task Service_can_be_nested_in_an_interface()
+    {
+        var service = new IInterfaceOuter.InterfaceLeaf();
+        var invoker = new ColocInvoker(service);
+
+        var sliceProxy = new SliceGreeterProxy(invoker);
+
+        Assert.That(async () => await sliceProxy.OpSliceAsync(), Throws.Nothing);
+        Assert.That(await sliceProxy.OpSliceWithArgsAsync("Interface"), Is.EqualTo("Interface"));
+    }
+
     [Service]
     internal partial record class RecordService : ISliceGreeterService
     {
@@ -97,6 +125,34 @@ public partial class SupportedShapesTests
                     IFeatureCollection features,
                     CancellationToken cancellationToken) => new(message);
             }
+        }
+    }
+
+    internal partial record struct RecordStructOuter
+    {
+        [Service]
+        internal partial class RecordStructLeaf : ISliceGreeterService
+        {
+            public ValueTask OpSliceAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+
+            public ValueTask<string> OpSliceWithArgsAsync(
+                string message,
+                IFeatureCollection features,
+                CancellationToken cancellationToken) => new(message);
+        }
+    }
+
+    internal partial interface IInterfaceOuter
+    {
+        [Service]
+        internal partial class InterfaceLeaf : ISliceGreeterService
+        {
+            public ValueTask OpSliceAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+
+            public ValueTask<string> OpSliceWithArgsAsync(
+                string message,
+                IFeatureCollection features,
+                CancellationToken cancellationToken) => new(message);
         }
     }
 }
