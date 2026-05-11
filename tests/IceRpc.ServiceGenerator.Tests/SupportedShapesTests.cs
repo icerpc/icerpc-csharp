@@ -44,6 +44,22 @@ public partial class SupportedShapesTests
         Assert.That(await sliceProxy.OpSliceWithArgsAsync("Generic"), Is.EqualTo("Generic"));
     }
 
+    /// <summary>Verifies that the service generator correctly emits all enclosing types when the service is nested
+    /// more than one level deep, including when an enclosing type is generic.</summary>
+    [Test]
+    public async Task Service_can_be_nested_multiple_levels_deep()
+    {
+        // Arrange
+        var service = new MultiLevelOuter<int>.MultiLevelMiddle.MultiLevelLeaf();
+        var invoker = new ColocInvoker(service);
+
+        var sliceProxy = new SliceGreeterProxy(invoker);
+
+        // Act/Assert
+        Assert.That(async () => await sliceProxy.OpSliceAsync(), Throws.Nothing);
+        Assert.That(await sliceProxy.OpSliceWithArgsAsync("Nested"), Is.EqualTo("Nested"));
+    }
+
     [Service]
     internal partial record class RecordService : ISliceGreeterService
     {
@@ -64,5 +80,23 @@ public partial class SupportedShapesTests
             string message,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(message);
+    }
+
+    internal partial class MultiLevelOuter<TOuter>
+    {
+        internal partial class MultiLevelMiddle
+        {
+            [Service]
+            internal partial class MultiLevelLeaf : ISliceGreeterService
+            {
+                public ValueTask OpSliceAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
+                    default;
+
+                public ValueTask<string> OpSliceWithArgsAsync(
+                    string message,
+                    IFeatureCollection features,
+                    CancellationToken cancellationToken) => new(message);
+            }
+        }
     }
 }

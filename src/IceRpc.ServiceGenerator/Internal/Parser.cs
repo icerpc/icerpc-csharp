@@ -124,12 +124,15 @@ internal sealed class Parser
                     kind == SyntaxKind.RecordDeclaration;
 
                 SyntaxNode? parentNode = typeDeclaration.Parent;
-                ContainerDefinition? container = serviceClass;
-                if (parentNode is TypeDeclarationSyntax parentType && IsAllowedKind(parentType.Kind()))
+                ContainerDefinition container = serviceClass;
+                while (parentNode is TypeDeclarationSyntax parentType && IsAllowedKind(parentType.Kind()))
                 {
+                    string parentTypeParameterList =
+                        parentType.TypeParameterList?.WithoutTrivia().ToString() ?? string.Empty;
                     container.Enclosing = new ContainerDefinition(
-                        parentType.Identifier.ToString(),
-                        parentType.Keyword.ValueText);
+                        parentType.Identifier.Text + parentTypeParameterList,
+                        parentType.Keyword.ValueText,
+                        parentType.TypeParameterList?.Parameters.Count ?? 0);
                     container = container.Enclosing;
                     parentNode = parentNode.Parent;
                 }
