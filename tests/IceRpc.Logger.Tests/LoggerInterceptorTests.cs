@@ -11,6 +11,7 @@ public sealed class LoggerInterceptorTests
     [Test]
     public async Task Log_successful_request()
     {
+        // Arrange
         var invoker = new InlineInvoker(
             (request, cancellationToken) => Task.FromResult(
                 new IncomingResponse(request, FakeConnectionContext.Instance)));
@@ -19,11 +20,11 @@ public sealed class LoggerInterceptorTests
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
+        // Act
         await sut.InvokeAsync(request, default);
 
-        Assert.That(loggerFactory.Logger, Is.Not.Null);
+        // Assert
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
-
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.Invoke));
         Assert.That(entry.State["ServiceAddress"], Is.EqualTo(serviceAddress));
         Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
@@ -38,6 +39,7 @@ public sealed class LoggerInterceptorTests
     [Test]
     public async Task Log_request_with_error_response()
     {
+        // Arrange
         var invoker = new InlineInvoker(
             (request, cancellationToken) => Task.FromResult(
                 new IncomingResponse(
@@ -50,11 +52,11 @@ public sealed class LoggerInterceptorTests
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
+        // Act
         await sut.InvokeAsync(request, default);
 
-        Assert.That(loggerFactory.Logger, Is.Not.Null);
+        // Assert
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
-
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.InvokeError));
         Assert.That(entry.State["ServiceAddress"], Is.EqualTo(serviceAddress));
         Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
@@ -71,24 +73,25 @@ public sealed class LoggerInterceptorTests
     [Test]
     public async Task Log_failed_request()
     {
+        // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
+        // Act
         try
         {
             await sut.InvokeAsync(request, default);
+            Assert.Fail("Expected an InvalidOperationException to be thrown.");
         }
         catch (InvalidOperationException)
         {
         }
 
-        Assert.That(loggerFactory.Logger, Is.Not.Null);
-
+        // Assert
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
-
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.InvokeException));
         Assert.That(entry.State["ServiceAddress"], Is.EqualTo(serviceAddress));
         Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));

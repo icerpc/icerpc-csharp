@@ -25,7 +25,6 @@ public sealed class LoggerMiddlewareTests
         await sut.DispatchAsync(request, default);
 
         // Assert
-        Assert.That(loggerFactory.Logger, Is.Not.Null);
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
@@ -42,6 +41,7 @@ public sealed class LoggerMiddlewareTests
     [Test]
     public async Task Log_request_with_error_response()
     {
+        // Arrange
         var dispatcher = new InlineDispatcher(
             (request, cancellationToken) => new(new OutgoingResponse(request, StatusCode.ApplicationError, "some error")));
         using var loggerFactory = new TestLoggerFactory();
@@ -53,9 +53,10 @@ public sealed class LoggerMiddlewareTests
         };
         var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
 
+        // Act
         await sut.DispatchAsync(request, default);
 
-        Assert.That(loggerFactory.Logger, Is.Not.Null);
+        // Assert
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchError));
@@ -74,6 +75,7 @@ public sealed class LoggerMiddlewareTests
     [Test]
     public async Task Log_failed_request()
     {
+        // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
@@ -84,16 +86,17 @@ public sealed class LoggerMiddlewareTests
         };
         var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
 
+        // Act
         try
         {
             await sut.DispatchAsync(request, default);
+            Assert.Fail("Expected an InvalidOperationException to be thrown.");
         }
         catch (InvalidOperationException)
         {
         }
 
-        Assert.That(loggerFactory.Logger, Is.Not.Null);
-
+        // Assert
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchException));
