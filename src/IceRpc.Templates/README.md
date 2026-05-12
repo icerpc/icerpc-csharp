@@ -14,6 +14,10 @@ IceRpc.Templates provides `dotnet new` project templates for [IceRPC][icerpc]. T
 | `icerpc-slice-server`       | A project template for creating an IceRPC + Slice server console application.                                   |
 | `icerpc-slice-di-client`    | A project template for creating an IceRPC + Slice client console application using Microsoft's DI container.    |
 | `icerpc-slice-di-server`    | A project template for creating an IceRPC + Slice server console application using Microsoft's DI container.    |
+| `icerpc-ice-client`         | A project template for creating an IceRPC + Ice client console application.                                     |
+| `icerpc-ice-server`         | A project template for creating an IceRPC + Ice server console application.                                     |
+| `icerpc-ice-di-client`      | A project template for creating an IceRPC + Ice client console application using Microsoft's DI container.      |
+| `icerpc-ice-di-server`      | A project template for creating an IceRPC + Ice server console application using Microsoft's DI container.      |
 
 ## Installation
 
