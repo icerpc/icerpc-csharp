@@ -26,7 +26,7 @@ internal class ContainerDefinition
     /// <value>The enclosing definition or <c>null</c> if this definition is not nested into another definition.</value>
     internal ContainerDefinition? Enclosing { get; set; }
 
-    internal ContainerDefinition(string name, string keyword, int typeParameterCount = 0)
+    internal ContainerDefinition(string name, string keyword, int typeParameterCount)
     {
         Name = name;
         Keyword = keyword;
