@@ -162,7 +162,7 @@ public class AsyncStreamTests
     }
 
     [Test]
-    public void GetAsyncEnumerator_throws_after_dispose()
+    public void Move_next_async_throws_after_dispose()
     {
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>([0])));
         IAsyncStream<int> stream = trackingReader.ToAsyncStream(
@@ -171,7 +171,50 @@ public class AsyncStreamTests
 
         stream.Dispose();
 
-        Assert.That(() => stream.GetAsyncEnumerator(), Throws.InstanceOf<ObjectDisposedException>());
+        // GetAsyncEnumerator on a disposed stream is allowed; the disposed check happens on the first MoveNextAsync.
+        IAsyncEnumerator<int> enumerator = stream.GetAsyncEnumerator();
+        Assert.That(async () => await enumerator.MoveNextAsync(), Throws.InstanceOf<ObjectDisposedException>());
+    }
+
+    [Test]
+    public async Task Dispose_concurrent_with_first_move_next_completes_reader_exactly_once()
+    {
+        // Stress test for the Dispose / first MoveNextAsync race. We loop many times to maximize the chance of
+        // exercising both inter-leavings: Dispose wins (iterator throws ObjectDisposedException before touching the
+        // reader) and iterator wins (Dispose only signals cancellation; iterator's finally completes the reader).
+        // In every case _reader.Complete must be called exactly once and MoveNextAsync must either complete normally
+        // or throw ObjectDisposedException.
+
+        const int iterations = 200;
+        for (int i = 0; i < iterations; i++)
+        {
+            var pipe = new Pipe();
+            var trackingReader = new TrackingPipeReader(pipe.Reader);
+            IAsyncStream<int> stream = trackingReader.ToAsyncStream(
+                (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                elementSize: 4);
+
+            IAsyncEnumerator<int> enumerator = stream.GetAsyncEnumerator();
+
+            var disposeTask = Task.Run(stream.Dispose);
+            Task<bool> moveNextTask = Task.Run(async () => await enumerator.MoveNextAsync());
+
+            await disposeTask;
+
+            try
+            {
+                await moveNextTask;
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected when Dispose wins the race (or signals cancellation mid-read).
+            }
+
+            await enumerator.DisposeAsync();
+            pipe.Writer.Complete();
+
+            Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1), $"iteration {i}");
+        }
     }
 
     private static byte[] EncodeInt32Values(params int[] values)

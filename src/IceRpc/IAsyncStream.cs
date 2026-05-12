@@ -7,10 +7,10 @@ namespace IceRpc;
 /// <remarks>An <see cref="IAsyncStream{T}" /> owns the underlying transport
 /// <see cref="System.IO.Pipelines.PipeReader" /> from which elements are decoded. It is the caller's responsibility
 /// to complete this reader by disposing the stream, or iterating over its elements, or doing both.
-/// <para>Calling <see cref="IDisposable.Dispose" /> on a stream while an async iteration is in progress is safe:
-/// the in-flight read is unblocked and the consumer's <c>MoveNextAsync</c> throws
-/// <see cref="ObjectDisposedException" />. Calling <see cref="IDisposable.Dispose" /> a second time is a no-op.
-/// </para></remarks>
+/// <para><see cref="IAsyncStream{T}" /> is not thread-safe in general, but <see cref="IDisposable.Dispose" /> may
+/// be called concurrently with an in-progress or just-starting <c>MoveNextAsync</c>: the in-flight read is unblocked
+/// and the consumer's <c>MoveNextAsync</c> throws <see cref="ObjectDisposedException" />. Calling
+/// <see cref="IDisposable.Dispose" /> a second time is a no-op.</para></remarks>
 public interface IAsyncStream<out T> : IAsyncEnumerable<T>, IDisposable
 {
 }

@@ -18,43 +18,43 @@ internal sealed class AsyncStream<T> : IAsyncStream<T> where T : class, IMessage
     // Canceled by Dispose when iteration has started, to unblock any pending ReadAsync.
     private readonly CancellationTokenSource _disposeCts = new();
 
-    private bool _disposed;
-
     // Set when GetAsyncEnumerator is called. This enforces the single-enumerator contract even if the created
     // enumerator is never advanced.
     private bool _enumeratorCreated;
 
-    // Set when the iterator body starts executing (first MoveNextAsync/DisposeAsync on the enumerator). This lets
-    // Dispose distinguish "enumerator was created but never started" from "iteration actually started".
-    private bool _iterationStarted;
+    // Atomic state used to safely arbitrate ownership of _reader.Complete() between Dispose and the first
+    // MoveNextAsync. The transition Idle -> Iterating is performed with Interlocked.CompareExchange and the
+    // transition to Disposed with Interlocked.Exchange so that exactly one of them wins from Idle.
+    private int _state;
 
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
-        _disposed = true;
+        int original = Interlocked.Exchange(ref _state, (int)State.Disposed);
 
-        if (_iterationStarted)
+        switch ((State)original)
         {
-            // An enumerator exists. Cancel the dispose token to unblock any pending ReadAsync; the iterator's
-            // finally will complete the reader. We must not dispose _disposeCts here: a linked CTS inside the
-            // iterator may still hold a registration on _disposeCts.Token.
-            _disposeCts.Cancel();
-        }
-        else
-        {
-            // No iteration has started (either no enumerator was created, or one was created but never started),
-            // hence no pending read can exist. Safe to complete the reader directly from this thread.
-            _reader.Complete();
-            _disposeCts.Dispose();
+            case State.Idle:
+                // No iteration could have started (and any future MoveNextAsync will see Disposed and throw).
+                // Safe to complete the reader directly from this thread.
+                _reader.Complete();
+                _disposeCts.Dispose();
+                break;
+
+            case State.Iterating:
+                // The iterator owns the reader; its finally will complete it. We only signal cancellation here.
+                // We must not dispose _disposeCts here: a linked CTS inside the iterator may still hold a
+                // registration on _disposeCts.Token.
+                _disposeCts.Cancel();
+                break;
+
+            // case State.Disposed: no-op (Dispose called more than once).
         }
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        // We don't check for Disposed here: if the stream was disposed, the first MoveNextAsync call on the
+        // returned enumerator throws ObjectDisposedException (see EnumerateAsync).
         if (_enumeratorCreated)
         {
             throw new InvalidOperationException($"An {nameof(IAsyncStream<T>)} can only be enumerated once.");
@@ -75,7 +75,12 @@ internal sealed class AsyncStream<T> : IAsyncStream<T> where T : class, IMessage
         // Because this async method returns an IAsyncEnumerable<T>, it only starts executing when the caller starts
         // iterating (calls MoveNextAsync on the enumerator). It does not execute when EnumerateAsync is called, or
         // even when GetAsyncEnumerator is called on the returned IAsyncEnumerable<T>.
-        _iterationStarted = true;
+
+        // Atomically claim the reader (Idle -> Iterating). This races with Dispose's atomic transition to Disposed;
+        // whichever transition wins from Idle owns _reader.Complete().
+        int original = Interlocked.CompareExchange(ref _state, (int)State.Iterating, (int)State.Idle);
+        ObjectDisposedException.ThrowIf(original == (int)State.Disposed, this);
+        Debug.Assert(original == (int)State.Idle); // _enumeratorCreated forbids a second iteration.
 
         // Link the caller-provided token with our internal dispose token so that Dispose can unblock ReadAsync.
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
@@ -98,13 +103,14 @@ internal sealed class AsyncStream<T> : IAsyncStream<T> where T : class, IMessage
                 catch (OperationCanceledException) when (linkedToken.IsCancellationRequested)
                 {
                     // Re-issue the cancellation with the caller's token so the OCE that propagates carries the
-                    // token the caller passed in (not our internal linkedToken). When _disposed is the only
-                    // source, surface dispose-mid-iteration as ObjectDisposedException.
+                    // token the caller passed in (not our internal linkedToken). When dispose is the only source,
+                    // surface dispose-mid-iteration as ObjectDisposedException.
                     cancellationToken.ThrowIfCancellationRequested();
-                    // Safe to read _disposed without a barrier: Dispose writes _disposed before calling
+
+                    // Safe to read _state without a barrier: Dispose writes State.Disposed before calling
                     // _disposeCts.Cancel(), and observing the cancellation here establishes happens-before
                     // with that write.
-                    Debug.Assert(_disposed);
+                    Debug.Assert(_state == (int)State.Disposed);
                     throw new ObjectDisposedException(nameof(AsyncStream<>), "The stream was disposed while reading.");
                 }
 
@@ -119,5 +125,12 @@ internal sealed class AsyncStream<T> : IAsyncStream<T> where T : class, IMessage
         {
             _reader.Complete();
         }
+    }
+
+    private enum State
+    {
+        Idle = 0,
+        Iterating = 1,
+        Disposed = 2
     }
 }
