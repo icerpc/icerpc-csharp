@@ -24,8 +24,7 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
     private bool _enumeratorCreated;
 
     // Atomic state used to safely arbitrate ownership of _reader.Complete() between Dispose and the first
-    // MoveNextAsync. The transition Idle -> Iterating is performed with Interlocked.CompareExchange and the
-    // transition to Disposed with Interlocked.Exchange so that exactly one of them wins from Idle.
+    // MoveNextAsync.
     private int _state;
 
     public void Dispose()
