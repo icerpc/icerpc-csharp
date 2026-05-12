@@ -30,12 +30,24 @@ public class LoggerInterceptor : IInvoker
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInvoke(
-                request.ServiceAddress,
-                request.Operation,
-                response.StatusCode,
-                response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
-                response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
+            if (response.StatusCode == StatusCode.Ok)
+            {
+                _logger.LogInvoke(
+                    request.ServiceAddress,
+                    request.Operation,
+                    response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+                    response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
+            }
+            else
+            {
+                _logger.LogInvokeError(
+                    request.ServiceAddress,
+                    request.Operation,
+                    response.StatusCode,
+                    response.ErrorMessage!,
+                    response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+                    response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
+            }
             return response;
         }
         catch (Exception exception)
@@ -54,12 +66,25 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventId = (int)LoggerInterceptorEventId.Invoke,
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
-        Message = "Sent request {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received a response with status code {StatusCode}")]
+        Message = "Sent request {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received a response with status code Ok")]
     internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
+        EndPoint? localNetworkAddress,
+        EndPoint? remoteNetworkAddress);
+
+    [LoggerMessage(
+        EventId = (int)LoggerInterceptorEventId.InvokeError,
+        EventName = nameof(LoggerInterceptorEventId.InvokeError),
+        Level = LogLevel.Information,
+        Message = "Sent request {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received a response with status code {StatusCode} and error message: {ErrorMessage}")]
+    internal static partial void LogInvokeError(
+        this ILogger logger,
+        ServiceAddress serviceAddress,
+        string operation,
         StatusCode statusCode,
+        string errorMessage,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
 

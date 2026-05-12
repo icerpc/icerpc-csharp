@@ -31,7 +31,38 @@ public sealed class LoggerMiddlewareTests
         Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
         Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
         Assert.That(entry.State["Path"], Is.EqualTo("/path"));
-        Assert.That(entry.State["StatusCode"], Is.EqualTo(StatusCode.Ok));
+        Assert.That(
+            entry.State["LocalNetworkAddress"],
+            Is.EqualTo(FakeConnectionContext.Instance.TransportConnectionInformation.LocalNetworkAddress));
+        Assert.That(
+            entry.State["RemoteNetworkAddress"],
+            Is.EqualTo(FakeConnectionContext.Instance.TransportConnectionInformation.RemoteNetworkAddress));
+    }
+
+    [Test]
+    public async Task Log_request_with_error_response()
+    {
+        var dispatcher = new InlineDispatcher(
+            (request, cancellationToken) => new(new OutgoingResponse(request, StatusCode.ApplicationError, "some error")));
+        using var loggerFactory = new TestLoggerFactory();
+        await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Path = "/path",
+            Operation = "doIt"
+        };
+        var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
+
+        await sut.DispatchAsync(request, default);
+
+        Assert.That(loggerFactory.Logger, Is.Not.Null);
+        TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
+
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchError));
+        Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
+        Assert.That(entry.State["Path"], Is.EqualTo("/path"));
+        Assert.That(entry.State["StatusCode"], Is.EqualTo(StatusCode.ApplicationError));
+        Assert.That(entry.State["ErrorMessage"], Is.EqualTo("some error"));
         Assert.That(
             entry.State["LocalNetworkAddress"],
             Is.EqualTo(FakeConnectionContext.Instance.TransportConnectionInformation.LocalNetworkAddress));
