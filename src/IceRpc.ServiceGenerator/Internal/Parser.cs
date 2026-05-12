@@ -111,28 +111,36 @@ internal sealed class Parser
                 var serviceClass = new ServiceClass(
                     typeDeclaration.Identifier.Text + typeParameterList,
                     containingNamespace.Length > 0 ? containingNamespace : null,
-                    typeDeclaration.Keyword.ValueText,
+                    GetKeyword(typeDeclaration),
                     typeDeclaration.TypeParameterList?.Parameters.Count ?? 0,
                     serviceMethods.ToList(),
                     hasBaseServiceClass: baseServiceClass is not null,
                     isSealed: classSymbol.IsSealed);
                 serviceDefinitions.Add(serviceClass);
 
-                static bool IsAllowedKind(SyntaxKind kind) =>
-                    kind == SyntaxKind.ClassDeclaration ||
-                    kind == SyntaxKind.StructDeclaration ||
-                    kind == SyntaxKind.RecordDeclaration;
-
+                // Walk the chain of enclosing type declarations (class, struct, record, record struct, interface) so
+                // the emitted partial declaration is nested inside the same chain as the user's source.
                 SyntaxNode? parentNode = typeDeclaration.Parent;
-                ContainerDefinition? container = serviceClass;
-                if (parentNode is TypeDeclarationSyntax parentType && IsAllowedKind(parentType.Kind()))
+                ContainerDefinition container = serviceClass;
+                while (parentNode is TypeDeclarationSyntax parentType)
                 {
+                    string parentTypeParameterList =
+                        parentType.TypeParameterList?.WithoutTrivia().ToString() ?? string.Empty;
                     container.Enclosing = new ContainerDefinition(
-                        parentType.Identifier.ToString(),
-                        parentType.Keyword.ValueText);
+                        parentType.Identifier.Text + parentTypeParameterList,
+                        GetKeyword(parentType),
+                        parentType.TypeParameterList?.Parameters.Count ?? 0);
                     container = container.Enclosing;
                     parentNode = parentNode.Parent;
                 }
+
+                // A record struct is a RecordDeclarationSyntax with ClassOrStructKeyword == "struct"; its Keyword
+                // alone ("record") is not enough to disambiguate from a record class. Other type declarations are
+                // fully described by their Keyword.
+                static string GetKeyword(TypeDeclarationSyntax decl) =>
+                    decl is RecordDeclarationSyntax record && record.ClassOrStructKeyword.ValueText == "struct" ?
+                        "record struct" :
+                        decl.Keyword.ValueText;
             }
         }
         return serviceDefinitions;
