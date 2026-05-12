@@ -33,7 +33,7 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
 
         switch ((State)original)
         {
-            case State.Idle:
+            case State.Initial:
                 // No iteration could have started (and any future MoveNextAsync will see Disposed and throw).
                 // Safe to complete the reader directly from this thread.
                 _reader.Complete();
@@ -81,9 +81,9 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
 
         // Atomically claim the reader (Idle -> Iterating). This races with Dispose's atomic transition to Disposed;
         // whichever transition wins from Idle owns _reader.Complete().
-        int original = Interlocked.CompareExchange(ref _state, (int)State.Iterating, (int)State.Idle);
+        int original = Interlocked.CompareExchange(ref _state, (int)State.Iterating, (int)State.Initial);
         ObjectDisposedException.ThrowIf(original == (int)State.Disposed, this);
-        Debug.Assert(original == (int)State.Idle); // _enumeratorCreated forbids a second iteration.
+        Debug.Assert(original == (int)State.Initial); // _enumeratorCreated forbids a second iteration.
 
         // Link the caller-provided token with our internal dispose token so that Dispose can unblock ReadAsync.
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
@@ -155,7 +155,7 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
 
     private enum State
     {
-        Idle = 0,
+        Initial = 0,
         Iterating = 1,
         Disposed = 2
     }

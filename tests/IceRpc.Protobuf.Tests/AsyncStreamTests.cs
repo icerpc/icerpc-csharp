@@ -222,8 +222,9 @@ public class AsyncStreamTests
     private sealed class TrackingPipeReader : PipeReader
     {
         private readonly PipeReader _inner;
+        private int _completeCallCount;
 
-        internal int CompleteCallCount { get; private set; }
+        internal int CompleteCallCount => Volatile.Read(ref _completeCallCount);
 
         public override void AdvanceTo(SequencePosition consumed) => _inner.AdvanceTo(consumed);
 
@@ -234,7 +235,7 @@ public class AsyncStreamTests
 
         public override void Complete(Exception? exception = null)
         {
-            CompleteCallCount++;
+            Interlocked.Increment(ref _completeCallCount);
             _inner.Complete(exception);
         }
 
