@@ -80,7 +80,7 @@ public static class ServerServiceCollectionExtensions
     /// named <paramref name="optionsName" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the options instance. Each <see cref="Server" /> registered in
-    /// <paramref name="services" /> must use a distinct options name.</param>
+    /// <paramref name="services" /> must use a unique options name.</param>
     /// <param name="dispatcher">The dispatch pipeline of the server.</param>
     /// <returns>The service collection.</returns>
     /// <example>
@@ -106,7 +106,7 @@ public static class ServerServiceCollectionExtensions
     /// <see cref="ServerOptions" /> named <paramref name="optionsName" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the options instance. Each <see cref="Server" /> registered in
-    /// <paramref name="services" /> must use a distinct options name.</param>
+    /// <paramref name="services" /> must use a unique options name.</param>
     /// <param name="configure">The action to configure the dispatch pipeline using an
     /// <see cref="IDispatcherBuilder" />.</param>
     /// <returns>The service collection.</returns>
@@ -138,7 +138,7 @@ public static class ServerServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the options instance. Each <see cref="Server" /> registered in
-    /// <paramref name="services" /> must use a distinct options name.</param>
+    /// <paramref name="services" /> must use a unique options name.</param>
     /// <returns>The service collection.</returns>
     /// <remarks>You need to set a least the dispatcher in the injected options.</remarks>
     /// <seealso cref="AddIceRpcServer(IServiceCollection, string, IDispatcher)" />
