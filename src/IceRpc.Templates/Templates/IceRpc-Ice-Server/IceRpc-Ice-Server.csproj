@@ -8,8 +8,13 @@
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <SliceCompile>
+      <!-- Make the Ice compiler generate code for IceRPC by default. -->
+      <IceRpc>true</IceRpc>
+    </SliceCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <SliceCompile Include="slice/Greeter.ice" IceRpc="true" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Ice" Version="0.6.0-preview.1" />
     <PackageReference Include="IceRpc.Deadline" Version="0.6.0-preview.1" />
