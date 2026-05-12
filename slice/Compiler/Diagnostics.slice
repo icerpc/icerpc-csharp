@@ -3,13 +3,25 @@
 [cs::identifier("ZeroC.Slice.Symbols.Compiler")]
 module Compiler
 
+/// Represents the source of a {@link Diagnostic}, which can be used to provide context and snippets during emission.
+///
+/// The source of a diagnostic can be either:
+/// - A reference to a Slice entity, written as it's fully-scoped identifier; ex: 'MyModule::MyInterface::myOp'.
+/// - A reference to a Slice file, written as that file's relative path prefixed with '#'; ex: '#dir1/dir2/file.slice'.
+///
+/// To reference an attribute on a Slice file or entity, you can place '$attributes' after the source, following by the
+/// the index of the attribute to reference, and optionally, the index of an argument to that attribute. For example:
+/// 'MyMod::MyEnum::$attributes::0' references the first attribute of 'MyEnum', and '#MyFile.slice::$attributes::0::1'
+/// references the second argument of the first attribute on 'MyFile.slice'.
+typealias Source = string
+
 /// A message that is reported to provide information and context for errors, warnings, or other issues.
 struct Diagnostic {
     /// The exact kind of diagnostic.
     kind: DiagnosticKind
 
     /// The fully-scoped Slice identifier of the element that this diagnostic is in reference to (if there is one).
-    source: string?
+    source: Source?
 
     /// Any additional information that should be reported alongside this diagnostic's main message.
     notes: Sequence<DiagnosticNote>
@@ -21,7 +33,7 @@ struct DiagnosticNote {
     message: string
 
     /// The fully-scoped Slice identifier of the element that this note is in reference to (if there is one).
-    source: string?
+    source: Source?
 }
 
 unchecked enum DiagnosticKind {
