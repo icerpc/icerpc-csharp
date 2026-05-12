@@ -9,8 +9,7 @@ namespace IceRpc;
 /// to complete this reader by disposing the stream, or iterating over its elements, or doing both.
 /// <para><see cref="IAsyncStream{T}" /> is not thread-safe in general, but <see cref="IDisposable.Dispose" /> may
 /// be called concurrently with an in-progress or just-starting <c>MoveNextAsync</c>: the in-flight read is unblocked
-/// and the consumer's <c>MoveNextAsync</c> throws <see cref="ObjectDisposedException" />. Calling
-/// <see cref="IDisposable.Dispose" /> a second time is a no-op.</para></remarks>
+/// and the consumer's <c>MoveNextAsync</c> throws <see cref="ObjectDisposedException" />.</para></remarks>
 public interface IAsyncStream<out T> : IAsyncEnumerable<T>, IDisposable
 {
 }
