@@ -140,7 +140,7 @@ public static class ServerServiceCollectionExtensions
     /// <param name="optionsName">The name of the options instance. Each <see cref="Server" /> registered in
     /// <paramref name="services" /> must use a unique options name.</param>
     /// <returns>The service collection.</returns>
-    /// <remarks>You need to set a least the dispatcher in the injected options.</remarks>
+    /// <remarks>You need to set at least the dispatcher in the injected options.</remarks>
     /// <seealso cref="AddIceRpcServer(IServiceCollection, string, IDispatcher)" />
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, string optionsName) =>
         services
