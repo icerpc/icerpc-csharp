@@ -66,10 +66,7 @@ public static class Generator
         encoder.EncodeSequence(
             response.Diagnostics,
             (ref encoder, diagnostic) =>
-                new Compiler.Diagnostic(
-                    (Compiler.DiagnosticLevel)(byte)diagnostic.Level,
-                    diagnostic.Message,
-                    diagnostic.Source).Encode(ref encoder));
+                new Compiler.Diagnostic(diagnostic.Kind, diagnostic.Source, []).Encode(ref encoder));
         await output.FlushAsync().ConfigureAwait(false);
         output.Complete();
     }

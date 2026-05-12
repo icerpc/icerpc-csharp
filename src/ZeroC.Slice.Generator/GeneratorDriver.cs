@@ -32,11 +32,7 @@ internal static class GeneratorDriver
         Task<GeneratorResponse> TransformAsync(ImmutableList<SliceFile> symbolFiles, Dictionary<string, string> options)
         {
             // Validate CS attributes before generation.
-            //
-            // List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
-            // TODO: enable validation once slicec correctly handles the diagnostics reported by the
-            // generators.
-            var diagnostics = new List<Diagnostic>();
+            List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
 
             // Use the informational version (e.g., "0.6.0-preview.1") which is the semver string from
             // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
@@ -51,7 +47,7 @@ internal static class GeneratorDriver
 
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
-            if (!diagnostics.Any(d => d.Level == DiagnosticLevel.Error))
+            if (!diagnostics.Any(d => d.IsError))
             {
                 foreach (SliceFile file in symbolFiles)
                 {
