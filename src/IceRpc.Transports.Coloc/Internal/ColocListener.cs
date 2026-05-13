@@ -9,7 +9,7 @@ using System.Threading.Channels;
 namespace IceRpc.Transports.Coloc.Internal;
 
 /// <summary>The listener implementation for the colocated transport.</summary>
-internal class ColocListener : IListener<IDuplexConnection>
+internal class ColocListener : IListener<IDuplexConnection>, IDisposable
 {
     public TransportAddress TransportAddress { get; }
 
@@ -74,13 +74,13 @@ internal class ColocListener : IListener<IDuplexConnection>
         }
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         lock (_mutex)
         {
             if (_disposed)
             {
-                return default;
+                return;
             }
             _disposed = true;
 
@@ -100,6 +100,11 @@ internal class ColocListener : IListener<IDuplexConnection>
                 item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
             }
         }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
         return default;
     }
 

@@ -48,7 +48,7 @@ internal class ColocServerTransport : IDuplexServerTransport
         if (!_listeners.TryAdd(key, listener))
         {
             // The listener was never published; release its resources before reporting the collision.
-            listener.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            listener.Dispose();
             throw new IceRpcException(IceRpcError.AddressInUse);
         }
         return listener;
