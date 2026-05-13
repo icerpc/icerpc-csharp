@@ -8,8 +8,9 @@ namespace IceRpc;
 public sealed class OutgoingResponse : OutgoingFrame
 {
     /// <summary>Gets the error message of this response.</summary>
-    /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
-    /// cref="StatusCode.Ok" />; otherwise, <see langword="null" />.</value>
+    /// <value>The error message of this response. It is guaranteed to be non-<see langword="null" /> when <see
+    /// cref="StatusCode" /> is different from <see cref="StatusCode.Ok" />, and <see langword="null" /> when <see
+    /// cref="StatusCode" /> is <see cref="StatusCode.Ok" />.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets or sets the fields of this response.</summary>
