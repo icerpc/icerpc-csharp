@@ -950,6 +950,11 @@ internal class SlicConnection : IMultiplexedConnection
                         throw new InvalidDataException(
                             "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1KB.");
                     }
+                    if (maxStreamFrameSize > SlicTransportOptions.MaxStreamFrameSizeCeiling)
+                    {
+                        throw new InvalidDataException(
+                            $"The MaxStreamFrameSize connection parameter is invalid, it cannot exceed {SlicTransportOptions.MaxStreamFrameSizeCeiling} bytes.");
+                    }
                     break;
                 }
                 case ParameterKey.InitialStreamWindowSize:
@@ -1436,6 +1441,11 @@ internal class SlicConnection : IMultiplexedConnection
         else if (size == 0 && !endStream)
         {
             throw new InvalidDataException($"Received invalid {nameof(FrameType.Stream)} frame.");
+        }
+        else if (size > _maxStreamFrameSize)
+        {
+            throw new InvalidDataException(
+                $"Received stream frame with size {size} exceeding the advertised maximum of {_maxStreamFrameSize} bytes.");
         }
 
         if (!_streams.TryGetValue(streamId, out SlicStream? stream) && isRemote && IsUnknownStream(streamId))
