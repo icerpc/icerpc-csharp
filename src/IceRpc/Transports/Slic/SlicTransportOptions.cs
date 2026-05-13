@@ -35,8 +35,8 @@ public sealed record class SlicTransportOptions
     }
 
     /// <summary>Gets or sets the maximum stream frame size in bytes.</summary>
-    /// <value>The maximum stream frame size in bytes. It can't be less than <c>1</c> KB or greater than
-    /// <c>16,777,215</c> (2^24 - 1). Defaults to <c>32</c> KB.</value>
+    /// <value>The maximum stream frame size in bytes. It can't be less than <c>1024</c> or greater than
+    /// <c>16,777,215</c> (2^24 - 1). Defaults to <c>32,768</c>.</value>
     public int MaxStreamFrameSize
     {
         get => _maxStreamFrameSize;
