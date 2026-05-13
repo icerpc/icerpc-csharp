@@ -76,18 +76,21 @@ public class TelemetryMiddleware : IDispatcher
         // Read TraceState encoded as a string
         activity.TraceStateString = decoder.DecodeString();
 
-        IEnumerable<(string Key, string Value)> baggage = decoder.DecodeSequence(
-            (ref SliceDecoder decoder) =>
-            {
-                string key = decoder.DecodeString();
-                string value = decoder.DecodeString();
-                return (key, value);
-            });
+        // Decode the baggage sequence, silently clipping to MaxBaggageEntries. OpenTelemetry SDKs
+        // follow a strict no-throw policy for observability operations: losing a piece of contextual
+        // metadata is less damaging than failing the RPC, and silent clipping matches the behavior of
+        // OpenTelemetry .NET's and Python's BaggagePropagator on incoming headers. Only the first
+        // MaxBaggageEntries entries are read from the buffer; the remainder is left unconsumed.
+        //
+        // Activity.Baggage's enumeration order is undocumented, so duplicate-key resolution across the
+        // wire is inherently undefined on both ends — we don't attempt to preserve it.
+        int count = decoder.DecodeSize();
+        int kept = Math.Min(count, TelemetryInterceptor.MaxBaggageEntries);
 
-        // Restore in reverse order to keep the order in witch the peer add baggage entries,
-        // this is important when there are duplicate keys.
-        foreach ((string key, string value) in baggage.Reverse())
+        for (int i = 0; i < kept; i++)
         {
+            string key = decoder.DecodeString();
+            string value = decoder.DecodeString();
             activity.AddBaggage(key, value);
         }
     }
