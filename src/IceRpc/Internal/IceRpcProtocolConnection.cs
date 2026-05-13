@@ -1229,6 +1229,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             var header = new IceRpcRequestHeader(ref decoder);
+
+            // Ensure that the encoded path is a valid service address path.
+            try
+            {
+                ServiceAddress.CheckPath(header.Path);
+            }
+            catch (FormatException exception)
+            {
+                throw new InvalidDataException(exception.Message, exception);
+            }
+
             (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
                 DecodeFieldDictionary(
                     ref decoder,
