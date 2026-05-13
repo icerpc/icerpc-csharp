@@ -35,14 +35,22 @@ internal class ColocServerTransport : IDuplexServerTransport
 
         var listener = new ColocListener(
             serverAddress with { Transport = Name },
+            onDispose: OnDispose,
             colocTransportOptions: _options,
             duplexConnectionOptions: options);
 
         if (!_listeners.TryAdd(listener.ServerAddress, listener))
         {
+            // The listener was never published; release its resources before reporting the collision.
+            listener.Dispose();
             throw new IceRpcException(IceRpcError.AddressInUse);
         }
         return listener;
+
+        void OnDispose(ColocListener disposedListener) =>
+            _listeners.TryRemove(new KeyValuePair<ServerAddress, ColocListener>(
+                disposedListener.ServerAddress,
+                disposedListener));
     }
 
     internal ColocServerTransport(

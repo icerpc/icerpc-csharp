@@ -9,11 +9,12 @@ using System.Threading.Channels;
 namespace IceRpc.Transports.Coloc.Internal;
 
 /// <summary>The listener implementation for the colocated transport.</summary>
-internal class ColocListener : IListener<IDuplexConnection>
+internal class ColocListener : IListener<IDuplexConnection>, IDisposable
 {
     public ServerAddress ServerAddress { get; }
 
     private readonly CancellationTokenSource _disposeCts = new();
+    private readonly Action<ColocListener> _onDispose;
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
 
@@ -63,13 +64,16 @@ internal class ColocListener : IListener<IDuplexConnection>
         }
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         if (_disposeCts.IsCancellationRequested)
         {
             // Dispose already called.
-            return default;
+            return;
         }
+
+        // Notify the owner (e.g. the server transport) so it can release its reference to this listener.
+        _onDispose(this);
 
         // Cancel pending AcceptAsync.
         _disposeCts.Cancel();
@@ -85,17 +89,22 @@ internal class ColocListener : IListener<IDuplexConnection>
         }
 
         _disposeCts.Dispose();
+    }
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
         return default;
     }
 
     internal ColocListener(
         ServerAddress serverAddress,
+        Action<ColocListener> onDispose,
         ColocTransportOptions colocTransportOptions,
         DuplexConnectionOptions duplexConnectionOptions)
     {
         ServerAddress = serverAddress;
-
+        _onDispose = onDispose;
         _networkAddress = new ColocEndPoint(serverAddress);
         _pipeOptions = new PipeOptions(
             pool: duplexConnectionOptions.Pool,
