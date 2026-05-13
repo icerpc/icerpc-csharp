@@ -80,9 +80,9 @@ host.Run();
 ```
 
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Deadline.html
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Deadline
+[example]: https://github.com/icerpc/icerpc-csharp/tree/0.5.x/examples/slice/Deadline
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Deadline
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Deadline
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.5.x/src/IceRpc.Deadline

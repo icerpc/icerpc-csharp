@@ -141,6 +141,6 @@ Setting this property to `false` completely disables the computation and collect
 [zeroc-slice]: https://www.nuget.org/packages/ZeroC.Slice
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.icerpc.dev/slice2
-[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/slicec-cs
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
+[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/0.5.x/tools/slicec-cs
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.5.x/tools/IceRpc.Slice.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
