@@ -38,7 +38,14 @@ public static class SliceDecoderExtensions
             {
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue value = valueDecodeFunc(ref decoder);
-                dictionary.Add(new KeyValuePair<TKey, TValue>(key, value));
+                try
+                {
+                    dictionary.Add(new KeyValuePair<TKey, TValue>(key, value));
+                }
+                catch (ArgumentException exception)
+                {
+                    throw new InvalidDataException($"Received dictionary with duplicate key '{key}'.", exception);
+                }
             }
             return dictionary;
         }
@@ -81,7 +88,14 @@ public static class SliceDecoderExtensions
                 bool hasValue = decoder.DecodeBool(); // simplified bit sequence
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue? value = hasValue ? valueDecodeFunc(ref decoder) : default;
-                dictionary.Add(new KeyValuePair<TKey, TValue?>(key, value));
+                try
+                {
+                    dictionary.Add(new KeyValuePair<TKey, TValue?>(key, value));
+                }
+                catch (ArgumentException exception)
+                {
+                    throw new InvalidDataException($"Received dictionary with duplicate key '{key}'.", exception);
+                }
             }
             return dictionary;
         }
