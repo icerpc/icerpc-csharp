@@ -93,10 +93,7 @@ public partial class PipeReaderExtensionsTests
     {
         // Arrange
         var pipe = new Pipe();
-        pipe.Writer.Write(new byte[] { 1 });
-        Span<byte> lengthBytes = pipe.Writer.GetSpan(4);
-        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, 0);
-        pipe.Writer.Advance(4);
+        WriteLengthPrefixedMessage(pipe.Writer, message: null, compressionFlag: 1);
         pipe.Writer.Complete();
 
         // Act & Assert
@@ -117,10 +114,7 @@ public partial class PipeReaderExtensionsTests
     {
         // Arrange
         var pipe = new Pipe();
-        pipe.Writer.Write(new byte[] { compressionFlag });
-        Span<byte> lengthBytes = pipe.Writer.GetSpan(4);
-        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, 0);
-        pipe.Writer.Advance(4);
+        WriteLengthPrefixedMessage(pipe.Writer, message: null, compressionFlag: compressionFlag);
         pipe.Writer.Complete();
 
         // Act & Assert
@@ -170,11 +164,7 @@ public partial class PipeReaderExtensionsTests
         int actualLength = validMessage.CalculateSize();
 
         var pipe = new Pipe();
-        pipe.Writer.Write(new byte[] { 0 });
-        Span<byte> lengthBytes = pipe.Writer.GetSpan(4);
-        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, actualLength + 1);
-        pipe.Writer.Advance(4);
-        validMessage.WriteTo(pipe.Writer);
+        WriteLengthPrefixedMessage(pipe.Writer, validMessage, envelopeLength: actualLength + 1);
         pipe.Writer.Write(new byte[] { 0xFF });
         pipe.Writer.Complete();
 
@@ -188,12 +178,19 @@ public partial class PipeReaderExtensionsTests
         pipe.Reader.Complete();
     }
 
-    private static void WriteLengthPrefixedMessage(PipeWriter writer, IMessage message)
+    // Writes a length-prefixed Protobuf envelope: 1 compression-flag byte + 4 big-endian int32 length bytes
+    // + optional message body. envelopeLength overrides the length field (used to construct mismatched
+    // envelopes); when omitted, the length matches the actual encoded message size (or 0 when no message).
+    private static void WriteLengthPrefixedMessage(
+        PipeWriter writer,
+        IMessage? message,
+        byte compressionFlag = 0,
+        int? envelopeLength = null)
     {
-        writer.Write(new byte[] { 0 }); // Not compressed
+        writer.Write(new byte[] { compressionFlag });
         Span<byte> lengthBytes = writer.GetSpan(4);
-        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, message.CalculateSize());
+        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, envelopeLength ?? message?.CalculateSize() ?? 0);
         writer.Advance(4);
-        message.WriteTo(writer);
+        message?.WriteTo(writer);
     }
 }
