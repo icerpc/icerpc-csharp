@@ -134,9 +134,7 @@ public partial class PipeReaderExtensionsTests
     {
         // Arrange
         var pipe = new Pipe();
-        pipe.Writer.Write(new byte[] { 0 });
-        // 0xFFFFFFFF as big-endian — uint.MaxValue, well above int.MaxValue.
-        pipe.Writer.Write(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
+        WriteLengthPrefixedMessage(pipe.Writer, message: null, envelopeLength: uint.MaxValue);
         pipe.Writer.Complete();
 
         // Act & Assert
@@ -164,7 +162,7 @@ public partial class PipeReaderExtensionsTests
         int actualLength = validMessage.CalculateSize();
 
         var pipe = new Pipe();
-        WriteLengthPrefixedMessage(pipe.Writer, validMessage, envelopeLength: actualLength + 1);
+        WriteLengthPrefixedMessage(pipe.Writer, validMessage, envelopeLength: (uint)(actualLength + 1));
         pipe.Writer.Write(new byte[] { 0xFF });
         pipe.Writer.Complete();
 
@@ -178,18 +176,19 @@ public partial class PipeReaderExtensionsTests
         pipe.Reader.Complete();
     }
 
-    // Writes a length-prefixed Protobuf envelope: 1 compression-flag byte + 4 big-endian int32 length bytes
+    // Writes a length-prefixed Protobuf envelope: 1 compression-flag byte + 4 big-endian uint32 length bytes
     // + optional message body. envelopeLength overrides the length field (used to construct mismatched
-    // envelopes); when omitted, the length matches the actual encoded message size (or 0 when no message).
+    // envelopes or values > int.MaxValue); when omitted, the length matches the actual encoded message size
+    // (or 0 when no message).
     private static void WriteLengthPrefixedMessage(
         PipeWriter writer,
         IMessage? message,
         byte compressionFlag = 0,
-        int? envelopeLength = null)
+        uint? envelopeLength = null)
     {
         writer.Write(new byte[] { compressionFlag });
         Span<byte> lengthBytes = writer.GetSpan(4);
-        BinaryPrimitives.WriteInt32BigEndian(lengthBytes, envelopeLength ?? message?.CalculateSize() ?? 0);
+        BinaryPrimitives.WriteUInt32BigEndian(lengthBytes, envelopeLength ?? (uint)(message?.CalculateSize() ?? 0));
         writer.Advance(4);
         message?.WriteTo(writer);
     }
