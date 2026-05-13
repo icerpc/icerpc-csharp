@@ -65,7 +65,7 @@ public partial record struct Person
 }
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/ZeroC.Slice.html
+[api]: https://code.icerpc.dev/csharp/0.5.x/api/api/ZeroC.Slice.html
 [cs-buffers]: https://learn.microsoft.com/en-us/dotnet/standard/io/buffers
 [docs]: https://docs.icerpc.dev/slice2
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language

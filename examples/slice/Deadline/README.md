@@ -24,4 +24,4 @@ cd Client
 dotnet run
 ```
 
-[IDeadlineFeature]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Features.IDeadlineFeature.html
+[IDeadlineFeature]: https://code.icerpc.dev/csharp/0.5.x/api/api/IceRpc.Features.IDeadlineFeature.html

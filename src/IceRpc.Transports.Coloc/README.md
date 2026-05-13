@@ -35,7 +35,7 @@ await using var connection = new ClientConnection(
 await connection.ConnectAsync();
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.Coloc.html
+[api]: https://code.icerpc.dev/csharp/0.5.x/api/api/IceRpc.Transports.Coloc.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [package]: https://www.nuget.org/packages/IceRpc.Transports.Coloc
 [product]: https://docs.icerpc.dev/icerpc

@@ -88,7 +88,7 @@ internal class Chatbot : IDispatcher
 }
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.html
+[api]: https://code.icerpc.dev/csharp/0.5.x/api/api/IceRpc.html
 [docs]:https://docs.icerpc.dev
 [getting-started]: https://docs.icerpc.dev/getting-started
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
