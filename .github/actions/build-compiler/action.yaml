@@ -15,18 +15,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: 📦 Cargo Cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          tools/slicec-cs/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
     - name: Install Cross Tools
       if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
       run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
@@ -36,6 +24,20 @@ runs:
       with:
         toolchain: stable
         targets: ${{ inputs.target }}
+    # ~/.cargo/bin is intentionally NOT cached: the toolchain is provisioned on every job by
+    # dtolnay/rust-toolchain above. Caching that path led to cargo behaving as rustup-init on
+    # macos-26 (see https://github.com/icerpc/icerpc-csharp/pull/4639 for the failing log).
+    - name: 📦 Cargo Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          tools/slicec-cs/target/
+        key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-v2-
     - name: Build Slice Compiler
       env:
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
