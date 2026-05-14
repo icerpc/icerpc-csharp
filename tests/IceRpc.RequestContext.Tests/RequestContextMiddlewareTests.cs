@@ -83,9 +83,8 @@ public sealed class RequestContextMiddlewareTests
                 (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
         }
-        // Append extra trailing bytes.
-        pipe.Writer.GetMemory(4).Span.Clear();
-        pipe.Writer.Advance(4);
+        // Append 4 trailing bytes.
+        pipe.Writer.Write(new byte[] { 0, 0, 0, 0 });
         pipe.Writer.Complete();
         pipe.Reader.TryRead(out var readResult);
 
