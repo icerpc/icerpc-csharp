@@ -91,3 +91,35 @@ runs:
       dotnet new icerpc-slice-di-server -o templates-test/SliceDIServer
       dotnet build templates-test/SliceDIServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
+
+  # Ice Client template
+
+  - name: 🧪 Test IceRpc + Ice Client Template
+    run: |
+      dotnet new icerpc-ice-client -o templates-test/IceClient
+      dotnet build templates-test/IceClient/ /p:TreatWarningsAsErrors=true
+    shell: pwsh
+
+  # Ice Server template
+
+  - name: 🧪 Test IceRpc + Ice Server Template
+    run: |
+      dotnet new icerpc-ice-server -o templates-test/IceServer
+      dotnet build templates-test/IceServer/ /p:TreatWarningsAsErrors=true
+    shell: pwsh
+
+  # Ice DI Client template
+
+  - name: 🧪 Test IceRpc + Ice DI Client Template
+    run: |
+      dotnet new icerpc-ice-di-client -o templates-test/IceDIClient
+      dotnet build templates-test/IceDIClient/ /p:TreatWarningsAsErrors=true
+    shell: pwsh
+
+  # Ice DI Server template
+
+  - name: 🧪 Test IceRpc + Ice DI Server Template
+    run: |
+      dotnet new icerpc-ice-di-server -o templates-test/IceDIServer
+      dotnet build templates-test/IceDIServer/ /p:TreatWarningsAsErrors=true
+    shell: pwsh

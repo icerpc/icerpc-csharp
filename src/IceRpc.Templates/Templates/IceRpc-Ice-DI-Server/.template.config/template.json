@@ -1,0 +1,62 @@
+{
+    "$schema":"http://json.schemastore.org/template",
+    "author":"ZeroC",
+    "classifications":[
+        "IceRPC",
+        "Server",
+        "Ice"
+    ],
+    "identity":"IceRpc.Ice.DI.Server",
+    "name":"IceRPC + Ice DI Server",
+    "description":"A project template for creating an IceRPC + Ice server console application using Microsoft's DI container.",
+    "shortName":"icerpc-ice-di-server",
+    "tags":{
+        "language":"C#",
+        "type":"project"
+    },
+    "sourceName":"IceRpc-Ice-DI-Server",
+    "preferNameDirectory":true,
+    "defaultName":"Server",
+    "symbols":{
+        "skipRestore":{
+            "type":"parameter",
+            "datatype":"bool",
+            "description":"If specified, skips the automatic restore of the project on create.",
+            "defaultValue":"false"
+        }
+    },
+    "sources":[
+        {
+            "modifiers":[
+                {
+                    "rename":{
+                        "editorconfig":".editorconfig"
+                    }
+                }
+            ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
+        }
+    ],
+    "primaryOutputs":[
+        {
+            "path":"IceRpc-Ice-DI-Server.csproj"
+        }
+    ],
+    "postActions":[
+        {
+            "condition":"(!skipRestore)",
+            "description":"Restore NuGet packages required by this project.",
+            "manualInstructions":[
+                {
+                    "text":"Run 'dotnet restore'"
+                }
+            ],
+            "actionId":"210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+            "continueOnError":true
+        }
+    ]
+}

@@ -36,12 +36,24 @@ public class LoggerMiddleware : IDispatcher
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
 
-                _logger.LogDispatch(
-                    request.Path,
-                    request.Operation,
-                    request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
-                    request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                    response.StatusCode);
+                if (response.StatusCode == StatusCode.Ok)
+                {
+                    _logger.LogDispatch(
+                        request.Path,
+                        request.Operation,
+                        request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+                        request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
+                }
+                else
+                {
+                    _logger.LogDispatchError(
+                        request.Path,
+                        request.Operation,
+                        request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+                        request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
+                        response.StatusCode,
+                        response.ErrorMessage!);
+                }
                 return response;
             }
             catch (Exception exception)
@@ -64,14 +76,27 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventId.Dispatch,
         EventName = nameof(LoggerMiddlewareEventId.Dispatch),
         Level = LogLevel.Information,
-        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code {StatusCode}")]
+        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code Ok")]
     internal static partial void LogDispatch(
         this ILogger logger,
         string path,
         string operation,
         EndPoint? localNetworkAddress,
+        EndPoint? remoteNetworkAddress);
+
+    [LoggerMessage(
+        EventId = (int)LoggerMiddlewareEventId.DispatchError,
+        EventName = nameof(LoggerMiddlewareEventId.DispatchError),
+        Level = LogLevel.Information,
+        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code {StatusCode} and error message: {ErrorMessage}")]
+    internal static partial void LogDispatchError(
+        this ILogger logger,
+        string path,
+        string operation,
+        EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
-        StatusCode statusCode);
+        StatusCode statusCode,
+        string errorMessage);
 
     [LoggerMessage(
         EventId = (int)LoggerMiddlewareEventId.DispatchException,
