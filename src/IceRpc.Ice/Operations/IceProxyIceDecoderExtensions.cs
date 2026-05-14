@@ -9,12 +9,22 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace IceRpc.Ice.Operations;
 
 /// <summary>Provides extension methods for <see cref="IceDecoder" /> to decode proxies.</summary>
 public static class IceProxyIceDecoderExtensions
 {
+    // The printable ASCII range. Characters outside this range must be percent-escaped in a service address parameter
+    // value.
+    private const char FirstValidChar = '\x21';
+    private const char LastValidChar = '\x7E';
+
+    // Same as ServiceAddress's _notValidInParamValue, plus '%' which must be escaped to make the percent-escaped
+    // value unambiguously decodable.
+    private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&\\^`{|}");
+
     /// <summary>Decodes a proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <param name="decoder">The Ice decoder.</param>
@@ -222,7 +232,8 @@ public static class IceProxyIceDecoderExtensions
         {
             if (decoder.DecodeString() is string adapterId && adapterId.Length > 0)
             {
-                serviceAddressParams = serviceAddressParams.Add("adapter-id", Uri.EscapeDataString(adapterId));
+                serviceAddressParams =
+                    serviceAddressParams.Add("adapter-id", EscapeAdapterId(adapterId));
             }
         }
         else
@@ -298,5 +309,45 @@ public static class IceProxyIceDecoderExtensions
                 "Cannot decode a server address with a port number larger than 65,535.",
                 exception);
         }
+    }
+
+    /// <summary>Percent-encodes only the characters that are invalid in a service address parameter value: characters
+    /// outside the printable ASCII range <c>\x21..\x7E</c>, characters in
+    /// <see cref="_mustEscapeInAdapterId" />, and the <c>%</c> character itself (which must be escaped to make the
+    /// result unambiguously decodable).</summary>
+    /// <param name="value">The raw adapter ID, as decoded from the wire.</param>
+    /// <returns>An escaped string suitable for use as the value of the <c>adapter-id</c> service address parameter.
+    /// </returns>
+    /// <remarks>This is intentionally narrower than <see cref="Uri.EscapeDataString(string)" />, which over-escapes
+    /// characters that are valid in service address parameter values such as <c>/</c>, <c>:</c>, and <c>@</c>.
+    /// </remarks>
+    private static string EscapeAdapterId(string value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+
+        // Fast path: nothing to escape. Adapter IDs are usually pure ASCII so we almost always take this path.
+        if (span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 &&
+            span.IndexOfAny(_mustEscapeInAdapterId) == -1)
+        {
+            return value;
+        }
+
+        // Slow path. Encode the whole string to UTF-8 bytes, then percent-escape every byte that is not a valid
+        // unescaped char. UTF-8 continuation bytes (>= 0x80) naturally fall in the escape branch, so multi-byte
+        // code points are handled without any surrogate-pair logic here.
+        byte[] utf8 = Encoding.UTF8.GetBytes(value);
+        var sb = new StringBuilder(utf8.Length + 8);
+        foreach (byte b in utf8)
+        {
+            if (b >= FirstValidChar && b <= LastValidChar && !_mustEscapeInAdapterId.Contains((char)b))
+            {
+                sb.Append((char)b);
+            }
+            else
+            {
+                sb.Append('%').Append(b.ToString("X2", CultureInfo.InvariantCulture));
+            }
+        }
+        return sb.ToString();
     }
 }

@@ -22,6 +22,15 @@ public class ProxyTests
     [TestCase("ice:/hello?adapter-id=foo%25bar", null)] // '%'
     [TestCase("ice:/hello?adapter-id=foo%20bar", null)] // ' '
     [TestCase("ice:/hello?adapter-id=foo%23bar%25baz%20qux%26quux", null)] // '#', '%', ' ', '&'
+
+    // adapter-id values that are not percent-escaped
+    [TestCase("ice:/hello?adapter-id=foo/bar", null)] // '/'
+    [TestCase("ice:/hello?adapter-id=cat:1", null)] // ':'
+    [TestCase("ice:/hello?adapter-id=user@host", null)] // '@'
+    [TestCase("ice:/hello?adapter-id=a=b,c(d)", null)] // '=', ',', '(', ')'
+
+    // no round-trip here: the URI parser keeps the `%` as is, while the decoder escapes it into `%25`.
+    [TestCase("ice:/hello?adapter-id=foo%bar", "ice:/hello?adapter-id=foo%25bar")]
     public void Encode_decode_proxy(ServiceAddress? value, ServiceAddress? expectedValue)
     {
         var buffer = new byte[256];
