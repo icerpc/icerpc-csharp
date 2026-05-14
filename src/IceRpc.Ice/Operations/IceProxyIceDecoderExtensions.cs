@@ -165,6 +165,20 @@ public static class IceProxyIceDecoderExtensions
         }
 
         return serverAddress.Value;
+
+        static ServerAddress DecodeUriServerAddress(string uriString)
+        {
+            try
+            {
+                return new ServerAddress(new Uri(uriString));
+            }
+            catch (Exception exception) when (exception is UriFormatException or ArgumentException)
+            {
+                throw new InvalidDataException(
+                    $"Received invalid server address URI '{uriString}'.",
+                    exception);
+            }
+        }
     }
 
     /// <summary>Decodes a service address encoded with the Ice encoding.</summary>
@@ -251,21 +265,6 @@ public static class IceProxyIceDecoderExtensions
         catch (Exception exception)
         {
             throw new InvalidDataException("Received invalid service address.", exception);
-        }
-    }
-
-    /// <summary>Decodes a server address from its URI string representation.</summary>
-    private static ServerAddress DecodeUriServerAddress(string uriString)
-    {
-        try
-        {
-            return new ServerAddress(new Uri(uriString));
-        }
-        catch (Exception exception) when (exception is UriFormatException or ArgumentException)
-        {
-            throw new InvalidDataException(
-                $"Received invalid server address URI '{uriString}'.",
-                exception);
         }
     }
 

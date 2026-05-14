@@ -39,7 +39,7 @@ public class ProxyTests
     // icerpc always uses TransportCode.Uri.
     [TestCase("ice://hello.zeroc.com/hello?transport=quic", "ice:")]
     [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:")]
-    public void Decode_proxy_with_unparseable_server_address_uri_throws_invalid_data(
+    public void Decode_proxy_with_unparsable_server_address_uri_throws_invalid_data(
         ServiceAddress value,
         string schemePrefix)
     {
@@ -50,7 +50,7 @@ public class ProxyTests
         int length = bufferWriter.WrittenMemory.Length;
 
         // Corrupt the first byte of the encoded URI scheme so that new Uri(...) throws UriFormatException.
-        // A URI scheme must start with an ALPHA; 0x01 is a control character and makes the URI unparseable.
+        // A URI scheme must start with an ALPHA; 0x01 is a control character and makes the URI unparsable.
         int uriStart = buffer.AsSpan(0, length).IndexOf(System.Text.Encoding.UTF8.GetBytes(schemePrefix));
         Assert.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
         buffer[uriStart] = 0x01;
