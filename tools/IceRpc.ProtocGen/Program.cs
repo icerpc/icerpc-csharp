@@ -46,10 +46,15 @@ foreach (FileDescriptor descriptor in descriptors)
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CS0619 // Type or member is obsolete
 
-using IceRpc.Protobuf;
-
-namespace {descriptor.GetCsharpNamespace()};".Trim();
+using IceRpc.Protobuf;".Trim();
     builder.AppendLine(preamble);
+    string csharpNamespace = descriptor.GetCsharpNamespace();
+    if (csharpNamespace.Length > 0)
+    {
+        builder.AppendLine();
+        builder.AppendLine($"namespace {csharpNamespace};");
+    }
+    // else generated types land in the global namespace, matching Google's protoc-gen-csharp behavior.
 
     foreach (ServiceDescriptor service in descriptor.Services)
     {

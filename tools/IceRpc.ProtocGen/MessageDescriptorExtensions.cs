@@ -8,9 +8,7 @@ internal static class MessageDescriptorExtensions
 {
     internal static string GetType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
     {
-        string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
-        string csharpType = scope == csharpNamespace ?
-            messageDescriptor.Name : $"global::{csharpNamespace}.{messageDescriptor.Name}";
+        string csharpType = messageDescriptor.GetQualifiedTypeName(scope);
         if (streaming)
         {
             csharpType = $"global::System.Collections.Generic.IAsyncEnumerable<{csharpType}>";
@@ -18,11 +16,16 @@ internal static class MessageDescriptorExtensions
         return csharpType;
     }
 
-    internal static string GetParserType(this MessageDescriptor messageDescriptor, string scope)
+    internal static string GetParserType(this MessageDescriptor messageDescriptor, string scope) =>
+        $"{messageDescriptor.GetQualifiedTypeName(scope)}.Parser";
+
+    private static string GetQualifiedTypeName(this MessageDescriptor messageDescriptor, string scope)
     {
         string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
-        string csharpType = scope == csharpNamespace ?
-            messageDescriptor.Name : $"global::{csharpNamespace}.{messageDescriptor.Name}";
-        return $"{csharpType}.Parser";
+        return scope == csharpNamespace ?
+            messageDescriptor.Name :
+            csharpNamespace.Length == 0 ?
+                $"global::{messageDescriptor.Name}" :
+                $"global::{csharpNamespace}.{messageDescriptor.Name}";
     }
 }
