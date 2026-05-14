@@ -9,15 +9,15 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.6.0-preview.1" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="0.6.0-preview.1" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.6.0-preview.1" />
-    <PackageReference Include="IceRpc.Logger" Version="0.6.0-preview.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" />
+    <PackageReference Include="IceRpc.Deadline" />
+    <PackageReference Include="IceRpc.Logger" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <!-- The 1.2 beta version is required for supporting the latest language features.
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+    <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
