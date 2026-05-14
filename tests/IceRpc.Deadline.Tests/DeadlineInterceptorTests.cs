@@ -50,13 +50,12 @@ public sealed class DeadlineInterceptorTests
     public async Task Deadline_feature_value_prevails_over_default_timeout()
     {
         // Arrange
-        var invocationTimeout = TimeSpan.FromSeconds(30);
+        DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
 
         IFeatureCollection features = new FeatureCollection();
-        features.Set<IDeadlineFeature>(DeadlineFeature.FromTimeout(invocationTimeout));
+        features.Set<IDeadlineFeature>(new DeadlineFeature(expectedDeadline));
 
         DateTime deadline = DateTime.MaxValue;
-        DateTime expectedDeadline = DateTime.UtcNow + invocationTimeout;
         var sut = new DeadlineInterceptor(
             new InlineInvoker((request, cancellationToken) =>
             {
@@ -78,7 +77,7 @@ public sealed class DeadlineInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThan(10));
+        Assert.That(deadline, Is.EqualTo(expectedDeadline));
     }
 
     /// <summary>Verifies that the deadline interceptor encodes the expected deadline value.</summary>
