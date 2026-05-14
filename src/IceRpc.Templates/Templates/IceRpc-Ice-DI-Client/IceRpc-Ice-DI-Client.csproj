@@ -22,8 +22,6 @@
     <PackageReference Include="IceRpc.Deadline" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" />
     <PackageReference Include="IceRpc.Logger" />
-    <!-- The 1.2 beta version is required for supporting the latest language features.
-           See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
