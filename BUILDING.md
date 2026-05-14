@@ -65,7 +65,7 @@ The coverage report will be available in the `tests/CodeCoverageReport` director
 
 ```shell
 cd docfx
-docfx metadata --property Configuration=Debug
+docfx metadata --property "Configuration=Debug;DocFxBuild=true"
 docfx build
 ```
 
