@@ -15,14 +15,16 @@
     </SliceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
-    <PackageReference Include="ZeroC.Ice.Slice.Tools" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Ice" />
-    <PackageReference Include="IceRpc.Deadline" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" />
-    <PackageReference Include="IceRpc.Logger" />
-    <PackageReference Include="StyleCop.Analyzers">
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.*" />
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Ice" Version="0.6.0-preview.1" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.6.0-preview.1" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.6.0-preview.1" />
+    <PackageReference Include="IceRpc.Logger" Version="0.6.0-preview.1" />
+    <!-- The 1.2 beta version is required for supporting the latest language features.
+         See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

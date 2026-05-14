@@ -5,6 +5,16 @@ runs:
   using: "composite"
   steps:
 
+  # The repo root Directory.Packages.props enables CPM. Template-generated projects carry explicit
+  # PackageReference Version= attributes (by design — they are standalone apps), so we must opt out
+  # of CPM in the templates-test scratch directory before running dotnet new.
+  - name: Prepare template test workspace
+    run: |
+      New-Item -ItemType Directory -Force -Path templates-test | Out-Null
+      '<Project><PropertyGroup><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup></Project>' |
+        Set-Content -Path templates-test/Directory.Packages.props -Encoding utf8
+    shell: pwsh
+
   # Protobuf Client template
   - name: 🧪 Test IceRpc + Protobuf Client Template with TCP
     run: |
