@@ -16,6 +16,15 @@ namespace IceRpc.Ice.Operations;
 /// <summary>Provides extension methods for <see cref="IceDecoder" /> to decode proxies.</summary>
 public static class IceProxyIceDecoderExtensions
 {
+    // The printable ASCII range. Characters outside this range must be percent-escaped in a service address parameter
+    // value.
+    private const char FirstValidChar = '\x21';
+    private const char LastValidChar = '\x7E';
+
+    // Same as ServiceAddress's _notValidInParamValue, plus '%' which must be escaped to make the percent-escaped
+    // value unambiguously decodable.
+    private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&\\^`{|}");
+
     /// <summary>Decodes a proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <param name="decoder">The Ice decoder.</param>
@@ -302,15 +311,6 @@ public static class IceProxyIceDecoderExtensions
                 exception);
         }
     }
-
-    // The printable ASCII range. Characters outside this range must be percent-escaped in a service address parameter
-    // value.
-    private const char FirstValidChar = '\x21';
-    private const char LastValidChar = '\x7E';
-
-    // Same as ServiceAddress's _notValidInParamValue, plus '%' which must be escaped to make the percent-escaped
-    // value unambiguously decodable.
-    private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&\\^`{|}");
 
     /// <summary>Percent-encodes only the characters that are invalid in a service address parameter value: characters
     /// outside the printable ASCII range <c>\x21..\x7E</c>, characters in
