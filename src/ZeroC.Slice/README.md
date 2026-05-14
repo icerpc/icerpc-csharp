@@ -65,11 +65,11 @@ public partial record struct Person
 }
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/ZeroC.Slice.html
+[api]: https://code.icerpc.dev/csharp/0.5.x/api/api/ZeroC.Slice.html
 [cs-buffers]: https://learn.microsoft.com/en-us/dotnet/standard/io/buffers
 [docs]: https://docs.icerpc.dev/slice2
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [package]: https://www.nuget.org/packages/ZeroC.Slice
 [pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
-[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/ZeroC.Slice
+[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/0.5.x/tools/IceRpc.Slice.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.5.x/src/ZeroC.Slice

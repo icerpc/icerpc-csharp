@@ -217,7 +217,7 @@ to the license for the full terms and conditions.
 in-memory transport for testing). Future releases may add additional transports.
 
 [Apache License version 2.0]: LICENSE
-[API reference]: https://docs.icerpc.dev/api/csharp/api/IceRpc.html
+[API reference]: https://code.icerpc.dev/csharp/0.5.x/api/api/IceRpc.html
 [Building from source]: BUILDING.md
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml
 [custom]: https://docs.icerpc.dev/slice2/language-guide/custom-types
@@ -233,7 +233,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-protocol]: https://docs.icerpc.dev/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
-[license]: https://github.com/icerpc/icerpc-csharp/blob/main/LICENSE
+[license]: https://github.com/icerpc/icerpc-csharp/blob/0.5.x/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [Protobuf]: https://en.wikipedia.org/wiki/Protocol_Buffers
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
