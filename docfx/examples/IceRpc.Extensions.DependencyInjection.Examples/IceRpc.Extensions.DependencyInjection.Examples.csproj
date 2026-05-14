@@ -5,12 +5,12 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../Greeter.slice" />
-    <PackageReference Include="IceRpc" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.*" />
+    <PackageReference Include="IceRpc" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" />
+    <PackageReference Include="IceRpc.Logger" />
+    <PackageReference Include="IceRpc.Slice" />
+    <PackageReference Include="IceRpc.Slice.Tools" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Telemetry" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 </Project>

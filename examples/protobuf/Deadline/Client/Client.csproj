@@ -11,10 +11,10 @@
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
     <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference Include="IceRpc.Protobuf.Tools" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" />
+    <PackageReference Include="IceRpc.Deadline" />
+    <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

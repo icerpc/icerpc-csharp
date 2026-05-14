@@ -10,10 +10,10 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference Include="IceRpc.Slice.Tools" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" />
+    <PackageReference Include="IceRpc.Slice" />
+    <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

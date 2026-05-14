@@ -25,14 +25,14 @@
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
     <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.*" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    <PackageReference Include="IceRpc.Slice.Tools" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" />
+    <PackageReference Include="IceRpc.Logger" />
+    <PackageReference Include="IceRpc.Telemetry" />
+    <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

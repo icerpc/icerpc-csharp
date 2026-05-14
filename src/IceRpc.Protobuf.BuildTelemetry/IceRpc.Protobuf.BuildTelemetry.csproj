@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
+    <PackageReference Include="Google.Protobuf" />
     <ProjectReference Include="../IceRpc/IceRpc.csproj" />
     <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />
     <None Include="protoc-gen-icerpc-build-telemetry.bat">

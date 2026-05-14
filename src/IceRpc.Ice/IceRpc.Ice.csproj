@@ -23,9 +23,9 @@
                       ExactVersion="true"
                       PrivateAssets="compile;runtime"
                       OutputItemType="Analyzer" />
-    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" PrivateAssets="all" />
 
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

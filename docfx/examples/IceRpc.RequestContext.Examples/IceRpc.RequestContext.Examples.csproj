@@ -10,12 +10,12 @@
     <ProtoFile Include="../greeter.proto">
       <OutputDir>generated/protoc</OutputDir>
     </ProtoFile>
-    <PackageReference Include="IceRpc" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
-    <PackageReference Include="IceRpc.RequestContext" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
+    <PackageReference Include="IceRpc" />
+    <PackageReference Include="IceRpc.Slice" />
+    <PackageReference Include="IceRpc.RequestContext" />
+    <PackageReference Include="IceRpc.Slice.Tools" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="generated/" />
