@@ -82,9 +82,10 @@ internal sealed class Parser
                     }
                 }
 
+                string containingNamespace = GetFullName(classSymbol.ContainingNamespace);
                 var serviceClass = new ServiceClass(
                     classSymbol.Name,
-                    GetFullName(classSymbol.ContainingNamespace),
+                    containingNamespace.Length > 0 ? containingNamespace : null,
                     classDeclaration.Keyword.ValueText,
                     serviceMethods,
                     hasBaseServiceClass: baseServiceClass is not null,
