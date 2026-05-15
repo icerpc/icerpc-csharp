@@ -29,8 +29,6 @@ exclude = [
     # GitHub edit/blame links (may require auth)
     "github\\.com/.*/edit/",
     "github\\.com/.*/blame/",
-    # Symbol server
-    "^https?://symbols\\.zeroc\\.com",
 ]
 
 # Accept these status codes as valid
