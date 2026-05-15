@@ -5,131 +5,128 @@ runs:
   using: "composite"
   steps:
 
-  # The repo root Directory.Packages.props enables CPM. Template-generated projects carry explicit
-  # PackageReference Version= attributes (by design — they are standalone apps), so we must opt out
-  # of CPM in the templates-test scratch directory before running dotnet new.
-  - name: Prepare template test workspace
-    run: |
-      New-Item -ItemType Directory -Force -Path templates-test | Out-Null
-      '<Project><PropertyGroup><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup></Project>' |
-        Set-Content -Path templates-test/Directory.Packages.props -Encoding utf8
+  # Generate template projects outside the repo root so they don't inherit the repo's
+  # Directory.Packages.props (which enables CPM). Template-generated projects carry explicit
+  # PackageReference Version= attributes by design — they are standalone apps.
+  - name: Set template test workspace path
+    run: echo "TEMPLATES_TEST_DIR=$env:RUNNER_TEMP/templates-test" >> $env:GITHUB_ENV
     shell: pwsh
 
   # Protobuf Client template
   - name: 🧪 Test IceRpc + Protobuf Client Template with TCP
     run: |
-      dotnet new icerpc-protobuf-client -o templates-test/tcp/ProtobufClient --transport tcp
-      dotnet build templates-test/tcp/ProtobufClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-protobuf-client -o $env:TEMPLATES_TEST_DIR/tcp/ProtobufClient --transport tcp
+      dotnet build $env:TEMPLATES_TEST_DIR/tcp/ProtobufClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   - name: 🧪 Test IceRpc + Protobuf Client Template with QUIC
     run: |
-      dotnet new icerpc-protobuf-client -o templates-test/quic/ProtobufClient
-      dotnet build templates-test/quic/ProtobufClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-protobuf-client -o $env:TEMPLATES_TEST_DIR/quic/ProtobufClient
+      dotnet build $env:TEMPLATES_TEST_DIR/quic/ProtobufClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Protobuf Server template
 
   - name: 🧪 Test IceRpc + Protobuf Server Template with TCP
     run: |
-      dotnet new icerpc-protobuf-server -o templates-test/tcp/ProtobufServer --transport tcp
-      dotnet build templates-test/tcp/ProtobufServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-protobuf-server -o $env:TEMPLATES_TEST_DIR/tcp/ProtobufServer --transport tcp
+      dotnet build $env:TEMPLATES_TEST_DIR/tcp/ProtobufServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   - name: 🧪 Test IceRpc + Protobuf Server Template with QUIC
     run: |
-      dotnet new icerpc-protobuf-server -o templates-test/quic/ProtobufServer
-      dotnet build templates-test/quic/ProtobufServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-protobuf-server -o $env:TEMPLATES_TEST_DIR/quic/ProtobufServer
+      dotnet build $env:TEMPLATES_TEST_DIR/quic/ProtobufServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice Client template
 
   - name: 🧪 Test IceRpc + Slice Client Template with TCP
     run: |
-      dotnet new icerpc-slice-client -o templates-test/tcp/SliceClient --transport tcp
-      dotnet build templates-test/tcp/SliceClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-slice-client -o $env:TEMPLATES_TEST_DIR/tcp/SliceClient --transport tcp
+      dotnet build $env:TEMPLATES_TEST_DIR/tcp/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   - name: 🧪 Test IceRpc + Slice Client Template with QUIC
     run: |
-      dotnet new icerpc-slice-client -o templates-test/quic/SliceClient
-      dotnet build templates-test/quic/SliceClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-slice-client -o $env:TEMPLATES_TEST_DIR/quic/SliceClient
+      dotnet build $env:TEMPLATES_TEST_DIR/quic/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice Server template
 
   - name: 🧪 Test IceRpc + Slice Server Template with TCP
     run: |
-      dotnet new icerpc-slice-server -o templates-test/tcp/SliceServer --transport tcp
-      dotnet build templates-test/tcp/SliceServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-slice-server -o $env:TEMPLATES_TEST_DIR/tcp/SliceServer --transport tcp
+      dotnet build $env:TEMPLATES_TEST_DIR/tcp/SliceServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   - name: 🧪 Test IceRpc + Slice Server Template with QUIC
     run: |
-      dotnet new icerpc-slice-server -o templates-test/quic/SliceServer
-      dotnet build templates-test/quic/SliceServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-slice-server -o $env:TEMPLATES_TEST_DIR/quic/SliceServer
+      dotnet build $env:TEMPLATES_TEST_DIR/quic/SliceServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Protobuf DI Client template
 
   - name: 🧪 Test IceRpc + Protobuf DI Client Template
     run: |
-      dotnet new icerpc-protobuf-di-client -o templates-test/ProtobufDIClient
-      dotnet build templates-test/ProtobufDIClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-protobuf-di-client -o $env:TEMPLATES_TEST_DIR/ProtobufDIClient
+      dotnet build $env:TEMPLATES_TEST_DIR/ProtobufDIClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Protobuf DI Server template
 
   - name: 🧪 Test IceRpc + Protobuf DI Server Template
     run: |
-      dotnet new icerpc-protobuf-di-server -o templates-test/ProtobufDIServer
-      dotnet build templates-test/ProtobufDIServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-protobuf-di-server -o $env:TEMPLATES_TEST_DIR/ProtobufDIServer
+      dotnet build $env:TEMPLATES_TEST_DIR/ProtobufDIServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice DI Client template
 
   - name: 🧪 Test IceRpc + Slice DI Client Template
     run: |
-      dotnet new icerpc-slice-di-client -o templates-test/SliceDIClient
-      dotnet build templates-test/SliceDIClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-slice-di-client -o $env:TEMPLATES_TEST_DIR/SliceDIClient
+      dotnet build $env:TEMPLATES_TEST_DIR/SliceDIClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice DI Server template
 
   - name: 🧪 Test IceRpc + Slice DI Server Template
     run: |
-      dotnet new icerpc-slice-di-server -o templates-test/SliceDIServer
-      dotnet build templates-test/SliceDIServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-slice-di-server -o $env:TEMPLATES_TEST_DIR/SliceDIServer
+      dotnet build $env:TEMPLATES_TEST_DIR/SliceDIServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Ice Client template
 
   - name: 🧪 Test IceRpc + Ice Client Template
     run: |
-      dotnet new icerpc-ice-client -o templates-test/IceClient
-      dotnet build templates-test/IceClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-ice-client -o $env:TEMPLATES_TEST_DIR/IceClient
+      dotnet build $env:TEMPLATES_TEST_DIR/IceClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Ice Server template
 
   - name: 🧪 Test IceRpc + Ice Server Template
     run: |
-      dotnet new icerpc-ice-server -o templates-test/IceServer
-      dotnet build templates-test/IceServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-ice-server -o $env:TEMPLATES_TEST_DIR/IceServer
+      dotnet build $env:TEMPLATES_TEST_DIR/IceServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Ice DI Client template
 
   - name: 🧪 Test IceRpc + Ice DI Client Template
     run: |
-      dotnet new icerpc-ice-di-client -o templates-test/IceDIClient
-      dotnet build templates-test/IceDIClient/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-ice-di-client -o $env:TEMPLATES_TEST_DIR/IceDIClient
+      dotnet build $env:TEMPLATES_TEST_DIR/IceDIClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Ice DI Server template
 
   - name: 🧪 Test IceRpc + Ice DI Server Template
     run: |
-      dotnet new icerpc-ice-di-server -o templates-test/IceDIServer
-      dotnet build templates-test/IceDIServer/ /p:TreatWarningsAsErrors=true
+      dotnet new icerpc-ice-di-server -o $env:TEMPLATES_TEST_DIR/IceDIServer
+      dotnet build $env:TEMPLATES_TEST_DIR/IceDIServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
