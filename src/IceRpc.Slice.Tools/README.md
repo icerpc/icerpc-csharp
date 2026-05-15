@@ -148,5 +148,5 @@ Setting this property to `false` completely disables the computation and collect
 [zeroc-slice-codec]: https://www.nuget.org/packages/ZeroC.Slice.Codec
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.icerpc.dev/slice2
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Slice.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines

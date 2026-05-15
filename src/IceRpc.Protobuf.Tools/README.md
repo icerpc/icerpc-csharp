@@ -120,7 +120,7 @@ Setting this property to `false` completely disables the computation and collect
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Protobuf.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Protobuf.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Protobuf.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
 [google-protobuf]: https://www.nuget.org/packages/Google.Protobuf
 [google-protobuf-tools]: https://www.nuget.org/packages/Google.Protobuf.Tools

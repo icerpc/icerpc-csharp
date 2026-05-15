@@ -1,0 +1,45 @@
+# Lychee link checker configuration
+# https://lychee.cli.rs/
+
+# Maximum number of concurrent requests
+max_concurrency = 32
+
+# Minimum interval between requests to the same host
+host_request_interval = "50ms"
+
+# Timeout for each request in seconds
+timeout = 30
+
+# Number of retries for failed requests
+max_retries = 3
+
+# User agent string
+user_agent = "Mozilla/5.0 (compatible; lychee/0.15; +https://github.com/lycheeverse/lychee)"
+
+# Exclude patterns
+exclude = [
+    # Localhost and local files
+    "^file://",
+    "^https?://localhost",
+    "^https?://127\\.0\\.0\\.1",
+    # Example domains
+    "^https?://example\\.com",
+    # Mail links
+    "^mailto:",
+    # GitHub edit/blame links (may require auth)
+    "github\\.com/.*/edit/",
+    "github\\.com/.*/blame/",
+    # TODO: remove once 0.6 packages and API docs are published.
+    "^https?://www\\.nuget\\.org/packages/IceRpc\\.Ice/?$",
+    "^https?://www\\.nuget\\.org/packages/IceRpc\\.ServiceGenerator/?$",
+    "^https?://www\\.nuget\\.org/packages/ZeroC\\.Slice\\.Codec/?$",
+    "^https?://docs\\.icerpc\\.dev/api/csharp/api/IceRpc\\.Ice\\.html$",
+    "^https?://docs\\.icerpc\\.dev/api/csharp/api/IceRpc\\.Protobuf\\.html$",
+    "^https?://docs\\.icerpc\\.dev/api/csharp/api/ZeroC\\.Slice\\.Codec\\.html$",
+]
+
+# Accept these status codes as valid
+accept = [200, 204, 206, 301, 308]
+
+# Include fragments (anchors) in checks
+include_fragments = true
