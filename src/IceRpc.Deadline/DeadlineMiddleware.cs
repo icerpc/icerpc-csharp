@@ -10,15 +10,15 @@ namespace IceRpc.Deadline;
 /// <summary>Represents a middleware that decodes deadline fields into deadline features. When the decoded deadline
 /// expires, this middleware cancels the dispatch and returns an <see cref="OutgoingResponse" /> with status code
 /// <see cref="StatusCode.DeadlineExceeded" />.</summary>
-/// <remarks>A peer-encoded deadline whose computed remaining timeout exceeds the
-/// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> maximum (~24.8 days) is silently clamped to that
-/// maximum.</remarks>
+/// <remarks>If the peer-encoded deadline is too far in the future for this middleware to enforce (more than
+/// ~24.8 days from now), the request is rejected with <see cref="StatusCode.NotSupported" /> instead.</remarks>
 /// <seealso cref="DeadlineRouterExtensions"/>
 /// <seealso cref="DeadlineDispatcherBuilderExtensions"/>
 public class DeadlineMiddleware : IDispatcher
 {
-    // The maximum delay CancellationTokenSource.CancelAfter(TimeSpan) accepts.
-    private static readonly TimeSpan _maxCancelAfterDelay = TimeSpan.FromMilliseconds(int.MaxValue);
+    // The maximum supported timeout (int.MaxValue ms, ~24.8 days). This is the maximum delay
+    // CancellationTokenSource.CancelAfter accepts.
+    private static readonly TimeSpan _maxSupportedTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
 
     private readonly IDispatcher _next;
     private readonly TimeProvider _timeProvider;
@@ -53,12 +53,15 @@ public class DeadlineMiddleware : IDispatcher
                     "The request deadline has expired."));
             }
 
-            // Clamp to CancelAfter's supported maximum. A peer-encoded deadline thousands of years in the future
-            // would otherwise cause CancelAfter to throw ArgumentOutOfRangeException, surfacing as a generic
-            // InternalError response.
-            if (timeout > _maxCancelAfterDelay)
+            // Reject a peer-encoded deadline that exceeds what this middleware can enforce. Silently clamping
+            // a deadline the client asked for to a smaller value the implementation supports is worse than
+            // failing cleanly.
+            if (timeout > _maxSupportedTimeout)
             {
-                timeout = _maxCancelAfterDelay;
+                return new(new OutgoingResponse(
+                    request,
+                    StatusCode.NotSupported,
+                    $"The request deadline exceeds the maximum timeout supported by this server: {_maxSupportedTimeout}."));
             }
 
             request.Features = request.Features.With<IDeadlineFeature>(new DeadlineFeature(deadline));

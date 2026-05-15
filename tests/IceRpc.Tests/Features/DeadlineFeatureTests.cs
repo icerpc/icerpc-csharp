@@ -14,10 +14,10 @@ public class DeadlineFeatureTests
         Assert.That(() => DeadlineFeature.FromTimeout(TimeSpan.FromSeconds(-1)), Throws.TypeOf<ArgumentException>());
     }
 
-    /// <summary>Verifies FromTimeout rejects a timeout beyond CancelAfter's supported maximum instead of
-    /// letting DateTime.UtcNow + timeout overflow with ArgumentOutOfRangeException.</summary>
+    /// <summary>Verifies FromTimeout rejects a timeout that exceeds the maximum supported value rather than
+    /// letting <see cref="DateTime.UtcNow" /> + timeout overflow.</summary>
     [Test]
-    public void FromTimeout_rejects_timeout_beyond_cancel_after_max()
+    public void FromTimeout_rejects_timeout_beyond_maximum()
     {
         Assert.That(() => DeadlineFeature.FromTimeout(TimeSpan.MaxValue), Throws.TypeOf<ArgumentException>());
     }
