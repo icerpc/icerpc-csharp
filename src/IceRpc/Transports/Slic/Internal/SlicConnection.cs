@@ -1064,7 +1064,7 @@ internal class SlicConnection : IMultiplexedConnection
                     if (maxStreamFrameSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1 KB.");
+                            "The MaxStreamFrameSize connection parameter is invalid, it must be at least 1 KB.");
                     }
                     if (maxStreamFrameSize > SlicTransportOptions.MaxStreamFrameSizeCeiling)
                     {
@@ -1079,7 +1079,7 @@ internal class SlicConnection : IMultiplexedConnection
                     if (peerInitialStreamWindowSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The InitialStreamWindowSize connection parameter is invalid, it must be greater than 1 KB.");
+                            "The InitialStreamWindowSize connection parameter is invalid, it must be at least 1 KB.");
                     }
                     break;
                 }
