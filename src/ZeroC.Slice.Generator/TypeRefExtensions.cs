@@ -20,7 +20,6 @@ internal static class TypeRefExtensions
         return typeRef.Type.DecodeExpression(currentNamespace);
     }
 
-
     /// <summary>Generates encode expression for a type reference.</summary>
     internal static string EncodeExpression(
         this TypeRef typeRef,
@@ -28,7 +27,6 @@ internal static class TypeRefExtensions
         string param,
         string encoderName = "encoder") =>
         typeRef.Type.EncodeExpression(currentNamespace, param, encoderName);
-
 
     /// <summary>Returns the C# type string for a field type reference.</summary>
     internal static string FieldTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)

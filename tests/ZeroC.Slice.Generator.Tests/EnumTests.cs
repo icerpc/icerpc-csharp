@@ -99,7 +99,7 @@ internal class EnumTests
     }
 
     [Test]
-    public void Encode_int32_enum([Values(MyEnum.Enum1, MyEnum.Enum2)]MyEnum expected)
+    public void Encode_int32_enum([Values(MyEnum.Enum1, MyEnum.Enum2)] MyEnum expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);

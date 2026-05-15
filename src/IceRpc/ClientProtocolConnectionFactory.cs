@@ -98,12 +98,12 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     public IProtocolConnection CreateConnection(ServerAddress serverAddress)
     {
         var transportAddress = new TransportAddress
-            {
-                Host = serverAddress.Host,
-                Port = serverAddress.Port,
-                TransportName = serverAddress.Transport,
-                Params = serverAddress.Params
-            };
+        {
+            Host = serverAddress.Host,
+            Port = serverAddress.Port,
+            TransportName = serverAddress.Transport,
+            Params = serverAddress.Params
+        };
 
         IProtocolConnection connection;
         if (serverAddress.Protocol == Protocol.Ice)

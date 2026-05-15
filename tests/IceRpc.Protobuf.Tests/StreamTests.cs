@@ -154,10 +154,10 @@ public class StreamTests
         InputMessage[] expected = Enumerable
             .Range(0, size)
             .Select(i => new InputMessage()
-                {
-                    P1 = $"Message-{i}",
-                    P2 = i,
-                }).ToArray();
+            {
+                P1 = $"Message-{i}",
+                P2 = i,
+            }).ToArray();
 
         // Act
         var payload = GetDataAsync(size).ToPipeReader();

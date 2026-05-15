@@ -54,7 +54,6 @@ public enum BuiltinKind
     String,
 }
 
-
 /// <summary>Represents one of the built-in types in Slice, such as int32, string, etc.</summary>
 public class Builtin : IType
 {

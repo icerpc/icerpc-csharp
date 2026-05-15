@@ -28,7 +28,7 @@ public class QuicIdleTimeoutTests
     /// wrapper to keep this connection alive when there is an outstanding request.
     /// See <see href="https://github.com/icerpc/icerpc-csharp/issues/3353" />.</remarks>
     [Test]
-    public async Task Quic_connection_idle_after_idle_timeout([Values]bool configureServer)
+    public async Task Quic_connection_idle_after_idle_timeout([Values] bool configureServer)
     {
         // Arrange
         var services = new ServiceCollection().AddQuicTest();

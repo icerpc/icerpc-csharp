@@ -46,7 +46,9 @@ internal sealed class AsyncStream<T> : IAsyncStream<T> where T : class, IMessage
                 _disposeCts.Cancel();
                 break;
 
-            // case State.Disposed: no-op (Dispose called more than once).
+            case State.Disposed:
+                // no-op (Dispose called more than once).
+                break;
         }
     }
 

@@ -66,7 +66,7 @@ internal static class DocCommentFormatter
             // generic types, since they don't correspond to type parameters of the outer type.
             int commaCount = 0;
             int nestingLevel = 0;
-            foreach(char c in typeString)
+            foreach (char c in typeString)
             {
                 switch (c)
                 {

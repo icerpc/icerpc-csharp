@@ -166,9 +166,11 @@ internal class IceServiceMethod : ServiceMethod
                         _idempotent = idempotent;
                     }
                     break;
-                // TODO: issue a diagnostic if we encounter an unknown named argument
-                // An unknown argument indicates a mismatch between this version of the generator and the version
-                // of the IceRpc.Ice assembly that references this generator, which is highly unlikely.
+                default:
+                    // TODO: issue a diagnostic if we encounter an unknown named argument
+                    // An unknown argument indicates a mismatch between this version of the generator and the version
+                    // of the IceRpc.Ice assembly that references this generator, which is highly unlikely.
+                    break;
             }
         }
 
