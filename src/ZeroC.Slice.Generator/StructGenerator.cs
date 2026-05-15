@@ -129,7 +129,6 @@ internal static class StructGenerator
                 includeTagEndMarker: !structDef.IsCompact))
             .Build();
 
-
     private static CodeBlock FieldDeclaration(
         Field field,
         string currentNamespace,

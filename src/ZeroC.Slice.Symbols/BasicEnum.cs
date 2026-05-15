@@ -22,7 +22,8 @@ public abstract class BasicEnum : Entity, ISymbol, IType
 
 /// <summary>Represents a Slice basic enumeration with a typed underlying value.</summary>
 /// <typeparam name="T">The C# type that corresponds to the underlying Slice type.</typeparam>
-public sealed class BasicEnum<T> : BasicEnum where T : struct, System.Numerics.INumber<T>{
+public sealed class BasicEnum<T> : BasicEnum where T : struct, System.Numerics.INumber<T>
+{
     /// <summary>Gets the list of enumerators for this enumeration.</summary>
     public required ImmutableList<Enumerator> Enumerators { get; init; }
 

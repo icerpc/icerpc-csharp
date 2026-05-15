@@ -164,7 +164,7 @@ public class RetryInterceptor : IInvoker
                             // memory for the request payload as soon as possible.
                             if (attempt == _maxAttempts)
                             {
-                               decorator.IsResettable = false;
+                                decorator.IsResettable = false;
                             }
                         }
                     }

@@ -17,7 +17,6 @@ internal static class FieldExtensions
     internal static string EncodeField(this Field field, string currentNamespace) =>
         $"{field.DataType.EncodeExpression(currentNamespace, $"this.{field.Name}")};";
 
-
     /// <summary>Generates encode code for a tagged field.</summary>
     /// <param name="field">The tagged field.</param>
     /// <param name="currentNamespace">The current C# namespace.</param>
