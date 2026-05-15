@@ -97,10 +97,10 @@ public sealed class DeadlineMiddlewareTests
         pipeReader.Complete();
     }
 
-    /// <summary>Verifies the middleware clamps an extreme-future peer-encoded deadline instead of letting
-    /// CancelAfter throw ArgumentOutOfRangeException.</summary>
+    /// <summary>Verifies the middleware rejects an extreme-future peer-encoded deadline with
+    /// <see cref="StatusCode.NotSupported" /> rather than silently clamping it to its supported maximum.</summary>
     [Test]
-    public async Task Dispatch_with_extreme_future_deadline_does_not_throw()
+    public async Task Dispatch_with_extreme_future_deadline_returns_not_supported()
     {
         // Arrange
         bool nextCalled = false;
@@ -124,9 +124,12 @@ public sealed class DeadlineMiddlewareTests
             }
         };
 
-        // Act/Assert
-        Assert.That(async () => await sut.DispatchAsync(request, CancellationToken.None), Throws.Nothing);
-        Assert.That(nextCalled, Is.True);
+        // Act
+        OutgoingResponse response = await sut.DispatchAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.NotSupported));
+        Assert.That(nextCalled, Is.False);
 
         // Cleanup
         pipeReader.Complete();

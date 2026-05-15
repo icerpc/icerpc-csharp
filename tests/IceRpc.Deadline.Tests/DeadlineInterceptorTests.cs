@@ -135,10 +135,10 @@ public sealed class DeadlineInterceptorTests
         Assert.That(token!.Value, Is.EqualTo(cts.Token));
     }
 
-    /// <summary>Verifies the interceptor clamps an extreme-future IDeadlineFeature value instead of letting
-    /// CancelAfter throw ArgumentOutOfRangeException.</summary>
+    /// <summary>Verifies the interceptor rejects an extreme-future IDeadlineFeature value with
+    /// <see cref="NotSupportedException" /> rather than silently clamping it.</summary>
     [Test]
-    public async Task Invoke_with_extreme_future_deadline_does_not_throw()
+    public void Invoke_with_extreme_future_deadline_throws_not_supported()
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
@@ -146,7 +146,7 @@ public sealed class DeadlineInterceptorTests
 
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: true);
         // Close to DateTime.MaxValue but not equal, so the interceptor's "== DateTime.MaxValue" short-circuit
-        // does not kick in and the CancelAfter path is actually exercised.
+        // does not kick in and the deadline-too-far-in-future path is exercised.
         DateTime extreme = DateTime.SpecifyKind(DateTime.MaxValue.AddDays(-1), DateTimeKind.Utc);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
@@ -154,7 +154,9 @@ public sealed class DeadlineInterceptorTests
         };
 
         // Act/Assert
-        Assert.That(async () => await sut.InvokeAsync(request, default), Throws.Nothing);
+        Assert.That(
+            async () => await sut.InvokeAsync(request, default),
+            Throws.TypeOf<NotSupportedException>());
     }
 
     [Test]
@@ -227,11 +229,11 @@ public sealed class DeadlineInterceptorTests
             Throws.TypeOf<ArgumentException>());
     }
 
-    /// <summary>Verifies the constructor rejects a default timeout beyond CancelAfter's supported maximum.
-    /// TimeSpan.MaxValue would otherwise later cause DateTime overflow (now + timeout) or CancelAfter to throw
-    /// ArgumentOutOfRangeException at first invoke.</summary>
+    /// <summary>Verifies the constructor rejects a default timeout that exceeds the maximum supported value.
+    /// <see cref="TimeSpan.MaxValue" /> would otherwise later cause <c>DateTime</c> overflow (now + timeout) or
+    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> to throw at first invoke.</summary>
     [Test]
-    public void Constructor_rejects_default_timeout_beyond_cancel_after_max()
+    public void Constructor_rejects_default_timeout_beyond_maximum()
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
