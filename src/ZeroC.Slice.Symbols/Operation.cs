@@ -21,6 +21,6 @@ public class Operation : Entity
     public required ImmutableList<Field> ReturnType { get; init; }
 
     /// <summary>Gets a value indicating whether this operation has a streamed return. When <see langword="true"/>, the
-    /// last return type in the <see cref="ReturnType"/> list is a streamed return.</summary> 
+    /// last return type in the <see cref="ReturnType"/> list is a streamed return.</summary>
     public required bool HasStreamedReturn { get; init; }
 }
