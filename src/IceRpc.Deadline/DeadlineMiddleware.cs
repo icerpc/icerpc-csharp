@@ -2,6 +2,7 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
+using System.Buffers;
 using ZeroC.Slice;
 
 namespace IceRpc.Deadline;
@@ -9,10 +10,16 @@ namespace IceRpc.Deadline;
 /// <summary>Represents a middleware that decodes deadline fields into deadline features. When the decoded deadline
 /// expires, this middleware cancels the dispatch and returns an <see cref="OutgoingResponse" /> with status code
 /// <see cref="StatusCode.DeadlineExceeded" />.</summary>
+/// <remarks>If the peer-encoded deadline is too far in the future for this middleware to enforce (more than
+/// ~24.8 days from now), the request is rejected with <see cref="StatusCode.NotSupported" /> instead.</remarks>
 /// <seealso cref="DeadlineRouterExtensions"/>
 /// <seealso cref="DeadlineDispatcherBuilderExtensions"/>
 public class DeadlineMiddleware : IDispatcher
 {
+    // The maximum supported timeout (int.MaxValue ms, ~24.8 days). This is the maximum delay
+    // CancellationTokenSource.CancelAfter accepts.
+    private static readonly TimeSpan _maxSupportedTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
+
     private readonly IDispatcher _next;
     private readonly TimeProvider _timeProvider;
 
@@ -31,16 +38,12 @@ public class DeadlineMiddleware : IDispatcher
         IncomingRequest request,
         CancellationToken cancellationToken = default)
     {
-        TimeSpan? timeout = null;
-
-        // not found returns default == DateTime.MinValue.
-        DateTime deadline = request.Fields.DecodeValue(
-            RequestFieldKey.Deadline,
-            (ref SliceDecoder decoder) => decoder.DecodeTimeStamp());
-
-        if (deadline != DateTime.MinValue)
+        // Check explicit field presence rather than relying on a decoded-value sentinel.
+        if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out ReadOnlySequence<byte> value))
         {
-            timeout = deadline - _timeProvider.GetUtcNow().UtcDateTime;
+            var decoder = new SliceDecoder(value, SliceEncoding.Slice2);
+            DateTime deadline = decoder.DecodeTimeStamp();
+            TimeSpan timeout = deadline - _timeProvider.GetUtcNow().UtcDateTime;
 
             if (timeout <= TimeSpan.Zero)
             {
@@ -50,10 +53,22 @@ public class DeadlineMiddleware : IDispatcher
                     "The request deadline has expired."));
             }
 
+            // Reject a peer-encoded deadline that exceeds what this middleware can enforce. Silently clamping
+            // a deadline the client asked for to a smaller value the implementation supports is worse than
+            // failing cleanly.
+            if (timeout > _maxSupportedTimeout)
+            {
+                return new(new OutgoingResponse(
+                    request,
+                    StatusCode.NotSupported,
+                    $"The request deadline exceeds the maximum timeout supported by this server: {_maxSupportedTimeout}."));
+            }
+
             request.Features = request.Features.With<IDeadlineFeature>(new DeadlineFeature(deadline));
+            return PerformDispatchAsync(timeout);
         }
 
-        return timeout is null ? _next.DispatchAsync(request, cancellationToken) : PerformDispatchAsync(timeout.Value);
+        return _next.DispatchAsync(request, cancellationToken);
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
         {
