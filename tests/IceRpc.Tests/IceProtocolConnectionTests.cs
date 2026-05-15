@@ -208,6 +208,67 @@ public sealed class IceProtocolConnectionTests
         Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
     }
 
+    /// <summary>Verifies that an Ice reply with a reply-status value the client does not know is decoded as
+    /// <see cref="StatusCode.InternalError" /> rather than failing with <see cref="InvalidDataException" />.
+    /// This is the regression covered by the direct-cast fix in <c>DecodeResponseHeader</c>: the generated
+    /// <c>AsReplyStatus()</c> converter throws on unrecognized values, so without the fix a peer sending a
+    /// reply-status the client doesn't yet know about would surface as a protocol error rather than a
+    /// normal failed response.</summary>
+    [Test]
+    public async Task Invocation_succeeds_with_unknown_reply_status()
+    {
+        // Arrange
+        // The dispatcher result is irrelevant; the client-side ReadDecorator below rewrites the reply-status
+        // byte on the wire.
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            new(new OutgoingResponse(request, StatusCode.InternalError, "boom")));
+
+        // Reply-status sits at byte offset 4 of the response body (immediately after the 4-byte request ID).
+        // We locate it by scanning each client-side read for the request ID 0x01,0x00,0x00,0x00 (the first
+        // invocation always uses request ID 1) and flipping the byte that follows. The pattern can never
+        // match earlier in the connection stream: the ValidateConnection frame and the response prologue
+        // both contain "01 00" pairs (protocol/encoding version) but never four consecutive bytes
+        // "01 00 00 00".
+        bool mutated = false;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new DuplexTransportOperationsOptions
+                {
+                    ReadDecorator = async (decoratee, buffer, cancellationToken) =>
+                    {
+                        int count = await decoratee.ReadAsync(buffer, cancellationToken);
+                        if (!mutated)
+                        {
+                            Span<byte> span = buffer.Span[..count];
+                            ReadOnlySpan<byte> marker = stackalloc byte[] { 0x01, 0x00, 0x00, 0x00 };
+                            int idx = span.IndexOf(marker);
+                            if (idx >= 0 && idx + 4 < count)
+                            {
+                                span[idx + 4] = 99; // unknown reply-status
+                                mutated = true;
+                            }
+                        }
+                        return count;
+                    }
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(mutated, Is.True, "reply-status byte was not located on the wire");
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.InternalError));
+    }
+
     /// <summary>Verifies that an abortive server connection shutdown causes an invocation failure.</summary>
     [Test]
     public async Task Abortive_server_connection_shutdown_triggers_invocation_failure()
