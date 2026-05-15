@@ -8,8 +8,15 @@ runs:
   # Generate template projects outside the repo root so they don't inherit the repo's
   # Directory.Packages.props (which enables CPM). Template-generated projects carry explicit
   # PackageReference Version= attributes by design — they are standalone apps.
-  - name: Set template test workspace path
-    run: echo "TEMPLATES_TEST_DIR=$env:RUNNER_TEMP/templates-test" >> $env:GITHUB_ENV
+  #
+  # We do need to bring along the repo's NuGet source mapping so ZeroC.Ice.Slice.Tools resolves
+  # from the zeroc.com nightly feed instead of nuget.org.
+  - name: Prepare template test workspace
+    run: |
+      $dir = "$env:RUNNER_TEMP/templates-test"
+      New-Item -ItemType Directory -Force -Path $dir | Out-Null
+      Copy-Item -Path "$env:GITHUB_WORKSPACE/nuget.config" -Destination "$dir/nuget.config"
+      echo "TEMPLATES_TEST_DIR=$dir" >> $env:GITHUB_ENV
     shell: pwsh
 
   # Protobuf Client template
