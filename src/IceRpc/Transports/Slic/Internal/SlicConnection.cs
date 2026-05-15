@@ -1471,7 +1471,10 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (isBidirectional)
             {
-                if (streamId > _lastRemoteBidirectionalStreamId + 4)
+                ulong expectedStreamId = _lastRemoteBidirectionalStreamId is ulong lastId
+                    ? lastId + 4
+                    : (IsServer ? 0ul : 1ul);
+                if (streamId != expectedStreamId)
                 {
                     throw new InvalidDataException("Invalid stream ID.");
                 }
@@ -1486,7 +1489,10 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                if (streamId > _lastRemoteUnidirectionalStreamId + 4)
+                ulong expectedStreamId = _lastRemoteUnidirectionalStreamId is ulong lastId
+                    ? lastId + 4
+                    : (IsServer ? 2ul : 3ul);
+                if (streamId != expectedStreamId)
                 {
                     throw new InvalidDataException("Invalid stream ID.");
                 }
