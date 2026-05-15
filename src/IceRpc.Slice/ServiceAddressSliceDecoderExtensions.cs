@@ -110,7 +110,7 @@ public static class ServiceAddressSliceDecoderExtensions
                         break;
 
                     case TransportCode.Uri:
-                        serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                        serverAddress = DecodeUriServerAddress(decoder.DecodeString());
                         if (serverAddress.Value.Protocol != protocol)
                         {
                             throw new InvalidDataException(
@@ -151,7 +151,7 @@ public static class ServiceAddressSliceDecoderExtensions
             else if (transportCode == TransportCode.Uri)
             {
                 // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
-                serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                serverAddress = DecodeUriServerAddress(decoder.DecodeString());
                 if (serverAddress.Value.Protocol != protocol)
                 {
                     throw new InvalidDataException(
@@ -177,6 +177,20 @@ public static class ServiceAddressSliceDecoderExtensions
         }
 
         return serverAddress.Value;
+
+        static ServerAddress DecodeUriServerAddress(string uriString)
+        {
+            try
+            {
+                return new ServerAddress(new Uri(uriString));
+            }
+            catch (Exception exception) when (exception is UriFormatException or ArgumentException)
+            {
+                throw new InvalidDataException(
+                    $"Received invalid server address URI '{uriString}'.",
+                    exception);
+            }
+        }
     }
 
     /// <summary>Decodes a service address encoded with Slice1.</summary>

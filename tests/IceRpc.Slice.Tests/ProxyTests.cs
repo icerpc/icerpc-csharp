@@ -89,6 +89,73 @@ public partial class ProxyTests
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
+    // Using transport=quic forces TransportCode.Uri on the ice side (only tcp/ssl have dedicated codes);
+    // icerpc always uses TransportCode.Uri.
+    [TestCase("ice://hello.zeroc.com/hello?transport=quic", "ice:", SliceEncoding.Slice1)]
+    [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:", SliceEncoding.Slice1)]
+    [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:", SliceEncoding.Slice2)]
+    public void Decode_proxy_with_unparsable_server_address_uri_throws_invalid_data(
+        ServiceAddress value,
+        string schemePrefix,
+        SliceEncoding encoding)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, encoding);
+        encoder.EncodeServiceAddress(value);
+        int length = bufferWriter.WrittenMemory.Length;
+
+        // Corrupt the first byte of the encoded URI scheme so that new Uri(...) throws UriFormatException.
+        // A URI scheme must start with an ALPHA; 0x01 is a control character and makes the URI unparsable.
+        int uriStart = buffer.AsSpan(0, length).IndexOf(System.Text.Encoding.UTF8.GetBytes(schemePrefix));
+        Assert.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
+        buffer[uriStart] = 0x01;
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(buffer.AsMemory(0, length), encoding: encoding);
+                _ = decoder.DecodePingableProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    // Using transport=quic forces TransportCode.Uri on the ice side (only tcp/ssl have dedicated codes);
+    // icerpc always uses TransportCode.Uri.
+    [TestCase("ice://hello.zeroc.com/hello?transport=quic", "ice:", "ftp:", SliceEncoding.Slice1)]
+    [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:", "gopher:", SliceEncoding.Slice1)]
+    [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:", "gopher:", SliceEncoding.Slice2)]
+    public void Decode_proxy_with_invalid_server_address_uri_throws_invalid_data(
+        ServiceAddress value,
+        string schemePrefix,
+        string replacementScheme,
+        SliceEncoding encoding)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, encoding);
+        encoder.EncodeServiceAddress(value);
+        int length = bufferWriter.WrittenMemory.Length;
+
+        // Replace the scheme with one that parses as a URI but is rejected by the ServerAddress constructor,
+        // which throws ArgumentException for unsupported protocols. The replacement is chosen with the same
+        // byte length so the encapsulation size remains valid.
+        Assert.That(replacementScheme.Length, Is.EqualTo(schemePrefix.Length));
+        int uriStart = buffer.AsSpan(0, length).IndexOf(System.Text.Encoding.UTF8.GetBytes(schemePrefix));
+        Assert.That(uriStart, Is.GreaterThanOrEqualTo(0), "scheme not found in encoded buffer");
+        System.Text.Encoding.UTF8.GetBytes(replacementScheme).CopyTo(buffer.AsSpan(uriStart));
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(buffer.AsMemory(0, length), encoding: encoding);
+                _ = decoder.DecodePingableProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
     /// <summary>Verifies that a relative proxy gets the invalid invoker by default.</summary>
     [Test]
     public void Decode_relative_proxy()
