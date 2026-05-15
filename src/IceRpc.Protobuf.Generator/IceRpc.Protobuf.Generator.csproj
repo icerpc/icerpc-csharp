@@ -13,7 +13,7 @@
   <ItemGroup>
     <Compile Include="../IceRpc.Protobuf.Tools/Converter.cs" />
     <Compile Include="../ZeroC.CodeBuilder/*.cs" />
-    <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
+    <PackageReference Include="Google.Protobuf" />
     <None Include="protoc-gen-icerpc-csharp.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

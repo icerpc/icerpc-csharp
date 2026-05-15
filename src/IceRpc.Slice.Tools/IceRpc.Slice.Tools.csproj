@@ -32,8 +32,8 @@
       `dotnet build` on the solution so its outputs exist in ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/
       when the None Include glob below is evaluated.
     -->
-    <PackageReference Include="Microsoft.Build.Framework" Version="18.4.0" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.4.0" />
+    <PackageReference Include="Microsoft.Build.Framework" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="../../LICENSE">

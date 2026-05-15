@@ -17,7 +17,7 @@
     <Compile Include="../ZeroC.Slice.Generator/DocCommentFormatter.cs" />
     <Compile Include="../ZeroC.Slice.Generator/GeneratorDriver.cs" />
     <Compile Include="../ZeroC.CodeBuilder/*.cs" LinkBase="CodeBuilder" />
-    <PackageReference Include="dunet" Version="1.16.2" />
+    <PackageReference Include="dunet" />
     <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj" />
     <None Include="slicec-icerpc-csharp-generator.bat">

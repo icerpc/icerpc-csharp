@@ -6,11 +6,11 @@
   <ItemGroup>
     <Compile Include="../Chatbot.cs" />
     <SliceFile Include="../Greeter.slice" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
-    <PackageReference Include="IceRpc" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="IceRpc" />
+    <PackageReference Include="IceRpc.Slice" />
+    <PackageReference Include="IceRpc.Logger" />
+    <PackageReference Include="IceRpc.Slice.Tools" PrivateAssets="All" />
   </ItemGroup>
 </Project>

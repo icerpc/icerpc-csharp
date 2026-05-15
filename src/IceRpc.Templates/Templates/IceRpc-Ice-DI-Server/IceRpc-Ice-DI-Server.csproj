@@ -23,7 +23,7 @@
     <PackageReference Include="IceRpc.Logger" Version="0.6.0-preview.1" />
     <PackageReference Include="IceRpc.Deadline" Version="0.6.0-preview.1" />
     <!-- The 1.2 beta version is required for supporting the latest language features.
-             See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
+         See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

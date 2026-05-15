@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Allow floating versions (e.g. 10.0.*) in <PackageVersion>. NuGet rejects floating versions in central package
+         lists by default. -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    <!-- Pin transitive dependencies to the versions listed below (when listed). Lets us force-upgrade a vulnerable
+         transitive package (e.g. a CVE in System.Text.Json) by adding one <PackageVersion> entry here, with no
+         spurious direct <PackageReference> in any project. Recommended baseline for new CPM repos. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <!-- Version of the locally-published IceRpc packages. -->
+    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.6.0-preview.1</IceRpcVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="IceRpc" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Compressor" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Metrics" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.RequestContext" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Retry" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Allow floating versions (e.g. 10.0.*) in <PackageVersion>. NuGet rejects floating versions in central package
+         lists by default. -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    <!-- Pin transitive dependencies to the versions listed below (when listed). Lets us force-upgrade a vulnerable
+         transitive package (e.g. a CVE in System.Text.Json) by adding one <PackageVersion> entry here, with no
+         spurious direct <PackageReference> in any project. Recommended baseline for new CPM repos. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Analyzers -->
+    <!-- The 1.2 beta version is required for supporting the latest language features.
+         See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+
+    <!-- MSBuild SDK packages (used by IceRpc.*.Tools) -->
+    <PackageVersion Include="Microsoft.Build.Framework" Version="18.4.0" />
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.4.0" />
+
+    <!-- Microsoft.Extensions.* -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.5.0" />
+
+    <!-- For Slice variant enums  -->
+    <PackageVersion Include="dunet" Version="1.16.2" />
+
+    <!-- Protobuf -->
+    <PackageVersion Include="Google.Protobuf" Version="3.34.1" />
+    <PackageVersion Include="Google.Protobuf.Tools" Version="3.34.1" />
+
+    <!-- Ice tooling -->
+    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" />
+
+    <!-- Test SDK -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.0" />
+    <PackageVersion Include="NUnit" Version="4.6.0" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.13.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.2.0" />
+  </ItemGroup>
+</Project>
