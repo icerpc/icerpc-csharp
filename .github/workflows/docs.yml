@@ -25,7 +25,7 @@ jobs:
         run: |
             dotnet tool install --global docfx
             cd docfx
-            docfx metadata --property Configuration=Debug
+            docfx metadata --property "Configuration=Debug;DocFxBuild=true"
             docfx build
 
       - name: Sync to S3

@@ -9,6 +9,7 @@
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
     <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
     <ProjectReference Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj"
+                      Condition="'$(DocFxBuild)' != 'true'"
                       ExactVersion="true"
                       PrivateAssets="compile;runtime"
                       OutputItemType="Analyzer" />

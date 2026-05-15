@@ -7,7 +7,14 @@
           "exclude": [
             "src/IceRpc.Templates/**",
             "src/IceRpc.ServiceGenerator/**",
-            "src/IceRpc.Protobuf.Generators/**"
+            "src/IceRpc.Protobuf.BuildTelemetry/**",
+            "src/IceRpc.Protobuf.Generator/**",
+            "src/IceRpc.Protobuf.Tools/**",
+            "src/IceRpc.Slice.BuildTelemetry/**",
+            "src/IceRpc.Slice.Generator/**",
+            "src/IceRpc.Slice.Tools/**",
+            "src/ZeroC.CodeBuilder/**",
+            "src/ZeroC.Slice.Generator/**"
           ],
           "src": "../"
         }
