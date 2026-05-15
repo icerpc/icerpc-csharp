@@ -18,6 +18,8 @@ jobs:
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
 
+      - name: Build
+        run: dotnet build
+
       - name: Run dotnet format
-        run: |
-          dotnet format --verify-no-changes
+        run: dotnet format --verify-no-changes
