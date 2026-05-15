@@ -960,7 +960,7 @@ internal class SlicConnection : IMultiplexedConnection
                     if (maxStreamFrameSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1KB.");
+                            "The MaxStreamFrameSize connection parameter is invalid, it must be at least 1 KB.");
                     }
                     if (maxStreamFrameSize > SlicTransportOptions.MaxStreamFrameSizeCeiling)
                     {
@@ -975,7 +975,7 @@ internal class SlicConnection : IMultiplexedConnection
                     if (peerInitialStreamWindowSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The InitialStreamWindowSize connection parameter is invalid, it must be greater than 1KB.");
+                            "The InitialStreamWindowSize connection parameter is invalid, it must be at least 1 KB.");
                     }
                     break;
                 }
@@ -1501,7 +1501,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     throw new IceRpcException(
                         IceRpcError.IceRpcError,
-                        $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached");
+                        $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached.");
                 }
                 Interlocked.Increment(ref _unidirectionalStreamCount);
             }
