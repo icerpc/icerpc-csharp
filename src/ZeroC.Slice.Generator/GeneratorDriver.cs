@@ -32,11 +32,7 @@ internal static class GeneratorDriver
         Task<GeneratorResponse> TransformAsync(ImmutableList<SliceFile> symbolFiles, Dictionary<string, string> options)
         {
             // Validate CS attributes before generation.
-            //
-            // List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
-            // TODO: enable validation once slicec correctly handles the diagnostics reported by the
-            // generators.
-            var diagnostics = new List<Diagnostic>();
+            List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
 
             // Use the informational version (e.g., "0.6.0-preview.1") which is the semver string from
             // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
@@ -49,32 +45,9 @@ internal static class GeneratorDriver
                 ?? assembly.GetName().Version?.ToString()
                 ?? "unknown";
 
-            // Check for duplicate file names — two files with the same name would produce the same
-            // output file, with the second silently overwriting the first.
-            var seenFileNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (SliceFile file in symbolFiles)
-            {
-                string fileName = Path.GetFileName(file.Path);
-                if (seenFileNames.TryGetValue(fileName, out string? previousPath))
-                {
-                    diagnostics.Add(new Diagnostic
-                    {
-                        Level = DiagnosticLevel.Error,
-                        Message =
-                            $"Multiple source files have the same file name '{fileName}': " +
-                            $"'{previousPath}' and '{file.Path}'. " +
-                            "Generated files are written to a common directory, so source files must have unique file names.",
-                    });
-                }
-                else
-                {
-                    seenFileNames[fileName] = file.Path;
-                }
-            }
-
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
-            if (!diagnostics.Any(d => d.Level == DiagnosticLevel.Error))
+            if (!diagnostics.Any(d => d.IsError))
             {
                 foreach (SliceFile file in symbolFiles)
                 {

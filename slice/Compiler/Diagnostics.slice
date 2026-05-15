@@ -1,0 +1,86 @@
+// Copyright (c) ZeroC, Inc.
+
+[cs::identifier("ZeroC.Slice.Symbols.Compiler")]
+module Compiler
+
+/// Represents the source of a {@link Diagnostic}, which can be used to provide context and snippets during emission.
+///
+/// The source of a diagnostic can be either:
+/// - A reference to a Slice entity, written as it's fully-scoped identifier; ex: 'MyModule::MyInterface::myOp'.
+/// - A reference to a Slice file, written as that file's relative path prefixed with '#'; ex: '#dir1/dir2/file.slice'.
+///
+/// To reference an attribute on a Slice file or entity, you can place '$attributes' after the source, following by the
+/// the index of the attribute to reference, and optionally, the index of an argument to that attribute. For example:
+/// 'MyMod::MyEnum::$attributes::0' references the first attribute of 'MyEnum', and '#MyFile.slice::$attributes::0::1'
+/// references the second argument of the first attribute on 'MyFile.slice'.
+typealias Source = string
+
+/// A message that is reported to provide information and context for errors, warnings, or other issues.
+struct Diagnostic {
+    /// The exact kind of diagnostic.
+    kind: DiagnosticKind
+
+    /// The fully-scoped Slice identifier of the element that this diagnostic is in reference to (if there is one).
+    source: Source?
+
+    /// Any additional information that should be reported alongside this diagnostic's main message.
+    notes: Sequence<DiagnosticNote>
+}
+
+/// Stores additional information to report alongside a {@link Diagnostic}.
+struct DiagnosticNote {
+    /// The message to emit alongside the main diagnostic which this note is attached to.
+    message: string
+
+    /// The fully-scoped Slice identifier of the element that this note is in reference to (if there is one).
+    source: Source?
+}
+
+unchecked enum DiagnosticKind {
+    /// A general purpose diagnostic which is purely informational.
+    Info(message: string)
+
+    /// A general purpose diagnostic which should be emitted as a warning.
+    Warning(message: string)
+
+    /// A general purpose diagnostic which should be emitted as an error.
+    Error(message: string)
+
+    //
+    // Attribute Diagnostics
+    //
+
+    /// An attribute was applied to a Slice element for which it's invalid.
+    /// For example: applying `[oneway]` to a struct ('oneway' is only allowed on operations).
+    /// @param directive: the directive of the invalid attribute.
+    InvalidAttribute(directive: string)
+
+    /// An unknown attribute was encountered, which uses a known prefix.
+    /// For example: if a C# code-generator encountered the following attribute: `[cs::foobar]`.
+    /// @param directive: the directive of the unknown attribute.
+    UnknownAttribute(directive: string)
+
+    /// An element requires a specific attribute to be applied to it, which is not present.
+    /// For example: custom types must have their mapped type specified with a `[xxx:type(...)]` attribute.
+    /// @param expectedAttribute: the missing attribute; should include placeholder names for expected arguments.
+    MissingRequiredAttribute(expectedAttribute: string)
+
+    /// A non-repeatable attribute was applied to the same element multiple times.
+    /// For example: `[compress(Args)] [compress(Return)] myOperation()`; 'compress' is not repeatable.
+    /// @param directive: the directive of the non-repeatable attribute.
+    AttributeIsNotRepeatable(directive: string)
+
+    /// An invalid argument was provided to an attribute which otherwise accepts arguments.
+    /// For example: `[compress(FooBar)] myOperation()`; 'compress' accepts arguments but 'FooBar' is not a valid one.
+    /// @param directive: the directive of the attribute.
+    /// @param argument: the invalid argument that was provided.
+    InvalidAttributeArgument(directive: string, argument: string)
+
+    /// Too few or too many arguments were supplied to an otherwise valid attribute.
+    /// For example: `[oneway(FooBar)]` ('oneway' takes no arguments) or `[compress]` ('compress' requires arguments).
+    /// @param directive: the directive of the attribute.
+    /// @param minExpected: the minimum number of arguments this attribute can be given.
+    /// @param maxExpected: the maximum number of arguments this attribute can be given.
+    /// @param actualCount: the number of arguments this attribute was actually given.
+    IncorrectAttributeArgumentCount(directive: string, minExpected: uint8, maxExpected: uint8, actualCount: uint8)
+}

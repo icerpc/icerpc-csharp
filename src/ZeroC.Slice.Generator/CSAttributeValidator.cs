@@ -37,8 +37,8 @@ internal static class CsAttributeValidator
 
         foreach (SliceFile file in files)
         {
-            ValidateAttributes(file.Attributes, Target.File, diagnostics);
-            ValidateAttributes(file.Module.Attributes, Target.Module, diagnostics);
+            ValidateAttributes(file.Attributes, $"#{file.Path}", Target.File, diagnostics);
+            ValidateAttributes(file.Module.Attributes, file.Module.Identifier, Target.Module, diagnostics);
 
             foreach (ISymbol symbol in file.Contents)
             {
@@ -54,7 +54,7 @@ internal static class CsAttributeValidator
         switch (symbol)
         {
             case Struct s:
-                ValidateAttributes(s.Attributes, Target.Struct, diagnostics);
+                ValidateAttributes(s.Attributes, s.ScopedIdentifier, Target.Struct, diagnostics);
                 foreach (Field field in s.Fields)
                 {
                     ValidateField(field, Target.FieldInStruct, diagnostics);
@@ -62,10 +62,10 @@ internal static class CsAttributeValidator
                 break;
 
             case VariantEnum e:
-                ValidateAttributes(e.Attributes, Target.VariantEnum, diagnostics);
+                ValidateAttributes(e.Attributes, e.ScopedIdentifier, Target.VariantEnum, diagnostics);
                 foreach (VariantEnum.Variant en in e.Variants)
                 {
-                    ValidateAttributes(en.Attributes, Target.Variant, diagnostics);
+                    ValidateAttributes(en.Attributes, en.ScopedIdentifier, Target.Variant, diagnostics);
                     foreach (Field field in en.Fields)
                     {
                         ValidateField(field, Target.Field, diagnostics);
@@ -74,12 +74,12 @@ internal static class CsAttributeValidator
                 break;
 
             case BasicEnum e:
-                ValidateAttributes(e.Attributes, Target.BasicEnum, diagnostics);
+                ValidateAttributes(e.Attributes, e.ScopedIdentifier, Target.BasicEnum, diagnostics);
                 ValidateEnumerators(e, diagnostics);
                 break;
 
             case Interface i:
-                ValidateAttributes(i.Attributes, Target.Interface, diagnostics);
+                ValidateAttributes(i.Attributes, i.ScopedIdentifier, Target.Interface, diagnostics);
                 foreach (Operation op in i.Operations)
                 {
                     ValidateOperation(op, diagnostics);
@@ -87,24 +87,21 @@ internal static class CsAttributeValidator
                 break;
 
             case CustomType c:
-                ValidateAttributes(c.Attributes, Target.CustomType, diagnostics);
+                ValidateAttributes(c.Attributes, c.ScopedIdentifier, Target.CustomType, diagnostics);
                 if (!c.Attributes.HasAttribute(CSAttributes.CSType))
                 {
-                    diagnostics.Add(Error(
-                        $"Custom type '{c.Identifier}' is missing required attribute '{CSAttributes.CSType}'."));
+                    diagnostics.Add(Diagnostic.MissingRequiredAttribute("cs::type(TYPE_STRING)", c.ScopedIdentifier));
                 }
                 break;
 
             case TypeAlias t:
-                ValidateAttributes(t.Attributes, Target.TypeAlias, diagnostics);
-                ValidateTypeRef(t.UnderlyingType, diagnostics);
+                ValidateAttributes(t.Attributes, t.ScopedIdentifier, Target.TypeAlias, diagnostics);
+                ValidateTypeRef(t.UnderlyingType, t.ScopedIdentifier, diagnostics);
                 break;
         }
     }
 
-    private static void ValidateEnumerators(
-        BasicEnum e,
-        List<Diagnostic> diagnostics)
+    private static void ValidateEnumerators(BasicEnum e, List<Diagnostic> diagnostics)
     {
         switch (e)
         {
@@ -141,14 +138,14 @@ internal static class CsAttributeValidator
         {
             foreach (BasicEnum<T>.Enumerator en in e.Enumerators)
             {
-                ValidateAttributes(en.Attributes, Target.Enumerator, diagnostics);
+                ValidateAttributes(en.Attributes, en.ScopedIdentifier, Target.Enumerator, diagnostics);
             }
         }
     }
 
     private static void ValidateOperation(Operation op, List<Diagnostic> diagnostics)
     {
-        ValidateAttributes(op.Attributes, Target.Operation, diagnostics);
+        ValidateAttributes(op.Attributes, op.ScopedIdentifier, Target.Operation, diagnostics);
 
         foreach (Field param in op.Parameters)
         {
@@ -161,27 +158,27 @@ internal static class CsAttributeValidator
         }
 
         // cs::encodedReturn: only valid on operations with non-streamed return values.
-        if (op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn))
+        bool hasNonStreamedReturn = op.ReturnType.Count > (op.HasStreamedReturn ? 1 : 0);
+        if (!hasNonStreamedReturn)
         {
-            bool hasNonStreamedReturn = op.ReturnType.Count > (op.HasStreamedReturn ? 1 : 0);
-            if (!hasNonStreamedReturn)
+            for (int i = 0; i < op.Attributes.Count; i++)
             {
-                string reason = op.HasStreamedReturn
-                    ? "an operation that only returns a stream"
-                    : "an operation that does not return anything";
-                diagnostics.Add(Error(
-                    $"The '{CSAttributes.CSEncodedReturn}' attribute is not applicable to {reason}."));
+                if (op.Attributes[i].Directive == CSAttributes.CSEncodedReturn)
+                {
+                    string source = $"{op.ScopedIdentifier}::$attributes::{i}";
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSEncodedReturn, source));
+                }
             }
         }
     }
 
     private static void ValidateField(Field field, Target target, List<Diagnostic> diagnostics)
     {
-        ValidateAttributes(field.Attributes, target, diagnostics);
-        ValidateTypeRef(field.DataType, diagnostics);
+        ValidateAttributes(field.Attributes, field.ScopedIdentifier, target, diagnostics);
+        ValidateTypeRef(field.DataType, field.ScopedIdentifier, diagnostics);
     }
 
-    private static void ValidateTypeRef(TypeRef typeRef, List<Diagnostic> diagnostics)
+    private static void ValidateTypeRef(TypeRef typeRef, string source, List<Diagnostic> diagnostics)
     {
         Target target = typeRef.Type switch
         {
@@ -189,111 +186,98 @@ internal static class CsAttributeValidator
             DictionaryType => Target.TypeRefDictionary,
             _ => Target.TypeRef,
         };
-        ValidateAttributes(typeRef.Attributes, target, diagnostics);
+        // TODO we should consider adding a '$typeref' source scope here.
+        ValidateAttributes(typeRef.Attributes, source, target, diagnostics);
     }
 
     private static void ValidateAttributes(
         ImmutableList<Attribute> attributes,
+        string source,
         Target target,
         List<Diagnostic> diagnostics)
     {
-        foreach (Attribute attr in attributes)
+        for (int i = 0; i < attributes.Count; i++)
         {
-            if (attr.Directive.StartsWith("cs::", StringComparison.Ordinal))
+            if (attributes[i].Directive.StartsWith("cs::", StringComparison.Ordinal))
             {
-                ValidateCSAttribute(attr, target, diagnostics);
+                string attrSource = $"{source}::$attributes::{i}";
+                ValidateCSAttribute(attributes[i], attrSource, target, diagnostics);
             }
         }
     }
 
     private static void ValidateCSAttribute(
         Attribute attr,
+        string source,
         Target target,
         List<Diagnostic> diagnostics)
     {
         switch (attr.Directive)
         {
             case CSAttributes.CSAttribute:
-                // The cs::attribute attribute is only allow for C# construction were adding attributes using a partial
-                // declaration is not possible,such as on enumerators and fields.
-                RequireArgs(attr, 1, diagnostics);
+                // The cs::attribute attribute is only allowed for C# constructs where adding attributes using a partial
+                // declaration is not possible, such as enumerators and fields.
+                RequireArgs(attr, 1, source, diagnostics);
                 if (target is not (Target.BasicEnum or Target.Enumerator or Target.Field or Target.FieldInStruct))
                 {
-                    ReportUnexpected(attr, diagnostics);
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSAttribute, source));
                 }
                 break;
 
             case CSAttributes.CSEncodedReturn:
-                RequireArgs(attr, 0, diagnostics);
+                RequireArgs(attr, 0, source, diagnostics);
                 if (target is not Target.Operation)
                 {
-                    ReportUnexpected(attr, diagnostics);
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSEncodedReturn, source));
                 }
                 // Additional semantic validation (non-streamed returns) is in ValidateOperation.
                 break;
 
             case CSAttributes.CSIdentifier:
-                RequireArgs(attr, 1, diagnostics);
+                RequireArgs(attr, 1, source, diagnostics);
                 if (target is Target.File or Target.TypeAlias or Target.TypeRef
                     or Target.TypeRefSequence or Target.TypeRefDictionary)
                 {
-                    ReportUnexpected(attr, diagnostics);
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSIdentifier, source));
                 }
                 break;
 
             case CSAttributes.CSPublic:
-                RequireArgs(attr, 0, diagnostics);
+                RequireArgs(attr, 0, source, diagnostics);
                 if (target is not (Target.Struct or Target.Interface or Target.BasicEnum or Target.VariantEnum))
                 {
-                    ReportUnexpected(attr, diagnostics);
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSPublic, source));
                 }
                 break;
 
             case CSAttributes.CSReadonly:
-                RequireArgs(attr, 0, diagnostics);
+                RequireArgs(attr, 0, source, diagnostics);
                 if (target is not (Target.Struct or Target.FieldInStruct))
                 {
-                    if (target is Target.Field)
-                    {
-                        diagnostics.Add(Error(
-                            $"Unexpected attribute '{attr.Directive}'. " +
-                            "'cs::readonly' can only be applied to structs, or fields inside structs."));
-                    }
-                    else
-                    {
-                        ReportUnexpected(attr, diagnostics);
-                    }
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSReadonly, source));
                 }
                 break;
 
             case CSAttributes.CSType:
-                RequireArgs(attr, 1, diagnostics);
+                RequireArgs(attr, 1, source, diagnostics);
                 if (target is not (Target.CustomType or Target.TypeRefSequence or Target.TypeRefDictionary))
                 {
-                    diagnostics.Add(Error(
-                        $"Unexpected attribute '{attr.Directive}'. " +
-                        "The cs::type attribute can only be applied to sequences, dictionaries, and custom types."));
+                    diagnostics.Add(Diagnostic.InvalidAttribute(CSAttributes.CSType, source));
                 }
                 break;
 
             default:
-                diagnostics.Add(Error($"Unknown CS attribute '{attr.Directive}'."));
+                diagnostics.Add(Diagnostic.UnknownAttribute(attr.Directive, source));
                 break;
         }
     }
 
-    private static void RequireArgs(Attribute attr, int expected, List<Diagnostic> diagnostics)
+    private static void RequireArgs(Attribute attr, int expected, string source, List<Diagnostic> diagnostics)
     {
         if (attr.Args.Count != expected)
         {
-            diagnostics.Add(Error(
-                $"Attribute '{attr.Directive}' requires {expected} argument(s) but got {attr.Args.Count}."));
+            diagnostics.Add(
+                Diagnostic.IncorrectAttributeArgumentCount(attr.Directive, expected, attr.Args.Count, source));
         }
     }
-
-    private static void ReportUnexpected(Attribute attr, List<Diagnostic> diagnostics) =>
-        diagnostics.Add(Error($"Unexpected attribute '{attr.Directive}' on this target."));
-
-    private static Diagnostic Error(string message) =>
-        new() { Level = DiagnosticLevel.Error, Message = message };
 }

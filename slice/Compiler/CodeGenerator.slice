@@ -33,15 +33,3 @@ enum Symbol {
     DictionaryType(v: DictionaryType)
     TypeAlias(v: TypeAlias)
 }
-
-struct Diagnostic {
-    level: DiagnosticLevel
-    message: string
-    source: string?
-}
-
-unchecked enum DiagnosticLevel : uint8 {
-    Info
-    Warning
-    Error
-}
