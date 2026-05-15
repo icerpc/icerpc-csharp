@@ -1,5 +1,5 @@
 ---
-uid: IceRpc.Slice.Ice
+uid: IceRpc.Ice
 summary: *content
 ---
 
