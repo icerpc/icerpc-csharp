@@ -25,6 +25,10 @@ namespace IceRpc.Deadline;
 /// <seealso cref="DeadlineInvokerBuilderExtensions"/>
 public class DeadlineInterceptor : IInvoker
 {
+    // The maximum supported timeout (int.MaxValue ms, ~24.8 days). This is the maximum delay
+    // CancellationTokenSource.CancelAfter accepts.
+    private static readonly TimeSpan _maxSupportedTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
+
     private readonly bool _alwaysEnforceDeadline;
     private readonly IInvoker _next;
     private readonly TimeSpan _defaultTimeout;
@@ -32,17 +36,28 @@ public class DeadlineInterceptor : IInvoker
 
     /// <summary>Constructs a Deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="defaultTimeout">The default timeout. When not infinite, the interceptor adds a deadline to requests
-    /// without a deadline.</param>
-    /// <param name="timeProvider">The optional time provider used to obtain the current time. If <see langword="null"/>, it uses
-    /// <see cref="TimeProvider.System"/>.</param>
+    /// <param name="defaultTimeout">The default timeout applied to requests without a deadline. Must be a positive
+    /// value not exceeding ~24.8 days, or <see cref="Timeout.InfiniteTimeSpan" /> to disable the default timeout
+    /// entirely.</param>
+    /// <param name="timeProvider">The optional time provider used to obtain the current time. If
+    /// <see langword="null"/>, it uses <see cref="TimeProvider.System"/>.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
     /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
     /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
     /// </param>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="defaultTimeout" /> is neither
+    /// <see cref="Timeout.InfiniteTimeSpan" /> nor a positive value within the supported range.</exception>
     public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline, TimeProvider? timeProvider = null)
     {
+        if (defaultTimeout != Timeout.InfiniteTimeSpan &&
+            (defaultTimeout <= TimeSpan.Zero || defaultTimeout > _maxSupportedTimeout))
+        {
+            throw new ArgumentException(
+                $"The {nameof(defaultTimeout)} value must be Timeout.InfiniteTimeSpan or a positive value not exceeding {_maxSupportedTimeout}.",
+                nameof(defaultTimeout));
+        }
+
         _next = next;
         _alwaysEnforceDeadline = alwaysEnforceDeadline;
         _defaultTimeout = defaultTimeout;
@@ -58,7 +73,9 @@ public class DeadlineInterceptor : IInvoker
         DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
         if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature)
         {
-            deadline = deadlineFeature.Value;
+            // Normalize to UTC.
+            deadline = deadlineFeature.Value == DateTime.MaxValue ?
+                DateTime.MaxValue : deadlineFeature.Value.ToUniversalTime();
             if (deadline != DateTime.MaxValue && (_alwaysEnforceDeadline || !cancellationToken.CanBeCanceled))
             {
                 timeout = deadline - now;
@@ -87,6 +104,15 @@ public class DeadlineInterceptor : IInvoker
 
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
+            // Reject a caller-provided IDeadlineFeature whose remaining timeout exceeds what this interceptor
+            // can enforce. Such deadlines are nonsensical in practice (~24.8 days), and silently clamping the
+            // value the caller asked for is worse than failing cleanly.
+            if (timeout > _maxSupportedTimeout)
+            {
+                throw new NotSupportedException(
+                    $"The request deadline exceeds the maximum timeout supported by this interceptor: {_maxSupportedTimeout}.");
+            }
+
             using var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutTokenSource.CancelAfter(timeout);
 

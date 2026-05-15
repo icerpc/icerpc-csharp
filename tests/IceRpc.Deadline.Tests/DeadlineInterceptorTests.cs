@@ -2,10 +2,10 @@
 
 using IceRpc.Features;
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.Time.Testing;
 using NUnit.Framework;
 using System.IO.Pipelines;
 using ZeroC.Slice;
-using Microsoft.Extensions.Time.Testing;
 
 namespace IceRpc.Deadline.Tests;
 
@@ -135,6 +135,30 @@ public sealed class DeadlineInterceptorTests
         Assert.That(token!.Value, Is.EqualTo(cts.Token));
     }
 
+    /// <summary>Verifies the interceptor rejects an extreme-future IDeadlineFeature value with
+    /// <see cref="NotSupportedException" /> rather than silently clamping it.</summary>
+    [Test]
+    public void Invoke_with_extreme_future_deadline_throws_not_supported()
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: true);
+        // Close to DateTime.MaxValue but not equal, so the interceptor's "== DateTime.MaxValue" short-circuit
+        // does not kick in and the deadline-too-far-in-future path is exercised.
+        DateTime extreme = DateTime.SpecifyKind(DateTime.MaxValue.AddDays(-1), DateTimeKind.Utc);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            Features = new FeatureCollection().With<IDeadlineFeature>(new DeadlineFeature(extreme))
+        };
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.InvokeAsync(request, default),
+            Throws.TypeOf<NotSupportedException>());
+    }
+
     [Test]
     public void Deadline_interceptor_can_enforce_application_deadline()
     {
@@ -160,6 +184,87 @@ public sealed class DeadlineInterceptorTests
 
         // Act/Assert
         Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
+    }
+
+    /// <summary>Verifies that the interceptor encodes and enforces the same UTC instant regardless of the
+    /// deadline feature value's <see cref="DateTime.Kind" />.</summary>
+    [TestCaseSource(nameof(DeadlineFeatureIsNormalizedToUtcSource))]
+    public async Task Deadline_feature_is_normalized_to_utc(DateTime deadlineValue)
+    {
+        // Arrange
+        DateTime encodedDeadline = DateTime.MaxValue;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out OutgoingFieldValue deadlineField))
+            {
+                encodedDeadline = ReadDeadline(deadlineField);
+            }
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
+        });
+
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(TargetUtc - TimeSpan.FromMinutes(1), TimeSpan.Zero));
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
+
+        IFeatureCollection features = new FeatureCollection();
+        features.Set<IDeadlineFeature>(new DeadlineFeature(deadlineValue));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { Features = features };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(encodedDeadline, Is.EqualTo(TargetUtc));
+    }
+
+    [TestCase(0)]
+    [TestCase(-5000)]
+    public void Constructor_rejects_invalid_default_timeout(int milliseconds)
+    {
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Assert.That(
+            () => new DeadlineInterceptor(invoker, TimeSpan.FromMilliseconds(milliseconds), alwaysEnforceDeadline: false),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    /// <summary>Verifies the constructor rejects a default timeout that exceeds the maximum supported value.
+    /// <see cref="TimeSpan.MaxValue" /> would otherwise later cause <c>DateTime</c> overflow (now + timeout) or
+    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)" /> to throw at first invoke.</summary>
+    [Test]
+    public void Constructor_rejects_default_timeout_beyond_maximum()
+    {
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Assert.That(
+            () => new DeadlineInterceptor(invoker, TimeSpan.MaxValue, alwaysEnforceDeadline: false),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void Constructor_accepts_infinite_timeout()
+    {
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Assert.That(
+            () => new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false),
+            Throws.Nothing);
+    }
+
+    private static readonly DateTime TargetUtc = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+
+    private static IEnumerable<TestCaseData> DeadlineFeatureIsNormalizedToUtcSource
+    {
+        get
+        {
+            yield return new TestCaseData(TargetUtc).SetName("Utc");
+            yield return new TestCaseData(TargetUtc.ToLocalTime()).SetName("Local");
+            yield return new TestCaseData(
+                DateTime.SpecifyKind(TargetUtc.ToLocalTime(), DateTimeKind.Unspecified)).SetName("Unspecified");
+        }
     }
 
     private static DateTime ReadDeadline(OutgoingFieldValue field)
