@@ -45,6 +45,8 @@ jobs:
         shell: bash
       - name: Test Templates
         uses: ./.github/actions/test-templates
+        with:
+          nuget-config: nuget.config
       - name: Build Examples
         env:
           # Set IceRpcVersion to use the locally built packages

@@ -1,6 +1,11 @@
 name: Test Templates
 description: "Tests the IceRPC project templates"
 
+inputs:
+  nuget-config:
+    description: "Path of the NuGet.config to copy into the templates workspace"
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -15,7 +20,7 @@ runs:
     run: |
       $dir = "$env:RUNNER_TEMP/templates-test"
       New-Item -ItemType Directory -Force -Path $dir | Out-Null
-      Copy-Item -Path "$env:GITHUB_WORKSPACE/nuget.config" -Destination "$dir/nuget.config"
+      Copy-Item -Path "${{ inputs.nuget-config }}" -Destination "$dir/nuget.config"
       echo "TEMPLATES_TEST_DIR=$dir" >> $env:GITHUB_ENV
     shell: pwsh
 

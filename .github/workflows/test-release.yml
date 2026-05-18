@@ -60,18 +60,16 @@ jobs:
 
       - name: Configure NuGet sources
         run: |
-          # Remove existing nuget.config files to avoid conflicts
-          Remove-Item -ErrorAction SilentlyContinue nuget.config, examples/nuget.config
-          # Create a new top-level nuget.config that points to the downloaded packages and zeroc.com
-          dotnet new nugetconfig -o ${{ github.workspace }}
-          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "Local Packages" ${{ github.workspace }}/packages
-          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "zeroc.com" "https://download.zeroc.com/nexus/repository/nuget-3.8-nightly/"
+          # Point the icerpc.dev source in examples/nuget.config at the locally built packages.
+          # The existing packageSourceMapping for icerpc.* and zeroc.slice.codec is preserved.
+          dotnet nuget remove source icerpc.dev --configfile examples/nuget.config
+          dotnet nuget add source --configfile examples/nuget.config -n icerpc.dev ${{ github.workspace }}/packages
         shell: pwsh
 
       - name: Install dotnet new templates
         run: |
           $version = $env:IceRpcVersion
-          dotnet new install IceRpc.Templates::$version
+          dotnet new install IceRpc.Templates::$version --nuget-source ${{ github.workspace }}/packages
         shell: pwsh
 
       - name: 🔨 Build Examples
@@ -82,3 +80,5 @@ jobs:
 
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
+        with:
+          nuget-config: examples/nuget.config
