@@ -3,5 +3,4 @@ uid: ZeroC.Slice.Codec
 summary: *content
 ---
 
-Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler for C# generates code
-that relies on these APIs.
+Supports encoding/decoding structured data to/from bytes in the Slice format.
