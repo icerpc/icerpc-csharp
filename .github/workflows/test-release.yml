@@ -35,7 +35,7 @@ jobs:
         include:
           - os: macos-26
           - os: ubuntu-24.04
-          - os: windows-2025
+          - os: windows-2025-vs2026
     runs-on: ${{ matrix.os }}
 
     steps:
