@@ -29,13 +29,10 @@ exclude = [
     # GitHub edit/blame links (may require auth)
     "github\\.com/.*/edit/",
     "github\\.com/.*/blame/",
-    # TODO: remove once 0.6 packages and API docs are published.
+    # TODO: remove once 0.6 packages are published.
     "^https?://www\\.nuget\\.org/packages/IceRpc\\.Ice/?$",
     "^https?://www\\.nuget\\.org/packages/IceRpc\\.ServiceGenerator/?$",
     "^https?://www\\.nuget\\.org/packages/ZeroC\\.Slice\\.Codec/?$",
-    "^https?://docs\\.icerpc\\.dev/api/csharp/api/IceRpc\\.Ice\\.html$",
-    "^https?://docs\\.icerpc\\.dev/api/csharp/api/IceRpc\\.Protobuf\\.html$",
-    "^https?://docs\\.icerpc\\.dev/api/csharp/api/ZeroC\\.Slice\\.Codec\\.html$",
 ]
 
 # Accept these status codes as valid
