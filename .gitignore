@@ -85,10 +85,6 @@ TestResults
 examples/Upload/Server/uploads/*
 examples/Download/Client/downloads/*
 
-# docfx
-docfx/_site
-docfx/api
-
 nuget.config
 NuGet.config
 *.nupkg

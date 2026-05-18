@@ -54,7 +54,7 @@ using var host = hostBuilder.Build();
 host.Run();
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Extensions.DependencyInjection.html
+[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Extensions.DependencyInjection.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [ms_di]: https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection

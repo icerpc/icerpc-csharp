@@ -27,24 +27,24 @@ layout: landing
 | [IceRpc.Transports.Tcp]                 | Provides the TCP duplex transport. It implements the duplex transport abstractions using plain TCP and TCP + SSL.                                  |
 | [ZeroC.Slice.Codec]                     | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler for C# generates code that relies on these APIs.  |
 
-[IceRpc]: api/IceRpc.yml
-[IceRpc.Compressor]: api/IceRpc.Compressor.yml
-[IceRpc.Deadline]: api/IceRpc.Deadline.yml
-[IceRpc.Extensions.DependencyInjection]: api/IceRpc.Extensions.DependencyInjection.yml
-[IceRpc.Features]: api/IceRpc.Features.yml
-[IceRpc.Ice]: api/IceRpc.Ice.yml
-[IceRpc.Locator]: api/IceRpc.Locator.yml
-[IceRpc.Logger]: api/IceRpc.Logger.yml
-[IceRpc.Metrics]: api/IceRpc.Metrics.yml
-[IceRpc.Protobuf]: api/IceRpc.Protobuf.yml
-[IceRpc.RequestContext]: api/IceRpc.RequestContext.yml
-[IceRpc.Retry]: api/IceRpc.Retry.yml
-[IceRpc.Slice]: api/IceRpc.Slice.yml
-[IceRpc.Telemetry]: api/IceRpc.Telemetry.yml
-[IceRpc.Transports]: api/IceRpc.Transports.yml
-[IceRpc.Transports.Coloc]: api/IceRpc.Transports.Coloc.yml
-[IceRpc.Transports.Quic]: api/IceRpc.Transports.Quic.yml
-[IceRpc.Transports.Slic]: api/IceRpc.Transports.Slic.yml
-[IceRpc.Transports.Tcp]: api/IceRpc.Transports.Tcp.yml
+[IceRpc]: reference/IceRpc.yml
+[IceRpc.Compressor]: reference/IceRpc.Compressor.yml
+[IceRpc.Deadline]: reference/IceRpc.Deadline.yml
+[IceRpc.Extensions.DependencyInjection]: reference/IceRpc.Extensions.DependencyInjection.yml
+[IceRpc.Features]: reference/IceRpc.Features.yml
+[IceRpc.Ice]: reference/IceRpc.Ice.yml
+[IceRpc.Locator]: reference/IceRpc.Locator.yml
+[IceRpc.Logger]: reference/IceRpc.Logger.yml
+[IceRpc.Metrics]: reference/IceRpc.Metrics.yml
+[IceRpc.Protobuf]: reference/IceRpc.Protobuf.yml
+[IceRpc.RequestContext]: reference/IceRpc.RequestContext.yml
+[IceRpc.Retry]: reference/IceRpc.Retry.yml
+[IceRpc.Slice]: reference/IceRpc.Slice.yml
+[IceRpc.Telemetry]: reference/IceRpc.Telemetry.yml
+[IceRpc.Transports]: reference/IceRpc.Transports.yml
+[IceRpc.Transports.Coloc]: reference/IceRpc.Transports.Coloc.yml
+[IceRpc.Transports.Quic]: reference/IceRpc.Transports.Quic.yml
+[IceRpc.Transports.Slic]: reference/IceRpc.Transports.Slic.yml
+[IceRpc.Transports.Tcp]: reference/IceRpc.Transports.Tcp.yml
 [OpenTelemetry]: https://opentelemetry.io
-[ZeroC.Slice.Codec]: api/ZeroC.Slice.Codec.yml
+[ZeroC.Slice.Codec]: reference/ZeroC.Slice.Codec.yml

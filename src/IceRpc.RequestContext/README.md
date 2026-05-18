@@ -83,7 +83,7 @@ host.Run();
 The ice protocol can send and receive request context fields. They correspond to
 [request contexts][ice_request_contexts] in Ice.
 
-[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.RequestContext.html
+[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.RequestContext.html
 [ice_request_contexts]: https://docs.zeroc.com/ice/3.8/csharp/request-contexts
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
