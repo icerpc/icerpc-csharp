@@ -16,7 +16,7 @@
       "a": {
         "type": "Project",
         "dependencies": {
-          "ZeroC.Slice": "[0.5.1, )"
+          "ZeroC.Slice": "[0.5.2, )"
         }
       },
       "zeroc.slice": {

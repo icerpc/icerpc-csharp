@@ -600,7 +600,7 @@ dependencies = [
 
 [[package]]
 name = "slicec-cs"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "clap",
  "convert_case",

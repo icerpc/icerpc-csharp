@@ -16,21 +16,21 @@
       "a": {
         "type": "Project",
         "dependencies": {
-          "ZeroC.Slice": "[0.5.1, )"
+          "ZeroC.Slice": "[0.5.2, )"
         }
       },
       "b": {
         "type": "Project",
         "dependencies": {
-          "A": "[0.5.1, )",
-          "ZeroC.Slice": "[0.5.1, )"
+          "A": "[0.5.2, )",
+          "ZeroC.Slice": "[0.5.2, )"
         }
       },
       "c": {
         "type": "Project",
         "dependencies": {
-          "A": "[0.5.1, )",
-          "ZeroC.Slice": "[0.5.1, )"
+          "A": "[0.5.2, )",
+          "ZeroC.Slice": "[0.5.2, )"
         }
       },
       "zeroc.slice": {
