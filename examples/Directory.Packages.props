@@ -12,7 +12,7 @@
     <!-- Version of the IceRpc.* packages used by the examples. Override on the command line
          (dotnet build /p:IceRpcVersion=<local-version>) to build against locally-published packages.
          See BUILDING.md. -->
-    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.6.0-nightly.*</IceRpcVersion>
+    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.6.0-preview.1</IceRpcVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="IceRpc" Version="$(IceRpcVersion)" />

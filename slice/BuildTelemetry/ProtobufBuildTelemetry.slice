@@ -1,0 +1,54 @@
+// Copyright (c) ZeroC, Inc.
+
+[cs::identifier("IceRpc.Protobuf.BuildTelemetry")]
+module ProtobufBuildTelemetry
+
+/// Observes and collects Protobuf build events.
+interface BuildObserver {
+    /// Reports a Protobuf compilation.
+    reportProtobufBuild(data: TelemetryData)
+}
+
+/// Telemetry data collected during a Protobuf build.
+[cs::readonly]
+struct TelemetryData {
+    /// The architecture of the build machine (e.g., x86_64, arm64).
+    architecture: string
+
+    /// The operating system running the build machine (e.g., Linux, Windows, macOS).
+    operatingSystem: string
+
+    /// The version of the Protobuf compiler.
+    protocVersion: ProtocVersion
+
+    /// The plugins used by this compilation.
+    plugins: Sequence<PluginInfo>
+
+    /// The number of services in the Protobuf source files.
+    serviceCount: uint32
+
+    /// The number of RPCs in the Protobuf source files.
+    rpcCount: uint32
+
+    /// The number of messages in the Protobuf source files.
+    messageCount: uint32
+}
+
+/// Information about the Protobuf compiler version. Mirrors the Version message in plugin.proto.
+[cs::readonly]
+struct ProtocVersion {
+    major: int32
+    minor: int32
+    patch: int32
+    tag(4) suffix: string?
+}
+
+/// Information about a plugin invoked by the Protobuf compiler.
+[cs::readonly]
+struct PluginInfo {
+    /// The name of the plugin.
+    name: string
+
+    /// The version of the plugin.
+    version: string
+ }

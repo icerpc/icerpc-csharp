@@ -23,8 +23,9 @@ public partial class ProtocTask : ToolTask
 
     /// <summary>Gets or sets the protoc plug-ins to run. Each item's <c>Identity</c> is the plug-in name (for example
     /// <c>csharp</c>, <c>icerpc-csharp</c>, <c>icerpc-build-telemetry</c>). The <c>Path</c> metadata, when not empty,
-    /// is the full path to the plug-in script and is passed via <c>--plugin protoc-gen-&lt;name&gt;=&lt;path&gt;</c>;
-    /// an empty <c>Path</c> indicates a protoc built-in such as <c>csharp</c>.</summary>
+    /// is the full path to the plug-in script and is passed via <c>--plugin protoc-gen-&lt;name&gt; &lt;path&gt;</c>;
+    /// an empty <c>Path</c> indicates a protoc built-in such as <c>csharp</c>. The <c>Parameter</c> metadata, when not
+    /// empty, is passed via <c>--&lt;name&gt;_opt &lt;parameter&gt;</c>.</summary>
     [Required]
     public ITaskItem[] Plugins { get; set; } = [];
 
@@ -77,6 +78,14 @@ public partial class ProtocTask : ToolTask
 
             builder.AppendSwitch($"--{name}_out");
             builder.AppendFileNameIfNotNull(OutputDir);
+
+            string pluginParameter = plugin.GetMetadata("Parameter");
+            if (!string.IsNullOrEmpty(pluginParameter))
+            {
+                builder.AppendSwitch($"--{name}_opt");
+                builder.AppendTextUnquoted(" ");
+                builder.AppendTextUnquoted(pluginParameter);
+            }
         }
 
         foreach (string option in AdditionalOptions)

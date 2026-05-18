@@ -59,15 +59,16 @@
 
     <ItemGroup>
       <!-- Code-generating plug-ins; protoc runs once per ProtoFile to produce a dependency file per file. -->
-      <_ProtocCodegenPlugin Include="csharp" />
-      <_ProtocCodegenPlugin Include="icerpc-csharp">
+      <_ProtocCodeGenPlugin Include="csharp" />
+      <_ProtocCodeGenPlugin Include="icerpc-csharp">
         <Path>$(IceRpcProtocGenPath)protoc-gen-icerpc-csharp$(_ProtocPluginScriptExtension)</Path>
-      </_ProtocCodegenPlugin>
+      </_ProtocCodeGenPlugin>
 
-      <!-- Telemetry plug-in; runs once over all ProtoFile items so the upload reports the whole build. -->
-      <_ProtocTelemetryPlugin Include="icerpc-build-telemetry">
+      <!-- Add build telemetry plug-in when build telemetry is enabled -->
+      <_ProtocCodeGenPlugin Include="icerpc-build-telemetry" Condition="'$(IceRpcBuildTelemetry)' == 'true'">
         <Path>$(IceRpcProtocBuildTelemetryPath)protoc-gen-icerpc-build-telemetry$(_ProtocPluginScriptExtension)</Path>
-      </_ProtocTelemetryPlugin>
+        <Parameter>debug=$(IceRpcBuildTelemetryDebug),plugin=csharp:$(ProtocBundledPluginVersion),plugin=icerpc-csharp:$(ProtocIceRpcPluginVersion),plugin=icerpc-build-telemetry:$(ProtocIceRpcPluginVersion)</Parameter>
+      </_ProtocCodeGenPlugin>
     </ItemGroup>
 
     <!-- Compile the Proto files
@@ -82,24 +83,10 @@
       OutputDir="@(_ProtoFile->'%(OutputDir)')"
       SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
       ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
-      Plugins="@(_ProtocCodegenPlugin)"
+      Plugins="@(_ProtocCodeGenPlugin)"
       AdditionalOptions="--dependency_out=&quot;%(_ProtoFile.OutputDir)/%(_ProtoFile.OutputFileName).d&quot;"
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
-    />
-
-    <!--
-      Run the build-telemetry plug-in once over all ProtoFile items so it can compute a single per-build
-      compilation hash and file count from the descriptors, regardless of which files were up-to-date.
-    -->
-    <ProtocTask
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      OutputDir="$(IntermediateOutputPath)"
-      SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
-      ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
-      Plugins="@(_ProtocTelemetryPlugin)"
-      Sources="@(_ProtoFile)"
-      Condition="'$(IceRpcBuildTelemetry)' == 'true'"
     />
 
     <!--
@@ -124,19 +111,7 @@
     <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
     <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
     <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
-  </Target>
-
-  <!--
-    The telemetry plug-in writes hash-based transcript file names. At clean time, these tools do not
-    recompute or know that hash, so we cannot delete a single exact file name; instead we delete all
-    telemetry transcript files in the project's intermediate output directory.
-  -->
-  <Target Name="ProtoTelemetryClean" BeforeTargets="ProtoClean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
-    <ItemGroup>
-      <_ProtoTelemetryFiles
-        Include="$(IntermediateOutputPath)/*.icerpc_build_telemetry.txt" />
-    </ItemGroup>
-    <Delete Files="@(_ProtoTelemetryFiles)" Condition="'@(_ProtoTelemetryFiles)' != ''" />
+    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).BuildTelemetry.txt')" />
   </Target>
 
   <!-- Package ProtoFile items -->

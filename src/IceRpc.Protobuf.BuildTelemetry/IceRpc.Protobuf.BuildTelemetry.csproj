@@ -11,6 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <SliceFile Include="../../slice/BuildTelemetry/ProtobufBuildTelemetry.slice" />
+    <Compile Include="../IceRpc.Protobuf.Tools/Converter.cs" />
     <PackageReference Include="Google.Protobuf" />
     <ProjectReference Include="../IceRpc/IceRpc.csproj" />
     <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />

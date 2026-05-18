@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import
+    Project="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.Version.props"
+    Condition="Exists('$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.Version.props')" />
+
   <PropertyGroup>
     <EnableDefaultProtoFileItems Condition="'$(EnableDefaultProtoFileItems)' == ''">true</EnableDefaultProtoFileItems>
-    <!-- Internal properties used to compute the protoc excutable location for the current platform. -->
+    <!-- Internal properties used to compute the protoc executable location for the current platform. -->
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRpcOSName>
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
@@ -13,6 +17,13 @@
 
     <!-- Report build telemetry by default -->
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
+
+    <!-- Turn off build telemetry debugging by default -->
+    <IceRpcBuildTelemetryDebug Condition="'$(IceRpcBuildTelemetryDebug)' == ''">false</IceRpcBuildTelemetryDebug>
+
+    <!-- In source builds, these values are supplied by imported repository version properties. -->
+    <ProtocBundledPluginVersion Condition="'$(ProtocBundledPluginVersion)' == '' and '$(ProtobufVersion)' != ''">$(ProtobufVersion)</ProtocBundledPluginVersion>
+    <ProtocIceRpcPluginVersion Condition="'$(ProtocIceRpcPluginVersion)' == '' and '$(Version)' != ''">$(Version)</ProtocIceRpcPluginVersion>
   </PropertyGroup>
   <Choose>
     <When Condition="$([MSBuild]::IsOSPlatform('Windows'))">

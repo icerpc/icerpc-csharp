@@ -133,4 +133,25 @@
       </None>
     </ItemGroup>
   </Target>
+
+  <Target Name="GenerateVersionPropsForPackage" BeforeTargets="_GetPackageFiles">
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.Version.props.in"
+      DestinationFiles="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props"
+      SkipUnchangedFiles="true" />
+
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props"
+      Query="/*[local-name()='Project']/*[local-name()='PropertyGroup']/*[local-name()='ProtocBundledPluginVersion']"
+      Value="$(ProtobufVersion)" />
+
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props"
+      Query="/*[local-name()='Project']/*[local-name()='PropertyGroup']/*[local-name()='ProtocIceRpcPluginVersion']"
+      Value="$(Version)" />
+
+    <ItemGroup>
+      <None Include="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props" Pack="true" PackagePath="build/" Visible="false" />
+    </ItemGroup>
+  </Target>
 </Project>
