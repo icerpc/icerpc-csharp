@@ -20,9 +20,18 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
+  <!--
+    Build-order-only reference: the consuming project just needs IceRpc.Protobuf.Tools (and, via its own
+    ProjectReference, IceRpc.Protobuf.Generator) to be built so the protoc plug-in scripts exist on disk before we
+    invoke them. We don't want the Tools project's assemblies or CopyToOutputDirectory items (e.g. the
+    protoc-gen-icerpc-csharp scripts, *.runtimeconfig.json) to flow into the consumer's bin. The metadata below
+    switches the reference to "build-only" mode: ReferenceOutputAssembly=false skips the assembly reference,
+    Private=false suppresses Copy Local, and Targets=Build restricts the cross-project call to the Build target so
+    GetCopyToOutputDirectoryItems is never invoked on the referenced project.
+  -->
   <ItemGroup Condition="'$(IceRpcProtobufToolsSourceBuild)' == 'true'">
-    <!-- Add a reference to the Tools project to ensure it's built before we use its tasks -->
-    <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
   </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />

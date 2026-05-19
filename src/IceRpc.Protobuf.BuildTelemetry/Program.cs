@@ -181,14 +181,14 @@ static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string
                 case "debug":
                     if (value.Length > 0)
                     {
-                        throw new FormatException($"Invalid value for 'debug' parameter: '{value}'");
+                        throw new FormatException("The 'debug' parameter does not accept any value.");
                     }
                     debug = true;
                     break;
                 case "dry_run":
                     if (value.Length > 0)
                     {
-                        throw new FormatException($"Invalid value for 'dry_run' parameter: '{value}'");
+                        throw new FormatException("The 'dry_run' parameter does not accept any value.");
                     }
                     dryRun = true;
                     break;

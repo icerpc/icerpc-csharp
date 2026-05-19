@@ -24,8 +24,11 @@
     <_SliceCExe Condition="'$(_IceRpcOSName)' != 'windows'">slicec</_SliceCExe>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
+    <!-- Build-order-only references; see comment on the analogous block in IceRpc.Slice.Tools.targets. -->
+    <ProjectReference Include="../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
+    <ProjectReference Include="../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
     <!--
       IceRpc.Slice.BuildTelemetry imports this project's props/targets (to compile its BuildTelemetry.slice), so a
       ProjectReference from here back to it would create a cycle. Release packaging expects a prior
@@ -69,46 +72,23 @@
       <PackagePath>/</PackagePath>
     </None>
     <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <!-- cspell:ignore runtimeconfig -->
-    <!-- Include the ZeroC.Slice.Generator outputs and scripts from source builds. -->
-    <None
-      Include="../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.dll;
-               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb;
-               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*.runtimeconfig.json;
-               ../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/slicec-csharp-generator.*"
-      Visible="false">
-      <PackagePath>tools/</PackagePath>
-      <Pack>true</Pack>
-    </None>
-    <!-- Include the IceRpc.Slice.Generator outputs and scripts from source builds, but
-         exclude shared dependencies already included by ZeroC.Slice.Generator above. -->
-    <None
-      Include="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.dll;
-               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.pdb;
-               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*.runtimeconfig.json;
-               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/slicec-icerpc-csharp-generator.*"
-      Exclude="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/Dunet.dll;
-               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Codec.*;
-               ../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Symbols.*"
-      Visible="false">
-      <PackagePath>tools/</PackagePath>
-      <Pack>true</Pack>
-    </None>
-    <!-- Include the IceRpc.Slice.BuildTelemetry plug-in outputs and scripts from source builds. We list only the
-         files unique to this plug-in plus its IceRPC runtime dependencies - the generator entries above already
-         contribute the shared Slice deps. -->
-    <None
-      Include="../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.BuildTelemetry.*;
-               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/slicec-gen-icerpc-build-telemetry.*;
-               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.dll;
-               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.pdb;
-               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.dll;
-               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.pdb;
-               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/Microsoft.Extensions.*.dll"
-      Visible="false">
-      <PackagePath>tools/</PackagePath>
-      <Pack>true</Pack>
-    </None>
+    <!--
+      Pack everything from the two slicec generator plug-ins (ZeroC.Slice.Generator and
+      IceRpc.Slice.Generator) and the build-telemetry plug-in (IceRpc.Slice.BuildTelemetry), excluding
+      files that have the same name as a file already coming from an earlier bin. The bins are otherwise
+      clean - none of them contain transitive tooling outputs because we use Targets="Build" on the
+      generator ProjectReferences (see IceRpc.Slice.Tools.targets).
+    -->
+    <_ZeroCSliceGeneratorBinFile Include="../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*" />
+    <_IceRpcSliceGeneratorBinFile
+      Include="../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/*"
+      Exclude="@(_ZeroCSliceGeneratorBinFile -> '../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/%(Filename)%(Extension)')" />
+    <_SliceBuildTelemetryBinFile
+      Include="../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/*"
+      Exclude="@(_ZeroCSliceGeneratorBinFile -> '../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/%(Filename)%(Extension)');
+               @(_IceRpcSliceGeneratorBinFile -> '../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/%(Filename)%(Extension)')" />
+    <None Include="@(_ZeroCSliceGeneratorBinFile);@(_IceRpcSliceGeneratorBinFile);@(_SliceBuildTelemetryBinFile)"
+          Pack="true" PackagePath="tools/" Visible="false" />
   </ItemGroup>
   <Target Name="DownloadSlicec" BeforeTargets="CoreCompile">
     <ItemGroup>
