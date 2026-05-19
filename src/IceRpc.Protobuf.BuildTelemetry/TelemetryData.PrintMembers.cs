@@ -17,6 +17,7 @@ internal partial record struct TelemetryData
         builder.Append("], ServiceCount = ").Append(ServiceCount);
         builder.Append(", RpcCount = ").Append(RpcCount);
         builder.Append(", MessageCount = ").Append(MessageCount);
+        builder.Append(", DryRun = ").Append(DryRun);
         return true;
     }
 }

@@ -32,6 +32,10 @@ struct TelemetryData {
 
     /// The number of messages in the Protobuf source files.
     messageCount: uint32
+
+    /// When true, the telemetry data reported to the build observer should not be recorded in the database.
+    /// Used for testing.
+    dryRun: bool
 }
 
 /// Information about the Protobuf compiler version. Mirrors the Version message in plugin.proto.

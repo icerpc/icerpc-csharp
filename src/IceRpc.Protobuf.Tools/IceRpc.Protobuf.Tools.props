@@ -18,9 +18,6 @@
     <!-- Report build telemetry by default -->
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
 
-    <!-- Turn off build telemetry debugging by default -->
-    <IceRpcBuildTelemetryDebug Condition="'$(IceRpcBuildTelemetryDebug)' == ''">false</IceRpcBuildTelemetryDebug>
-
     <!-- In source builds, these values are supplied by imported repository version properties. -->
     <ProtocBundledPluginVersion Condition="'$(ProtocBundledPluginVersion)' == '' and '$(ProtobufVersion)' != ''">$(ProtobufVersion)</ProtocBundledPluginVersion>
     <ProtocIceRpcPluginVersion Condition="'$(ProtocIceRpcPluginVersion)' == '' and '$(Version)' != ''">$(Version)</ProtocIceRpcPluginVersion>

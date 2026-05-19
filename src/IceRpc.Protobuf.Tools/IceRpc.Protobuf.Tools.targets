@@ -57,6 +57,13 @@
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
 
+    <PropertyGroup>
+       <!-- Parameter for the Build Telemetry plug-in -->
+       <_BuildTelemetryParameter>"plugin=csharp:$(ProtocBundledPluginVersion),plugin=icerpc-csharp:$(ProtocIceRpcPluginVersion)"</_BuildTelemetryParameter>
+       <_BuildTelemetryParameter Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">dry_run,$(_BuildTelemetryParameter)</_BuildTelemetryParameter>
+       <_BuildTelemetryParameter Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">debug,$(_BuildTelemetryParameter)</_BuildTelemetryParameter>
+    </PropertyGroup>
+
     <ItemGroup>
       <!-- Code-generating plug-ins; protoc runs once per ProtoFile to produce a dependency file per file. -->
       <_ProtocCodeGenPlugin Include="csharp" />
@@ -67,7 +74,7 @@
       <!-- Add build telemetry plug-in when build telemetry is enabled -->
       <_ProtocCodeGenPlugin Include="icerpc-build-telemetry" Condition="'$(IceRpcBuildTelemetry)' == 'true'">
         <Path>$(IceRpcProtocBuildTelemetryPath)protoc-gen-icerpc-build-telemetry$(_ProtocPluginScriptExtension)</Path>
-        <Parameter>debug=$(IceRpcBuildTelemetryDebug),plugin=csharp:$(ProtocBundledPluginVersion),plugin=icerpc-csharp:$(ProtocIceRpcPluginVersion),plugin=icerpc-build-telemetry:$(ProtocIceRpcPluginVersion)</Parameter>
+        <Parameter>$(_BuildTelemetryParameter)</Parameter>
       </_ProtocCodeGenPlugin>
     </ItemGroup>
 

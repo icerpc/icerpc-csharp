@@ -56,7 +56,7 @@ var response = new CodeGeneratorResponse();
 
 if (fileName is not null)
 {
-    (bool debug, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
+    (bool debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
 
     var telemetryData = new TelemetryData(
         RuntimeInformation.ProcessArchitecture.ToString(),
@@ -71,9 +71,10 @@ if (fileName is not null)
         plugins,
         (uint)serviceCount,
         (uint)rpcCount,
-        (uint)messageCount);
+        (uint)messageCount,
+        dryRun);
 
-    const string uri = "icerpc://build-telemetry.icerpc.dev";
+    string uri = "icerpc://build-telemetry.icerpc.dev";
 
     try
     {
@@ -89,6 +90,9 @@ if (fileName is not null)
 
         // Create a proxy with this client connection.
         var buildObserver = new BuildObserverProxy(connection);
+
+        // Add path to URI.
+        uri += buildObserver.ServiceAddress.Path;
 
         // Upload the telemetry to the server.
         await buildObserver.ReportProtobufBuildAsync(telemetryData, cancellationToken: cts.Token);
@@ -139,9 +143,10 @@ if (fileName is not null)
 using Stream stdout = Console.OpenStandardOutput();
 response.WriteTo(stdout);
 
-static (bool Debug, List<PluginInfo> Plugins) ParseParameter(string? parameter)
+static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string? parameter)
 {
     bool debug = false;
+    bool dryRun = false;
     var plugins = new List<PluginInfo>();
 
     if (!string.IsNullOrWhiteSpace(parameter))
@@ -157,20 +162,26 @@ static (bool Debug, List<PluginInfo> Plugins) ParseParameter(string? parameter)
 
             string value = array.Length > 1 ? array[1].Trim() : "";
 
-            if (name == "debug")
+            switch (name)
             {
-                debug = value == "true";
+                case "debug":
+                    debug = value != "false";
+                    break;
+                case "dry_run":
+                    dryRun = value != "false";
+                    break;
+                case "plugin":
+                    string[] pluginInfo = value.Split(':', 2);
+                    string pluginName = pluginInfo[0].Trim();
+                    string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
+                    plugins.Add(new PluginInfo(pluginName, pluginVersion));
+                    break;
+                default:
+                      // TODO: handle unknown parameters
+                      break;
             }
-            else if (name == "plugin")
-            {
-                string[] pluginInfo = value.Split(':', 2);
-                string pluginName = pluginInfo[0].Trim();
-                string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
-                plugins.Add(new PluginInfo(pluginName, pluginVersion));
-            }
-            // TODO: handle unknown parameters
         }
     }
 
-    return (debug, plugins);
+    return (debug, dryRun, plugins);
 }
