@@ -58,21 +58,17 @@ if (fileName is not null)
 {
     (bool debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
 
-    var telemetryData = new TelemetryData(
-        RuntimeInformation.ProcessArchitecture.ToString(),
-        RuntimeInformation.OSDescription,
-        new ProtocVersion
-        {
-            Major = request.CompilerVersion.Major,
-            Minor = request.CompilerVersion.Minor,
-            Patch = request.CompilerVersion.Patch,
-            Suffix = request.CompilerVersion.Suffix
-        },
-        plugins,
-        (uint)serviceCount,
-        (uint)rpcCount,
-        (uint)messageCount,
-        dryRun);
+    var telemetryData = new TelemetryData
+    {
+        Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
+        OperatingSystem = RuntimeInformation.OSDescription,
+        ProtocVersion = request.CompilerVersion,
+        Plugins = { plugins },
+        ServiceCount = (uint)serviceCount,
+        RpcCount = (uint)rpcCount,
+        MessageCount = (uint)messageCount,
+        DryRun = dryRun
+    };
 
     string uri = "icerpc://build-telemetry.icerpc.dev";
 
@@ -89,7 +85,7 @@ if (fileName is not null)
                 new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
 
         // Create a proxy with this client connection.
-        var buildObserver = new BuildObserverProxy(connection);
+        var buildObserver = new BuildObserverClient(connection);
 
         // Add path to URI.
         uri += buildObserver.ServiceAddress.Path;
@@ -143,13 +139,13 @@ if (fileName is not null)
 using Stream stdout = Console.OpenStandardOutput();
 response.WriteTo(stdout);
 
-static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string? parameter)
+static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string parameter)
 {
     bool debug = false;
     bool dryRun = false;
     var plugins = new List<PluginInfo>();
 
-    if (!string.IsNullOrWhiteSpace(parameter))
+    if (parameter.Length > 0)
     {
         foreach (string entry in parameter.Split(',', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -165,20 +161,25 @@ static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string
             switch (name)
             {
                 case "debug":
-                    debug = value != "false";
+                    if (value.Length > 0)
+                    {
+                        throw new FormatException($"Invalid value for 'debug' parameter: '{value}'");
+                    }
                     break;
                 case "dry_run":
-                    dryRun = value != "false";
+                    if (value.Length > 0)
+                    {
+                        throw new FormatException($"Invalid value for 'dry_run' parameter: '{value}'");
+                    }
                     break;
                 case "plugin":
                     string[] pluginInfo = value.Split(':', 2);
                     string pluginName = pluginInfo[0].Trim();
                     string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
-                    plugins.Add(new PluginInfo(pluginName, pluginVersion));
+                    plugins.Add(new PluginInfo { Name = pluginName, Version = pluginVersion });
                     break;
                 default:
-                      // TODO: handle unknown parameters
-                      break;
+                    throw new FormatException($"Unknown parameter: '{name}'");
             }
         }
     }

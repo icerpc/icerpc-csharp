@@ -1,21 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RollForward>major</RollForward>
     <AssemblyName>IceRpc.Protobuf.BuildTelemetry</AssemblyName>
+    <!-- Don't emit the platform-specific native apphost: the plug-in is launched as
+         `dotnet IceRpc.Protobuf.BuildTelemetry.dll` from protoc-gen-icerpc-build-telemetry.{sh,bat}. -->
+    <UseAppHost>false</UseAppHost>
     <!-- We don't generate a NuGet package for IceRpc.Protobuf.BuildTelemetry. The plug-in is packaged with
     IceRpc.Protobuf.Tools -->
     <IsPackable>false</IsPackable>
+    <!-- Disable the default **/*.proto glob from IceRpc.Protobuf.Tools.targets: we want only
+         protobuf_build_telemetry.proto compiled to C#. proto/google/protobuf/compiler/plugin.proto is
+         an import-only stub (see that file's header for details). -->
+    <EnableDefaultProtoFileItems>false</EnableDefaultProtoFileItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <SliceFile Include="../../slice/BuildTelemetry/ProtobufBuildTelemetry.slice" />
+    <ProtoFile Include="proto/protobuf_build_telemetry.proto" />
+    <!-- Make the `proto` directory a search root so that the stub plugin.proto is found at its canonical
+         import path `google/protobuf/compiler/plugin.proto`. -->
+    <ProtoSearchPath Include="proto" />
     <Compile Include="../IceRpc.Protobuf.Tools/Converter.cs" />
     <PackageReference Include="Google.Protobuf" />
     <ProjectReference Include="../IceRpc/IceRpc.csproj" />
-    <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
     <None Include="protoc-gen-icerpc-build-telemetry.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -23,5 +33,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.targets" />
 </Project>

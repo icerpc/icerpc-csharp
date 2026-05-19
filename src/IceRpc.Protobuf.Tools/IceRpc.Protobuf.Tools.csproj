@@ -17,7 +17,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc.Protobuf.Generator/IceRpc.Protobuf.Generator.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../IceRpc.Protobuf.BuildTelemetry/IceRpc.Protobuf.BuildTelemetry.csproj" ReferenceOutputAssembly="false" />
+    <!--
+      IceRpc.Protobuf.BuildTelemetry imports this project's props/targets (to compile its
+      protobuf_build_telemetry.proto), so a ProjectReference from here back to it would create a cycle. Release
+      packaging expects a prior `dotnet build` on the solution so its outputs exist in
+      ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/ when the None Include glob below is evaluated.
+    -->
     <PackageReference Include="Microsoft.Build.Framework" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" />
     <PackageReference Include="Google.Protobuf.Tools" />
@@ -55,10 +60,15 @@
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
-    <!-- We need to exclude Google.Protobuf.dll because it's already included by IceRpc.Protobuf.Generator above. -->
+    <!-- Only pack the BuildTelemetry-specific files. A broader glob would pick up transitive dependency
+         outputs (IceRpc.Protobuf.Generator, protoc-gen-icerpc-csharp.bat/.sh, Google.Protobuf.dll, ...)
+         that are already packed from IceRpc.Protobuf.Generator's bin folder above. -->
     <None
-      Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/*"
-      Exclude="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/Google.Protobuf.dll"
+      Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.dll;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.deps.json;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.runtimeconfig.json;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/protoc-gen-icerpc-build-telemetry.bat;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/protoc-gen-icerpc-build-telemetry.sh"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
