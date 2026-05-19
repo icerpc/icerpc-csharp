@@ -19,7 +19,7 @@
           "src": "../"
         }
       ],
-      "dest": "api",
+      "dest": "reference",
       "filter": "filterConfig.yml",
       "includePrivateMembers": false,
       "disableGitFeatures": false,
@@ -32,7 +32,7 @@
   "build": {
     "content": [
       {
-        "files": ["api/**.yml"]
+        "files": ["reference/**.yml"]
       },
       {
         "files": ["toc.yml", "*.md"]
