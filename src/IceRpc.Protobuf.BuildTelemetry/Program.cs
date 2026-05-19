@@ -54,11 +54,14 @@ foreach (FileDescriptor descriptor in descriptors)
 
 var response = new CodeGeneratorResponse();
 
-if (fileName is not null)
-{
-    (bool debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
+bool debug = false;
+TelemetryData? telemetryData = null;
 
-    var telemetryData = new TelemetryData
+try
+{
+    (debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
+
+    telemetryData = new TelemetryData
     {
         Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
         OperatingSystem = RuntimeInformation.OSDescription,
@@ -69,7 +72,15 @@ if (fileName is not null)
         MessageCount = (uint)messageCount,
         DryRun = dryRun
     };
+}
+catch (FormatException exception)
+{
+    // Always converted to an error (debug or not).
+    response.Error = exception.Message;
+}
 
+if (fileName is not null && telemetryData is not null)
+{
     string uri = "icerpc://build-telemetry.icerpc.dev";
 
     try
@@ -128,7 +139,7 @@ if (fileName is not null)
         // else, we ignore these exceptions
     }
 
-    if (debug)
+    if (debug && response.Error.Length == 0)
     {
         // We return a single file containing the result of the build telemetry reporting.
         response.File.Add(
