@@ -15,7 +15,7 @@ internal static class PipeReaderExtensions
     /// <param name="reader">The <see cref="PipeReader" /> containing the Protobuf length-prefixed message.</param>
     /// <param name="parser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
     /// <param name="maxMessageLength">The maximum allowed length.</param>
-    /// <param name="acceptEmptyPayload">Indicates whether to accept empty payloads.</param>
+    /// <param name="acceptEmptyPayload">Indicates whether to accept or reject empty payloads.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The decoded message object.</returns>
     /// <remarks>The envelope follows the gRPC Length-Prefixed-Message format: a 1-byte compression flag (0 for
@@ -38,13 +38,13 @@ internal static class PipeReaderExtensions
         {
             if (acceptEmptyPayload)
             {
-                // An empty payload can represent an empty message. Used for oneway requests.
+                // An empty payload represents a default-constructed message. Used for oneway requests.
                 message = parser.ParseFrom([]);
             }
             else
             {
                 throw new InvalidDataException(
-                    "The payload is empty but a length-prefixed Protobuf message was expected.");
+                    "The payload is empty; a length-prefixed Protobuf message was expected.");
             }
         }
         else
