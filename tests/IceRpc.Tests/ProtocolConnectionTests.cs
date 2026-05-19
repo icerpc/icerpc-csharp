@@ -559,6 +559,38 @@ public sealed class ProtocolConnectionTests
         Assert.That(tokenCanceled, Is.False);
     }
 
+    /// <summary>Verifies that an interceptor can change <see cref="OutgoingRequest.IsOneway" /> from false to true,
+    /// and that the change is observed on the server side.</summary>
+    [Test]
+    public async Task Interceptor_can_set_request_to_oneway([Values("ice", "icerpc")] string protocolString)
+    {
+        // Arrange
+        var protocol = Protocol.Parse(protocolString);
+        using var dispatcher = new TestDispatcher();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        IInvoker invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            request.IsOneway = true;
+            return sut.Client.InvokeAsync(request, cancellationToken);
+        });
+
+        using var request = new OutgoingRequest(new ServiceAddress(protocol)); // IsOneway defaults to false
+
+        // Act
+        _ = await invoker.InvokeAsync(request);
+
+        // Assert
+        IncomingRequest incomingRequest = await dispatcher.DispatchStart;
+        Assert.That(incomingRequest.IsOneway, Is.True);
+    }
+
     [Test]
     [TestCaseSource(nameof(Protocols))]
     public async Task Dispatch_returns_response_not_matching_request_response(Protocol protocol)
