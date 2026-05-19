@@ -2,11 +2,11 @@
 
 syntax = "proto3";
 
-package icerpc.protobuf.build_telemetry;
-option csharp_namespace = "IceRpc.Protobuf.BuildTelemetry";
-
 import "google/protobuf/compiler/plugin.proto";
 import "google/protobuf/empty.proto";
+
+package icerpc.protobuf.build_telemetry;
+option csharp_namespace = "IceRpc.Protobuf.BuildTelemetry";
 
 // Observes and collects Protobuf build events.
 service BuildObserver {

@@ -11,14 +11,12 @@
     <!-- We don't generate a NuGet package for IceRpc.Protobuf.BuildTelemetry. The plug-in is packaged with
     IceRpc.Protobuf.Tools -->
     <IsPackable>false</IsPackable>
-    <!-- Disable the default **/*.proto glob from IceRpc.Protobuf.Tools.targets: we want only
-         protobuf_build_telemetry.proto compiled to C#. proto/google/protobuf/compiler/plugin.proto is
-         an import-only stub (see that file's header for details). -->
+    <!-- Disable the default **/*.proto glob from IceRpc.Protobuf.Tools.targets -->
     <EnableDefaultProtoFileItems>false</EnableDefaultProtoFileItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProtoFile Include="proto/protobuf_build_telemetry.proto" />
+    <ProtoFile Include="proto/icerpc/**" />
     <!-- Make the `proto` directory a search root so that the stub plugin.proto is found at its canonical
          import path `google/protobuf/compiler/plugin.proto`. -->
     <ProtoSearchPath Include="proto" />
