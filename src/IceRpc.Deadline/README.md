@@ -79,7 +79,7 @@ using var host = hostBuilder.Build();
 host.Run();
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Deadline.html
+[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Deadline.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Deadline
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor

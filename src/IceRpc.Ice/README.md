@@ -85,7 +85,7 @@ internal partial class Chatbot : IGreeterService
 }
 ```
 
-[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Ice.html
+[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Ice.html
 [docs]: TBD
 [ice]: https://zeroc.com/ice
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
