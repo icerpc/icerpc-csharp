@@ -84,8 +84,15 @@ if (fileName is not null)
             multiplexedClientTransport: QuicConnection.IsSupported ?
                 new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
 
-        // Create a proxy with this client connection.
-        var buildObserver = new BuildObserverClient(connection);
+        // Use a one-way invocation unless we're in debug mode.
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            request.IsOneway = true; // TODO: use !debug once the server is implemented
+            return connection.InvokeAsync(request, cancellationToken);
+        });
+
+        // Create a proxy with this invoker.
+        var buildObserver = new BuildObserverClient(invoker);
 
         // Add path to URI.
         uri += buildObserver.ServiceAddress.Path;
@@ -121,7 +128,7 @@ if (fileName is not null)
         // else, we ignore these exceptions
     }
 
-    if (debug && response.Error.Length == 0)
+    if (debug)
     {
         // We return a single file containing the result of the build telemetry reporting.
         response.File.Add(
@@ -165,12 +172,14 @@ static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string
                     {
                         throw new FormatException($"Invalid value for 'debug' parameter: '{value}'");
                     }
+                    debug = true;
                     break;
                 case "dry_run":
                     if (value.Length > 0)
                     {
                         throw new FormatException($"Invalid value for 'dry_run' parameter: '{value}'");
                     }
+                    dryRun = true;
                     break;
                 case "plugin":
                     string[] pluginInfo = value.Split(':', 2);

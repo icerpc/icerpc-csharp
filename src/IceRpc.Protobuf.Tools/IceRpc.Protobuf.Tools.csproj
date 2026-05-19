@@ -64,11 +64,14 @@
          outputs (IceRpc.Protobuf.Generator, protoc-gen-icerpc-csharp.bat/.sh, Google.Protobuf.dll, ...)
          that are already packed from IceRpc.Protobuf.Generator's bin folder above. -->
     <None
-      Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.dll;
-               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.deps.json;
-               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.runtimeconfig.json;
-               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/protoc-gen-icerpc-build-telemetry.bat;
-               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/protoc-gen-icerpc-build-telemetry.sh"
+      Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.*;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/protoc-gen-icerpc-build-telemetry.*;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.dll;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.pdb;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.dll;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.pdb;
+               ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/ZeroC.Slice.Codec.dll;
+               ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/Microsoft.Extensions.*.dll"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>

@@ -59,7 +59,7 @@
 
     <PropertyGroup>
        <!-- Parameter for the Build Telemetry plug-in -->
-       <_BuildTelemetryParameter>"plugin=csharp:$(ProtocBundledPluginVersion),plugin=icerpc-csharp:$(ProtocIceRpcPluginVersion)"</_BuildTelemetryParameter>
+       <_BuildTelemetryParameter>plugin=csharp:$(ProtocBundledPluginVersion),plugin=icerpc-csharp:$(ProtocIceRpcPluginVersion),plugin=icerpc-build-telemetry:$(ProtocIceRpcPluginVersion)</_BuildTelemetryParameter>
        <_BuildTelemetryParameter Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">dry_run,$(_BuildTelemetryParameter)</_BuildTelemetryParameter>
        <_BuildTelemetryParameter Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">debug,$(_BuildTelemetryParameter)</_BuildTelemetryParameter>
     </PropertyGroup>
