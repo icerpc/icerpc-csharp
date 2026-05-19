@@ -25,6 +25,7 @@ public partial class PipeReaderExtensionsTests
         StringValue decoded = await pipeReader.DecodeProtobufMessageAsync(
             StringValue.Parser,
             maxMessageLength: 1027,
+            acceptEmptyPayload: false,
             CancellationToken.None);
 
         // Assert
@@ -45,6 +46,7 @@ public partial class PipeReaderExtensionsTests
             await pipeReader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1026,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         pipeReader.Complete();
     }
@@ -63,6 +65,7 @@ public partial class PipeReaderExtensionsTests
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         pipe.Reader.Complete();
     }
@@ -81,6 +84,7 @@ public partial class PipeReaderExtensionsTests
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         pipe.Reader.Complete();
     }
@@ -101,6 +105,7 @@ public partial class PipeReaderExtensionsTests
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         pipe.Reader.Complete();
     }
@@ -122,6 +127,7 @@ public partial class PipeReaderExtensionsTests
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         pipe.Reader.Complete();
     }
@@ -142,6 +148,7 @@ public partial class PipeReaderExtensionsTests
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         pipe.Reader.Complete();
     }
@@ -171,6 +178,7 @@ public partial class PipeReaderExtensionsTests
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
+                acceptEmptyPayload: false,
                 CancellationToken.None));
         Assert.That(exception!.InnerException, Is.InstanceOf<InvalidProtocolBufferException>());
         pipe.Reader.Complete();

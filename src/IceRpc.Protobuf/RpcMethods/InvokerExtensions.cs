@@ -230,6 +230,7 @@ public static class InvokerExtensions
                 return await response.Payload.DecodeProtobufMessageAsync(
                     messageParser,
                     protobufFeature.MaxMessageLength,
+                    acceptEmptyPayload: true,
                     cancellationToken).ConfigureAwait(false);
             }
             else
