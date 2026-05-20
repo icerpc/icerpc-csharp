@@ -7,6 +7,8 @@ using IceRpc.CaseConverter.Internal;
 using IceRpc.Protobuf.Generator;
 using ZeroC.CodeBuilder;
 
+using static Google.Protobuf.Compiler.CodeGeneratorResponse.Types;
+
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
 // Read the input and deserialize it using the Protobuf CodeGeneratorRequest object.
@@ -23,7 +25,13 @@ foreach (FileDescriptorProto? proto in request.ProtoFile)
 // Build the FileDescriptor objects from the collected encoded data.
 IReadOnlyList<FileDescriptor> descriptors = FileDescriptor.BuildFromByteStrings(sources);
 
-var response = new CodeGeneratorResponse();
+var response = new CodeGeneratorResponse
+{
+    // We support all since we only generate code for services.
+    SupportedFeatures = (ulong)(Feature.Proto3Optional | Feature.SupportsEditions),
+    MaximumEdition = (int)Edition.Max
+};
+
 foreach (FileDescriptor descriptor in descriptors)
 {
     if (!request.FileToGenerate.Contains(descriptor.Name))

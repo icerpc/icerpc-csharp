@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-syntax = "proto3";
+edition = "2024";
 option csharp_namespace = "IceRpc.Protobuf.Tests";
 
 import "google/protobuf/empty.proto";

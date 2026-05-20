@@ -14,6 +14,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
+using static Google.Protobuf.Compiler.CodeGeneratorResponse.Types;
+
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
 // Read the input and deserialize it using the Protobuf CodeGeneratorRequest object.
@@ -48,7 +50,12 @@ foreach (FileDescriptor descriptor in descriptors)
 
 byte[] hashBytes = fileCount == 0 ? [] : fileHashes.GetHashAndReset();
 
-var response = new CodeGeneratorResponse();
+var response = new CodeGeneratorResponse
+{
+    // We support all since we only generate code for services.
+    SupportedFeatures = (ulong)(Feature.Proto3Optional | Feature.SupportsEditions),
+    MaximumEdition = (int)Edition.Max
+};
 
 if (fileCount > 0)
 {
