@@ -230,6 +230,9 @@ public static class InvokerExtensions
                 return await response.Payload.DecodeProtobufMessageAsync(
                     messageParser,
                     protobufFeature.MaxMessageLength,
+                    // The payload of the response to a oneway request is empty and we decode it as a
+                    // default-constructed response message.
+                    acceptEmptyPayload: request.IsOneway,
                     cancellationToken).ConfigureAwait(false);
             }
             else

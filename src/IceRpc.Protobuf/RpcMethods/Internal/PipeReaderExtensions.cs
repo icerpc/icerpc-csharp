@@ -15,6 +15,7 @@ internal static class PipeReaderExtensions
     /// <param name="reader">The <see cref="PipeReader" /> containing the Protobuf length-prefixed message.</param>
     /// <param name="parser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
     /// <param name="maxMessageLength">The maximum allowed length.</param>
+    /// <param name="acceptEmptyPayload">Indicates whether to accept or reject empty payloads.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The decoded message object.</returns>
     /// <remarks>The envelope follows the gRPC Length-Prefixed-Message format: a 1-byte compression flag (0 for
@@ -25,29 +26,45 @@ internal static class PipeReaderExtensions
         this PipeReader reader,
         MessageParser<T> parser,
         int maxMessageLength,
+        bool acceptEmptyPayload,
         CancellationToken cancellationToken) where T : class, IMessage<T>
     {
-        T message = await reader.ReadProtobufMessageAsync(
+        T? message = await reader.ReadProtobufMessageAsync(
             parser,
             maxMessageLength,
-            cancellationToken).ConfigureAwait(false) ??
-            throw new InvalidDataException("The payload is empty; expected a Protobuf message.");
+            cancellationToken).ConfigureAwait(false);
 
-        // A unary payload must contain exactly one message; any trailing bytes indicate a framing error.
-        ReadResult readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-        if (readResult.IsCanceled)
+        if (message is null)
         {
-            throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+            if (acceptEmptyPayload)
+            {
+                // An empty payload represents a default-constructed message. Used for oneway requests.
+                message = parser.ParseFrom([]);
+            }
+            else
+            {
+                throw new InvalidDataException(
+                    "The payload is empty; a length-prefixed Protobuf message was expected.");
+            }
         }
-        bool hasTrailingBytes = !readResult.Buffer.IsEmpty;
-        reader.AdvanceTo(readResult.Buffer.End);
-        if (hasTrailingBytes)
+        else
         {
-            throw new InvalidDataException(
-                "The payload contains unexpected trailing bytes after the Protobuf message.");
+            // A unary payload must contain exactly one message; any trailing bytes indicate a framing error.
+            ReadResult readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+            if (readResult.IsCanceled)
+            {
+                throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+            }
+            bool hasTrailingBytes = !readResult.Buffer.IsEmpty;
+            reader.AdvanceTo(readResult.Buffer.End);
+            if (hasTrailingBytes)
+            {
+                throw new InvalidDataException(
+                    "The payload contains unexpected trailing bytes after the Protobuf message.");
+            }
+            Debug.Assert(readResult.IsCompleted);
         }
-        Debug.Assert(readResult.IsCompleted);
 
         return message;
     }

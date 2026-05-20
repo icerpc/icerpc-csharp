@@ -36,6 +36,46 @@ public partial class OperationTests
         Assert.That(response.P2, Is.EqualTo(message.P2));
     }
 
+    /// <summary>Verifies that a unary RPC works when an interceptor sets the request to oneway. The
+    /// response payload is empty in this case, and the generated client must decode this empty payload
+    /// successfully.</summary>
+    [Test]
+    public async Task Unary_rpc_with_oneway_request()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyOperationsService())
+            .BuildServiceProvider(validateScopes: true);
+        provider.GetRequiredService<Server>().Listen();
+        ClientConnection clientConnection = provider.GetRequiredService<ClientConnection>();
+
+        var pipeline = new Pipeline();
+        pipeline
+            .Use(next => new InlineInvoker(
+                (request, cancellationToken) =>
+                {
+                    request.IsOneway = true;
+                    return next.InvokeAsync(request, cancellationToken);
+                }))
+            .Into(clientConnection);
+
+        var client = new MyOperationsClient(pipeline);
+
+        var message = new InputMessage()
+        {
+            P1 = "P1",
+            P2 = 2,
+        };
+
+        // Act
+        var response = await client.UnaryOpAsync(message);
+
+        // Assert
+        // The response is decoded from an empty payload, so it's a default-constructed OutputMessage.
+        Assert.That(response.P1, Is.EqualTo(""));
+        Assert.That(response.P2, Is.EqualTo(0));
+    }
+
     [Test]
     public void Client_streaming_rpc()
     {
