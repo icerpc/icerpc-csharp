@@ -6,7 +6,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RollForward>major</RollForward>
     <AssemblyName>ZeroC.Slice.Generator</AssemblyName>
-    <!-- Don't emit the platform-specific native apphost: the generator is launched as
+    <!-- Don't emit the platform-specific native executable: the generator is launched as
          `dotnet ZeroC.Slice.Generator.dll` from slicec-csharp-generator.{sh,bat}. -->
     <UseAppHost>false</UseAppHost>
     <!-- We don't generate a NuGet package for ZeroC.Slice.Generator. The generator is packaged with IceRpc.Slice.Tools -->
