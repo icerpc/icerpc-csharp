@@ -23,9 +23,9 @@ public partial class ProtocTask : ToolTask
 
     /// <summary>Gets or sets the protoc plug-ins to run. Each item's <c>Identity</c> is the plug-in name (for example
     /// <c>csharp</c>, <c>icerpc-csharp</c>, <c>icerpc-build-telemetry</c>). The <c>Path</c> metadata, when not empty,
-    /// is the full path to the plug-in script and is passed via <c>--plugin protoc-gen-&lt;name&gt; &lt;path&gt;</c>;
+    /// is the full path to the plug-in script and is passed via <c>--plugin protoc-gen-&lt;name&gt;=&lt;path&gt;</c>;
     /// an empty <c>Path</c> indicates a protoc built-in such as <c>csharp</c>. The <c>Parameter</c> metadata, when not
-    /// empty, is passed via <c>--&lt;name&gt;_opt &lt;parameter&gt;</c>.</summary>
+    /// empty, is passed via <c>--&lt;name&gt;_opt=&lt;parameter&gt;</c>.</summary>
     [Required]
     public ITaskItem[] Plugins { get; set; } = [];
 
@@ -72,19 +72,15 @@ public partial class ProtocTask : ToolTask
 
             if (!string.IsNullOrEmpty(pluginPath))
             {
-                builder.AppendSwitch("--plugin");
-                builder.AppendFileNameIfNotNull($"protoc-gen-{name}={pluginPath}");
+                builder.AppendSwitchIfNotNull("--plugin=", $"protoc-gen-{name}={pluginPath}");
             }
 
-            builder.AppendSwitch($"--{name}_out");
-            builder.AppendFileNameIfNotNull(OutputDir);
+            builder.AppendSwitchIfNotNull($"--{name}_out=", OutputDir);
 
             string pluginParameter = plugin.GetMetadata("Parameter");
             if (!string.IsNullOrEmpty(pluginParameter))
             {
-                builder.AppendSwitch($"--{name}_opt");
-                builder.AppendTextUnquoted(" ");
-                builder.AppendTextUnquoted(pluginParameter);
+                builder.AppendSwitchIfNotNull($"--{name}_opt=", pluginParameter);
             }
         }
 
@@ -109,8 +105,7 @@ public partial class ProtocTask : ToolTask
 
         foreach (string path in searchPath)
         {
-            builder.AppendSwitch("-I");
-            builder.AppendFileNameIfNotNull(path);
+            builder.AppendSwitchIfNotNull("-I", path);
         }
         builder.AppendFileNamesIfNotNull(Sources.Select(item => item.GetMetadata("FullPath")).ToArray(), " ");
 

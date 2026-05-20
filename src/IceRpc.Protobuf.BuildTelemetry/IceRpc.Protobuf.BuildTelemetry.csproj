@@ -11,15 +11,9 @@
     <!-- We don't generate a NuGet package for IceRpc.Protobuf.BuildTelemetry. The plug-in is packaged with
     IceRpc.Protobuf.Tools -->
     <IsPackable>false</IsPackable>
-    <!-- Disable the default **/*.proto glob from IceRpc.Protobuf.Tools.targets -->
-    <EnableDefaultProtoFileItems>false</EnableDefaultProtoFileItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProtoFile Include="proto/icerpc/**" />
-    <!-- Make the `proto` directory a search root so that the stub plugin.proto is found at its canonical
-         import path `google/protobuf/compiler/plugin.proto`. -->
-    <ProtoSearchPath Include="proto" />
     <Compile Include="../IceRpc.Protobuf.Tools/Converter.cs" />
     <PackageReference Include="Google.Protobuf" />
     <ProjectReference Include="../IceRpc/IceRpc.csproj" />

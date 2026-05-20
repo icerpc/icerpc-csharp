@@ -2,10 +2,10 @@
 
 syntax = "proto3";
 
-import "google/protobuf/compiler/plugin.proto";
+package icerpc.protobuf.build_telemetry;
+
 import "google/protobuf/empty.proto";
 
-package icerpc.protobuf.build_telemetry;
 option csharp_namespace = "IceRpc.Protobuf.BuildTelemetry";
 
 // Observes and collects Protobuf build events.
@@ -23,7 +23,7 @@ message TelemetryData {
     string operating_system = 2;
 
     // The version of the Protobuf compiler.
-    google.protobuf.compiler.Version protoc_version = 3;
+    string protoc_version = 3;
 
     // The plugins used by this compilation.
     repeated PluginInfo plugins = 4;

@@ -14,6 +14,7 @@ using System.Net.Security;
 using System.Runtime.InteropServices;
 
 using static Google.Protobuf.Compiler.CodeGeneratorResponse.Types;
+using CompilerVersion = Google.Protobuf.Compiler.Version;
 
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
@@ -50,7 +51,7 @@ foreach (FileDescriptor descriptor in descriptors)
     fileName ??= Path.GetFileNameWithoutExtension(descriptor.Name).ToPascalCase();
 
     serviceCount += descriptor.Services.Count;
-    rpcCount += descriptor.Services.SelectMany(s => s.Methods).Count();
+    rpcCount += descriptor.Services.Sum(service => service.Methods.Count);
     messageCount += descriptor.MessageTypes.Count;
 }
 
@@ -68,11 +69,18 @@ try
 {
     (debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
 
+    CompilerVersion compilerVersion = request.CompilerVersion;
+    string compilerVersionString = $"{compilerVersion.Major}.{compilerVersion.Minor}.{compilerVersion.Patch}";
+    if (compilerVersion.Suffix.Length > 0)
+    {
+        compilerVersionString += $"-{compilerVersion.Suffix}";
+    }
+
     telemetryData = new TelemetryData
     {
         Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
         OperatingSystem = RuntimeInformation.OSDescription,
-        ProtocVersion = request.CompilerVersion,
+        ProtocVersion = compilerVersionString,
         Plugins = { plugins },
         ServiceCount = (uint)serviceCount,
         RpcCount = (uint)rpcCount,
@@ -203,6 +211,11 @@ static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string
                     string[] pluginInfo = value.Split(':', 2);
                     string pluginName = pluginInfo[0].Trim();
                     string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
+                    if (pluginVersion.Length == 0)
+                    {
+                        throw new FormatException(
+                            "The 'plugin' parameter requires a value in the format '<name>:<version>'.");
+                    }
                     plugins.Add(new PluginInfo { Name = pluginName, Version = pluginVersion });
                     break;
                 default:
