@@ -8,12 +8,21 @@
     AssemblyFile="$(_IceRpcSliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />
+  <!--
+    Build-order-only references: the consuming project just needs these to be built so the generator scripts and the
+    slicec compiler exist on disk before we invoke them. We don't want the referenced projects' assemblies or
+    CopyToOutputDirectory items (e.g. the slicec-*-generator scripts, *.runtimeconfig.json) to flow into the
+    consumer's bin. The metadata below switches each reference to "build-only" mode: ReferenceOutputAssembly=false
+    skips the assembly reference, Private=false suppresses Copy Local, and Targets=Build restricts the cross-project
+    call to the Build target so GetCopyToOutputDirectoryItems is never invoked on the referenced project.
+  -->
   <ItemGroup Condition="'$(_IceRpcSliceToolsSourceBuild)' == 'true'">
-    <!-- Add a reference to the Tools project to ensure it's built before we use its tasks-->
-    <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
-    <!-- Add references to the generator projects to ensure they're built before we use them -->
-    <ProjectReference Include="$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/ZeroC.Slice.Generator.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
   </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />

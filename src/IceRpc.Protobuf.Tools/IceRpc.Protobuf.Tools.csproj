@@ -16,8 +16,15 @@
     <NoWarn>NU5100</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../IceRpc.Protobuf.Generator/IceRpc.Protobuf.Generator.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../IceRpc.Protobuf.BuildTelemetry/IceRpc.Protobuf.BuildTelemetry.csproj" ReferenceOutputAssembly="false" />
+    <!-- Build-order-only reference; see comment on the analogous block in IceRpc.Protobuf.Tools.targets. -->
+    <ProjectReference Include="../IceRpc.Protobuf.Generator/IceRpc.Protobuf.Generator.csproj"
+                      ReferenceOutputAssembly="false" Private="false" Targets="Build" />
+    <!--
+      IceRpc.Protobuf.BuildTelemetry imports this project's props/targets (to compile its
+      protobuf_build_telemetry.proto), so a ProjectReference from here back to it would create a cycle. Release
+      packaging expects a prior `dotnet build` on the solution so its outputs exist in
+      ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/ when the None Include glob below is evaluated.
+    -->
     <PackageReference Include="Microsoft.Build.Framework" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" />
     <PackageReference Include="Google.Protobuf.Tools" />
@@ -48,21 +55,19 @@
       <PackagePath />
     </None>
     <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <!-- Include the protoc plug-ins from this source build. -->
-    <None
-      Include="../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/*"
-      Visible="false">
-      <PackagePath>tools/</PackagePath>
-      <Pack>true</Pack>
-    </None>
-    <!-- We need to exclude Google.Protobuf.dll because it's already included by IceRpc.Protobuf.Generator above. -->
-    <None
+    <!--
+      Pack everything from the protoc plug-in (IceRpc.Protobuf.Generator) and the build-telemetry plug-in
+      (IceRpc.Protobuf.BuildTelemetry) bin folders, excluding files in the BuildTelemetry bin that have the
+      same name as a file already coming from the Generator bin (e.g. Google.Protobuf.dll). The bins are
+      otherwise clean - neither contains transitive tooling outputs because we use Targets="Build" on the
+      generator ProjectReferences (see IceRpc.Protobuf.Tools.targets).
+    -->
+    <_ProtobufGeneratorBinFile Include="../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/*" />
+    <_ProtobufBuildTelemetryBinFile
       Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/*"
-      Exclude="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/Google.Protobuf.dll"
-      Visible="false">
-      <PackagePath>tools/</PackagePath>
-      <Pack>true</Pack>
-    </None>
+      Exclude="@(_ProtobufGeneratorBinFile -> '../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/%(Filename)%(Extension)')" />
+    <None Include="@(_ProtobufGeneratorBinFile);@(_ProtobufBuildTelemetryBinFile)"
+          Pack="true" PackagePath="tools/" Visible="false" />
   </ItemGroup>
   <Target Name="CopyGoogleProtobufTools" BeforeTargets="CoreCompile">
     <ItemGroup>
@@ -131,6 +136,27 @@
         <PackagePath>tools/</PackagePath>
         <Pack>true</Pack>
       </None>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GenerateVersionPropsForPackage" BeforeTargets="_GetPackageFiles">
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.Version.props.in"
+      DestinationFiles="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props"
+      SkipUnchangedFiles="true" />
+
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props"
+      Query="/*[local-name()='Project']/*[local-name()='PropertyGroup']/*[local-name()='ProtocBundledPluginVersion']"
+      Value="$(ProtobufVersion)" />
+
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props"
+      Query="/*[local-name()='Project']/*[local-name()='PropertyGroup']/*[local-name()='ProtocIceRpcPluginVersion']"
+      Value="$(Version)" />
+
+    <ItemGroup>
+      <None Include="$(IntermediateOutputPath)IceRpc.Protobuf.Tools.Version.props" Pack="true" PackagePath="build/" Visible="false" />
     </ItemGroup>
   </Target>
 </Project>

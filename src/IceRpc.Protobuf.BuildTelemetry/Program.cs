@@ -4,17 +4,17 @@ using Google.Protobuf;
 using Google.Protobuf.Compiler;
 using Google.Protobuf.Reflection;
 using IceRpc;
-using IceRpc.BuildTelemetry;
+using IceRpc.CaseConverter.Internal;
+using IceRpc.Protobuf.BuildTelemetry;
 using IceRpc.Transports.Quic;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
 using System.Net.Quic;
 using System.Net.Security;
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 
 using static Google.Protobuf.Compiler.CodeGeneratorResponse.Types;
+using CompilerVersion = Google.Protobuf.Compiler.Version;
 
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
@@ -33,8 +33,12 @@ foreach (FileDescriptorProto? proto in request.ProtoFile)
 // Build the FileDescriptor objects from the collected encoded data.
 IReadOnlyList<FileDescriptor> descriptors = FileDescriptor.BuildFromByteStrings(sources);
 
-int fileCount = 0;
-using var fileHashes = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+// We use the first file name as the base name for the response file.
+string? fileName = null;
+
+int serviceCount = 0;
+int rpcCount = 0;
+int messageCount = 0;
 
 foreach (FileDescriptor descriptor in descriptors)
 {
@@ -44,11 +48,12 @@ foreach (FileDescriptor descriptor in descriptors)
         continue;
     }
 
-    fileHashes.AppendData(SHA256.HashData(descriptor.SerializedData.Memory.Span));
-    fileCount++;
-}
+    fileName ??= Path.GetFileNameWithoutExtension(descriptor.Name).ToPascalCase();
 
-byte[] hashBytes = fileCount == 0 ? [] : fileHashes.GetHashAndReset();
+    serviceCount += descriptor.Services.Count;
+    rpcCount += descriptor.Services.Sum(service => service.Methods.Count);
+    messageCount += descriptor.MessageTypes.Count;
+}
 
 var response = new CodeGeneratorResponse
 {
@@ -57,95 +62,167 @@ var response = new CodeGeneratorResponse
     MaximumEdition = (int)Edition.Max
 };
 
-if (fileCount > 0)
+bool debug = false;
+TelemetryData? telemetryData = null;
+
+try
 {
-    // Determine the IceRPC version using the assembly version.
-    var assembly = Assembly.GetExecutingAssembly();
-    string toolVersion = assembly!.GetName().Version!.ToString();
+    (debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
 
-    var protobufTelemetryData = new ProtobufTelemetryData(
-        RuntimeInformation.ProcessArchitecture.ToString(),
-        compilationHash: Convert.ToHexString(hashBytes).ToLowerInvariant(),
-        fileCount,
-        IsCi(),
-        RuntimeInformation.OSDescription,
-        new TargetLanguage.CSharp(Environment.Version.ToString()),
-        toolVersion);
+    CompilerVersion compilerVersion = request.CompilerVersion;
+    string compilerVersionString = $"{compilerVersion.Major}.{compilerVersion.Minor}.{compilerVersion.Patch}";
+    if (compilerVersion.Suffix.Length > 0)
+    {
+        compilerVersionString += $"-{compilerVersion.Suffix}";
+    }
 
-    const string uri = "icerpc://build-telemetry.icerpc.dev";
-    string responseContent;
+    telemetryData = new TelemetryData
+    {
+        Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
+        OperatingSystem = RuntimeInformation.OSDescription,
+        ProtocVersion = compilerVersionString,
+        Plugins = { plugins },
+        ServiceCount = (uint)serviceCount,
+        RpcCount = (uint)rpcCount,
+        MessageCount = (uint)messageCount,
+        DryRun = dryRun
+    };
+}
+catch (FormatException exception)
+{
+    // Always converted to an error (debug or not).
+    response.Error = exception.Message;
+}
+
+if (fileName is not null && telemetryData is not null)
+{
+    string uri = "icerpc://build-telemetry.icerpc.dev";
 
     try
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
-        // Create a client connection to the telemetry server. We use QUIC when supported,
-        // otherwise we use Slic over TCP.
+        // Create a client connection to the telemetry server. We use QUIC when supported, otherwise we use Slic over
+        // TCP.
         await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
             multiplexedClientTransport: QuicConnection.IsSupported ?
                 new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
 
-        // Create a reporter proxy with this client connection.
-        var reporter = new ReporterProxy(connection);
+        // Use a one-way invocation unless we're in debug mode.
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            request.IsOneway = true; // TODO: use !debug once the server is implemented
+            return connection.InvokeAsync(request, cancellationToken);
+        });
+
+        // Create a proxy with this invoker.
+        var buildObserver = new BuildObserverClient(invoker);
+
+        // Add path to URI.
+        uri += buildObserver.ServiceAddress.Path;
 
         // Upload the telemetry to the server.
-        await reporter.UploadAsync(new BuildTelemetry.Protobuf(protobufTelemetryData), cancellationToken: cts.Token);
+        await buildObserver.ReportProtobufBuildAsync(telemetryData, cancellationToken: cts.Token);
 
         // Shutdown the connection.
         await connection.ShutdownAsync(cts.Token);
-
-        responseContent = @$"Build telemetry reported successfully to {uri}.
-
-{protobufTelemetryData}";
     }
     catch (OperationCanceledException)
     {
-        responseContent = $"Failed to report build telemetry to {uri}: operation canceled";
+        if (debug)
+        {
+            response.Error = $"Failed to report build telemetry to {uri}: operation canceled";
+        }
+        // else, we ignore this exception
     }
     catch (IceRpcException ex) when (ex.IceRpcError is IceRpcError.InvocationCanceled or IceRpcError.ServerUnreachable)
     {
-        responseContent = $"Failed to report build telemetry to {uri}: {ex.IceRpcError}";
+        if (debug)
+        {
+            response.Error = $"Failed to report build telemetry to {uri}: {ex.IceRpcError}";
+        }
+        // else, we ignore these exceptions
     }
     catch (Exception ex)
     {
-        responseContent = $"Failed to report build telemetry to {uri}: {ex}";
+        if (debug)
+        {
+            response.Error = $"Failed to report build telemetry to {uri}: {ex.Message}";
+        }
+        // else, we ignore these exceptions
     }
 
-    // We return a single file containing the result of the build telemetry reporting.
-    response.File.Add(
-        new CodeGeneratorResponse.Types.File
-        {
-            Name = $"{protobufTelemetryData.CompilationHash[..8]}.icerpc_build_telemetry.txt",
-            Content = responseContent
-        });
+    if (debug && response.Error.Length == 0)
+    {
+        // We return a single file containing the result of the build telemetry reporting.
+        response.File.Add(
+            new CodeGeneratorResponse.Types.File
+            {
+                Name = $"{fileName}.BuildTelemetry.txt",
+                Content = @$"Build telemetry reported successfully to {uri}.
+
+{telemetryData}"
+            });
+    }
 }
-// else fileCount is 0 and we don't do anything
+// else there is no source file and we don't do anything.
 
 using Stream stdout = Console.OpenStandardOutput();
 response.WriteTo(stdout);
 
-static bool IsCi()
+static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string parameter)
 {
-    string[] ciEnvironmentVariables =
-    [
-        "TF_BUILD", // Azure Pipelines / DevOpsServer
-        "GITHUB_ACTIONS", // GitHub Actions
-        "APPVEYOR", // AppVeyor
-        "CI", // General, set by many build agents
-        "TRAVIS", // Travis CI
-        "CIRCLECI", // Circle CI
-        "CODEBUILD_BUILD_ID", // AWS CodeBuild
-        "AWS_REGION", // AWS CodeBuild region
-        "BUILD_ID", // Jenkins, Google Cloud Build
-        "BUILD_URL", // Jenkins
-        "PROJECT_ID", // Google Cloud Build
-        "TEAMCITY_VERSION", // TeamCity
-        "JB_SPACE_API_URL" // JetBrains Space
-    ];
+    bool debug = false;
+    bool dryRun = false;
+    var plugins = new List<PluginInfo>();
 
-    // Check if any of the CI environment variables are set
-    return ciEnvironmentVariables.Any(
-        name => Environment.GetEnvironmentVariable(name) is string value && value.Length != 0);
+    if (parameter.Length > 0)
+    {
+        foreach (string entry in parameter.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] array = entry.Split('=', 2);
+            string name = array[0].Trim();
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            string value = array.Length > 1 ? array[1].Trim() : "";
+
+            switch (name)
+            {
+                case "debug":
+                    if (value.Length > 0)
+                    {
+                        throw new FormatException("The 'debug' parameter does not accept any value.");
+                    }
+                    debug = true;
+                    break;
+                case "dry_run":
+                    if (value.Length > 0)
+                    {
+                        throw new FormatException("The 'dry_run' parameter does not accept any value.");
+                    }
+                    dryRun = true;
+                    break;
+                case "plugin":
+                    string[] pluginInfo = value.Split(':', 2);
+                    string pluginName = pluginInfo[0].Trim();
+                    string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
+                    if (pluginVersion.Length == 0)
+                    {
+                        throw new FormatException(
+                            "The 'plugin' parameter requires a value in the format '<name>:<version>'.");
+                    }
+                    plugins.Add(new PluginInfo { Name = pluginName, Version = pluginVersion });
+                    break;
+                default:
+                    throw new FormatException($"Unknown parameter: '{name}'");
+            }
+        }
+    }
+
+    return (debug, dryRun, plugins);
 }

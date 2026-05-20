@@ -1,0 +1,52 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package icerpc.protobuf.build_telemetry;
+
+import "google/protobuf/empty.proto";
+
+option csharp_namespace = "IceRpc.Protobuf.BuildTelemetry";
+
+// Observes and collects Protobuf build events.
+service BuildObserver {
+    // Reports a Protobuf compilation.
+    rpc ReportProtobufBuild (TelemetryData) returns (google.protobuf.Empty);
+}
+
+// Telemetry data collected during a Protobuf build.
+message TelemetryData {
+    // The architecture of the build machine (e.g., x86_64, arm64).
+    string architecture = 1;
+
+    // The operating system running the build machine (e.g., Linux, Windows, macOS).
+    string operating_system = 2;
+
+    // The version of the Protobuf compiler.
+    string protoc_version = 3;
+
+    // The plugins used by this compilation.
+    repeated PluginInfo plugins = 4;
+
+    // The number of services in the Protobuf source files.
+    uint32 service_count = 5;
+
+    // The number of RPCs in the Protobuf source files.
+    uint32 rpc_count = 6;
+
+    // The number of messages in the Protobuf source files.
+    uint32 message_count = 7;
+
+    // When true, the telemetry data reported to the build observer should not be recorded in the database.
+    // Used for testing.
+    bool dry_run = 8;
+}
+
+// Information about a plugin invoked by the Protobuf compiler.
+message PluginInfo {
+    // The name of the plugin.
+    string name = 1;
+
+    // The version of the plugin.
+    string version = 2;
+}
