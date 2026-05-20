@@ -2,6 +2,9 @@
 
 This folder contains example applications that showcase the IceRPC + Protobuf integration.
 
+The `.proto` files in these examples use `syntax = "proto3"`, but the IceRPC + Protobuf integration is syntax-agnostic:
+you can use proto2, proto3, or editions (e.g. `edition = "2024"`) in your own projects.
+
 |                                        |                                                                                                                                     |
 |----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | [Deadline](./Deadline/)                | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
