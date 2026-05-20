@@ -35,6 +35,7 @@ public static class IncomingRequestExtensions
         TInput input = await request.Payload.DecodeProtobufMessageAsync(
             inputParser,
             protobufFeature.MaxMessageLength,
+            acceptEmptyPayload: false,
             cancellationToken).ConfigureAwait(false);
 
         TOutput output = await method(service, input, request.Features, cancellationToken).ConfigureAwait(false);
@@ -107,6 +108,7 @@ public static class IncomingRequestExtensions
         TInput input = await request.Payload.DecodeProtobufMessageAsync(
             inputParser,
             protobufFeature.MaxMessageLength,
+            acceptEmptyPayload: false,
             cancellationToken).ConfigureAwait(false);
 
         IAsyncEnumerable<TOutput> output = await method(service, input, request.Features, cancellationToken)
