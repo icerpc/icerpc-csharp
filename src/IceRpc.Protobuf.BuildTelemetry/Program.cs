@@ -13,6 +13,8 @@ using System.Net.Quic;
 using System.Net.Security;
 using System.Runtime.InteropServices;
 
+using static Google.Protobuf.Compiler.CodeGeneratorResponse.Types;
+
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
 // Read the input and deserialize it using the Protobuf CodeGeneratorRequest object.
@@ -52,7 +54,12 @@ foreach (FileDescriptor descriptor in descriptors)
     messageCount += descriptor.MessageTypes.Count;
 }
 
-var response = new CodeGeneratorResponse();
+var response = new CodeGeneratorResponse
+{
+    // We support all since we only generate code for services.
+    SupportedFeatures = (ulong)(Feature.Proto3Optional | Feature.SupportsEditions),
+    MaximumEdition = (int)Edition.Max
+};
 
 bool debug = false;
 TelemetryData? telemetryData = null;
