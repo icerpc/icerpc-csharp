@@ -1,0 +1,62 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::BuildTelemetry
+
+/// Observes and collects Slice build events.
+interface BuildObserver {
+    /// Reports a Slice compilation.
+    /// @param telemetryData: The telemetry data collected during the Slice build.
+    reportSliceBuild(telemetryData: TelemetryData)
+}
+
+/// Telemetry data collected during a Slice build.
+struct TelemetryData {
+    /// The architecture of the build machine (e.g., x86_64, arm64).
+    architecture: string
+
+    /// The operating system running the build machine (e.g., Linux, Windows, macOS).
+    operatingSystem: string
+
+    /// The version of the Slice compiler.
+    slicecVersion: string
+
+    /// The toolchain, including the version, for example dotnet 10.0.100.
+    tag(1) toolchain: ToolchainInfo?
+
+    /// When true, the telemetry data reported to the build observer should not be recorded in the database.
+    /// Used for testing.
+    dryRun: bool
+
+    /// When true, the Slice compilation was triggered by a CI system.
+    ci: bool
+
+    /// The code generators used by this compilation.
+    generators: Sequence<GeneratorInfo>
+
+    /// The number of interfaces in the Slice source files.
+    interfaceCount: uint32
+
+    /// The number of operations in the Slice source files.
+    operationCount: uint32
+
+    /// The number of user-defined types in the Slice source files.
+    typeCount: uint32
+}
+
+/// Information about a code generator invoked by the Slice compiler.
+struct GeneratorInfo {
+    /// The name of the code generator.
+    name: string
+
+    /// The version of the code generator.
+    version: string
+}
+
+/// Information about the toolchain used for the Slice compilation.
+struct ToolchainInfo {
+    /// The name of the toolchain.
+    name: string
+
+    /// The version of the toolchain.
+    version: string
+}
