@@ -9,7 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <SliceFile Include="../slice/Greeter.slice" />
+    <SliceFile Include="../slice/VisitorCenter/Greeter.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" PrivateAssets="All" />
     <PackageReference Include="IceRpc" />
     <PackageReference Include="IceRpc.Slice" />
