@@ -1,16 +1,69 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Runtime.CompilerServices;
+
 namespace ZeroC.Slice.Symbols;
 
 /// <summary>Represents a diagnostic message produced during code generation.</summary>
-public readonly record struct Diagnostic
+public record struct Diagnostic
 {
-    /// <summary>Gets the severity level of this diagnostic.</summary>
-    public required DiagnosticLevel Level { get; init; }
-
-    /// <summary>Gets the diagnostic message.</summary>
-    public required string Message { get; init; }
+    /// <summary>Gets the exact kind of diagnostic.</summary>
+    internal readonly Compiler.DiagnosticKind Kind { get; init; }
 
     /// <summary>Gets the source location associated with this diagnostic, if any.</summary>
-    public string? Source { get; init; }
+    internal readonly string? Source { get; init; }
+
+    /// <summary>Gets any notes that should be reported along with this diagnostic.</summary>
+    internal IList<Compiler.DiagnosticNote> Notes { get; init; }
+
+    /// <summary>TODO</summary>
+    public static Diagnostic Error(string message, string? source = null) => new()
+    {
+        Kind = new Compiler.DiagnosticKind.Error(message),
+        Source = source,
+        Notes = [],
+    };
+
+    /// <summary>TODO</summary>
+    public static Diagnostic InvalidAttribute(string directive, string source) => new()
+    {
+        Kind = new Compiler.DiagnosticKind.InvalidAttribute(directive),
+        Source = source,
+        Notes = [],
+    };
+
+    /// <summary>TODO</summary>
+    public static Diagnostic UnknownAttribute(string directive, string source) => new()
+    {
+        Kind = new Compiler.DiagnosticKind.UnknownAttribute(directive),
+        Source = source,
+        Notes = [],
+    };
+
+    /// <summary>TODO</summary>
+    public static Diagnostic MissingRequiredAttribute(string expectedAttribute, string source) => new()
+    {
+        Kind = new Compiler.DiagnosticKind.MissingRequiredAttribute(expectedAttribute),
+        Source = source,
+        Notes = [],
+    };
+
+    /// <summary>TODO</summary>
+    public static Diagnostic IncorrectAttributeArgumentCount(string directive, int expected, int actual, string source)
+    {
+        byte exp = expected > byte.MaxValue ? byte.MaxValue : (byte)expected;
+        byte act = actual > byte.MaxValue ? byte.MaxValue : (byte)actual;
+        return new()
+        {
+            Kind = new Compiler.DiagnosticKind.IncorrectAttributeArgumentCount(directive, exp, exp, act),
+            Source = source,
+            Notes = [],
+        };
+    }
+
+    /// <summary>Returns whether this diagnostic represents an error.</summary>
+    public bool IsError() => Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
+
+    /// <summary>Returns whether this diagnostic represents an error.</summary>
+    public bool AddNote(string message, string? source = null) => Notes.Add(new Compiler.DiagnosticNote(message, source));
 }
