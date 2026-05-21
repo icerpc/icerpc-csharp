@@ -62,31 +62,27 @@ var response = new CodeGeneratorResponse
     MaximumEdition = (int)Edition.Max
 };
 
-bool debug = false;
-TelemetryData? telemetryData = null;
+CompilerVersion compilerVersion = request.CompilerVersion;
+string compilerVersionString = $"{compilerVersion.Major}.{compilerVersion.Minor}.{compilerVersion.Patch}";
+if (compilerVersion.Suffix.Length > 0)
+{
+    compilerVersionString += $"-{compilerVersion.Suffix}";
+}
 
+var telemetryData = new TelemetryData
+{
+    Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
+    OperatingSystem = RuntimeInformation.OSDescription,
+    ProtocVersion = compilerVersionString,
+    ServiceCount = (uint)serviceCount,
+    RpcCount = (uint)rpcCount,
+    MessageCount = (uint)messageCount,
+};
+
+bool debug = false;
 try
 {
-    (debug, bool dryRun, List<PluginInfo> plugins) = ParseParameter(request.Parameter);
-
-    CompilerVersion compilerVersion = request.CompilerVersion;
-    string compilerVersionString = $"{compilerVersion.Major}.{compilerVersion.Minor}.{compilerVersion.Patch}";
-    if (compilerVersion.Suffix.Length > 0)
-    {
-        compilerVersionString += $"-{compilerVersion.Suffix}";
-    }
-
-    telemetryData = new TelemetryData
-    {
-        Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
-        OperatingSystem = RuntimeInformation.OSDescription,
-        ProtocVersion = compilerVersionString,
-        Plugins = { plugins },
-        ServiceCount = (uint)serviceCount,
-        RpcCount = (uint)rpcCount,
-        MessageCount = (uint)messageCount,
-        DryRun = dryRun
-    };
+    debug = ParseParameter(request.Parameter, telemetryData);
 }
 catch (FormatException exception)
 {
@@ -94,7 +90,7 @@ catch (FormatException exception)
     response.Error = exception.Message;
 }
 
-if (fileName is not null && telemetryData is not null)
+if (fileName is not null && response.Error.Length == 0)
 {
     string uri = "icerpc://build-telemetry.icerpc.dev";
 
@@ -172,11 +168,10 @@ if (fileName is not null && telemetryData is not null)
 using Stream stdout = Console.OpenStandardOutput();
 response.WriteTo(stdout);
 
-static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string parameter)
+// Parses the parameter string and fills the telemetry data accordingly. Returns true if debug mode is enabled.
+static bool ParseParameter(string parameter, TelemetryData telemetryData)
 {
     bool debug = false;
-    bool dryRun = false;
-    var plugins = new List<PluginInfo>();
 
     if (parameter.Length > 0)
     {
@@ -205,18 +200,40 @@ static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string
                     {
                         throw new FormatException("The 'dry_run' parameter does not accept any value.");
                     }
-                    dryRun = true;
+                    telemetryData.DryRun = true;
+                    break;
+                case "ci":
+                    if (value.Length > 0)
+                    {
+                        throw new FormatException("The 'ci' parameter does not accept any value.");
+                    }
+                    telemetryData.Ci = true;
+                    break;
+                case "toolchain":
+                    string[] toolchainInfo = value.Split(':', 2);
+                    string toolchainName = toolchainInfo[0].Trim();
+                    string toolchainVersion = toolchainInfo.Length > 1 ? toolchainInfo[1].Trim() : "";
+                    if (toolchainName.Length == 0 || toolchainVersion.Length == 0)
+                    {
+                        throw new FormatException(
+                            "The 'toolchain' parameter requires a value in the format '<name>:<version>'.");
+                    }
+                    telemetryData.Toolchain = new ToolchainInfo
+                    {
+                        Name = toolchainName,
+                        Version = toolchainVersion
+                    };
                     break;
                 case "plugin":
                     string[] pluginInfo = value.Split(':', 2);
                     string pluginName = pluginInfo[0].Trim();
                     string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
-                    if (pluginVersion.Length == 0)
+                    if (pluginName.Length == 0 || pluginVersion.Length == 0)
                     {
                         throw new FormatException(
                             "The 'plugin' parameter requires a value in the format '<name>:<version>'.");
                     }
-                    plugins.Add(new PluginInfo { Name = pluginName, Version = pluginVersion });
+                    telemetryData.Plugins.Add(new PluginInfo { Name = pluginName, Version = pluginVersion });
                     break;
                 default:
                     throw new FormatException($"Unknown parameter: '{name}'");
@@ -224,5 +241,5 @@ static (bool Debug, bool DryRun, List<PluginInfo> Plugins) ParseParameter(string
         }
     }
 
-    return (debug, dryRun, plugins);
+    return debug;
 }
