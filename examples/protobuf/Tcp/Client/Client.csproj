@@ -9,7 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <ProtoFile Include="../proto/greeter.proto" />
+    <ProtoFile Include="../proto/visitor_center/greeter.proto" />
     <PackageReference Include="IceRpc.Protobuf.Tools" PrivateAssets="All" />
     <PackageReference Include="IceRpc" />
     <PackageReference Include="IceRpc.Protobuf" />
