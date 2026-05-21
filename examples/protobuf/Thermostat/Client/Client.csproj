@@ -9,7 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <ProtoFile Include="../proto/reading.proto;../proto/set_point.proto; ../proto/thermostat.proto" />
+    <ProtoFile Include="../proto/igloo/reading.proto;../proto/igloo/set_point.proto; ../proto/igloo/thermostat.proto" />
     <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />

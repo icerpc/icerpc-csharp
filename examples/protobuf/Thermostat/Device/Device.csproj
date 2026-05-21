@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile
-      Include="../proto/thermo_control.proto;../proto/reading.proto;../proto/set_point.proto; ../proto/thermo_home.proto"
+      Include="../proto/thermo_control.proto;../proto/igloo/reading.proto;../proto/igloo/set_point.proto; ../proto/thermo_home.proto"
     />
     <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
