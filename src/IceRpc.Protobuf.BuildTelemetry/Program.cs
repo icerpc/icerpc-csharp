@@ -213,7 +213,7 @@ static bool ParseParameter(string parameter, TelemetryData telemetryData)
                     string[] toolchainInfo = value.Split(':', 2);
                     string toolchainName = toolchainInfo[0].Trim();
                     string toolchainVersion = toolchainInfo.Length > 1 ? toolchainInfo[1].Trim() : "";
-                    if (toolchainVersion.Length == 0)
+                    if (toolchainName.Length == 0 || toolchainVersion.Length == 0)
                     {
                         throw new FormatException(
                             "The 'toolchain' parameter requires a value in the format '<name>:<version>'.");
@@ -228,7 +228,7 @@ static bool ParseParameter(string parameter, TelemetryData telemetryData)
                     string[] pluginInfo = value.Split(':', 2);
                     string pluginName = pluginInfo[0].Trim();
                     string pluginVersion = pluginInfo.Length > 1 ? pluginInfo[1].Trim() : "";
-                    if (pluginVersion.Length == 0)
+                    if (pluginName.Length == 0 || pluginVersion.Length == 0)
                     {
                         throw new FormatException(
                             "The 'plugin' parameter requires a value in the format '<name>:<version>'.");
