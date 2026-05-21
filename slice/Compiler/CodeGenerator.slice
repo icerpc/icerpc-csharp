@@ -8,7 +8,12 @@ interface CodeGenerator {
         (generatedFiles: Sequence<GeneratedFile>, diagnostics: Sequence<Diagnostic>)
 }
 
-typealias Options = Dictionary<string, string>
+typealias Options = Sequence<CodeGeneratorOption>
+
+struct CodeGeneratorOption {
+    key: string
+    value: string
+}
 
 struct SliceFile {
     path: string
@@ -32,16 +37,4 @@ enum Symbol {
     SequenceType(v: SequenceType)
     DictionaryType(v: DictionaryType)
     TypeAlias(v: TypeAlias)
-}
-
-struct Diagnostic {
-    level: DiagnosticLevel
-    message: string
-    source: string?
-}
-
-unchecked enum DiagnosticLevel : uint8 {
-    Info
-    Warning
-    Error
 }
