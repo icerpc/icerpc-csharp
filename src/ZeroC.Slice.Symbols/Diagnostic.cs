@@ -14,7 +14,7 @@ public record struct Diagnostic
     /// <summary>Gets any notes that should be reported along with this diagnostic.</summary>
     internal IList<Compiler.DiagnosticNote> Notes { get; init; }
 
-    /// <summary>TODO</summary>
+    /// <summary>Creates a new diagnostic to describe a general error.</summary>
     public static Diagnostic Error(string message, string? source = null) => new()
     {
         Kind = new Compiler.DiagnosticKind.Error(message),
@@ -22,7 +22,7 @@ public record struct Diagnostic
         Notes = [],
     };
 
-    /// <summary>TODO</summary>
+    /// <summary>Creates a new diagnostic to describe an attribute which was invalidly applied to an element.</summary>
     public static Diagnostic InvalidAttribute(string directive, string source) => new()
     {
         Kind = new Compiler.DiagnosticKind.InvalidAttribute(directive),
@@ -30,7 +30,7 @@ public record struct Diagnostic
         Notes = [],
     };
 
-    /// <summary>TODO</summary>
+    /// <summary>Creates a new diagnostic to describe an unknown attribute.</summary>
     public static Diagnostic UnknownAttribute(string directive, string source) => new()
     {
         Kind = new Compiler.DiagnosticKind.UnknownAttribute(directive),
@@ -38,7 +38,7 @@ public record struct Diagnostic
         Notes = [],
     };
 
-    /// <summary>TODO</summary>
+    /// <summary>Creates a new diagnostic to describe a required attribute which was not present.</summary>
     public static Diagnostic MissingRequiredAttribute(string expectedAttribute, string source) => new()
     {
         Kind = new Compiler.DiagnosticKind.MissingRequiredAttribute(expectedAttribute),
@@ -46,7 +46,7 @@ public record struct Diagnostic
         Notes = [],
     };
 
-    /// <summary>TODO</summary>
+    /// <summary>Creates a new diagnostic to describe an attribute with an incorrect number of arguments.</summary>
     public static Diagnostic IncorrectAttributeArgumentCount(string directive, int expected, int actual, string source)
     {
         byte exp = expected > byte.MaxValue ? byte.MaxValue : (byte)expected;
@@ -63,7 +63,7 @@ public record struct Diagnostic
     public bool IsError()
         => Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
 
-    /// <summary>Returns whether this diagnostic represents an error.</summary>
+    /// <summary>Adds the provided message to this diagnostic as a note.</summary>
     public void AddNote(string message, string? source = null)
         => Notes.Add(new Compiler.DiagnosticNote(message, source));
 }

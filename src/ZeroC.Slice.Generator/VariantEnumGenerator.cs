@@ -142,7 +142,6 @@ internal static class VariantEnumGenerator
             .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
             .AddDeprecatedAttribute(variant.Attributes)
             .AddBase(parentIdentifier)
-            .AddCSAttributes(variant.Attributes)
             .AddBlock(
                 $"""
                 /// <summary>The discriminant of this variant, used for encoding/decoding.</summary>
