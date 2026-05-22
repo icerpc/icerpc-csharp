@@ -43,7 +43,8 @@ public static class Generator
         Compiler.SliceFile[] referenceFiles =
             decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
 
-        KeyValuePair<string, string>[] additionalOptions = decoder.DecodeSequence((ref decoder) => {
+        KeyValuePair<string, string>[] additionalOptions = decoder.DecodeSequence((ref decoder) =>
+        {
             var option = new Compiler.CodeGeneratorOption(ref decoder);
             return KeyValuePair.Create(option.Key, option.Value);
         });
