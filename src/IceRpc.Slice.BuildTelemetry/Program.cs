@@ -27,7 +27,7 @@ await Generator.RunAsync(reader, writer, BuildResponseAsync);
 
 static async Task<GeneratorResponse> BuildResponseAsync(
     ImmutableList<SliceFile> symbolFiles,
-    Dictionary<string, string> options)
+    KeyValuePair<string, string>[] additionalOptions)
 {
     const string fileName = "icerpc_build_telemetry.txt";
 

@@ -15,12 +15,12 @@ public static class Generator
     /// response to <paramref name="output"/>.</summary>
     /// <param name="input">The pipe reader to read the Slice-encoded request from.</param>
     /// <param name="output">The pipe writer to write the Slice-encoded response to.</param>
-    /// <param name="transform">A function that receives the converted source files and the options dictionary, and
-    /// returns a task that produces the generator response.</param>
+    /// <param name="transform">A function that receives the converted source files and the additional options sequence,
+    /// and returns a task that produces the generator response.</param>
     public static async Task RunAsync(
         PipeReader input,
         PipeWriter output,
-        Func<ImmutableList<SliceFile>, Dictionary<string, string>, Task<GeneratorResponse>> transform)
+        Func<ImmutableList<SliceFile>, KeyValuePair<string, string>[], Task<GeneratorResponse>> transform)
     {
         // Read all data from input.
         ReadResult readResult;
@@ -42,11 +42,8 @@ public static class Generator
             decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
         Compiler.SliceFile[] referenceFiles =
             decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
-
-        Dictionary<string, string> options = decoder.DecodeDictionary(
-            count => new Dictionary<string, string>(count),
-            (ref decoder) => decoder.DecodeString(),
-            (ref decoder) => decoder.DecodeString());
+        KeyValuePair<string, string>[] additionalOptions = decoder.DecodeSequence(
+            (ref decoder) => KeyValuePair.Create(decoder.DecodeString(), decoder.DecodeString()));
 
         input.AdvanceTo(readResult.Buffer.End);
         input.Complete();
@@ -55,7 +52,7 @@ public static class Generator
         ImmutableList<SliceFile> symbolFiles = SymbolConverter.ConvertFiles(sourceFiles, referenceFiles);
 
         // Invoke the transform.
-        GeneratorResponse response = await transform(symbolFiles, options).ConfigureAwait(false);
+        GeneratorResponse response = await transform(symbolFiles, additionalOptions).ConfigureAwait(false);
 
         // Convert public types to internal compiler types and encode the response.
         var encoder = new SliceEncoder(output);
