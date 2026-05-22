@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Runtime.CompilerServices;
-
 namespace ZeroC.Slice.Symbols;
 
 /// <summary>Represents a diagnostic message produced during code generation.</summary>
@@ -62,8 +60,10 @@ public record struct Diagnostic
     }
 
     /// <summary>Returns whether this diagnostic represents an error.</summary>
-    public bool IsError() => Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
+    public bool IsError()
+        => Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
 
     /// <summary>Returns whether this diagnostic represents an error.</summary>
-    public bool AddNote(string message, string? source = null) => Notes.Add(new Compiler.DiagnosticNote(message, source));
+    public void AddNote(string message, string? source = null)
+        => Notes.Add(new Compiler.DiagnosticNote(message, source));
 }
