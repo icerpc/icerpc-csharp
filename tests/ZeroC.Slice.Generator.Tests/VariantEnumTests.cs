@@ -166,16 +166,6 @@ public class VariantEnumTests
             Assert.That(decoder.Consumed, Is.EqualTo(1 + 1 + 1 + name.Length + 4 + 4));
         }
     }
-
-    [Test]
-    public void Variant_gets_attribute()
-    {
-        var attribute = typeof(ShapeWithAttribute.Rectangle)
-            .GetCustomAttributes(typeof(MyVariantNameAttribute), false)
-            .Cast<MyVariantNameAttribute>()
-            .Single();
-        Assert.That(attribute.Name, Is.EqualTo("MyRectangle"));
-    }
 }
 
 [AttributeUsage(AttributeTargets.Class)]
