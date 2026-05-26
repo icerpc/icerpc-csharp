@@ -29,14 +29,11 @@ internal static class GeneratorDriver
 
         await Symbols.Generator.RunAsync(reader, writer, TransformAsync).ConfigureAwait(false);
 
-        Task<GeneratorResponse> TransformAsync(ImmutableList<SliceFile> symbolFiles, Dictionary<string, string> options)
+        Task<GeneratorResponse>
+        TransformAsync(ImmutableList<SliceFile> symbolFiles, (string key, string value)[] additionalOptions)
         {
             // Validate CS attributes before generation.
-            //
-            // List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
-            // TODO: enable validation once slicec correctly handles the diagnostics reported by the
-            // generators.
-            var diagnostics = new List<Diagnostic>();
+            List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
 
             // Use the informational version (e.g., "0.6.0-preview.1") which is the semver string from
             // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
@@ -57,14 +54,9 @@ internal static class GeneratorDriver
                 string fileName = Path.GetFileName(file.Path);
                 if (seenFileNames.TryGetValue(fileName, out string? previousPath))
                 {
-                    diagnostics.Add(new Diagnostic
-                    {
-                        Level = DiagnosticLevel.Error,
-                        Message =
-                            $"Multiple source files have the same file name '{fileName}': " +
-                            $"'{previousPath}' and '{file.Path}'. " +
-                            "Generated files are written to a common directory, so source files must have unique file names.",
-                    });
+                    string message = $"Multiple source files have the same file name '{fileName}': '{previousPath}' and '{file.Path}'. " +
+                        "Generated files are written to a common directory, so source files must have unique file names.";
+                    diagnostics.Add(Diagnostic.Error(message));
                 }
                 else
                 {
@@ -74,7 +66,7 @@ internal static class GeneratorDriver
 
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
-            if (!diagnostics.Any(d => d.Level == DiagnosticLevel.Error))
+            if (!diagnostics.Any(d => d.IsError()))
             {
                 foreach (SliceFile file in symbolFiles)
                 {
