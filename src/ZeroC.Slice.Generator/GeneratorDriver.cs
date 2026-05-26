@@ -46,24 +46,6 @@ internal static class GeneratorDriver
                 ?? assembly.GetName().Version?.ToString()
                 ?? "unknown";
 
-            // Check for duplicate file names — two files with the same name would produce the same
-            // output file, with the second silently overwriting the first.
-            var seenFileNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (SliceFile file in symbolFiles)
-            {
-                string fileName = Path.GetFileName(file.Path);
-                if (seenFileNames.TryGetValue(fileName, out string? previousPath))
-                {
-                    string message = $"Multiple source files have the same file name '{fileName}': '{previousPath}' and '{file.Path}'. " +
-                        "Generated files are written to a common directory, so source files must have unique file names.";
-                    diagnostics.Add(Diagnostic.Error(message));
-                }
-                else
-                {
-                    seenFileNames[fileName] = file.Path;
-                }
-            }
-
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
             if (!diagnostics.Any(d => d.IsError()))

@@ -14,14 +14,6 @@ public record struct Diagnostic
     /// <summary>Gets any notes that should be reported along with this diagnostic.</summary>
     internal IList<Compiler.DiagnosticNote> Notes { get; init; }
 
-    /// <summary>Creates a new diagnostic to describe a general error.</summary>
-    public static Diagnostic Error(string message, string? source = null) => new()
-    {
-        Kind = new Compiler.DiagnosticKind.Error(message),
-        Source = source,
-        Notes = [],
-    };
-
     /// <summary>Creates a new diagnostic to describe an attribute which was invalidly applied to an element.</summary>
     public static Diagnostic InvalidAttribute(string directive, string source) => new()
     {
