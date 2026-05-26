@@ -5,7 +5,7 @@
 
 [source.ice]
 repo    = "https://github.com/zeroc-ice/ice"
-rev     = "03cea02ef05465a383aae353563252b9a648b6e6"
+rev     = "32d11c5b7d6cdc58dcf7b7cfd85ea655a5ad5913" # needs updating
 source  = "slice"
 dest    = "slice"
 include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ice/OperationMode.ice", "Ice/Process.ice", "Ice/ReplyStatus.ice"]
