@@ -16,35 +16,35 @@ public record struct Diagnostic
 
     /// <summary>Creates a new diagnostic to describe a general error.</summary>
     public static Diagnostic Error(string message, string? source = null) => new()
-    {
-        Kind = new Compiler.DiagnosticKind.Error(message),
-        Source = source,
-        Notes = [],
-    };
+        {
+            Kind = new Compiler.DiagnosticKind.Error(message),
+            Source = source,
+            Notes = [],
+        };
 
     /// <summary>Creates a new diagnostic to describe an attribute which was invalidly applied to an element.</summary>
     public static Diagnostic InvalidAttribute(string directive, string source) => new()
-    {
-        Kind = new Compiler.DiagnosticKind.InvalidAttribute(directive),
-        Source = source,
-        Notes = [],
-    };
+        {
+            Kind = new Compiler.DiagnosticKind.InvalidAttribute(directive),
+            Source = source,
+            Notes = [],
+        };
 
     /// <summary>Creates a new diagnostic to describe an unknown attribute.</summary>
     public static Diagnostic UnknownAttribute(string directive, string source) => new()
-    {
-        Kind = new Compiler.DiagnosticKind.UnknownAttribute(directive),
-        Source = source,
-        Notes = [],
-    };
+        {
+            Kind = new Compiler.DiagnosticKind.UnknownAttribute(directive),
+            Source = source,
+            Notes = [],
+        };
 
     /// <summary>Creates a new diagnostic to describe a required attribute which was not present.</summary>
     public static Diagnostic MissingRequiredAttribute(string expectedAttribute, string source) => new()
-    {
-        Kind = new Compiler.DiagnosticKind.MissingRequiredAttribute(expectedAttribute),
-        Source = source,
-        Notes = [],
-    };
+        {
+            Kind = new Compiler.DiagnosticKind.MissingRequiredAttribute(expectedAttribute),
+            Source = source,
+            Notes = [],
+        };
 
     /// <summary>Creates a new diagnostic to describe an attribute with an incorrect number of arguments.</summary>
     public static Diagnostic IncorrectAttributeArgumentCount(string directive, int expected, int actual, string source)

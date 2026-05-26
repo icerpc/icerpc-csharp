@@ -266,7 +266,7 @@ internal static class CsAttributeValidator
                 if (target is not (Target.Struct or Target.FieldInStruct))
                 {
                     var diagnostic = Diagnostic.InvalidAttribute(CSAttributes.CSReadonly, source);
-                    diagnostic.AddNote("'cs::readonly' can only be applied to structs, or fields inside structs");
+                    diagnostic.AddNote("'cs::readonly' can only be applied to structs or fields inside structs");
                     diagnostics.Add(diagnostic);
                 }
                 break;

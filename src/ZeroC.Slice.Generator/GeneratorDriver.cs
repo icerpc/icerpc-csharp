@@ -30,7 +30,7 @@ internal static class GeneratorDriver
         await Symbols.Generator.RunAsync(reader, writer, TransformAsync).ConfigureAwait(false);
 
         Task<GeneratorResponse>
-        TransformAsync(ImmutableList<SliceFile> symbolFiles, KeyValuePair<string, string>[] additionalOptions)
+        TransformAsync(ImmutableList<SliceFile> symbolFiles, (string key, string value)[] additionalOptions)
         {
             // Validate CS attributes before generation.
             List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);

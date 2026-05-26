@@ -20,7 +20,7 @@ public static class Generator
     public static async Task RunAsync(
         PipeReader input,
         PipeWriter output,
-        Func<ImmutableList<SliceFile>, KeyValuePair<string, string>[], Task<GeneratorResponse>> transform)
+        Func<ImmutableList<SliceFile>, (string key, string value)[], Task<GeneratorResponse>> transform)
     {
         // Read all data from input.
         ReadResult readResult;
@@ -43,10 +43,10 @@ public static class Generator
         Compiler.SliceFile[] referenceFiles =
             decoder.DecodeSequence((ref decoder) => new Compiler.SliceFile(ref decoder));
 
-        KeyValuePair<string, string>[] additionalOptions = decoder.DecodeSequence((ref decoder) =>
+        (string key, string value)[] additionalOptions = decoder.DecodeSequence((ref decoder) =>
         {
             var option = new Compiler.CodeGeneratorOption(ref decoder);
-            return KeyValuePair.Create(option.Key, option.Value);
+            return (option.Key, option.Value);
         });
 
         input.AdvanceTo(readResult.Buffer.End);
