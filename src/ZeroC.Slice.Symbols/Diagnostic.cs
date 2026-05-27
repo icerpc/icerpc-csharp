@@ -15,8 +15,8 @@ public record struct Diagnostic
     internal IList<Compiler.DiagnosticNote> Notes { get; init; }
 
     /// <summary>Returns whether this diagnostic represents an error.</summary>
-    public bool IsError
-        => Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
+    public bool IsError =>
+        Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
 
     /// <summary>Creates a new diagnostic to describe a general error.</summary>
     public static Diagnostic Error(string message, string? source = null) => new()
