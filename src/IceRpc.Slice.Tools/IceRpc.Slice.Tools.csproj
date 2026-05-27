@@ -128,4 +128,25 @@
       </Content>
     </ItemGroup>
   </Target>
+
+  <Target Name="GenerateVersionPropsForPackage" BeforeTargets="_GetPackageFiles">
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.Version.props.in"
+      DestinationFiles="$(IntermediateOutputPath)IceRpc.Slice.Tools.Version.props"
+      SkipUnchangedFiles="true" />
+
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)IceRpc.Slice.Tools.Version.props"
+      Query="/*[local-name()='Project']/*[local-name()='PropertyGroup']/*[local-name()='SlicecVersion']"
+      Value="$(SlicecVersion)" />
+
+    <XmlPoke
+      XmlInputPath="$(IntermediateOutputPath)IceRpc.Slice.Tools.Version.props"
+      Query="/*[local-name()='Project']/*[local-name()='PropertyGroup']/*[local-name()='IceRpcSliceToolsVersion']"
+      Value="$(Version)" />
+
+    <ItemGroup>
+      <None Include="$(IntermediateOutputPath)IceRpc.Slice.Tools.Version.props" Pack="true" PackagePath="build/" Visible="false" />
+    </ItemGroup>
+  </Target>
 </Project>

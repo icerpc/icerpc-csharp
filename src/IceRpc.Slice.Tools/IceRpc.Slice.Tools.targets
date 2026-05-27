@@ -65,12 +65,19 @@
     />
   </ItemGroup>
   <!--
-    The manifest tracking every output produced by the most recent Slicec run is stored at
+    The manifest tracking every output produced by the most recent slicec run is stored at
     $(IntermediateOutputPath)slicec.outputs.txt - this gives each configuration/TargetFramework its own copy
     so parallel multi-target inner builds don't race on a shared file. $(IntermediateOutputPath) is only
     available after the SDK targets are imported, so we reference it inline (not via a top-level property).
   -->
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+    <PropertyGroup>
+      <!-- Build the per-generator options suffix for the build-telemetry generator. -->
+      <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion),generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">,debug$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions Condition="'$(CI)' == 'true'">,ci$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
+    </PropertyGroup>
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
@@ -82,8 +89,11 @@
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
       </_SliceFile>
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
-        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-gen-icerpc-build-telemetry$(_SliceGeneratorScriptExtension)</Generators>
-        <TelemetryPath>$([MSBuild]::NormalizePath('%(OutputDir)/icerpc_build_telemetry.txt'))</TelemetryPath>
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions)</Generators>
+      </_SliceFile>
+      <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
+      <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'">
+        <TelemetryPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).BuildTelemetry.txt'))</TelemetryPath>
       </_SliceFile>
     </ItemGroup>
   </Target>
