@@ -48,7 +48,7 @@ internal static class GeneratorDriver
 
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
-            if (!diagnostics.Any(d => d.IsError()))
+            if (!diagnostics.Any(d => d.IsError))
             {
                 foreach (SliceFile file in symbolFiles)
                 {
