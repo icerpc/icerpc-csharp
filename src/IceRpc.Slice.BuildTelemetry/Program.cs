@@ -134,7 +134,7 @@ static async Task<GeneratorResponse> BuildResponseAsync(
 
     try
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(debug ? 6 : 3));
 
         // Create a client connection to the telemetry server. We use QUIC when supported, otherwise Slic over TCP.
         await using var connection = new ClientConnection(
