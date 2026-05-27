@@ -94,6 +94,9 @@
       </_SliceFile>
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions)</Generators>
+      </_SliceFile>
+      <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
+      <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'">
         <TelemetryPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).BuildTelemetry.txt'))</TelemetryPath>
       </_SliceFile>
     </ItemGroup>

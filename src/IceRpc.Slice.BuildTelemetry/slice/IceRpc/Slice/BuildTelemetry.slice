@@ -10,6 +10,7 @@ interface BuildObserver {
 }
 
 /// Telemetry data collected during a Slice build.
+[cs::readonly]
 struct TelemetryData {
     /// The architecture of the build machine (e.g., x86_64, arm64).
     architecture: string
@@ -44,6 +45,7 @@ struct TelemetryData {
 }
 
 /// Information about a code generator invoked by the Slice compiler.
+[cs::readonly]
 struct GeneratorInfo {
     /// The name of the code generator.
     name: string
@@ -53,6 +55,7 @@ struct GeneratorInfo {
 }
 
 /// Information about the toolchain used for the Slice compilation.
+[cs::readonly]
 struct ToolchainInfo {
     /// The name of the toolchain.
     name: string
