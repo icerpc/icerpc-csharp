@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    In NuGet-consumer mode, IceRpc.Slice.Tools.Version.props (generated at pack time) provides $(SlicecVersion)
+    and $(IceRpcSliceToolsVersion). In source-build mode the file is absent: $(SlicecVersion) comes from
+    build/IceRpc.Version.props, and we fall back to $(Version) for $(IceRpcSliceToolsVersion) below.
+  -->
+  <Import
+    Project="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.Version.props"
+    Condition="Exists('$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.Version.props')" />
+
   <PropertyGroup>
+    <IceRpcSliceToolsVersion Condition="'$(IceRpcSliceToolsVersion)' == ''">$(Version)</IceRpcSliceToolsVersion>
+
     <!-- Report build telemetry by default. -->
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
     <EnableDefaultSliceFileItems Condition="'$(EnableDefaultSliceFileItems)' == ''">true</EnableDefaultSliceFileItems>
+
     <!-- Internal properties used to compute the slicec compiler location for the current platform. -->
     <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_IceRpcOSName>
     <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_IceRpcOSName>

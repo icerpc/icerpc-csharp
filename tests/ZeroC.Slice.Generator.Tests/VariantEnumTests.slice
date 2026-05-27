@@ -44,14 +44,3 @@ compact enum CompactShape {
     Triangle(side1: uint32, side2: uint32, side3: uint32)
     Oval(name: string?, major: uint32, minor: uint32)
 }
-
-enum ShapeWithAttribute {
-    [cs::attribute("MyVariantName(\"MyCircle\")")]
-    Circle(radius: uint32)
-
-    [cs::attribute("MyVariantName(\"MyRectangle\")")]
-    Rectangle(width: uint32, height: uint32)
-
-    [cs::attribute("MyVariantName(\"MyTriangle\")")]
-    Triangle(side1: uint32, side2: uint32, side3: uint32)
-}
