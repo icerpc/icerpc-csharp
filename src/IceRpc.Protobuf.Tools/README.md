@@ -99,7 +99,7 @@ This data includes:
 
 - The version of the `protoc` compiler and the versions of the plug-ins it invoked.
 - The system's operating system, version, and platform architecture.
-- The .NET runtime version used by the build.
+- The .NET SDK version used by the build.
 - Whether the build was executed in a continuous integration (CI) environment.
 - The number of Protobuf services, RPCs, and messages in the compilation.
 

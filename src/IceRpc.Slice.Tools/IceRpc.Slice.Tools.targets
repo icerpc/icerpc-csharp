@@ -65,18 +65,14 @@
     />
   </ItemGroup>
   <!--
-    The manifest tracking every output produced by the most recent Slicec run is stored at
+    The manifest tracking every output produced by the most recent slicec run is stored at
     $(IntermediateOutputPath)slicec.outputs.txt - this gives each configuration/TargetFramework its own copy
     so parallel multi-target inner builds don't race on a shared file. $(IntermediateOutputPath) is only
     available after the SDK targets are imported, so we reference it inline (not via a top-level property).
   -->
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <PropertyGroup>
-      <!--
-        Build the per-generator options suffix for the build-telemetry generator. slicec attaches options
-        to a generator by passing them as a comma-separated list appended to the generator path on the
-        generator command-line flag: "generator-path,key1,key2=value2,...".
-      -->
+      <!-- Build the per-generator options suffix for the build-telemetry generator. -->
       <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion),generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">,debug$(_BuildTelemetryOptions)</_BuildTelemetryOptions>

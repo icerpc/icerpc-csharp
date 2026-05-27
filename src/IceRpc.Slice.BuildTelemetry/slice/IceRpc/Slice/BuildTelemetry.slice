@@ -21,7 +21,7 @@ struct TelemetryData {
     /// The version of the Slice compiler.
     slicecVersion: string
 
-    /// The toolchain, including the version, for example dotnet 10.0.100.
+    /// The toolchain, including the version, for example 'dotnet 10.0.100'.
     tag(1) toolchain: ToolchainInfo?
 
     /// When true, the telemetry data reported to the build observer should not be recorded in the database.

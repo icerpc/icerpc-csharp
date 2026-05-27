@@ -122,7 +122,7 @@ This data includes:
 
 - The versions of the slicec compiler and code generators.
 - The system's operating system, version, and platform architecture.
-- The .NET runtime version used by the build.
+- The .NET SDK version used by the build.
 - Whether the build was executed in a continuous integration (CI) environment.
 - The number of Slice interfaces, operations, and types in the compilation.
 
