@@ -133,11 +133,46 @@ public partial class ProtocTask : ToolTask
         @"^(?<file>.+?)\((?<line>\d+)\)\s*:\s*(?<severity>error|warning) in column=(?<column>\d+):\s*(?<message>.*)$")]
     private static partial Regex DiagnosticRegex();
 
+    // Matches protoc plug-in failure lines of the form "--<plugin>_out: <message>", which protoc writes to stderr
+    // when a code generator plug-in fails. These lines have no file/line/column info, so we surface them as MSBuild
+    // errors with the plug-in name as the subcategory.
+    [GeneratedRegex(@"^--(?<plugin>[A-Za-z0-9_\-]+)_out:\s*(?<message>.*)$")]
+    private static partial Regex PluginErrorRegex();
+
     /// <inheritdoc/>
-    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance) =>
-        base.LogEventsFromTextOutput(
-            DiagnosticRegex().Replace(singleLine, "${file}(${line},${column}): ${severity}: ${message}"),
-            messageImportance);
+    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
+    {
+        Match diagnosticMatch = DiagnosticRegex().Match(singleLine);
+        if (diagnosticMatch.Success)
+        {
+            // Hand off to the base implementation in canonical MSBuild format so its CanonicalError parser picks up
+            // the file, line, column, severity and message.
+            base.LogEventsFromTextOutput(
+                $"{diagnosticMatch.Groups["file"].Value}({diagnosticMatch.Groups["line"].Value},{diagnosticMatch.Groups["column"].Value}): {diagnosticMatch.Groups["severity"].Value}: {diagnosticMatch.Groups["message"].Value}",
+                messageImportance);
+            return;
+        }
+
+        Match pluginMatch = PluginErrorRegex().Match(singleLine);
+        if (pluginMatch.Success)
+        {
+            Log.LogError(
+                subcategory: pluginMatch.Groups["plugin"].Value,
+                errorCode: null,
+                helpKeyword: null,
+                file: null,
+                lineNumber: 0,
+                columnNumber: 0,
+                endLineNumber: 0,
+                endColumnNumber: 0,
+                message: pluginMatch.Groups["message"].Value);
+            return;
+        }
+
+        // Fallback: any other protoc output (informational messages, unrecognized diagnostics) is passed through as a
+        // high importance log message so it remains visible without being misclassified as an error or warning.
+        Log.LogMessage(MessageImportance.High, singleLine);
+    }
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
