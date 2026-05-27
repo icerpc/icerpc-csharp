@@ -96,7 +96,7 @@ if (fileName is not null && response.Error.Length == 0)
 
     try
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(debug ? 6 : 3));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         // Create a client connection to the telemetry server. We use QUIC when supported, otherwise we use Slic over
         // TCP.
