@@ -768,7 +768,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReplyStatus.OperationNotExist => StatusCode.NotImplemented,
                 ReplyStatus.InvalidData => StatusCode.InvalidData,
                 ReplyStatus.Unauthorized => StatusCode.Unauthorized,
-                replyStatus.NotSupported => statusCode.NotSupported,
+                ReplyStatus.NotSupported => StatusCode.NotSupported,
                 _ => StatusCode.InternalError
             };
 
