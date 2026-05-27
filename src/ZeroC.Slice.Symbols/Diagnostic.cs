@@ -14,6 +14,18 @@ public record struct Diagnostic
     /// <summary>Gets any notes that should be reported along with this diagnostic.</summary>
     internal IList<Compiler.DiagnosticNote> Notes { get; init; }
 
+    /// <summary>Returns whether this diagnostic represents an error.</summary>
+    public bool IsError =>
+        Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
+
+    /// <summary>Creates a new diagnostic to describe a general error.</summary>
+    public static Diagnostic Error(string message, string? source = null) => new()
+    {
+        Kind = new Compiler.DiagnosticKind.Error(message),
+        Source = source,
+        Notes = [],
+    };
+
     /// <summary>Creates a new diagnostic to describe an attribute which was invalidly applied to an element.</summary>
     public static Diagnostic InvalidAttribute(string directive, string source) => new()
     {
@@ -50,10 +62,6 @@ public record struct Diagnostic
             Notes = [],
         };
     }
-
-    /// <summary>Returns whether this diagnostic represents an error.</summary>
-    public bool IsError()
-        => Kind is not Compiler.DiagnosticKind.Info and not Compiler.DiagnosticKind.Warning;
 
     /// <summary>Adds the provided message to this diagnostic as a note.</summary>
     public void AddNote(string message, string? source = null)
