@@ -109,7 +109,7 @@ if (fileName is not null && response.Error.Length == 0)
         // Use a one-way invocation unless we're in debug mode.
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
-            request.IsOneway = true; // TODO: use !debug once the server is implemented
+            request.IsOneway = !debug;
             return connection.InvokeAsync(request, cancellationToken);
         });
 

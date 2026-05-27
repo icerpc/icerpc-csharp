@@ -146,12 +146,13 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         // Use a one-way invocation unless we're in debug mode.
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
-            request.IsOneway = true; // TODO: use !debug once the server is implemented
+            request.IsOneway = !debug;
             return connection.InvokeAsync(request, cancellationToken);
         });
 
         var buildObserver = new BuildObserverProxy(invoker);
 
+        // Add path to URI.
         uri += buildObserver.ServiceAddress.Path;
 
         await buildObserver.ReportSliceBuildAsync(telemetryData, cancellationToken: cts.Token);
