@@ -19,8 +19,8 @@ public static class TypeExtensions
     /// interfaces with a <see cref="DefaultServicePathAttribute" /> attribute.</exception>
     /// <remarks>When <paramref name="type" /> is an interface, this method only searches for the attribute on the
     /// interface itself.</remarks>
-    /// <seealso cref="RouterExtensions.Map{TService}(Router, IDispatcher)"/>
-    /// <seealso cref="RouterExtensions.Map{TService}(Router, TService)"/>
+    /// <seealso cref="RouterExtensions.Map(Router, IDispatcher)" />
+    /// <seealso cref="RouterExtensions.Map{TService}(Router, IDispatcher)" />
     public static string GetDefaultServicePath(this Type type)
     {
         if (type.IsClass)
