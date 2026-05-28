@@ -93,10 +93,11 @@ catch (FormatException exception)
 if (fileName is not null && response.Error.Length == 0)
 {
     const string uri = "icerpc://build-telemetry.icerpc.dev";
+    TimeSpan timeout = debug ? TimeSpan.FromSeconds(30) : TimeSpan.FromSeconds(3);
 
     try
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var cts = new CancellationTokenSource(timeout);
 
         // Create a client connection to the telemetry server. We use QUIC when supported, otherwise we use Slic over
         // TCP.
