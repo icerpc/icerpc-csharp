@@ -9,6 +9,12 @@
          transitive package (e.g. a CVE in System.Text.Json) by adding one <PackageVersion> entry here, with no
          spurious direct <PackageReference> in any project. Recommended baseline for new CPM repos. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+
+    <!-- The version of Google.Protobuf and Google.Protobuf.Tools NuGet packages. -->
+    <GoogleProtobufVersion>3.35.0</GoogleProtobufVersion>
+    <!-- The protoc version is the Google.Protobuf package version without the leading "3." (e.g. "3.35.0" → "35.0"),
+         used to download the ARM64 protoc binaries in IceRpc.Protobuf.Tools. -->
+    <ProtobufVersion>$([System.String]::Copy('$(GoogleProtobufVersion)').Substring(2))</ProtobufVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Analyzers -->
@@ -34,8 +40,8 @@
     <PackageVersion Include="dunet" Version="1.16.2" />
 
     <!-- Protobuf -->
-    <PackageVersion Include="Google.Protobuf" Version="3.35.0" />
-    <PackageVersion Include="Google.Protobuf.Tools" Version="3.35.0" />
+    <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)" />
+    <PackageVersion Include="Google.Protobuf.Tools" Version="$(GoogleProtobufVersion)" />
 
     <!-- Ice tooling -->
     <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" />
