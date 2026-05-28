@@ -145,8 +145,7 @@ public partial class ProtocTask : ToolTask
         Match diagnosticMatch = DiagnosticRegex().Match(singleLine);
         if (diagnosticMatch.Success)
         {
-            // Hand off to the base implementation in canonical MSBuild format so its CanonicalError parser picks up
-            // the file, line, column, severity and message.
+            // Construct a string in the canonical MSBuild diagnostic format to pass to the base implementation.
             base.LogEventsFromTextOutput(
                 $"{diagnosticMatch.Groups["file"].Value}({diagnosticMatch.Groups["line"].Value},{diagnosticMatch.Groups["column"].Value}): {diagnosticMatch.Groups["severity"].Value}: {diagnosticMatch.Groups["message"].Value}",
                 messageImportance);

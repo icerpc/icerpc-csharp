@@ -92,7 +92,7 @@ catch (FormatException exception)
 
 if (fileName is not null && response.Error.Length == 0)
 {
-    string uri = "icerpc://build-telemetry.icerpc.dev";
+    const string uri = "icerpc://build-telemetry.icerpc.dev";
 
     try
     {
@@ -115,9 +115,6 @@ if (fileName is not null && response.Error.Length == 0)
 
         // Create a proxy with this invoker.
         var buildObserver = new BuildObserverClient(invoker);
-
-        // Add path to URI.
-        uri += buildObserver.ServiceAddress.Path;
 
         // Upload the telemetry to the server.
         await buildObserver.ReportProtobufBuildAsync(telemetryData, cancellationToken: cts.Token);
