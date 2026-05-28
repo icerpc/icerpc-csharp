@@ -87,6 +87,10 @@ public sealed class IceProtocolConnectionTests
                 StatusCode.Unauthorized,
                 "The dispatch failed with status code Unauthorized.");
             yield return new TestCaseData(
+                StatusCode.NotSupported,
+                StatusCode.NotSupported,
+                "The dispatch failed with status code NotSupported.");
+            yield return new TestCaseData(
                 StatusCode.InternalError,
                 StatusCode.InternalError,
                 "The dispatch failed with status code InternalError.");

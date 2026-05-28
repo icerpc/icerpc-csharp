@@ -768,6 +768,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReplyStatus.OperationNotExist => StatusCode.NotImplemented,
                 ReplyStatus.InvalidData => StatusCode.InvalidData,
                 ReplyStatus.Unauthorized => StatusCode.Unauthorized,
+                ReplyStatus.NotSupported => StatusCode.NotSupported,
                 _ => StatusCode.InternalError
             };
 
@@ -899,6 +900,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     break;
                 case StatusCode.Unauthorized:
                     encoder.EncodeReplyStatus(ReplyStatus.Unauthorized);
+                    encoder.EncodeString(response.ErrorMessage!);
+                    break;
+                case StatusCode.NotSupported:
+                    encoder.EncodeReplyStatus(ReplyStatus.NotSupported);
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
                 default:
