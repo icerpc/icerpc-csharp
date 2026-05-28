@@ -129,7 +129,7 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         (uint)operationCount,
         (uint)typeCount);
 
-    string uri = "icerpc://build-telemetry.icerpc.dev";
+    const string uri = "icerpc://build-telemetry.icerpc.dev";
     string? failure = null;
 
     try
@@ -151,8 +151,6 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         });
 
         var buildObserver = new BuildObserverProxy(invoker);
-
-        uri += buildObserver.ServiceAddress.Path;
 
         await buildObserver.ReportSliceBuildAsync(telemetryData, cancellationToken: cts.Token);
         await connection.ShutdownAsync(cts.Token);
