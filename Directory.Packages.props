@@ -34,16 +34,16 @@
     <PackageVersion Include="dunet" Version="1.16.2" />
 
     <!-- Protobuf -->
-    <PackageVersion Include="Google.Protobuf" Version="3.34.1" />
-    <PackageVersion Include="Google.Protobuf.Tools" Version="3.34.1" />
+    <PackageVersion Include="Google.Protobuf" Version="3.35.0" />
+    <PackageVersion Include="Google.Protobuf.Tools" Version="3.35.0" />
 
     <!-- Ice tooling -->
     <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" />
 
     <!-- Test SDK -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
-    <PackageVersion Include="coverlet.collector" Version="10.0.0" />
-    <PackageVersion Include="NUnit" Version="4.6.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="NUnit" Version="4.6.1" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.13.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="6.2.0" />
   </ItemGroup>
