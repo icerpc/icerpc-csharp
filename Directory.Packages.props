@@ -34,8 +34,8 @@
     <PackageVersion Include="dunet" Version="1.16.2" />
 
     <!-- Protobuf -->
-    <PackageVersion Include="Google.Protobuf" Version="3.34.1" />
-    <PackageVersion Include="Google.Protobuf.Tools" Version="3.34.1" />
+    <PackageVersion Include="Google.Protobuf" Version="3.35.0" />
+    <PackageVersion Include="Google.Protobuf.Tools" Version="3.35.0" />
 
     <!-- Ice tooling -->
     <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" />
