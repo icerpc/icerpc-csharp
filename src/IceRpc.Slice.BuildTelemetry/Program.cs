@@ -130,11 +130,12 @@ static async Task<GeneratorResponse> BuildResponseAsync(
         (uint)typeCount);
 
     const string uri = "icerpc://build-telemetry.icerpc.dev";
+    TimeSpan timeout = debug ? TimeSpan.FromSeconds(30) : TimeSpan.FromSeconds(3);
     string? failure = null;
 
     try
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var cts = new CancellationTokenSource(timeout);
 
         // Create a client connection to the telemetry server. We use QUIC when supported, otherwise Slic over TCP.
         await using var connection = new ClientConnection(
