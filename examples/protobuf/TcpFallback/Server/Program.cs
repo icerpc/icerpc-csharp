@@ -20,12 +20,12 @@ using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromF
     password: null,
     keyStorageFlags: X509KeyStorageFlags.Exportable);
 
-// Create two servers that share the same dispatch pipeline.
+// Create two servers that share the same dispatch pipeline. We use custom names to distinguish the servers in the logs.
 await using var quicServer = new Server(
     router,
     serverAddressUri: new Uri("icerpc://[::0]?transport=quic"),
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    logger: loggerFactory.CreateLogger<Server>());
+    logger: loggerFactory.CreateLogger("IceRpc.QuicServer"));
 
 quicServer.Listen();
 
@@ -33,7 +33,7 @@ await using var tcpServer = new Server(
     router,
     serverAddressUri: new Uri("icerpc://[::0]?transport=tcp"),
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    logger: loggerFactory.CreateLogger<Server>());
+    logger: loggerFactory.CreateLogger("IceRpc.TcpServer"));
 
 tcpServer.Listen();
 
