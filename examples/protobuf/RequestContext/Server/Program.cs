@@ -3,7 +3,6 @@
 using IceRpc;
 using RequestContextServer;
 using System.Security.Cryptography.X509Certificates;
-using VisitorCenter;
 
 // The default transport (QUIC) requires a server certificate. We use a test certificate here.
 using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
@@ -13,7 +12,7 @@ using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
 
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router().UseRequestContext();
-router.Map<IGreeterService>(new Chatbot());
+router.Map(new Chatbot());
 
 await using var server = new Server(
     router,

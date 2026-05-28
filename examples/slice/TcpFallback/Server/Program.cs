@@ -4,7 +4,6 @@ using IceRpc;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 using TcpFallbackServer;
-using VisitorCenter;
 
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
@@ -13,7 +12,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 
 // Create a router (dispatch pipeline) with the greeter service.
 Router router = new Router()
-    .Map<IGreeterService>(new Chatbot());
+    .Map(new Chatbot());
 
 using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
     "../../../../certs/server.p12",

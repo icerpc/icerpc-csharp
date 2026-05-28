@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using System.Reflection;
 
 namespace IceRpc;
 
@@ -9,13 +10,33 @@ public static class RouterExtensions
 {
     /// <summary>Registers a route to a service that uses the service's default path as the route path. If there is an
     /// existing route at the same path, it is replaced.</summary>
-    /// <typeparam name = "TService" > An interface with the DefaultServicePathAttribute attribute. The path of the
-    /// mapped service corresponds to the value of this attribute.</typeparam>
+    /// <typeparam name="TService">A service class that implements a service interface with the
+    /// <see cref="DefaultServicePathAttribute"/> attribute. The path of the mapped service corresponds to the value of
+    /// this attribute.</typeparam>
     /// <param name="router">The router being configured.</param>
     /// <param name="service">The target service of this route.</param>
     /// <returns>The router being configured.</returns>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
+    /// <exception cref="ArgumentException">Thrown if the interface(s) implemented by <typeparamref name="TService"/>
+    /// do not have a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
+    /// <exception cref="AmbiguousMatchException">Thrown if <typeparamref name="TService"/> is a class that
+    /// implements multiple interfaces with a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
+    public static Router Map<TService>(this Router router, TService service)
+        where TService : class, IDispatcher =>
+        router.Map(typeof(TService).GetDefaultServicePath(), service);
+
+    /// <summary>Registers a route to a service that uses the service's default path as the route path. If there is an
+    /// existing route at the same path, it is replaced.</summary>
+    /// <typeparam name="TService">A service interface with the <see cref="DefaultServicePathAttribute"/> attribute.
+    /// The path of the mapped service corresponds to the value of this attribute.</typeparam>
+    /// <param name="router">The router being configured.</param>
+    /// <param name="service">The target service of this route.</param>
+    /// <returns>The router being configured.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// called on this router.</exception>
+    /// <exception cref="ArgumentException">Thrown if <typeparamref name="TService"/> does not have a
+    /// <see cref="DefaultServicePathAttribute"/> attribute.</exception>
     public static Router Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
         router.Map(typeof(TService).GetDefaultServicePath(), service);

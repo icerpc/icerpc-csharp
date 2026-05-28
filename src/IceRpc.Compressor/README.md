@@ -51,12 +51,11 @@ string greeting = await greeter.GreetAsync(Environment.UserName);
 // Server application
 
 using IceRpc;
-using VisitorCenter;
 
 // Add the compressor middleware to the dispatch pipeline.
 Router router = new Router()
     .UseCompressor(CompressionFormat.Brotli);
-    .Map<IGreeterService>(new Chatbot());
+    .Map(new Chatbot());
 
 await using var server = new Server(router);
 server.Listen();

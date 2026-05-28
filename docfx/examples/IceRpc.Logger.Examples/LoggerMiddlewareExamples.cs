@@ -23,7 +23,7 @@ public static class LoggerMiddlewareExamples
         // logs dispatches using category `IceRpc.Logger.LoggerMiddleware`.
         Router router = new Router()
             .UseLogger(loggerFactory)
-            .Map<IGreeterService>(new Chatbot());
+            .Map(new Chatbot());
 
         #endregion
     }
