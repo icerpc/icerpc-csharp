@@ -12,8 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Disable IceRpc build telemetry
-  IceRpcBuildTelemetry: false
+  # Debug and dry-run for build telemetry. Keep IceRpcBuildTelemetry as is.
+  IceRpcBuildTelemetryDebug: true
+  IceRpcBuildTelemetryDryRun: true
 
 jobs:
   build_and_test:
