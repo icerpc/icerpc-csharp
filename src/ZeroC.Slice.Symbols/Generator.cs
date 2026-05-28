@@ -66,8 +66,7 @@ public static class Generator
                 new Compiler.GeneratedFile(file.Path, file.Contents).Encode(ref encoder));
         encoder.EncodeSequence(
             response.Diagnostics,
-            (ref encoder, diagnostic) =>
-                new Compiler.Diagnostic(diagnostic.Kind, diagnostic.Source, diagnostic.Notes).Encode(ref encoder));
+            (ref encoder, diagnostic) => diagnostic.ToCompilerDiagnostic().Encode(ref encoder));
         await output.FlushAsync().ConfigureAwait(false);
         output.Complete();
     }
