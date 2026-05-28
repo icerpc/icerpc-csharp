@@ -54,7 +54,7 @@ using IceRpc;
 
 // Add the compressor middleware to the dispatch pipeline.
 Router router = new Router()
-    .UseCompressor(CompressionFormat.Brotli);
+    .UseCompressor(CompressionFormat.Brotli)
     .Map(new Chatbot());
 
 await using var server = new Server(router);

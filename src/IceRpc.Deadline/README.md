@@ -29,7 +29,7 @@ using IceRpc;
 
 // Add the deadline middleware to the dispatch pipeline.
 Router router = new Router()
-    .UseDeadline();
+    .UseDeadline()
     .Map(...);
 
 await using var server = new Server(router);
