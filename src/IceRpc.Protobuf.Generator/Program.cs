@@ -32,6 +32,15 @@ var response = new CodeGeneratorResponse
     MaximumEdition = (int)Edition.Max
 };
 
+if (request.Parameter.Length > 0)
+{
+    // This plug-in does not accept any parameters, so we return an error response if any are provided.
+    response.Error = $"Plugin does not accept any parameters, but received: '{request.Parameter}'";
+
+    // no need to generate any code
+    descriptors = [];
+}
+
 foreach (FileDescriptor descriptor in descriptors)
 {
     if (!request.FileToGenerate.Contains(descriptor.Name))
