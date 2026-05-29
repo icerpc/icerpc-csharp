@@ -46,10 +46,10 @@ internal static class GeneratorDriver
                 ?? assembly.GetName().Version?.ToString()
                 ?? "unknown";
 
-            if (options.Length > 0)
-            {
-                diagnostics.Add(Diagnostic.Error("Generator does not support any options"));
-            }
+foreach ((string key, string value) in options)
+{
+    diagnostics.Add(Diagnostic.Error($"Unknown option: '{key}'"));
+}
 
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
