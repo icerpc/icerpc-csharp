@@ -29,7 +29,7 @@ using IceRpc;
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router()
     .UseRequestContext()
-    .Map<...>(...);
+    .Map(...);
 
 await using var server = new Server(router);
 server.Listen();

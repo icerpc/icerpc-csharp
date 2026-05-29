@@ -13,7 +13,7 @@ public static class DeadlineMiddlewareExamples
         // Create a router (dispatch pipeline) and install the deadline middleware.
         Router router = new Router()
             .UseDeadline()
-            .Map<IGreeterService>(new Chatbot());
+            .Map(new Chatbot());
 
         await using var server = new Server(router);
         server.Listen();

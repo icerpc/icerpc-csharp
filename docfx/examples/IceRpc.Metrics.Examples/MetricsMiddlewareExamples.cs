@@ -14,7 +14,7 @@ public static class MetricsMiddlewareExamples
         // Create a router (dispatch pipeline) and install the metrics middleware.
         Router router = new Router()
             .UseMetrics()
-            .Map<IGreeterService>(new Chatbot());
+            .Map(new Chatbot());
 
         await using var server = new Server(router);
         server.Listen();

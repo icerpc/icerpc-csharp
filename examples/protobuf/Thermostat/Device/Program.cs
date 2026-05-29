@@ -16,7 +16,7 @@ using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../ce
 
 var thermoBot = new ThermoBot();
 
-Router router = new Router().UseLogger(loggerFactory).Map<IThermoControlService>(thermoBot);
+Router router = new Router().UseLogger(loggerFactory).Map(thermoBot);
 
 // Create a client connection to the server. It dispatches requests from the server to `router`.
 await using var connection = new ClientConnection(

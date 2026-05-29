@@ -15,7 +15,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 Router router = new Router()
     .UseLogger(loggerFactory)
     .UseDeadline()
-    .Map<IGreeterService>(new Chatbot());
+    .Map(new Chatbot());
 
 using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
     "certs/server.p12",

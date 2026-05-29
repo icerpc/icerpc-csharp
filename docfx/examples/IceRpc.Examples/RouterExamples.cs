@@ -14,7 +14,7 @@ public static class RouterExamples
         // its default service path.
         Router router = new Router()
             .UseCompressor(CompressionFormat.Brotli)
-            .Map<IGreeterService>(new Chatbot());
+            .Map(new Chatbot());
 
         // Create a server that uses the router as its dispatch pipeline.
         await using var server = new Server(router);
@@ -36,7 +36,7 @@ public static class RouterExamples
                     $"after next.DispatchAsync; the response status code is {response.StatusCode}");
                 return response;
             }))
-            .Map<IGreeterService>(new Chatbot());
+            .Map(new Chatbot());
 
         // Create a server that uses the router as its dispatcher.
         await using var server = new Server(router);

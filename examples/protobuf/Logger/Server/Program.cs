@@ -4,7 +4,6 @@ using IceRpc;
 using LoggerServer;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
-using VisitorCenter;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
@@ -22,7 +21,7 @@ using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
 // `IceRpc.Logger.LoggerMiddleware`.
 Router router = new Router()
     .UseLogger(loggerFactory)
-    .Map<IGreeterService>(new Chatbot());
+    .Map(new Chatbot());
 
 // Create a server that logs message to a logger with category `IceRpc.Server`.
 await using var server = new Server(

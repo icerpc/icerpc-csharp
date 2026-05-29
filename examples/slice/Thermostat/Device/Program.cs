@@ -16,7 +16,7 @@ using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile(".
 
 var thermoBot = new ThermoBot();
 
-Router router = new Router().UseLogger(loggerFactory).Map<IThermoControlService>(thermoBot);
+Router router = new Router().UseLogger(loggerFactory).Map(thermoBot);
 
 // Create a secure client connection to the server using the default transport (QUIC).
 // It dispatches requests from the server to `router`.

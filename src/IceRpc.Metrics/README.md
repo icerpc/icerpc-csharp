@@ -28,7 +28,7 @@ Pipeline pipeline = new Pipeline().UseMetrics().Into(connection);
 using IceRpc;
 
 // Create a router (dispatch pipeline) and install the metrics middleware.
-Router router = new Router().UseMetrics().Map<...>(...);
+Router router = new Router().UseMetrics().Map(...);
 ```
 
 ## Sample code with DI

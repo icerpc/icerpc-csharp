@@ -33,7 +33,7 @@ var thermoFacade = new ThermoFacade(thermoControl, shutdownCts.Token);
 
 Router frontEndRouter = new Router()
     .UseLogger(loggerFactory)
-    .Map<IThermostatService>(thermoFacade); // use default path
+    .Map(thermoFacade); // use default path
 
 await using var frontEnd = new Server(
     frontEndRouter,
@@ -45,7 +45,7 @@ await using var frontEnd = new Server(
 Router backEndRouter = new Router()
     .UseLogger(loggerFactory)
     .UseDispatchInformation()
-    .Map<IThermoHomeService>(new ThermoBridge(thermoFacade, deviceConnection));
+    .Map(new ThermoBridge(thermoFacade, deviceConnection));
 
 await using var backEnd = new Server(
     backEndRouter,

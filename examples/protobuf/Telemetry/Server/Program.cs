@@ -7,7 +7,6 @@ using OpenTelemetry.Trace;
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using TelemetryServer;
-using VisitorCenter;
 
 // The activity source used by the telemetry interceptor and middleware.
 using var activitySource = new ActivitySource("IceRpc");
@@ -28,7 +27,7 @@ using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
 
 // Add the telemetry middleware to the dispatch pipeline.
 Router router = new Router().UseTelemetry(activitySource);
-router.Map<IGreeterService>(new Chatbot());
+router.Map(new Chatbot());
 
 await using var server = new Server(
     router,

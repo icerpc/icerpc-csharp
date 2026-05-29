@@ -44,7 +44,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 // logs dispatches using category `IceRpc.Logger.LoggerMiddleware`.
 Router router = new Router()
     .UseLogger(loggerFactory)
-    .Map<...>(...);
+    .Map(...);
 ```
 
 ## Sample code with DI

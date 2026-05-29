@@ -9,13 +9,28 @@ public static class RouterExtensions
 {
     /// <summary>Registers a route to a service that uses the service's default path as the route path. If there is an
     /// existing route at the same path, it is replaced.</summary>
-    /// <typeparam name = "TService" > An interface with the DefaultServicePathAttribute attribute. The path of the
-    /// mapped service corresponds to the value of this attribute.</typeparam>
     /// <param name="router">The router being configured.</param>
     /// <param name="service">The target service of this route.</param>
     /// <returns>The router being configured.</returns>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
+    /// <exception cref="ArgumentException">Thrown if the interface(s) implemented by <paramref name="service" /> do not
+    /// have a <see cref="DefaultServicePathAttribute"/> attribute, or if <paramref name="service" /> implements
+    /// multiple interfaces with a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
+    public static Router Map(this Router router, IDispatcher service) =>
+        router.Map(service.GetType().GetDefaultServicePath(), service);
+
+    /// <summary>Registers a route to a service that uses the service's default path as the route path. If there is an
+    /// existing route at the same path, it is replaced.</summary>
+    /// <typeparam name="TService">A service interface with the <see cref="DefaultServicePathAttribute"/> attribute.
+    /// The path of the mapped service corresponds to the value of this attribute.</typeparam>
+    /// <param name="router">The router being configured.</param>
+    /// <param name="service">The target service of this route.</param>
+    /// <returns>The router being configured.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// called on this router.</exception>
+    /// <exception cref="ArgumentException">Thrown if <typeparamref name="TService"/> does not have a
+    /// <see cref="DefaultServicePathAttribute"/> attribute.</exception>
     public static Router Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
         router.Map(typeof(TService).GetDefaultServicePath(), service);
