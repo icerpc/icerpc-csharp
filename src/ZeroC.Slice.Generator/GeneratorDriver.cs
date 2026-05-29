@@ -30,7 +30,7 @@ internal static class GeneratorDriver
         await Symbols.Generator.RunAsync(reader, writer, TransformAsync).ConfigureAwait(false);
 
         Task<GeneratorResponse>
-        TransformAsync(ImmutableList<SliceFile> symbolFiles, (string key, string value)[] additionalOptions)
+        TransformAsync(ImmutableList<SliceFile> symbolFiles, (string key, string value)[] options)
         {
             // Validate CS attributes before generation.
             List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
@@ -45,6 +45,11 @@ internal static class GeneratorDriver
                     assembly)?.InformationalVersion
                 ?? assembly.GetName().Version?.ToString()
                 ?? "unknown";
+
+            foreach ((string key, string value) in options)
+            {
+                diagnostics.Add(Diagnostic.Error($"Unknown option: '{key}'"));
+            }
 
             // Generate code for each source file, skipping generation if there are validation errors.
             var generatedFiles = new List<GeneratedFile>();
