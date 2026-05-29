@@ -74,27 +74,20 @@
       <GoogleProtobufFiles Include="$(protoc_tools)/google/protobuf/*.*" />
       <ProtocCompiler Include="$(protoc_tools)/windows_x64/protoc.exe" Prefix="windows_x64" />
       <ProtocCompiler Include="$(protoc_tools)/linux_x64/protoc" Prefix="linux_x64" />
-      <ProtocCompiler
-        Include="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
-        Prefix="linux_arm64" />
+      <ProtocCompiler Include="$(protoc_tools)/linux_aarch64/protoc" Prefix="linux_arm64" />
       <ProtocCompiler Include="$(protoc_tools)/macosx_x64/protoc" Prefix="macos_x64" />
       <ProtocCompiler
         Include="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
         Prefix="macos_arm64" />
     </ItemGroup>
 
-    <!-- Download and extract macOS and Linux ARM64 binaries from protobuf release package. The compilers for ARM64
-         are not included with Google.Protobuf.Tools NuGet package.
+    <!-- Download and extract the macOS ARM64 binary from the protobuf release package. The Google.Protobuf.Tools
+         NuGet package doesn't ship a macOS ARM64 protoc; see https://github.com/protocolbuffers/protobuf/issues/15524.
       -->
     <DownloadFile
       SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj"
       Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip')" />
-
-    <DownloadFile
-      SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
-      DestinationFolder="$(MSBuildThisFileDirectory)obj"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip')" />
 
     <!-- We cannot use MSBuild Unzip task because it doesn't preserve the executable permissions, we use our custom
         extract task instead. -->
@@ -103,19 +96,10 @@
       DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
       Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')" />
 
-    <ExtractTask
-      SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
-      DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')" />
-
     <!-- Make protoc compiler writeable, otherwise Copy task fails when running inside a container -->
     <Exec
       Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
       Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
-
-    <Exec
-      Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
-      Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
 
     <Copy
       SourceFiles="@(GoogleProtobufFiles)"
