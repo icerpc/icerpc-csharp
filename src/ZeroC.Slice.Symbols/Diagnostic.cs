@@ -49,7 +49,7 @@ public readonly record struct Diagnostic
     /// <param name="directive">The directive of the attribute that had an incorrect number of arguments.</param>
     /// <param name="expected">The correct number of arguments that should have been supplied to this attribute.</param>
     /// <param name="actual">The actual number of arguments that were supplied to this attribute.</param>
-    /// <param name="source">The source location of the attribute which with an incorrect number of arguments.</param>
+    /// <param name="source">The source location of the attribute with an incorrect number of arguments.</param>
     /// <returns>A new diagnostic.</returns>
     public static Diagnostic IncorrectAttributeArgumentCount(string directive, int expected, int actual, string source)
     {
