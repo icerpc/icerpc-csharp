@@ -2,7 +2,6 @@
 
 using IceRpc.Ice.Codec;
 using NUnit.Framework;
-using System.Reflection;
 
 namespace IceRpc.Ice.Generator.Tests;
 
@@ -55,13 +54,13 @@ public sealed class InterfaceTests
     public void Get_class_default_service_path_throws_if_multiple_service_paths() =>
         Assert.That(
             () => typeof(MyMoreDerivedService).GetDefaultServicePath(),
-            Throws.InstanceOf<AmbiguousMatchException>());
+            Throws.InstanceOf<ArgumentException>());
 
     [Test]
     public void Router_map_with_a_service_class_that_implements_multiple_services_throws() =>
         Assert.That(
             () => new Router().Map(new MyMoreDerivedService()),
-            Throws.InstanceOf<AmbiguousMatchException>());
+            Throws.InstanceOf<ArgumentException>());
 
     [Test]
     public void Router_map_with_an_interface_succeeds() =>

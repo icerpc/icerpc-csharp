@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using System.Reflection;
 
 namespace IceRpc;
 
@@ -16,9 +15,8 @@ public static class RouterExtensions
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <exception cref="ArgumentException">Thrown if the interface(s) implemented by <paramref name="service" /> do not
-    /// have a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
-    /// <exception cref="AmbiguousMatchException">Thrown if <paramref name="service" /> implements multiple interfaces
-    /// with a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
+    /// have a <see cref="DefaultServicePathAttribute"/> attribute, or if <paramref name="service" /> implements
+    /// multiple interfaces with a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
     public static Router Map(this Router router, IDispatcher service) =>
         router.Map(service.GetType().GetDefaultServicePath(), service);
 

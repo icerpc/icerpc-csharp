@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Diagnostics;
-using System.Reflection;
 
 namespace IceRpc;
 
@@ -14,9 +13,8 @@ public static class TypeExtensions
     /// that implements such an interface.</param>
     /// <returns>The default service path.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="type" /> is neither a class nor an interface, or
-    /// if it does not have a <see cref="DefaultServicePathAttribute" /> attribute.</exception>
-    /// <exception cref="AmbiguousMatchException">Thrown if <paramref name="type" /> is a class that implements multiple
-    /// interfaces with a <see cref="DefaultServicePathAttribute" /> attribute.</exception>
+    /// if it does not have a <see cref="DefaultServicePathAttribute" /> attribute, or if it is a class that implements
+    /// multiple interfaces with a <see cref="DefaultServicePathAttribute" /> attribute.</exception>
     /// <remarks>When <paramref name="type" /> is an interface, this method only searches for the attribute on the
     /// interface itself.</remarks>
     /// <seealso cref="RouterExtensions.Map(Router, IDispatcher)" />
@@ -38,8 +36,9 @@ public static class TypeExtensions
                     else
                     {
                         // GetInterfaces() does not return the same interface more than once.
-                        throw new AmbiguousMatchException(
-                            $"The class '{type}' implements multiple interfaces with a {nameof(DefaultServicePathAttribute)} attribute.");
+                        throw new ArgumentException(
+                            $"The class '{type}' implements multiple interfaces with a {nameof(DefaultServicePathAttribute)} attribute.",
+                            nameof(type));
                     }
                 }
             }
@@ -67,13 +66,10 @@ public static class TypeExtensions
             {
                 return ((DefaultServicePathAttribute)attributes[0]).Value;
             }
-            else if (attributes.Length > 1)
-            {
-                throw new AmbiguousMatchException(
-                    $"The interface '{type}' has multiple {nameof(DefaultServicePathAttribute)} attributes.");
-            }
             else
             {
+                // The DefaultServicePathAttribute does not allow multiple instances on the same interface.
+                Debug.Assert(attributes.Length == 0);
                 return null;
             }
         }

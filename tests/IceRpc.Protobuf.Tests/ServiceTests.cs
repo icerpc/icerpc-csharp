@@ -5,7 +5,6 @@ using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -36,7 +35,7 @@ public partial class ServiceTests
     public void Get_class_default_service_path_throws_if_multiple_service_paths() =>
         Assert.That(
             () => typeof(MultipleServices).GetDefaultServicePath(),
-            Throws.InstanceOf<AmbiguousMatchException>());
+            Throws.InstanceOf<ArgumentException>());
 
     [Test]
     public void Class_can_implement_multiple_services()
@@ -95,7 +94,7 @@ public partial class ServiceTests
     public void Router_map_with_a_service_class_that_implements_multiple_services_throws() =>
         Assert.That(
             () => new Router().Map(new MultipleServices()),
-            Throws.InstanceOf<AmbiguousMatchException>());
+            Throws.InstanceOf<ArgumentException>());
 
     [Test]
     public void Router_map_with_an_interface_succeeds() =>
