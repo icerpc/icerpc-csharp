@@ -32,7 +32,6 @@ jobs:
       - name: ReportGenerator
         uses: danielpalme/ReportGenerator-GitHub-Action@5
         with:
-          assemblyfilters: -IceRpc.ServiceGenerator
           reports: tests/*/TestResults/*/coverage.cobertura.xml
           targetdir: coveragereport
           reporttypes: Html;Badges
