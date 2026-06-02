@@ -56,7 +56,7 @@ dotnet test --collect:"XPlat Code Coverage"
 Then, generate the report:
 
 ```shell
-reportgenerator -reports:"tests/*/TestResults/*/coverage.cobertura.xml" -targetdir:tests/CodeCoverageReport
+reportgenerator -assemblyfilters:-IceRpc.ServiceGenerator -reports:"tests/*/TestResults/*/coverage.cobertura.xml" -targetdir:tests/CodeCoverageReport
 ```
 
 The coverage report will be available in the `tests/CodeCoverageReport` directory.
