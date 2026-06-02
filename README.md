@@ -7,7 +7,7 @@
 # IceRPC for C\#
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
-[![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Report Generator Coverage](https://code.icerpc.dev/csharp/0.5.x/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/0.5.x/coverage/index.html)
 [![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=0.5.x)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=0.5.x)
 
@@ -233,7 +233,6 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-protocol]: https://docs.icerpc.dev/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
-[license]: https://github.com/icerpc/icerpc-csharp/blob/0.5.x/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [Protobuf]: https://en.wikipedia.org/wiki/Protocol_Buffers
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
