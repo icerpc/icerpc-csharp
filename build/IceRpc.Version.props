@@ -4,6 +4,6 @@
     <Version Condition="'$(Version)' == ''">0.6.0-preview.1</Version>
     <!-- The slicec compiler version -->
     <SlicecVersion Condition="'$(SlicecVersion)' == ''">0.4.0</SlicecVersion>
-    <SlicecBaseUrl Condition="'$(SlicecBaseUrl)' == ''">https://zeroc.com/download/icerpc/slicec/0.4</SlicecBaseUrl>
+    <SlicecBaseUrl Condition="'$(SlicecBaseUrl)' == ''">https://download.zeroc.com/icerpc/slicec/0.4</SlicecBaseUrl>
   </PropertyGroup>
 </Project>
