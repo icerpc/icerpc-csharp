@@ -7,8 +7,6 @@
     </NUnit>
     <DataCollectionRunSettings>
         <DataCollectors>
-            <!-- Disabled by default; the coverage CI job opts in via `collect:"XPlat Code Coverage"`,
-                 which re-enables this collector while preserving the configuration below. -->
             <DataCollector friendlyName="XPlat code coverage" enabled="False">
                 <Configuration>
                     <!-- Exclude test assemblies and the IceRpc.ServiceGenerator source generator (loaded as an
