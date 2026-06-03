@@ -80,5 +80,3 @@ jobs:
 
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
-        with:
-          nuget-config: examples/nuget.config
