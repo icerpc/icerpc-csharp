@@ -1,11 +1,6 @@
 name: Test Templates
 description: "Tests the IceRPC project templates"
 
-inputs:
-  nuget-config:
-    description: "Path of the NuGet.config to copy into the templates workspace"
-    required: true
-
 runs:
   using: "composite"
   steps:

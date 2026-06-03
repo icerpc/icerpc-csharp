@@ -60,16 +60,6 @@ jobs:
         if: inputs.authenticode_sign
         run: dotnet build-server shutdown
 
-      # The signing action installs `sign`/`Microsoft.ArtifactSigning.Client` via PowerShell
-      # PackageManagement with --add-source, which NuGet rejects when packageSourceMapping is
-      # active in nuget.config (as it is since CPM adoption). Move nuget.config aside for the
-      # duration of the sign step and restore it before pack.
-      # See: https://github.com/Azure/artifact-signing-action/issues/143
-      - name: Stash nuget.config for signing
-        if: inputs.authenticode_sign
-        run: Rename-Item nuget.config nuget.config.bak
-        shell: pwsh
-
       - name: Sign .NET Assemblies
         if: inputs.authenticode_sign
         uses: azure/trusted-signing-action@v2
@@ -84,11 +74,6 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
-
-      - name: Restore nuget.config
-        if: ${{ always() && inputs.authenticode_sign }}
-        run: if (Test-Path nuget.config.bak) { Rename-Item nuget.config.bak nuget.config }
-        shell: pwsh
 
       # Use --no-build to avoid rebuilding, we want to use the signed assemblies that were built in the previous step.
       - name: Pack IceRPC
