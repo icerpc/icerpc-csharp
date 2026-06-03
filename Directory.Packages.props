@@ -44,7 +44,7 @@
     <PackageVersion Include="Google.Protobuf.Tools" Version="$(GoogleProtobufVersion)" />
 
     <!-- Ice tooling -->
-    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" />
+    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="[3.8.2,3.9.0)" />
 
     <!-- Test SDK -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />

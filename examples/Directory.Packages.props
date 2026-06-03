@@ -39,6 +39,6 @@
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0" />
-    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" />
+    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="[3.8.2,3.9.0)" />
   </ItemGroup>
 </Project>
