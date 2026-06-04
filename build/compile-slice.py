@@ -138,9 +138,9 @@ def main() -> None:
     slice_files = find_compiler_slice_files(repo_root)
 
     # Inform the user what is being used for this compilation run.
-    print("Found valid 'slicec' at: '" + slicec_executable + "'")
-    print("Found valid code-generator at: '" + code_generator + "'")
-    print("Found valid output directory at: '" + output_dir + "'")
+    print("Found 'slicec' at: '" + slicec_executable + "'")
+    print("Found code-generator at: '" + code_generator + "'")
+    print("Found output directory at: '" + output_dir + "'")
     print("Compiling the following files: [\n    " + '\n    '.join(slice_files) + "\n]")
 
     # Actually run the compilation.
