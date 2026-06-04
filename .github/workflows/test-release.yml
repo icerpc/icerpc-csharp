@@ -58,14 +58,6 @@ jobs:
           gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --name "nuget-packages" --dir packages
         shell: pwsh
 
-      - name: Configure NuGet sources
-        run: |
-          # Point the icerpc.dev source in examples/nuget.config at the locally built packages.
-          # The existing packageSourceMapping for icerpc.* and zeroc.slice.codec is preserved.
-          dotnet nuget remove source icerpc.dev --configfile examples/nuget.config
-          dotnet nuget add source --configfile examples/nuget.config -n icerpc.dev ${{ github.workspace }}/packages
-        shell: pwsh
-
       - name: Install dotnet new templates
         run: |
           $version = $env:IceRpcVersion
