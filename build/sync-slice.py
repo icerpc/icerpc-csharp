@@ -4,8 +4,8 @@
 """Synchronize vendored Slice files (*.ice, *.slice) based on slice.toml.
 
 Usage:
-    python builds/sync-slice.py           # sync files from upstream
-    python builds/sync-slice.py --verify  # verify files match upstream (for CI)
+    python build/sync-slice.py           # sync files from upstream
+    python build/sync-slice.py --verify  # verify files match upstream (for CI)
 
 slice.toml format
 -----------------
