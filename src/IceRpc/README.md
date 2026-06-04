@@ -95,11 +95,11 @@ internal class Chatbot : IDispatcher
 }
 ```
 
-[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.html
+[api]: https://code.icerpc.dev/csharp/0.6.x/api/reference/IceRpc.html
 [docs]:https://docs.icerpc.dev
 [getting-started]: https://docs.icerpc.dev/getting-started
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
-[examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
+[examples]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/examples
 [package]: https://www.nuget.org/packages/IceRpc
 [platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/src/IceRpc

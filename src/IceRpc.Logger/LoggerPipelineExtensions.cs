@@ -17,7 +17,7 @@ public static class LoggerPipelineExtensions
     /// The following code adds the logger interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.Logger.Examples/LoggerInterceptorExamples.cs" region="UseLogger" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Logger"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.6.x/examples/slice/Logger"/>
     public static Pipeline UseLogger(this Pipeline pipeline, ILoggerFactory loggerFactory) =>
         pipeline.Use(next => new LoggerInterceptor(next, loggerFactory.CreateLogger<LoggerInterceptor>()));
 }

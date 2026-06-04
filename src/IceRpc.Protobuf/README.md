@@ -84,11 +84,11 @@ internal partial class Chatbot : IGreeterService
 }
 ```
 
-[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Protobuf.html
+[api]: https://code.icerpc.dev/csharp/0.6.x/api/reference/IceRpc.Protobuf.html
 [docs]: https://docs.icerpc.dev/protobuf
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
-[examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
+[examples]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/examples
 [package]: https://www.nuget.org/packages/IceRpc.Protobuf
 [protobuf-tools]: https://www.nuget.org/packages/IceRpc.Protobuf.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Protobuf
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/src/IceRpc.Protobuf
 [source generator]: https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/source-generators-overview

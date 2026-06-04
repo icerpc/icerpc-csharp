@@ -146,5 +146,5 @@ the compilation pipeline.
 [zeroc-slice-codec]: https://www.nuget.org/packages/ZeroC.Slice.Codec
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.icerpc.dev/slice
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Slice.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/src/IceRpc.Slice.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
