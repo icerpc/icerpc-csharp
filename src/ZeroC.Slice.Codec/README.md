@@ -68,7 +68,7 @@ public partial record struct Person
 
 [api]: https://code.icerpc.dev/csharp/main/api/reference/ZeroC.Slice.Codec.html
 [cs-buffers]: https://learn.microsoft.com/en-us/dotnet/standard/io/buffers
-[docs]: https://docs.icerpc.dev/slice2
+[docs]: https://docs.icerpc.dev/slice
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [package]: https://www.nuget.org/packages/ZeroC.Slice.Codec
 [pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines

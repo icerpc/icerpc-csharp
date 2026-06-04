@@ -71,7 +71,7 @@
       "_disableContribution": true,
       "_gitContribute": {
         "repo": "https://github.com/icerpc/icerpc-csharp",
-        "branch": "main",
+        "branch": "0.6.x",
         "apiSpecFolder": "docs-overwrite"
       }
     }
