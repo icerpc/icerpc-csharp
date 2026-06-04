@@ -20,8 +20,6 @@
     <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_IceRpcOSName>
     <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</_IceRpcOSName>
     <_IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</_IceRpcOSArch>
-    <_SliceCExe Condition="'$(_IceRpcOSName)' == 'windows'">slicec.exe</_SliceCExe>
-    <_SliceCExe Condition="'$(_IceRpcOSName)' != 'windows'">slicec</_SliceCExe>
   </PropertyGroup>
   <ItemGroup>
     <!-- Build-order-only references; see comment on the analogous block in IceRpc.Slice.Tools.targets. -->
