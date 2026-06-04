@@ -17,9 +17,8 @@
       dotnet build
       dotnet build src/ZeroC.Slice.Symbols/ZeroC.Slice.Symbols.csproj -t:Regenerate
 
-    The target deliberately does no build-order plumbing: it assumes a prior `dotnet build` has produced the
-    slicec compiler under src/IceRpc.Slice.Tools/obj/tools/<rid>/ and the ZeroC.Slice.Generator + IceRpc.Slice.Tools
-    assemblies under their respective bin/$(Configuration)/net10.0/ directories.
+    The target deliberately does no build-order plumbing: it assumes a prior `dotnet build` has downloaded the
+    slicec compiler and built the ZeroC.Slice.Generator + IceRpc.Slice.Tools assemblies.
   -->
   <Import Project="$(MSBuildThisFileDirectory)../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
 
