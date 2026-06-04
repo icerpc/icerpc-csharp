@@ -23,7 +23,9 @@
   -->
   <UsingTask
     TaskName="IceRpc.Slice.Tools.SlicecTask"
-    AssemblyFile="$(MSBuildThisFileDirectory)../IceRpc.Slice.Tools/bin/$(Configuration)/net10.0/IceRpc.Slice.Tools.dll" />
+    TaskFactory="TaskHostFactory"
+    AssemblyFile="$(MSBuildThisFileDirectory)../IceRpc.Slice.Tools/bin/$(Configuration)/net10.0/IceRpc.Slice.Tools.dll"
+    Runtime="NET" />
 
   <Target Name="Regenerate">
     <PropertyGroup>
