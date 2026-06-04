@@ -1,15 +1,15 @@
 <!-- markdownlint-disable-next-line MD033 MD041 -->
 <div align="center">
     <!-- markdownlint-disable-next-line MD033 -->
-  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" alt="IceRPC" height="100" width="100" />
+  <img src="https://github.com/icerpc/icerpc-csharp/raw/0.6.x/.github/assets/icerpc-banner.svg" alt="IceRPC" height="100" width="100" />
 </div>
 
 # IceRPC for C\#
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Report Generator Coverage](https://code.icerpc.dev/csharp/main/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/main/coverage/index.html)
-[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=main)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=main)
+[![Report Generator Coverage](https://code.icerpc.dev/csharp/0.6.x/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/0.6.x/coverage/index.html)
+[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=0.6.x)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=0.6.x)
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 
@@ -217,7 +217,7 @@ to the license for the full terms and conditions.
 in-memory transport for testing). Future releases may add additional transports.
 
 [Apache License version 2.0]: LICENSE
-[API reference]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.html
+[API reference]: https://code.icerpc.dev/csharp/0.6.x/api/reference/IceRpc.html
 [Building from source]: BUILDING.md
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml
 [custom]: https://docs.icerpc.dev/slice/language-guide/custom-types

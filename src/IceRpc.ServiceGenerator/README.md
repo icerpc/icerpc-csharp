@@ -10,5 +10,5 @@ This package is a dependency of the [IceRPC + Slice][icerpc+slice] and [IceRPC +
 [icerpc+ice]: https://www.nuget.org/packages/IceRpc.Ice
 [icerpc+slice]: https://www.nuget.org/packages/IceRpc.Slice
 [package]: https://www.nuget.org/packages/IceRpc.ServiceGenerator
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.ServiceGenerator
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/src/IceRpc.ServiceGenerator
 [source generator]: https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/source-generators-overview

@@ -129,10 +129,10 @@ host.Run();
 The compressor interceptor and middleware compress and decompress payloads regardless of how these payloads are encoded.
 They work well with Slice but don't require Slice.
 
-[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Compressor.html
+[api]: https://code.icerpc.dev/csharp/0.6.x/api/reference/IceRpc.Compressor.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Compress
+[example]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/examples/slice/Compress
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Compressor
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Compressor
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/src/IceRpc.Compressor

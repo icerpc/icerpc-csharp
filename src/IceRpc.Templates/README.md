@@ -47,4 +47,4 @@ dotnet run
 
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Templates
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Templates
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.6.x/src/IceRpc.Templates
