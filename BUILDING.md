@@ -7,7 +7,7 @@
 - [Generating the API reference](#generating-the-api-reference)
 - [Building examples with a local source build](#building-examples-with-a-local-source-build)
   - [1. Publish the packages locally](#1-publish-the-packages-locally)
-  - [2. Build the example with the local package version](#2-build-the-example-with-the-local-package-version)
+  - [2. Build the example as usual](#2-build-the-example-as-usual)
 
 ## Prerequisites
 
@@ -77,12 +77,8 @@ docfx serve _site
 
 ## Building examples with a local source build
 
-By default, the examples restore published IceRPC packages:
-
-- On the `main` branch, from ZeroC's nightly repository.
-- On other branches, from NuGet.org.
-
-To build an example against packages produced from your local build, follow these steps.
+By default, the examples restore published IceRPC packages. To build an example against packages produced from your
+local build, follow these steps.
 
 ### 1. Publish the packages locally
 
@@ -100,17 +96,8 @@ On Windows:
 .\build\publish-local-packages.ps1
 ```
 
-### 2. Build the example with the local package version
-
-From the example directory, run `dotnet build` and set `IceRpcVersion` to the version in
-`build/IceRpc.Version.props`:
+### 2. Build the example as usual
 
 ```shell
-dotnet build /p:IceRpcVersion=<local-version>
-```
-
-For example, if `build/IceRpc.Version.props` contains `0.6.0-preview.1`:
-
-```shell
-dotnet build /p:IceRpcVersion=0.6.0-preview.1
+dotnet build
 ```
