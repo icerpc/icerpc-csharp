@@ -7,7 +7,7 @@ This script relies on the downloaded `slicec` to function. The easiest way to ma
 `dotnet build` before running this script.
 
 Usage:
-    python build/compiler-slice.py
+    python build/compile-slice.py
 """
 
 import os
@@ -23,8 +23,8 @@ IS_WINDOWS = os.name == "nt"
 
 
 def runCommand(args) -> tuple[str, str]:
-    result = subprocess.run(args, check=False, shell=IS_WINDOWS, capture_output=True)
-    return [result.stdout.decode("utf-8").strip(), result.stderr.decode("utf-8").strip()]
+    result = subprocess.run(args, check=False, capture_output=True)
+    return (result.stdout.decode("utf-8").strip(), result.stderr.decode("utf-8").strip())
 
 
 def get_slicec_name() -> tuple[str, str]:
@@ -87,7 +87,11 @@ def find_code_generator(repo_root: str) -> list[str]:
     bin_root = os.path.join(repo_root, "src", "ZeroC.Slice.Generator", "bin")
     if not os.path.isdir(bin_root):
         raise RuntimeError("'src/ZeroC.Slice.Generator/bin' is not a directory or does not exist")
+    if len(os.listdir(bin_root)) == 0:
+        raise RuntimeError("Directory '" + bin_root + "' is empty")
     bin_subdir = os.path.join(bin_root, os.listdir(bin_root)[0])
+    if len(os.listdir(bin_subdir)) == 0:
+        raise RuntimeError("Directory '" + bin_subdir + "' is empty")
     code_gen_dir = os.path.join(bin_subdir, os.listdir(bin_subdir)[0])
 
     # Determine which extension the code-generator script will have.
