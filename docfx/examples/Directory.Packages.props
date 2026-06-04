@@ -10,7 +10,7 @@
          spurious direct <PackageReference> in any project. Recommended baseline for new CPM repos. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <!-- Version of the locally-published IceRpc packages. -->
-    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.6.0-preview.1</IceRpcVersion>
+    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.7.0-preview.1</IceRpcVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="IceRpc" Version="$(IceRpcVersion)" />
