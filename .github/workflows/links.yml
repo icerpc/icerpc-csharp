@@ -3,14 +3,14 @@ name: Check Links
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["0.6.x"]
     paths:
       - "**.md"
       - "**.html"
       - ".lychee.toml"
       - ".github/workflows/links.yml"
   pull_request:
-    branches: ["main"]
+    branches: ["0.6.x"]
     paths:
       - "**.md"
       - "**.html"

@@ -2,9 +2,9 @@ name: "Verify vendored Slice files"
 
 on:
   push:
-    branches: ["main"]
+    branches: ["0.6.x"]
   pull_request:
-    branches: ["main"]
+    branches: ["0.6.x"]
 
 jobs:
   verify-vendored-files:
