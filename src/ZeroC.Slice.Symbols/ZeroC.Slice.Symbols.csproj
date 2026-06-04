@@ -21,6 +21,8 @@
     slicec compiler under src/IceRpc.Slice.Tools/obj/tools/<rid>/ and the ZeroC.Slice.Generator + IceRpc.Slice.Tools
     assemblies under their respective bin/$(Configuration)/net10.0/ directories.
   -->
+  <Import Project="$(MSBuildThisFileDirectory)../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+
   <UsingTask
     TaskName="IceRpc.Slice.Tools.SlicecTask"
     TaskFactory="TaskHostFactory"
@@ -29,16 +31,7 @@
 
   <Target Name="Regenerate">
     <PropertyGroup>
-      <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_IceRpcOSName>
-      <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_IceRpcOSName>
-      <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</_IceRpcOSName>
-      <_IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</_IceRpcOSArch>
-      <_SliceGeneratorScriptExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.bat</_SliceGeneratorScriptExtension>
-      <_SliceGeneratorScriptExtension Condition="!$([MSBuild]::IsOSPlatform('Windows'))">.sh</_SliceGeneratorScriptExtension>
-
-      <_SliceCPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Tools/obj/tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
-      <_SliceGenerators>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/slicec-csharp-generator$(_SliceGeneratorScriptExtension)</_SliceGenerators>
-
+      <_SliceGenerators>$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</_SliceGenerators>
       <_RegenerateOutputDir>$(MSBuildThisFileDirectory)Compiler</_RegenerateOutputDir>
       <_RegenerateSliceDir>$(MSBuildThisFileDirectory)../../slice/Compiler</_RegenerateSliceDir>
     </PropertyGroup>
