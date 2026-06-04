@@ -15,7 +15,7 @@
     </SliceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="3.8.2-nightly.*" PrivateAssets="All" />
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="[3.8.2,3.9.0)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Ice" Version="0.6.0-preview.1" />
     <PackageReference Include="IceRpc.Deadline" Version="0.6.0-preview.1" />
     <PackageReference Include="IceRpc.Logger" Version="0.6.0-preview.1" />

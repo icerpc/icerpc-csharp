@@ -1,11 +1,6 @@
 name: Test Templates
 description: "Tests the IceRPC project templates"
 
-inputs:
-  nuget-config:
-    description: "Path of the NuGet.config to copy into the templates workspace"
-    required: true
-
 runs:
   using: "composite"
   steps:
@@ -13,14 +8,10 @@ runs:
   # Generate template projects outside the repo root so they don't inherit the repo's
   # Directory.Packages.props (which enables CPM). Template-generated projects carry explicit
   # PackageReference Version= attributes by design — they are standalone apps.
-  #
-  # We do need to bring along the repo's NuGet source mapping so ZeroC.Ice.Slice.Tools resolves
-  # from the zeroc.com nightly feed instead of nuget.org.
   - name: Prepare template test workspace
     run: |
       $dir = "$env:RUNNER_TEMP/templates-test"
       New-Item -ItemType Directory -Force -Path $dir | Out-Null
-      Copy-Item -Path "${{ inputs.nuget-config }}" -Destination "$dir/nuget.config"
       echo "TEMPLATES_TEST_DIR=$dir" >> $env:GITHUB_ENV
     shell: pwsh
 
