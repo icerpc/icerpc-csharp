@@ -220,7 +220,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [API reference]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.html
 [Building from source]: BUILDING.md
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml
-[custom]: https://docs.icerpc.dev/slice/language-guide/custom-types
+[custom]: https://docs.icerpc.dev/slice2/language-guide/custom-types
 [Documentation]: https://docs.icerpc.dev
 [Examples]: examples
 [Getting started]: https://docs.icerpc.dev/getting-started
@@ -237,5 +237,5 @@ in-memory transport for testing). Future releases may add additional transports.
 [Protobuf]: https://en.wikipedia.org/wiki/Protocol_Buffers
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
 [Slic]: https://docs.icerpc.dev/icerpc/slic-transport/overview
-[Slice]: https://docs.icerpc.dev/slice
+[Slice]: https://docs.icerpc.dev/slice2
 [System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
