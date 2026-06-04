@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) ZeroC, Inc.
 
-"""Compiles the Slice Compiler Definition files, and writes the generated code to the correct output directory.
+"""Compiles the Slice-Compiler definition files, and writes the generated code to the correct output directory.
 
 This script relies on the downloaded `slicec` to function. The easiest way to make sure this is present is to run
 `dotnet build` before running this script.
