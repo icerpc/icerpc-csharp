@@ -4,13 +4,13 @@
 """Synchronize vendored Slice files (*.ice, *.slice) based on slice.toml.
 
 Usage:
-    python tools/sync-slice.py           # sync files from upstream
-    python tools/sync-slice.py --verify  # verify files match upstream (for CI)
+    python builds/sync-slice.py           # sync files from upstream
+    python builds/sync-slice.py --verify  # verify files match upstream (for CI)
 
 slice.toml format
 -----------------
 
-The file contains one or more [source.<name>] sections.  Each section describes
+The file contains one or more [source.<name>] sections. Each section describes
 an upstream git repository and the files to vendor from it.
 
     [source.<name>]
@@ -24,14 +24,14 @@ an upstream git repository and the files to vendor from it.
                                      #   relative to 'source'; supports ** for recursion
 
 When multiple sources write to the same dest, their include patterns should not
-overlap.  The script warns when the same destination path is matched by more
+overlap. The script warns when the same destination path is matched by more
 than one source.
 
 Sync mode (default) clones every source, removes stale .ice/.slice files from
 dest that are no longer in the manifest, and copies the matched files.
 
 Verify mode (--verify) clones every source and checks that the local files in
-dest are identical to upstream.  It reports missing, modified, and extra files
+dest are identical to upstream. It reports missing, modified, and extra files
 and exits with a non-zero status on any mismatch.
 """
 

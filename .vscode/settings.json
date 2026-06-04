@@ -1,11 +1,5 @@
 {
-  "dotnet.defaultSolution": "IceRpc.sln",
-  "rust-analyzer.linkedProjects": [
-    "tools/slicec-cs/Cargo.toml"
-  ],
-  "rust-analyzer.rustfmt.extraArgs": [
-    "+nightly"
-  ],
+  "dotnet.defaultSolution": "IceRpc.slnx",
   "prettier.documentSelectors": [
     "**/*.{props,csproj,targets}"
   ],
@@ -15,78 +9,89 @@
       "paths": ["slice"],
       "addWellKnownTypes": false
     },
-    // Tools
+    // Telemetry
     {
-      "paths": ["src/IceRpc.Protobuf.BuildTelemetry/slice"]
+      "paths": ["src/IceRpc.Slice.BuildTelemetry/slice"]
     },
     // Slice Tests
     {
       "paths": [
         "tests/ZeroC.Slice.Generator.Tests",
         "tests/IceRpc.Slice.Generator.Tests",
-        "tests/IceRpc.Compressor.Tests"
+        "tests/IceRpc.Compressor.Tests",
+        "tests/IceRpc.ServiceGenerator.Tests"
       ]
+    },
+    // Templates
+    {
+      "paths": ["src/IceRpc.Templates/Templates/IceRpc-Slice-Client"]
+    },
+    {
+      "paths": ["src/IceRpc.Templates/Templates/IceRpc-Slice-DI-Client"]
+    },
+    {
+      "paths": ["src/IceRpc.Templates/Templates/IceRpc-Slice-DI-Server"]
+    },
+    {
+      "paths": ["src/IceRpc.Templates/Templates/IceRpc-Slice-Server"]
     },
     // Examples
     {
-      "paths": ["examples/slice/Compress"]
+      "paths": ["docfx/examples"]
     },
     {
-      "paths": ["examples/slice/CustomError"]
+      "paths": ["examples/slice/Compress/slice"]
     },
     {
-      "paths": ["examples/slice/Deadline"]
+      "paths": ["examples/slice/CustomError/slice"]
     },
     {
-      "paths": ["examples/slice/DiscriminatedUnion"]
+      "paths": ["examples/slice/Deadline/slice"]
     },
     {
-      "paths": ["examples/slice/Download"]
+      "paths": ["examples/slice/DiscriminatedUnion/slice"]
     },
     {
-      "paths": ["examples/slice/GenericHost"]
+      "paths": ["examples/slice/Download/slice"]
     },
     {
-      "paths": ["examples/slice/Greeter"]
+      "paths": ["examples/slice/GenericHost/slice"]
     },
     {
-      "paths": ["examples/slice/InteropIceGrid"]
+      "paths": ["examples/slice/Greeter/slice"]
     },
     {
-      "paths": ["examples/slice/InteropMinimal"]
+      "paths": ["examples/slice/Logger/slice"]
     },
     {
-      "paths": ["examples/slice/Logger"]
+      "paths": ["examples/slice/Metrics/slice"]
     },
     {
-      "paths": ["examples/slice/Metrics"]
+      "paths": ["examples/slice/MultipleInterfaces/slice"]
     },
     {
-      "paths": ["examples/slice/MultipleInterfaces"]
+      "paths": ["examples/slice/RequestContext/slice"]
     },
     {
-      "paths": ["examples/slice/Quic"]
+      "paths": ["examples/slice/Retry/slice"]
     },
     {
-      "paths": ["examples/slice/RequestContext"]
+      "paths": ["examples/slice/Stream/slice"]
     },
     {
-      "paths": ["examples/slice/Retry"]
+      "paths": ["examples/slice/Tcp/slice"]
     },
     {
-      "paths": ["examples/slice/Secure"]
+      "paths": ["examples/slice/TcpFallback/slice"]
     },
     {
-      "paths": ["examples/slice/Stream"]
+      "paths": ["examples/slice/Telemetry/slice"]
     },
     {
-      "paths": ["examples/slice/Telemetry"]
+      "paths": ["examples/slice/Thermostat/slice"]
     },
     {
-      "paths": ["examples/slice/Thermostat"]
-    },
-    {
-      "paths": ["examples/slice/Upload"]
+      "paths": ["examples/slice/Upload/slice"]
     }
   ]
 }
