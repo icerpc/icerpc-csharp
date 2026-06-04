@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
 # Copyright (c) ZeroC, Inc.
 
+"""Compiles the Slice Compiler Definition files, and writes the generated code to the correct output directory.
+
+This script relies on the downloaded `slicec` to function. The easiest way to make sure this is present is to run
+`dotnet build` before running this script.
+
+Usage:
+    python build/compiler-slice.py
+"""
+
 import os
 import platform
 import subprocess
 
 
-
-
-
-# If this is set to 'True' the script will print lots of letters to the terminal while it's running.
+# If this is set to 'True' the script will print extra information to the terminal while it's running.
 DEBUGGING = False
 
 # Determine if we're running on a windows platform.
 IS_WINDOWS = os.name == "nt"
 
 
-
-
-
-def runCommand(args, checked) -> str:
-    result = subprocess.run(args, check=checked, shell=IS_WINDOWS, capture_output=True)
-    return (result.stdout.decode("utf-8").strip() + "\n" + result.stderr.decode("utf-8").strip()).strip()
-
+def runCommand(args) -> tuple[str, str]:
+    result = subprocess.run(args, check=False, shell=IS_WINDOWS, capture_output=True)
+    return [result.stdout.decode("utf-8").strip(), result.stderr.decode("utf-8").strip()]
 
 
 def get_slicec_name() -> tuple[str, str]:
@@ -65,7 +67,6 @@ def get_slicec_name() -> tuple[str, str]:
     return [folder, file]
 
 
-
 def find_slicec(repo_root: str) -> str:
     # Determine what is the exact name of the slicec we want to run is.
     [slicec_dir, slicec_file] = get_slicec_name()
@@ -79,7 +80,6 @@ def find_slicec(repo_root: str) -> str:
         return candidate
     else:
         raise RuntimeError("Failed to locate valid slicec")
-
 
 
 def find_code_generator(repo_root: str) -> list[str]:
@@ -101,7 +101,6 @@ def find_code_generator(repo_root: str) -> list[str]:
         return code_gen_script
 
 
-
 def find_compiler_slice_files(repo_root: str) -> list[str]:
     # Get the directory where the compiler-definition Slice files should be.
     definition_dir = os.path.join(repo_root, "slice", "Compiler")
@@ -110,7 +109,6 @@ def find_compiler_slice_files(repo_root: str) -> list[str]:
     
     # Return any files in this directory.
     return [os.path.join(definition_dir, f) for f in os.listdir(definition_dir)]
-
 
 
 def find_output_directory(repo_root: str) -> str:
@@ -122,10 +120,11 @@ def find_output_directory(repo_root: str) -> str:
     return output_dir
     
 
-
 def main() -> None:
     # Find the root of the repository we're in
-    repo_root = runCommand(["git", "rev-parse", "--show-toplevel"], checked=True)
+    [repo_root, err] = runCommand(["git", "rev-parse", "--show-toplevel"])
+    if err != "":
+        raise RuntimeError("Error encountered while trying to find the repository root:\n" + err)
     if DEBUGGING:
         print("'find_slicec' determined this is the repository root: '" + repo_root + "'")
 
@@ -150,10 +149,13 @@ def main() -> None:
     if DEBUGGING:
         print("Attempting to run this command: [" + ','.join(command) + "]")
 
-    print(runCommand(command, checked=False))
+    # Actually run the Slice compiler and remit any errors.
+    [result, err] = runCommand(command)
+    print(result)
+    if err != "":
+        print("\nErrors encountered while trying to compile Slice files:\n\n" + err)
+        exit(79)
     print("Completed")
-    
-
 
 
 if __name__ == "__main__":
