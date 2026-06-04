@@ -1,5 +1,5 @@
 {
-  "dotnet.defaultSolution": "IceRpc.sln",
+  "dotnet.defaultSolution": "IceRpc.slnx",
   "prettier.documentSelectors": [
     "**/*.{props,csproj,targets}"
   ],
