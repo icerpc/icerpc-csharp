@@ -5,6 +5,9 @@
 - [Running the tests](#running-the-tests)
 - [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Generating the API reference](#generating-the-api-reference)
+- [Building examples with a local source build](#building-examples-with-a-local-source-build)
+  - [1. Publish the packages locally](#1-publish-the-packages-locally)
+  - [2. Build the example as usual](#2-build-the-example-as-usual)
 
 ## Prerequisites
 
@@ -70,4 +73,31 @@ This generates the API reference into the `docfx/_site` directory. Start a local
 
 ```shell
 docfx serve _site
+```
+
+## Building examples with a local source build
+
+By default, the examples restore published IceRPC packages. To build an example against packages produced from your
+local build, follow these steps.
+
+### 1. Publish the packages locally
+
+From the repository root, publish the IceRPC packages to your local NuGet global-packages folder.
+
+On macOS and Linux:
+
+```shell
+./build/publish-local-packages.sh
+```
+
+On Windows:
+
+```shell
+.\build\publish-local-packages.ps1
+```
+
+### 2. Build the example as usual
+
+```shell
+dotnet build
 ```
