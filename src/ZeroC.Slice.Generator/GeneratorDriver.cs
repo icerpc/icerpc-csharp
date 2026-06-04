@@ -35,16 +35,9 @@ internal static class GeneratorDriver
             // Validate CS attributes before generation.
             List<Diagnostic> diagnostics = CsAttributeValidator.Validate(symbolFiles);
 
-            // Use the informational version (e.g., "0.6.0") which is the semver string from
-            // the <Version> MSBuild property. Fall back to the assembly version (e.g., "0.6.0.0") if
-            // the informational version attribute is not present.
             Assembly assembly = Assembly.GetEntryAssembly()!;
             string generatorName = assembly.GetName().Name ?? "unknown";
-            string version =
-                CustomAttributeExtensions.GetCustomAttribute<AssemblyInformationalVersionAttribute>(
-                    assembly)?.InformationalVersion
-                ?? assembly.GetName().Version?.ToString()
-                ?? "unknown";
+            string version = assembly.GetName().Version?.ToString(3) ?? "unknown";
 
             foreach ((string key, string value) in options)
             {
