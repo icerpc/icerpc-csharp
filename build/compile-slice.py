@@ -55,7 +55,7 @@ def get_slicec_name() -> tuple[str, str]:
             architecture = "arm64"
         case _:
             raise RuntimeError("Unsupported architecture detected: '" + architecture + "'")
-    
+
     # Determine which file extension to use.
     extension = ".exe" if IS_WINDOWS else ""
     if DEBUGGING:
@@ -106,7 +106,7 @@ def find_compiler_slice_files(repo_root: str) -> list[str]:
     definition_dir = os.path.join(repo_root, "slice", "Compiler")
     if not os.path.isdir(definition_dir):
         raise RuntimeError("'slice/Compiler' is not a directory or does not exist")
-    
+
     # Return any files in this directory.
     return [os.path.join(definition_dir, f) for f in os.listdir(definition_dir)]
 
@@ -115,10 +115,10 @@ def find_output_directory(repo_root: str) -> str:
     output_dir = os.path.join(repo_root, "src", "ZeroC.Slice.Symbols", "Compiler")
     if not os.path.isdir(output_dir):
         raise RuntimeError("'src/ZeroC.Slice.Symbols/Compiler' is not a directory or does not exist")
-    
+
     # Return the output directory.
     return output_dir
-    
+
 
 def main() -> None:
     # Find the root of the repository we're in
