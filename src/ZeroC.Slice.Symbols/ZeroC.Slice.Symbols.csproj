@@ -35,25 +35,21 @@
       <_SliceGeneratorScriptExtension Condition="!$([MSBuild]::IsOSPlatform('Windows'))">.sh</_SliceGeneratorScriptExtension>
 
       <_SliceCPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Tools/obj/tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
-      <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</_ZeroCSliceGeneratorPath>
+      <_SliceGenerators>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/slicec-csharp-generator$(_SliceGeneratorScriptExtension)</_SliceGenerators>
 
       <_RegenerateOutputDir>$(MSBuildThisFileDirectory)Compiler</_RegenerateOutputDir>
       <_RegenerateSliceDir>$(MSBuildThisFileDirectory)../../slice/Compiler</_RegenerateSliceDir>
     </PropertyGroup>
 
     <ItemGroup>
-      <_RegenerateSliceFile Include="$(_RegenerateSliceDir)/*.slice">
-        <Generators>$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-      </_RegenerateSliceFile>
+      <_RegenerateSliceFile Include="$(_RegenerateSliceDir)/*.slice" />
     </ItemGroup>
-
-    <MakeDir Directories="$(_RegenerateOutputDir)" />
 
     <SlicecTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="$(_RegenerateOutputDir)"
       ToolsPath="$(_SliceCPath)"
-      Generators="%(_RegenerateSliceFile.Generators)"
+      Generators="$(_SliceGenerators)"
       Sources="@(_RegenerateSliceFile)" />
   </Target>
 </Project>
