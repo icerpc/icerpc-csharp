@@ -22,7 +22,10 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
-using VisitorCenter; // for GreetRequest and GreetResponse (see examples/json/Greeter/GreetRequest.cs and GreetResponse.cs)
+
+// for GreetRequest and GreetResponse (see examples/json/Greeter/GreetRequest.cs and
+// GreetResponse.cs in the icerpc-csharp repo)
+using VisitorCenter;
 
 // Load the test root CA certificate in order to connect to the server that uses a test
 // server certificate.
