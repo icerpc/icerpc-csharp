@@ -109,8 +109,8 @@ From the example directory, run `dotnet build` and set `IceRpcVersion` to the ve
 dotnet build /p:IceRpcVersion=<local-version>
 ```
 
-For example, if `build/IceRpc.Version.props` contains `0.6.0-preview.1`:
+For example, if `build/IceRpc.Version.props` contains `0.7.0-preview.1`:
 
 ```shell
-dotnet build /p:IceRpcVersion=0.6.0-preview.1
+dotnet build /p:IceRpcVersion=0.7.0-preview.1
 ```
