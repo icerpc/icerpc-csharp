@@ -33,7 +33,8 @@ Router router = new Router().UseMetrics().Map(...);
 
 ## Sample code with DI
 
-This sample stays focused on the metrics registration. For a complete Generic Host setup, see the [GenericHost example].
+This sample stays focused on the metrics registration. For a complete Generic Host setup with certificates and
+configuration, see the [GenericHost example].
 
 ```csharp
 // Client application
