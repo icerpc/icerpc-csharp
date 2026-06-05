@@ -33,24 +33,26 @@ Router router = new Router().UseMetrics().Map(...);
 
 ## Sample code with DI
 
+This sample stays focused on the metrics registration. For a complete Generic Host setup, see the [GenericHost example].
+
 ```csharp
 // Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
-        .AddIceRpcInvoker(builder =>
-            builder
-                // Add the metrics interceptor to the invocation pipeline.
-               .UseMetrics()
-               .Into<ClientConnection>()));
+hostBuilder.Services
+    .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+    .AddIceRpcInvoker(builder =>
+        builder
+            // Add the metrics interceptor to the invocation pipeline.
+            .UseMetrics()
+            .Into<ClientConnection>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -59,18 +61,18 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcServer(builder =>
-            builder
-                // Add the metrics middleware to the dispatch pipeline.
-                .UseMetrics()
-                .Map<...>()));
+hostBuilder.Services
+    .AddIceRpcServer(builder =>
+        builder
+            // Add the metrics middleware to the dispatch pipeline.
+            .UseMetrics()
+            .Map<...>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -83,3 +85,4 @@ host.Run();
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Metrics
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Metrics
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost

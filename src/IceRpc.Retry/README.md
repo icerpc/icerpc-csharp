@@ -21,24 +21,27 @@ Pipeline pipeline = new Pipeline()
 
 ## Sample code with DI
 
+This sample stays focused on the retry registration. For a complete Generic Host setup with certificates and
+configuration, see the [GenericHost example].
+
 ```csharp
 // Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcConnectionCache()
-        .AddIceRpcInvoker(builder =>
-            builder
-                // Add the retry interceptor to the invocation pipeline.
-               .UseRetry()
-               .Into<ConnectionCache>()));
+hostBuilder.Services
+    .AddIceRpcConnectionCache()
+    .AddIceRpcInvoker(builder =>
+        builder
+            // Add the retry interceptor to the invocation pipeline.
+            .UseRetry()
+            .Into<ConnectionCache>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -48,3 +51,4 @@ host.Run();
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Retry
 [package]: https://www.nuget.org/packages/IceRpc.Retry
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Retry
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost

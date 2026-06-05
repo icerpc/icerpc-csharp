@@ -7,6 +7,9 @@ IceRpc.Extensions.DependencyInjection helps you build applications with [IceRPC]
 
 ## Sample code
 
+This sample shows only the basic DI wiring. For a complete Generic Host setup with certificates and configuration, see
+the [GenericHost example].
+
 ```csharp
 // Client application
 
@@ -15,19 +18,18 @@ using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
-        // Builds an invocation pipeline singleton.
-        .AddIceRpcInvoker(builder =>
-            builder
-               .UseDeadline(TimeSpan.FromSeconds(20))
-               .UseLogger()
-               .Into<ClientConnection>()));
+hostBuilder.Services
+    .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+    // Builds an invocation pipeline singleton.
+    .AddIceRpcInvoker(builder =>
+        builder
+           .UseDeadline(TimeSpan.FromSeconds(20))
+           .UseLogger()
+           .Into<ClientConnection>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -39,18 +41,17 @@ using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        // Add a server and configure its dispatch pipeline.
-        .AddIceRpcServer(builder =>
-            builder
-                .UseDeadline()
-                .UseLogger()
-                .Map<...>()));
+hostBuilder.Services
+    // Add a server and configure its dispatch pipeline.
+    .AddIceRpcServer(builder =>
+        builder
+            .UseDeadline()
+            .UseLogger()
+            .Map<...>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -61,3 +62,4 @@ host.Run();
 [package]: https://www.nuget.org/packages/IceRpc.Extensions.DependencyInjection
 [product]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Extensions.DependencyInjection
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost
