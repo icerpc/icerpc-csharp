@@ -30,6 +30,8 @@ using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.d
 
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateClientAuthenticationOptions helper method
     clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 string greeting = await GreetAsync(Environment.UserName);
@@ -99,6 +101,8 @@ using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
 // Chatbot.
 await using var server = new Server(
     new Chatbot(),
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateServerAuthenticationOptions helper method
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
 
 server.Listen();
