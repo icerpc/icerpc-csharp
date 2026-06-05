@@ -54,7 +54,7 @@ interface MySessionManager {
 }
 
 /// This summary comment includes special XML characters like < > & ' ", which should be properly escaped by
-/// the slicec-cs compiler.
+/// the the slicec-csharp generator.
 interface MyAuthorizationManager {
     createAuthToken() -> MyAuthToken
 }
