@@ -58,6 +58,13 @@ jobs:
           gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --name "nuget-packages" --dir packages
         shell: pwsh
 
+      - name: Configure NuGet sources
+        run: |
+          # Add the locally built packages as a NuGet source so the examples restore the
+          # release version being tested instead of an older version from nuget.org.
+          dotnet nuget add source ${{ github.workspace }}/packages -n local-packages --configfile examples/nuget.config
+        shell: pwsh
+
       - name: Install dotnet new templates
         run: |
           $version = $env:IceRpcVersion
