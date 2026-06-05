@@ -62,6 +62,7 @@ jobs:
         run: |
           # Add the locally built packages as a NuGet source so the examples restore the
           # release version being tested instead of an older version from nuget.org.
+          dotnet new nugetconfig -o examples
           dotnet nuget add source ${{ github.workspace }}/packages -n local-packages --configfile examples/nuget.config
         shell: pwsh
 
