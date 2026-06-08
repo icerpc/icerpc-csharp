@@ -63,6 +63,9 @@ server.Listen();
 
 ## Sample code with DI
 
+This sample stays focused on the compressor registration. For a complete Generic Host setup with certificates and
+configuration, see the [GenericHost example].
+
 ```slice
 // Slice definitions
 
@@ -83,21 +86,21 @@ interface Greeter {
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
 using VisitorCenter;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
-        .AddIceRpcInvoker(builder =>
-            builder
-                // Add the compressor interceptor to the invocation pipeline.
-               .UseCompressor(CompressionFormat.Brotli)
-               .Into<ClientConnection>())
-        // Add an IGreeter singleton that uses the IInvoker singleton registered above.
-       .AddSingleton<IGreeter>(provider => provider.CreateSliceProxy<GreeterProxy>());
+hostBuilder.Services
+    .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+    .AddIceRpcInvoker(builder =>
+        builder
+            // Add the compressor interceptor to the invocation pipeline.
+            .UseCompressor(CompressionFormat.Brotli)
+            .Into<ClientConnection>())
+    // Add an IGreeter singleton that uses the IInvoker singleton registered above.
+    .AddSingleton<IGreeter>(provider => provider.CreateSliceProxy<GreeterProxy>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -108,19 +111,19 @@ using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Slice;
 using VisitorCenter;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddSingleton<IGreeterService, Chatbot>()
-        .AddIceRpcServer(builder =>
-            builder
-                // Add the compressor middleware to the dispatch pipeline.
-                .UseCompressor(CompressionFormat.Brotli)
-                .Map<IGreeterService>()));
+hostBuilder.Services
+    .AddSingleton<IGreeterService, Chatbot>()
+    .AddIceRpcServer(builder =>
+        builder
+            // Add the compressor middleware to the dispatch pipeline.
+            .UseCompressor(CompressionFormat.Brotli)
+            .Map<IGreeterService>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -136,3 +139,4 @@ They work well with Slice but don't require Slice.
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Compressor
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Compressor
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost

@@ -49,24 +49,27 @@ Router router = new Router()
 
 ## Sample code with DI
 
+This sample stays focused on the logger registration. For a complete Generic Host setup with certificates and
+configuration, see the [GenericHost example].
+
 ```csharp
 // Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
-        .AddIceRpcInvoker(builder =>
-            // Add the logger interceptor to the invocation pipeline.
-            builder
-                .UseLogger()
-                .Into<ClientConnection>()));
+hostBuilder.Services
+    .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+    .AddIceRpcInvoker(builder =>
+        // Add the logger interceptor to the invocation pipeline.
+        builder
+            .UseLogger()
+            .Into<ClientConnection>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -75,18 +78,18 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcServer(builder =>
-            // Add the logger middleware to the dispatch pipeline.
-            builder
-                .UseLogger()
-                .Map<...>()));
+hostBuilder.Services
+    .AddIceRpcServer(builder =>
+        // Add the logger middleware to the dispatch pipeline.
+        builder
+            .UseLogger()
+            .Map<...>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -97,3 +100,4 @@ host.Run();
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Logger
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Logger
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost

@@ -40,26 +40,29 @@ Router router = new Router().UseTelemetry(activitySource);
 
 ## Sample code with DI
 
+This sample stays focused on the telemetry registration. For a complete Generic Host setup with certificates and
+configuration, see the [GenericHost example].
+
 ```csharp
 // Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
-        // The activity source used by the telemetry interceptor.
-        .AddSingleton(_ => new ActivitySource("IceRpc"))
-        .AddIceRpcInvoker(builder =>
-            builder
-                // Add the telemetry interceptor to the invocation pipeline.
-               .UseTelemetry()
-               .Into<ClientConnection>()));
+hostBuilder.Services
+    .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+    // The activity source used by the telemetry interceptor.
+    .AddSingleton(_ => new ActivitySource("IceRpc"))
+    .AddIceRpcInvoker(builder =>
+        builder
+            // Add the telemetry interceptor to the invocation pipeline.
+            .UseTelemetry()
+            .Into<ClientConnection>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -68,20 +71,20 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        // The activity source used by the telemetry middleware.
-        .AddSingleton(_ => new ActivitySource("IceRpc"))
-        .AddIceRpcServer(builder =>
-            builder
-                // Add the telemetry middleware to the dispatch pipeline.
-                .UseTelemetry()
-                .Map<...>()));
+hostBuilder.Services
+    // The activity source used by the telemetry middleware.
+    .AddSingleton(_ => new ActivitySource("IceRpc"))
+    .AddIceRpcServer(builder =>
+        builder
+            // Add the telemetry middleware to the dispatch pipeline.
+            .UseTelemetry()
+            .Map<...>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -93,3 +96,4 @@ host.Run();
 [package]: https://www.nuget.org/packages/IceRpc.Telemetry
 [open-telemetry]: https://opentelemetry.io/
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Telemetry
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost

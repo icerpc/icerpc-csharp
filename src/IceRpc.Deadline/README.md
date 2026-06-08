@@ -38,24 +38,27 @@ server.Listen();
 
 ## Sample code with DI
 
+This sample stays focused on the deadline registration. For a complete Generic Host setup with certificates and
+configuration, see the [GenericHost example].
+
 ```csharp
 // Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
-        .AddIceRpcInvoker(builder =>
-            builder
-                // Add the deadline interceptor to the invocation pipeline.
-               .UseDeadline(TimeSpan.FromSeconds(20))
-               .Into<ClientConnection>()));
+hostBuilder.Services
+    .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+    .AddIceRpcInvoker(builder =>
+        builder
+            // Add the deadline interceptor to the invocation pipeline.
+            .UseDeadline(TimeSpan.FromSeconds(20))
+            .Into<ClientConnection>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -64,18 +67,18 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var hostBuilder = Host.CreateDefaultBuilder(args);
+HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
-hostBuilder.ConfigureServices(services =>
-    services
-        .AddIceRpcServer(builder =>
-            builder
-                // Add the deadline middleware to the dispatch pipeline.
-                .UseDeadline()
-                .Map<...>()));
+hostBuilder.Services
+    .AddIceRpcServer(builder =>
+        builder
+            // Add the deadline middleware to the dispatch pipeline.
+            .UseDeadline()
+            .Map<...>());
 
-using var host = hostBuilder.Build();
+using IHost host = hostBuilder.Build();
 host.Run();
 ```
 
@@ -86,3 +89,4 @@ host.Run();
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Deadline
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Deadline
+[GenericHost example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/GenericHost
