@@ -2,9 +2,6 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Allow floating versions (e.g. 10.0.*) in <PackageVersion>. NuGet rejects floating versions in central package
-         lists by default. -->
-    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     <!-- Pin transitive dependencies to the versions listed below (when listed). Lets us force-upgrade a vulnerable
          transitive package (e.g. a CVE in System.Text.Json) by adding one <PackageVersion> entry here, with no
          spurious direct <PackageReference> in any project. Recommended baseline for new CPM repos. -->
@@ -31,11 +28,11 @@
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.6.3" />
 
     <!-- Microsoft.Extensions.* -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.*" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.6.0" />
 
     <!-- For Slice variant enums  -->
