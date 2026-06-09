@@ -88,5 +88,8 @@
   ],
   "enableFiletypes": [
     "slice"
+  ],
+  "ignorePaths": [
+    "**/packages.lock.json"
   ]
 }
