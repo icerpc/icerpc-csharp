@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "icerpc": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )",
+          "ZeroC.Slice.Codec": "[0.6.0, )"
+        }
+      },
+      "icerpc.servicegenerator": {
+        "type": "Project"
+      },
+      "icerpc.slice": {
+        "type": "Project",
+        "dependencies": {
+          "IceRpc": "[0.6.0, )",
+          "IceRpc.ServiceGenerator": "[0.6.0, )",
+          "ZeroC.Slice.Codec": "[0.6.0, )"
+        }
+      },
+      "zeroc.slice.codec": {
+        "type": "Project",
+        "dependencies": {
+          "dunet": "[1.16.2, )"
+        }
+      },
+      "zeroc.slice.symbols": {
+        "type": "Project",
+        "dependencies": {
+          "ZeroC.Slice.Codec": "[0.6.0, )"
+        }
+      },
+      "Dunet": {
+        "type": "CentralTransitive",
+        "requested": "[1.16.2, )",
+        "resolved": "1.16.2",
+        "contentHash": "R4PEZo50RK76wRW1kq4xiQqX/hnrx8Gn+8T1XIEYuigyjVh3Guhtt3+b4GG2j3h+E3VadLINtbV+Id79nsFy/Q=="
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.*, )",
+        "resolved": "10.0.8",
+        "contentHash": "21nbDV60SRPWGIivsyl6lqBeEJNG1sginhhfWgRrr3Ais7aQ12To25OAHQxgoiJkjqy1aQ6RxpZBGYuTi7Ge6A=="
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.*, )",
+        "resolved": "10.0.8",
+        "contentHash": "fdVadZmsC8jRP0KvKy8mO8f6GV/HyBvElfcSxEhd+5FM5boAw/01iSaCto5G3G37ApJira4A3pNaVvBv8cUiLQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8"
+        }
+      }
+    }
+  }
+}
