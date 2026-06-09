@@ -406,7 +406,7 @@ public ref partial struct IceDecoder
     /// SkipIndirectionTable itself.</summary>
     private void SkipIndirectionTable()
     {
-        // We never skip an exception's indirection table
+        // We never skip an exception's indirection table since we don't preserve exception slices.
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.Class);
 
         int tableSize = DecodeSize();
