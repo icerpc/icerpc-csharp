@@ -49,11 +49,12 @@ public sealed class OutgoingResponse : OutgoingFrame
         Exception? exception = null)
         : base(request.Protocol)
     {
-        request.Response = this;
         StatusCode = statusCode > StatusCode.Ok ? statusCode :
             throw new ArgumentException(
                 $"The status code for an exception must be greater than {nameof(StatusCode.Ok)}.",
                 nameof(statusCode));
+
+        request.Response = this;
 
         string errorMessage = message ?? $"The dispatch failed with status code {statusCode}.";
         if (exception is not null)
