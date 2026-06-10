@@ -327,7 +327,8 @@ public ref partial struct IceDecoder
         // Decode the slice size if available.
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
         {
-            _classContext.Current.SliceSize = DecodeSliceSize();
+            _classContext.Current.SliceSize =
+                DecodeSliceSize((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0);
         }
         else
         {
@@ -342,14 +343,18 @@ public ref partial struct IceDecoder
     }
 
     /// <summary>Decodes the size of the current slice.</summary>
-    /// <returns>The slice of the current slice, not including the size length.</returns>
-    private int DecodeSliceSize()
+    /// <param name="sliceHasTaggedFields">Indicates whether the slice has tagged fields.</param>
+    /// <returns>The size of the current slice, not including the size length.</returns>
+    private int DecodeSliceSize(bool sliceHasTaggedFields)
     {
+        int minSize = sliceHasTaggedFields ? 5 : 4; // extra byte for the tag end marker
+
         int size = DecodeInt();
-        if (size < 4)
+        if (size < minSize || size - 4 > _reader.Remaining)
         {
-            throw new InvalidDataException($"Invalid Ice size: {size}.");
+            throw new InvalidDataException($"Received invalid slice size: {size}.");
         }
+
         // The encoded size includes the size length.
         return size - 4;
     }
@@ -401,7 +406,7 @@ public ref partial struct IceDecoder
     /// SkipIndirectionTable itself.</summary>
     private void SkipIndirectionTable()
     {
-        // We should never skip an exception's indirection table
+        // We never skip an exception's indirection table since we don't preserve exception slices.
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.Class);
 
         int tableSize = DecodeSize();
@@ -433,7 +438,7 @@ public ref partial struct IceDecoder
                     {
                         throw new InvalidDataException("The Ice size flag is missing.");
                     }
-                    _reader.Advance(DecodeSliceSize());
+                    _reader.Advance(DecodeSliceSize((sliceFlags & SliceFlags.HasTaggedFields) != 0));
 
                     // If this slice has an indirection table, skip it too.
                     if ((sliceFlags & SliceFlags.HasIndirectionTable) != 0)
