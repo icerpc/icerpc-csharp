@@ -322,6 +322,108 @@ public sealed class ResettablePipeReaderDecoratorTests
     }
 
     [Test]
+    public async Task Read_after_reader_decorator_becomes_non_resettable_for_large_buffer()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+
+        await pipe.Writer.WriteAsync(MakeBuffer(1, 50));
+        ReadResult result = await sut.ReadAsync();
+        // Records the consumed position in the decorator without consuming on the decoratee.
+        sut.AdvanceTo(result.Buffer.End);
+
+        // The cumulative buffered data (150 bytes) exceeds maxBufferSize: the decorator becomes non-resettable.
+        await pipe.Writer.WriteAsync(MakeBuffer(2, 100));
+        result = await sut.ReadAsync();
+        Assert.That(sut.IsResettable, Is.False);
+        Assert.That(result.Buffer.Length, Is.EqualTo(100));
+        sut.AdvanceTo(result.Buffer.End); // consumes on the decoratee
+
+        await pipe.Writer.WriteAsync(MakeBuffer(3, 10));
+
+        // Act
+        result = await sut.ReadAsync();
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(10));
+        Assert.That(result.Buffer.ToArray(), Is.All.EqualTo(3));
+
+        sut.AdvanceTo(result.Buffer.End);
+        sut.Complete();
+        pipe.Writer.Complete();
+    }
+
+    [Test]
+    public async Task ReadAtLeast_after_reader_decorator_becomes_non_resettable_for_large_buffer()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+
+        await pipe.Writer.WriteAsync(MakeBuffer(1, 50));
+        ReadResult result = await sut.ReadAsync();
+        // Records the consumed position in the decorator without consuming on the decoratee.
+        sut.AdvanceTo(result.Buffer.End);
+
+        // The cumulative buffered data (150 bytes) exceeds maxBufferSize: the decorator becomes non-resettable.
+        await pipe.Writer.WriteAsync(MakeBuffer(2, 100));
+        result = await sut.ReadAsync();
+        Assert.That(sut.IsResettable, Is.False);
+        Assert.That(result.Buffer.Length, Is.EqualTo(100));
+        sut.AdvanceTo(result.Buffer.End); // consumes on the decoratee
+
+        // Complete the writer; otherwise a minimumSize incorrectly adjusted with the consumed position would block
+        // the read below forever.
+        await pipe.Writer.WriteAsync(MakeBuffer(3, 10));
+        pipe.Writer.Complete();
+
+        // Act
+        result = await sut.ReadAtLeastAsync(10);
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(10));
+        Assert.That(result.Buffer.ToArray(), Is.All.EqualTo(3));
+
+        sut.AdvanceTo(result.Buffer.End);
+        sut.Complete();
+    }
+
+    [Test]
+    public async Task Read_after_setter_makes_reader_decorator_non_resettable()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 1000);
+
+        await pipe.Writer.WriteAsync(MakeBuffer(1, 50));
+        ReadResult result = await sut.ReadAsync();
+        // Records the consumed position in the decorator without consuming on the decoratee.
+        sut.AdvanceTo(result.Buffer.End);
+
+        sut.IsResettable = false;
+
+        // This read slices off the 50 bytes consumed above (the decoratee has not consumed them yet).
+        await pipe.Writer.WriteAsync(MakeBuffer(2, 100));
+        result = await sut.ReadAsync();
+        Assert.That(result.Buffer.Length, Is.EqualTo(100));
+        sut.AdvanceTo(result.Buffer.End); // consumes on the decoratee
+
+        await pipe.Writer.WriteAsync(MakeBuffer(3, 10));
+
+        // Act
+        result = await sut.ReadAsync();
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(10));
+        Assert.That(result.Buffer.ToArray(), Is.All.EqualTo(3));
+
+        sut.AdvanceTo(result.Buffer.End);
+        sut.Complete();
+        pipe.Writer.Complete();
+    }
+
+    [Test]
     public async Task Non_resettable_reader_decorator_is_pass_through()
     {
         var readResult = new ReadResult(
@@ -343,6 +445,13 @@ public sealed class ResettablePipeReaderDecoratorTests
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.End));
         Assert.That(mock.CancelPendingReadCalled, Is.False);
         Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.End));
+    }
+
+    private static byte[] MakeBuffer(byte value, int size)
+    {
+        var buffer = new byte[size];
+        Array.Fill(buffer, value);
+        return buffer;
     }
 
     private sealed class MockPipeReader : PipeReader
