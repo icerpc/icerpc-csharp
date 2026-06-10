@@ -399,7 +399,7 @@ public sealed record class ServiceAddress
         if (ServerAddress is ServerAddress serverAddress)
         {
             sb.AppendServerAddress(serverAddress, Path);
-            firstOption = serverAddress.Params.Count == 0;
+            firstOption = serverAddress.Params.Count == 0 && serverAddress.Transport is null;
         }
         else
         {

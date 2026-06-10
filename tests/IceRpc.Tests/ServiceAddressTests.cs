@@ -142,6 +142,12 @@ public class ServiceAddressTests
         get
         {
             // Service address with alt servers
+            var serviceAddressWithTransport = new ServiceAddress(Protocol.IceRpc)
+            {
+                ServerAddress = new ServerAddress(new Uri("icerpc://host1?transport=tcp")),
+                AltServerAddresses = [new ServerAddress(new Uri("icerpc://host2"))]
+            };
+
             var serviceAddressWithAltServerAddresses = new ServiceAddress(
                 new Uri("ice://localhost:8080/foo?abc=123#bar"));
             serviceAddressWithAltServerAddresses = serviceAddressWithAltServerAddresses with
@@ -157,8 +163,9 @@ public class ServiceAddressTests
             var myParams = new Dictionary<string, string> { ["foo"] = "bar" }.ToImmutableDictionary();
             serviceAddressWithParams = serviceAddressWithParams with { Params = myParams };
 
-            return new[]
-            {
+            return
+            [
+                (serviceAddressWithTransport, "icerpc://host1/?transport=tcp&alt-server=host2"),
                 (
                     serviceAddressWithAltServerAddresses,
                     "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"
@@ -167,7 +174,7 @@ public class ServiceAddressTests
                     serviceAddressWithParams,
                     "icerpc:/?foo=bar"
                 )
-            };
+            ];
         }
     }
 
