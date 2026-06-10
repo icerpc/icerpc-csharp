@@ -53,13 +53,14 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
     }
 
-    // The latest consumed given by caller; reset by Reset.
+    // The latest consumed given by caller; cleared by Reset and by the first non-resettable AdvanceTo.
     private SequencePosition? _consumed;
     private readonly PipeReader _decoratee;
     // The latest examined given by caller.
     private SequencePosition? _examined;
 
-    // The highest examined given to _decoratee; not affected by Reset.
+    // The highest examined given to _decoratee; not affected by Reset but cleared by the first non-resettable
+    // AdvanceTo.
     private SequencePosition? _highestExamined;
 
     // True when read returned a canceled read result.
@@ -127,6 +128,11 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
                 examined = _highestExamined.Value;
             }
             _decoratee.AdvanceTo(consumed, examined);
+
+            // The decoratee can now recycle the buffers of the consumed data: the positions saved while this
+            // decorator was resettable are no longer valid in subsequent read results.
+            _consumed = null;
+            _highestExamined = null;
         }
     }
 
