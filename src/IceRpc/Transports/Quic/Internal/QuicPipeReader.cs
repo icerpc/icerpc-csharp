@@ -116,6 +116,8 @@ internal class QuicPipeReader : PipeReader
         int minimumSize,
         CancellationToken cancellationToken)
     {
+        _throwIfConnectionClosedOrDisposed();
+
         try
         {
             return await _pipeReader.ReadAtLeastAsync(minimumSize, cancellationToken).ConfigureAwait(false);
