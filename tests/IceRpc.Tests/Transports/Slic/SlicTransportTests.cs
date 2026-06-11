@@ -1113,6 +1113,59 @@ public class SlicTransportTests
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
     }
 
+    /// <summary>Verifies that when a write on the underlying duplex connection fails, a subsequent fire-and-forget
+    /// stream frame (here the StreamLast frame sent when the stream's output is completed) closes the Slic connection
+    /// instead of letting the transport exception go unobserved.</summary>
+    [Test]
+    public async Task Duplex_connection_write_failure_from_fire_and_forget_stream_frame_closes_connection()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+
+        // Write data so the stream is started and the first background write succeeds.
+        _ = await streams.Local.Output.WriteAsync(new byte[1], default);
+
+        // Park the background writer task on its next write to the duplex connection.
+        Task writeCalled = duplexClientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
+        _ = await streams.Local.Output.WriteAsync(new byte[1], default);
+        await writeCalled;
+
+        // Act
+
+        // Configure the write to fail and release the parked write. The background writer task fails, completes its
+        // pipe reader with the transport exception and exits.
+        duplexClientConnection.Operations.Fail = DuplexTransportOperations.Write;
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+
+        // Give the background writer task time to fail and complete its pipe reader.
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+        // Completing the stream sends a StreamLast/StreamReadsClosed frame through the fire-and-forget write path,
+        // whose flush rethrows the transport exception.
+        streams.Local.Output.Complete();
+        streams.Local.Input.Complete();
+
+        // Assert
+
+        // The fire-and-forget write path observes the transport failure and closes the connection promptly, so
+        // accepting a stream fails with an IceRpcException.
+        using var acceptCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        Assert.That(
+            async () => await sut.Client.AcceptStreamAsync(acceptCts.Token),
+            Throws.InstanceOf<IceRpcException>());
+    }
+
     [Test]
     public async Task Reject_slic_control_frame_with_oversized_body()
     {
