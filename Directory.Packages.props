@@ -8,7 +8,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 
     <!-- The version of Google.Protobuf and Google.Protobuf.Tools NuGet packages. -->
-    <GoogleProtobufVersion>3.35.0</GoogleProtobufVersion>
+    <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
     <!-- The protoc version is the Google.Protobuf package version without the leading "3." (e.g. "3.35.0" → "35.0"),
          used to download the ARM64 protoc binaries in IceRpc.Protobuf.Tools. -->
     <ProtobufVersion>$([System.String]::Copy('$(GoogleProtobufVersion)').Substring(2))</ProtobufVersion>
