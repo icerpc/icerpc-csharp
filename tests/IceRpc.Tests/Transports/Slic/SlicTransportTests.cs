@@ -1619,6 +1619,156 @@ public class SlicTransportTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
+    /// <summary>Verifies that a read returning a canceled result with buffered data can be advanced with positions
+    /// from the returned buffer, and that reading resumes correctly afterwards. See
+    /// icerpc/icerpc-csharp-audit#30.</summary>
+    [Test]
+    public async Task Canceled_read_with_buffered_data_then_resume_reading([Values] bool useTryRead)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: false);
+
+        // Buffer data on the remote stream input.
+        _ = await streams.Local.Output.WriteAsync(new byte[1024], default);
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+        // Act: cancel the next read; it returns the buffered data with IsCanceled=true.
+        streams.Remote.Input.CancelPendingRead();
+        ReadResult readResult;
+        if (useTryRead)
+        {
+            Assert.That(streams.Remote.Input.TryRead(out readResult), Is.True);
+        }
+        else
+        {
+            readResult = await streams.Remote.Input.ReadAsync(default);
+        }
+        Assert.That(readResult.IsCanceled, Is.True);
+        Assert.That(readResult.Buffer, Has.Length.EqualTo(1024));
+
+        // Examine everything without consuming: the next read won't complete until more data arrives.
+        streams.Remote.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+        // Assert: the stream still works. Write the last stream frame; the next read returns all the data.
+        _ = await ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+            new ReadOnlySequence<byte>(new byte[1]),
+            endStream: true,
+            default);
+        readResult = await streams.Remote.Input.ReadAsync(default).AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+        Assert.That(readResult.IsCanceled, Is.False);
+        Assert.That(readResult.IsCompleted, Is.True);
+        Assert.That(readResult.Buffer, Has.Length.EqualTo(1025));
+        streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+    }
+
+    /// <summary>Verifies that AdvanceTo following a canceled read computes the window accounting against the buffer
+    /// returned by the canceled read: the total of the StreamWindowUpdate increments sent to the peer never exceeds
+    /// the number of bytes the peer wrote on the stream. See icerpc/icerpc-csharp-audit#30.</summary>
+    [Test]
+    public async Task Canceled_read_advance_does_not_corrupt_window_accounting()
+    {
+        // Arrange: small server-side stream window so window updates are sent frequently (the window update
+        // threshold is half the window size, 2048 bytes here).
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 4 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Open a unidirectional stream (the first client unidirectional stream ID is 2) with 4096 bytes and consume
+        // them on the server; this exercises the regular window accounting (one or more window updates).
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        await WriteRawStreamFrameAsync(duplexClientConnection, streamId: 2ul, size: 4096);
+        IMultiplexedStream serverStream = await acceptStreamTask;
+        await ReadStreamDataAsync(serverStream.Input, 4096);
+
+        // Write 1000 additional bytes and give the server time to buffer them on the stream input.
+        await WriteRawStreamFrameAsync(duplexClientConnection, streamId: 2ul, size: 1000);
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+        // Act: cancel the next read; it returns the buffered data with IsCanceled=true. Advance without consuming
+        // or examining anything.
+        serverStream.Input.CancelPendingRead();
+        ReadResult readResult = await serverStream.Input.ReadAsync(default);
+        Assert.That(readResult.IsCanceled, Is.True);
+        Assert.That(readResult.Buffer, Has.Length.EqualTo(1000));
+        serverStream.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.Start);
+
+        // Resume reading: consume the 1000 buffered bytes, then 1100 more.
+        await ReadStreamDataAsync(serverStream.Input, 1000);
+        await WriteRawStreamFrameAsync(duplexClientConnection, streamId: 2ul, size: 1100);
+        await ReadStreamDataAsync(serverStream.Input, 1100);
+
+        // Completing the input sends the StreamReadsClosed frame, which bounds the frame collection below.
+        serverStream.Input.Complete();
+
+        // Assert: the sum of the window update increments can't exceed the bytes written on the stream.
+        long windowUpdateTotal = 0;
+        while (true)
+        {
+            (FrameType frameType, ReadOnlySequence<byte> buffer) =
+                await ReadFrameAsync(reader).WaitAsync(TimeSpan.FromMinutes(2));
+            if (frameType == FrameType.StreamWindowUpdate)
+            {
+                var decoder = new SliceDecoder(buffer);
+                Assert.That(decoder.DecodeVarUInt62(), Is.EqualTo(2ul)); // stream ID
+                windowUpdateTotal += (long)new StreamWindowUpdateBody(ref decoder).WindowSizeIncrement;
+            }
+            else if (frameType == FrameType.StreamReadsClosed)
+            {
+                break;
+            }
+        }
+        Assert.That(windowUpdateTotal, Is.LessThanOrEqualTo(4096 + 1000 + 1100));
+
+        static async Task ReadStreamDataAsync(PipeReader input, long byteCount)
+        {
+            long read = 0;
+            while (read < byteCount)
+            {
+                ReadResult readResult = await input.ReadAsync(default).AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+                read += readResult.Buffer.Length;
+                input.AdvanceTo(readResult.Buffer.End, readResult.Buffer.End);
+            }
+        }
+
+        // Like WriteStreamFrameAsync but with a buffer sized for the frame body.
+        static Task WriteRawStreamFrameAsync(IDuplexConnection connection, ulong streamId, int size)
+        {
+            var writer = new MemoryBufferWriter(new byte[size + 16]);
+            var encoder = new SliceEncoder(writer);
+            encoder.EncodeFrameType(FrameType.Stream);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encoder.EncodeVarUInt62(streamId);
+            encoder.WriteByteSpan(new byte[size]);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+            return connection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default).AsTask();
+        }
+    }
+
     /// <summary>Verifies that a write blocked on the connection-level pipe pause (PauseWriterThreshold reached)
     /// can be canceled.</summary>
     [Test]
@@ -1913,9 +2063,12 @@ public class SlicTransportTests
             {
                 reader.AdvanceTo(buffer.GetPosition(consumed));
                 buffer = await reader.ReadAtLeastAsync(header.FrameSize);
+
+                // The buffer can hold more than one frame; only copy and consume this frame's bytes so that
+                // back-to-back frames can be read with successive calls.
                 Memory<byte> frameBuffer = new byte[header.FrameSize];
-                buffer.CopyTo(frameBuffer.Span);
-                reader.AdvanceTo(buffer.End);
+                buffer.Slice(0, header.FrameSize).CopyTo(frameBuffer.Span);
+                reader.AdvanceTo(buffer.GetPosition(header.FrameSize));
                 return (header.FrameType, new ReadOnlySequence<byte>(frameBuffer));
             }
             else

@@ -77,7 +77,13 @@ internal class SlicPipeReader : PipeReader
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
-            return GetReadResult(result);
+            result = GetReadResult(result);
+
+            // Cache the read result returned to the application: AdvanceTo computes the consumed and examined offsets
+            // against the cached buffer. Without this, AdvanceTo called with positions from the returned buffer would
+            // compute the offsets against a stale buffer and corrupt the window accounting.
+            _readResult = result;
+            return result;
         }
 
         // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got examined
@@ -108,6 +114,11 @@ internal class SlicPipeReader : PipeReader
             if (result.IsCanceled)
             {
                 result = GetReadResult(result);
+
+                // Cache the read result returned to the application: AdvanceTo computes the consumed and examined
+                // offsets against the cached buffer. Without this, AdvanceTo called with positions from the returned
+                // buffer would compute the offsets against a stale buffer and corrupt the window accounting.
+                _readResult = result;
                 return true;
             }
 
