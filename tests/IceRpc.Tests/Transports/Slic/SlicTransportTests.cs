@@ -1784,6 +1784,157 @@ public class SlicTransportTests
         }
     }
 
+    /// <summary>Verifies that completing a stream that was created but never started releases the stream-count
+    /// semaphore permit acquired by CreateStreamAsync. See icerpc/icerpc-csharp-audit#25.</summary>
+    [Test]
+    public async Task Completing_unstarted_stream_releases_the_stream_count_permit([Values] bool bidirectional)
+    {
+        // Arrange: the peer allows a single stream.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(options =>
+        {
+            options.MaxBidirectionalStreams = 1;
+            options.MaxUnidirectionalStreams = 1;
+        });
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        // Create a stream and complete it without ever writing: the stream is never started.
+        IMultiplexedStream stream = await sut.Client.CreateStreamAsync(bidirectional, default);
+        stream.Output.Complete();
+        if (bidirectional)
+        {
+            stream.Input.Complete();
+        }
+
+        // Act/Assert: creating a new stream succeeds; if the permit was not released this would wait forever. The
+        // WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and dumped by the hang
+        // detection first; the timeout is only a fallback that fails this test instead of hanging the test run when
+        // hang detection is not enabled.
+        IMultiplexedStream nextStream = await sut.Client.CreateStreamAsync(bidirectional, default)
+            .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+
+        // Cleanup
+        nextStream.Output.Complete();
+        if (bidirectional)
+        {
+            nextStream.Input.Complete();
+        }
+    }
+
+    /// <summary>Verifies that when a blocked WriteAsync with endStream is canceled before the StreamLast frame is
+    /// written, completing the stream output still notifies the peer of the writes closure with a StreamWritesClosed
+    /// frame. See icerpc/icerpc-csharp-audit#26.</summary>
+    [Test]
+    public async Task Canceled_end_stream_write_does_not_lose_the_writes_closed_frame()
+    {
+        // Arrange: use a small peer window so it's easy to exhaust.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 4 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: false);
+
+        // Exhaust the peer's window without reading.
+        byte[] payload = new byte[(4 * 1024) - 1];
+        _ = await streams.Local.Output.WriteAsync(payload, default);
+
+        using var writeCts = new CancellationTokenSource();
+
+        // The endStream write blocks on AcquireSendCreditAsync because the peer window is exhausted; cancel it
+        // before the StreamLast frame is written.
+        ValueTask<FlushResult> writeTask = ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+            new ReadOnlySequence<byte>(payload),
+            endStream: true,
+            writeCts.Token);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(writeTask.IsCompleted, Is.False);
+        writeCts.Cancel();
+        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Act: complete the output with an exception, like a failed invocation does.
+        streams.Local.Output.Complete(new OperationCanceledException());
+
+        // Assert: the peer observes the writes closure (TruncatedData) after consuming the buffered data, instead
+        // of waiting for data forever. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang
+        // is detected and dumped by the hang detection first; the timeout is only a fallback that fails this test
+        // instead of hanging the test run when hang detection is not enabled.
+        Assert.That(
+            async () =>
+            {
+                while (true)
+                {
+                    ReadResult readResult = await streams.Remote.Input.ReadAsync(default)
+                        .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+                    streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+                }
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+    }
+
+    /// <summary>Verifies that when a WriteAsync with endStream is canceled after the StreamLast frame was queued on
+    /// the connection (parked on the connection-level pipe pause), completing the stream output doesn't send a
+    /// StreamWritesClosed frame after the StreamLast frame: the peer reads all the data and observes a graceful end
+    /// of the stream.</summary>
+    [Test]
+    public async Task End_stream_write_canceled_after_frame_queued_preserves_graceful_peer_reads()
+    {
+        // Arrange: small client-side PauseWriterThreshold and a held duplex Write so the endStream write parks on
+        // FlushAsync after queueing the StreamLast frame.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 128 * 1024);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.PauseWriterThreshold = 4 * 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: false);
+
+        // Hold duplex writes so the background writer task can't drain the connection-level pipe.
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        using var writeCts = new CancellationTokenSource();
+        byte[] payload = new byte[8 * 1024];
+
+        // This write queues the data and the StreamLast frame on the connection's outbound pipe, then parks on
+        // FlushAsync; cancel it while parked.
+        ValueTask<FlushResult> writeTask = ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+            new ReadOnlySequence<byte>(payload),
+            endStream: true,
+            writeCts.Token);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(writeTask.IsCompleted, Is.False);
+        writeCts.Cancel();
+        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Act: complete the output with an exception, like a failed invocation does, then release the hold so the
+        // queued data and StreamLast frame reach the peer.
+        streams.Local.Output.Complete(new OperationCanceledException());
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
+
+        // Assert: the peer reads all the data and a graceful end of stream, not a TruncatedData error.
+        int totalRead = 0;
+        bool isCompleted = false;
+        while (!isCompleted)
+        {
+            ReadResult readResult = await streams.Remote.Input.ReadAsync(default)
+                .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+            totalRead += (int)readResult.Buffer.Length;
+            isCompleted = readResult.IsCompleted;
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        Assert.That(totalRead, Is.EqualTo(payload.Length));
+    }
+
     /// <summary>Verifies that a write blocked on the connection-level pipe pause (PauseWriterThreshold reached)
     /// can be canceled.</summary>
     [Test]

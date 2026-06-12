@@ -359,7 +359,7 @@ internal class SlicStream : IMultiplexedStream
     /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame; otherwise,
     /// <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    internal ValueTask<FlushResult> WriteStreamFrameAsync(
+    internal async ValueTask<FlushResult> WriteStreamFrameAsync(
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
@@ -375,13 +375,31 @@ internal class SlicStream : IMultiplexedStream
             }
         }
 
-        return _connection.WriteStreamDataFrameAsync(
-            this,
-            source1,
-            source2,
-            endStream,
-            writeReadsClosedFrame,
-            cancellationToken);
+        try
+        {
+            return await _connection.WriteStreamDataFrameAsync(
+                this,
+                source1,
+                source2,
+                endStream,
+                writeReadsClosedFrame,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // If the write failed before the StreamLast frame was queued on the connection (WroteLastStreamFrame
+            // completes _writesClosedTcs when the frame is queued), roll back _writesClosePending so that completing
+            // the stream output can still close writes and notify the peer with a StreamWritesClosed frame. The
+            // bundled reads closure isn't lost either since _closeReadsOnWritesClosure wasn't cleared.
+            if (endStream && !_writesClosedTcs.Task.IsCompleted)
+            {
+                lock (_mutex)
+                {
+                    _writesClosePending = false;
+                }
+            }
+            throw;
+        }
     }
 
     /// <summary>Notifies the stream that the <see cref="FrameType.StreamLast" /> was written by the
@@ -426,6 +444,12 @@ internal class SlicStream : IMultiplexedStream
                 if (IsStarted)
                 {
                     _connection.ReleaseStream(this);
+                }
+                else if (!IsRemote)
+                {
+                    // The stream was created but never started: release the stream-count semaphore permit acquired by
+                    // CreateStreamAsync.
+                    _connection.ReleaseUnstartedStream(this);
                 }
             }
             return true;

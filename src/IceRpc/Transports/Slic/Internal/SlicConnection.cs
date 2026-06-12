@@ -731,6 +731,26 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    /// <summary>Releases the stream-count semaphore permit acquired by <see cref="CreateStreamAsync" /> for a local
+    /// stream that was created but never started.</summary>
+    /// <param name="stream">The unstarted stream.</param>
+    internal void ReleaseUnstartedStream(SlicStream stream)
+    {
+        Debug.Assert(!stream.IsRemote && !stream.IsStarted);
+
+        if (!_isClosed)
+        {
+            if (stream.IsBidirectional)
+            {
+                _bidirectionalStreamSemaphore!.Release();
+            }
+            else
+            {
+                _unidirectionalStreamSemaphore!.Release();
+            }
+        }
+    }
+
     /// <summary>Throws the connection closure exception if the connection is already closed.</summary>
     internal void ThrowIfClosed()
     {
