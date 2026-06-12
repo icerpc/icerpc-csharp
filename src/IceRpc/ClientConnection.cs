@@ -30,7 +30,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // connection is "detached" because it's not in _activeConnection.
     private int _detachedConnectionCount;
 
-    private readonly TaskCompletionSource _detachedConnectionsTcs = new();
+    private readonly TaskCompletionSource _detachedConnectionsTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     // A cancellation token source that is canceled when DisposeAsync is called.
     private readonly CancellationTokenSource _disposedCts = new();
