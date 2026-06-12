@@ -1904,6 +1904,54 @@ public class SlicTransportTests
         }
     }
 
+    /// <summary>Verifies that a Ping frame received after a local CloseAsync doesn't fault the read frames loop:
+    /// the read frames loop keeps reading until the peer shuts down the duplex connection, and the Pong write
+    /// failure on the closed connection must be ignored. See icerpc/icerpc-csharp-audit#29.</summary>
+    [Test]
+    public async Task Ping_received_after_local_close_does_not_fail_graceful_close()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Close the server connection; the read frames loop keeps reading until the client shuts down the duplex
+        // connection.
+        Task closeTask = multiplexedServerConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+
+        // Wait for the Close frame.
+        (FrameType frameType, ReadOnlySequence<byte> buffer) = await ReadFrameAsync(reader)
+            .WaitAsync(TimeSpan.FromMinutes(2));
+        Assert.That(frameType, Is.EqualTo(FrameType.Close));
+
+        // Act: send a Ping frame on the closed connection, then shut down the duplex connection.
+        await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
+        await duplexClientConnection.ShutdownWriteAsync(default);
+
+        // Assert: the graceful close completes successfully. The WaitAsync margin exceeds CI's --blame-hang-timeout
+        // (60 s) so that a hang is detected and dumped by the hang detection first; the timeout is only a fallback
+        // that fails this test instead of hanging the test run when hang detection is not enabled.
+        Assert.That(async () => await closeTask.WaitAsync(TimeSpan.FromMinutes(2)), Throws.Nothing);
+    }
+
     [Test]
     public async Task Large_write_completes_with_small_pause_writer_threshold()
     {
