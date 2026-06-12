@@ -1870,6 +1870,10 @@ public class SlicTransportTests
                     ReadResult readResult = await streams.Remote.Input.ReadAsync(default)
                         .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
                     streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+
+                    // Fail fast instead of spinning if the peer observes a graceful end of stream instead of the
+                    // expected TruncatedData error.
+                    Assert.That(readResult.IsCompleted, Is.False, "Expected TruncatedData, got end of stream.");
                 }
             },
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
