@@ -1809,9 +1809,11 @@ public class SlicTransportTests
             streamId: 4ul,
             (ref SliceEncoder encoder) => encoder.EncodeBool(false));
 
-        // Assert
+        // Assert. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and
+        // dumped by the hang detection first; the timeout is only a fallback that fails this test instead of
+        // hanging the test run when hang detection is not enabled.
         Assert.That(
-            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromSeconds(10)),
+            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)),
             Throws.Nothing);
 
         // Cleanup: release the hold so the parked write (and the queued pong write) can complete.
@@ -1882,10 +1884,11 @@ public class SlicTransportTests
             await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
         }
 
-        // Assert: a WaitAsync timeout fails this test instead of hanging the test run if the connection is not
-        // aborted.
+        // Assert. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and
+        // dumped by the hang detection first; the timeout is only a fallback that fails this test instead of
+        // hanging the test run when hang detection is not enabled.
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromSeconds(10)));
+            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)));
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(
