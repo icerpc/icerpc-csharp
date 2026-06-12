@@ -830,6 +830,19 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     // The pipe writer was completed (Shutdown called) — connection is going away.
                 }
+                catch (IceRpcException exception)
+                {
+                    // The duplex connection write failed. Since this fire-and-forget task has no caller to observe
+                    // the failure, close the connection.
+                    TryClose(exception, "The connection was lost.", IceRpcError.ConnectionAborted);
+                }
+                catch (Exception exception)
+                {
+                    // A duplex connection is only expected to fail a write with an IceRpcException. Rethrow to
+                    // generate an unobserved task exception.
+                    Debug.Fail($"The stream frame write failed with an unexpected exception: {exception}");
+                    throw;
+                }
             }
         }
     }

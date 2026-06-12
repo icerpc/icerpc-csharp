@@ -137,9 +137,8 @@ public static class AsyncEnumerableExtensions
                     bool ok = _pipe.Reader.TryRead(out readResult);
                     Debug.Assert(ok);
                 }
-                catch (OperationCanceledException exception)
+                catch (OperationCanceledException) when (_cts.IsCancellationRequested)
                 {
-                    Debug.Assert(exception.CancellationToken == _cts.Token);
                     cancellationToken.ThrowIfCancellationRequested();
 
                     if (_pipe.Reader.TryRead(out readResult) && readResult.IsCanceled)
