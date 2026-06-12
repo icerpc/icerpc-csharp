@@ -170,9 +170,11 @@ public interface ILocationResolver
     /// <param name="refreshCache">When <see langword="true" />, requests a cache refresh.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
-    /// that indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is
-    /// <see langword="null" /> when the location resolver fails to resolve a location. When ServiceAddress is not null,
-    /// its ServerAddress is not <see langword="null" />.</returns>
+    /// that indicates whether the resolution was served from the implementation's cache: <see langword="true" /> when
+    /// the location lookup — or, for a well-known service address carrying an adapter-id, the recursive adapter-id
+    /// lookup — was served from the cache, in which case requesting a cache refresh on a retry can produce a different
+    /// resolution. ServiceAddress is <see langword="null" /> when the location resolver fails to resolve a location.
+    /// When ServiceAddress is not null, its ServerAddress is not <see langword="null" />.</returns>
     ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
