@@ -294,12 +294,21 @@ public sealed class Server : IAsyncDisposable
 
             // _listenTask etc are immutable when _disposeTask is not null.
 
+            // Wait for shutdown before disposing connections.
+            try
+            {
+                await _shutdownTask.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore exceptions.
+            }
+
             if (_listenTask is not null)
             {
-                // Wait for shutdown before disposing connections.
                 try
                 {
-                    await Task.WhenAll(_listenTask, _shutdownTask).ConfigureAwait(false);
+                    await _listenTask.ConfigureAwait(false);
                 }
                 catch
                 {
