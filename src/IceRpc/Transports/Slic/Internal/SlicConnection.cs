@@ -76,6 +76,7 @@ internal class SlicConnection : IMultiplexedConnection
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly TimeSpan _localIdleTimeout;
     private readonly int _maxBidirectionalStreams;
+    private readonly int _maxOutstandingPongs;
     private readonly int _maxStreamFrameSize;
     private readonly int _maxUnidirectionalStreams;
     // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -83,8 +84,15 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly Lock _mutex = new();
     private ulong _nextBidirectionalId;
     private ulong _nextUnidirectionalId;
+
+    // The number of Pong frames queued for sending (in response to Ping frames) but not yet written to the duplex
+    // connection. The connection is aborted when a Ping frame is received while this count has reached
+    // _maxOutstandingPongs.
+    private int _outstandingPongCount;
     private IceRpcError? _peerCloseError;
     private TimeSpan _peerIdleTimeout = Timeout.InfiniteTimeSpan;
+
+    // The number of Ping frames sent to the peer that have not been answered yet by a Pong frame.
     private int _pendingPongCount;
     private Task? _readFramesTask;
 
@@ -600,6 +608,7 @@ internal class SlicConnection : IMultiplexedConnection
         InitialStreamWindowSize = slicOptions.InitialStreamWindowSize;
         PauseWriterThreshold = slicOptions.PauseWriterThreshold;
         _localIdleTimeout = slicOptions.IdleTimeout;
+        _maxOutstandingPongs = slicOptions.MaxOutstandingPongs;
         _maxStreamFrameSize = slicOptions.MaxStreamFrameSize;
 
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
@@ -1308,11 +1317,43 @@ internal class SlicConnection : IMultiplexedConnection
                 (ref SliceDecoder decoder) => new PingBody(ref decoder),
                 cancellationToken).ConfigureAwait(false);
 
-            // Return a pong frame with the ping payload.
-            await WriteConnectionFrameAsync(
-                FrameType.Pong,
-                new PongBody(pingBody.Payload).Encode,
-                cancellationToken).ConfigureAwait(false);
+            if (Interlocked.Increment(ref _outstandingPongCount) > _maxOutstandingPongs)
+            {
+                throw new InvalidDataException(
+                    $"Received a {nameof(FrameType.Ping)} frame while {_maxOutstandingPongs} {nameof(FrameType.Pong)} frames are already queued for sending.");
+            }
+
+            // Return a pong frame with the ping payload, written in the background: writing it from the read frames
+            // loop would block the loop when another writer holds _writeSemaphore while parked on a full outbound
+            // pipe, suppressing further reads (and idle timeout detection) until the pipe drains.
+            _ = WritePongFrameAsync(pingBody.Payload);
+        }
+
+        async Task WritePongFrameAsync(long payload)
+        {
+            try
+            {
+                await WriteConnectionFrameAsync(
+                    FrameType.Pong,
+                    new PongBody(payload).Encode,
+                    _closedCancellationToken).ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the connection is closed.
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected if the connection is closed.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"The sending of a Pong frame failed with an unexpected exception: {exception}");
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _outstandingPongCount);
+            }
         }
 
         async Task ReadPongFrameAsync(int size, CancellationToken cancellationToken)
