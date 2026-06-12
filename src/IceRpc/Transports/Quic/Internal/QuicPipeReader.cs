@@ -116,6 +116,23 @@ internal class QuicPipeReader : PipeReader
         int minimumSize,
         CancellationToken cancellationToken)
     {
+        // First check if there's sufficient buffered data. If the connection is closed, we still want to return this
+        // data.
+        if (TryRead(out ReadResult readResult))
+        {
+            if (readResult.Buffer.Length >= minimumSize || readResult.IsCompleted || readResult.IsCanceled)
+            {
+                return readResult;
+            }
+            else
+            {
+                // We need more data, keep going.
+                _pipeReader.AdvanceTo(readResult.Buffer.Start);
+            }
+        }
+
+        _throwIfConnectionClosedOrDisposed();
+
         try
         {
             return await _pipeReader.ReadAtLeastAsync(minimumSize, cancellationToken).ConfigureAwait(false);
