@@ -105,6 +105,39 @@ public class LocationResolverTests
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(2));
     }
 
+    /// <summary>Verifies that when the well-known lookup is fresh but the recursive adapter-id resolution is served
+    /// from the cache, the resolution reports FromCache=true. See icerpc/icerpc-csharp-audit#39.</summary>
+    [Test]
+    [NonParallelizable]
+    public async Task Location_recursive_resolution_with_cached_adapter_id_is_from_cache()
+    {
+        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/foo?adapter-id=bar"));
+        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/cached"));
+        var serverAddressFinder = new MockServerAddressFinder(wellKnownServiceAddress);
+        var resolver = new LocationResolver(
+                serverAddressFinder,
+                new MockServerAddressCache(
+                    adapterIdServiceAddress: cachedServiceAddress,
+                    insertionTime: TimeSpan.Zero),
+                background: true,
+                TimeSpan.FromSeconds(1),
+                ttl: TimeSpan.FromSeconds(30),
+                NullLogger.Instance);
+
+        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
+            new Location
+            {
+                Value = "/hello",
+                IsAdapterId = false,
+            },
+            refreshCache: false,
+            default);
+
+        Assert.That(fromCache, Is.True);
+        Assert.That(resolved, Is.EqualTo(cachedServiceAddress));
+        Assert.That(serverAddressFinder.Calls, Is.EqualTo(1));
+    }
+
     [Test]
     public async Task Failure_to_recursively_resolve_adapter_id_removes_proxy_from_cache()
     {
