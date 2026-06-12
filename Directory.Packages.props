@@ -24,8 +24,8 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
 
     <!-- MSBuild SDK packages (used by IceRpc.*.Tools) -->
-    <PackageVersion Include="Microsoft.Build.Framework" Version="18.6.3" />
-    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.6.3" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="18.7.1" />
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.7.1" />
 
     <!-- Microsoft.Extensions.* -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
