@@ -61,8 +61,9 @@ public class SslAuthenticationOptionsExtensionsTests
     public void ShallowClone_copies_all_ssl_server_authentication_options_properties() =>
         Assert.That(GetSettablePropertyNames(typeof(SslServerAuthenticationOptions)), Is.EquivalentTo(_serverProperties));
 
+    // Only properties with a public setter: ShallowClone can't copy others, and the application can't set them.
     private static IEnumerable<string> GetSettablePropertyNames(Type type) =>
         type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.CanWrite)
+            .Where(property => property.SetMethod?.IsPublic is true)
             .Select(property => property.Name);
 }
