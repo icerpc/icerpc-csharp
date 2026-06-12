@@ -134,32 +134,39 @@ internal static class PipeReaderExtensions
         int messageLength = DecodeMessageLength(readResult.Buffer.Slice(1, 4), maxMessageLength);
         reader.AdvanceTo(readResult.Buffer.GetPosition(5));
 
-        readResult = await reader.ReadAtLeastAsync(messageLength, cancellationToken).ConfigureAwait(false);
-        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-        if (readResult.IsCanceled)
-        {
-            throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
-        }
-
-        if (readResult.Buffer.Length < messageLength)
-        {
-            throw new InvalidDataException(
-                $"The payload has {readResult.Buffer.Length} bytes, but {messageLength} bytes were expected.");
-        }
-
         T message;
+
         try
         {
-            // ParseFrom reads tags until end-of-input and throws InvalidProtocolBufferException on a
-            // truncated field, so passing an exact-length slice means it either consumes every byte or
-            // throws.
-            message = messageParser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
+            if (messageLength > 0)
+            {
+                readResult = await reader.ReadAtLeastAsync(messageLength, cancellationToken).ConfigureAwait(false);
+                // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+                if (readResult.IsCanceled)
+                {
+                    throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+                }
+
+                if (readResult.Buffer.Length < messageLength)
+                {
+                    throw new InvalidDataException(
+                        $"The payload has {readResult.Buffer.Length} bytes, but {messageLength} bytes were expected.");
+                }
+
+                // ParseFrom reads tags until end-of-input and throws InvalidProtocolBufferException on a truncated
+                // field, so passing an exact-length slice means it either consumes every byte or throws.
+                message = messageParser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
+                reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
+            }
+            else
+            {
+                message = messageParser.ParseFrom([]);
+            }
         }
         catch (InvalidProtocolBufferException exception)
         {
             throw new InvalidDataException("Failed to decode the Protobuf message.", exception);
         }
-        reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
         return message;
 
         static int DecodeMessageLength(ReadOnlySequence<byte> buffer, int maxMessageLength)
