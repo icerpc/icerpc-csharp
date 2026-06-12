@@ -211,21 +211,21 @@ public static class IceProxyIceDecoderExtensions
         byte protocolMinor = decoder.DecodeByte();
         decoder.Skip(2); // skip encoding major and minor
 
-        if (protocolMajor == 0)
-        {
-            throw new InvalidDataException("Received service address with protocol set to 0.");
-        }
+        Protocol protocol = protocolMajor == Protocol.Ice.ByteValue ? Protocol.Ice :
+            (protocolMajor == Protocol.IceRpc.ByteValue ? Protocol.IceRpc :
+                throw new InvalidDataException(
+                    $"Received service address with invalid protocolMajor value: {protocolMajor}"));
+
         if (protocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"Received service address with invalid protocolMinor value: {protocolMinor}.");
+                $"Received service address with invalid protocolMinor value: {protocolMinor}");
         }
 
         int count = decoder.DecodeSize();
-
         ServerAddress? serverAddress = null;
         IEnumerable<ServerAddress> altServerAddresses = ImmutableList<ServerAddress>.Empty;
-        var protocol = Protocol.FromByteValue(protocolMajor);
+
         ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)
