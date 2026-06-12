@@ -1317,11 +1317,15 @@ internal class SlicConnection : IMultiplexedConnection
                 (ref SliceDecoder decoder) => new PingBody(ref decoder),
                 cancellationToken).ConfigureAwait(false);
 
-            if (Interlocked.Increment(ref _outstandingPongCount) > _maxOutstandingPongs)
+            // Only the read frames loop increments _outstandingPongCount, so the check before the increment doesn't
+            // race with other increments; concurrent decrements can only make the count smaller.
+            if (Volatile.Read(ref _outstandingPongCount) >= _maxOutstandingPongs)
             {
-                throw new InvalidDataException(
+                throw new IceRpcException(
+                    IceRpcError.IceRpcError,
                     $"Received a {nameof(FrameType.Ping)} frame while {_maxOutstandingPongs} {nameof(FrameType.Pong)} frames are already queued for sending.");
             }
+            Interlocked.Increment(ref _outstandingPongCount);
 
             // Return a pong frame with the ping payload, written in the background: writing it from the read frames
             // loop would block the loop when another writer holds _writeSemaphore while parked on a full outbound
@@ -1349,6 +1353,10 @@ internal class SlicConnection : IMultiplexedConnection
             catch (Exception exception)
             {
                 Debug.Fail($"The sending of a Pong frame failed with an unexpected exception: {exception}");
+
+                // Rethrow so in release builds the exception is not swallowed and can be presented to the application
+                // as an unobserved task exception.
+                throw;
             }
             finally
             {

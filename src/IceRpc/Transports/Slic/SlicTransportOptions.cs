@@ -45,7 +45,8 @@ public sealed record class SlicTransportOptions
     /// <summary>Gets or sets the maximum number of Pong frames that can be queued for sending. A Pong frame is queued
     /// for sending when a Ping frame is received, and remains queued until it is written to the underlying duplex
     /// connection. The connection is aborted when a Ping frame is received while this limit is reached; this protects
-    /// against a peer that sends Ping frames faster than the connection can write the Pong frames.</summary>
+    /// against a peer that doesn't read from the connection but keeps sending Ping frames, which would otherwise
+    /// queue Pong frame writes without limit.</summary>
     /// <value>The maximum number of Pong frames queued for sending. It can't be less than <c>1</c>. Defaults to
     /// <c>100</c>.</value>
     public int MaxOutstandingPongs

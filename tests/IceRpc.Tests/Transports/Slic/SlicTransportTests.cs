@@ -1890,9 +1890,8 @@ public class SlicTransportTests
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)));
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
-        Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(
-            exception.InnerException?.Message,
+            exception.Message,
             Is.EqualTo("Received a Ping frame while 3 Pong frames are already queued for sending."));
 
         // Cleanup: the connection abort unblocks the parked write with an exception.
