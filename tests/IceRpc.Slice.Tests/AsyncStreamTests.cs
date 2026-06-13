@@ -62,25 +62,26 @@ public class AsyncStreamTests
     public void Zero_size_segment_in_the_middle_of_the_stream_throws_InvalidDataException()
     {
         // A zero-size segment is never valid: the end of a stream is signaled by the reader completing with no
-        // bytes, not by a zero-size segment. See https://github.com/icerpc/icerpc-csharp/issues/4755.
-        byte[] payload = EncodeInt32Segments([1, 2], [], [3]);
+        // bytes, not by a zero-size segment. See https://github.com/icerpc/icerpc-csharp/issues/4755. We use a
+        // variable-size element (string) because only variable-size element streams are encoded with segments.
+        byte[] payload = EncodeStringSegments(["a", "b"], [], ["c"]);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
-        using IAsyncStream<int> stream = trackingReader.ToAsyncStream(
-            (ref SliceDecoder decoder) => decoder.DecodeInt32());
+        using IAsyncStream<string> stream = trackingReader.ToAsyncStream(
+            (ref SliceDecoder decoder) => decoder.DecodeString());
 
-        var items = new List<int>();
+        var items = new List<string>();
 
         Assert.That(
             async () =>
             {
-                await foreach (int item in stream)
+                await foreach (string item in stream)
                 {
                     items.Add(item);
                 }
             },
             Throws.TypeOf<InvalidDataException>());
 
-        Assert.That(items, Is.EqualTo(new[] { 1, 2 }));
+        Assert.That(items, Is.EqualTo(new[] { "a", "b" }));
         Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1));
     }
 
@@ -89,25 +90,26 @@ public class AsyncStreamTests
     {
         // A zero-size segment is never valid, including at the end of the stream: the end of a stream is signaled
         // by the reader completing with no bytes, not by a zero-size segment.
-        // See https://github.com/icerpc/icerpc-csharp/issues/4755.
-        byte[] payload = EncodeInt32Segments([1, 2, 3], []);
+        // See https://github.com/icerpc/icerpc-csharp/issues/4755. We use a variable-size element (string) because
+        // only variable-size element streams are encoded with segments.
+        byte[] payload = EncodeStringSegments(["a", "b", "c"], []);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
-        using IAsyncStream<int> stream = trackingReader.ToAsyncStream(
-            (ref SliceDecoder decoder) => decoder.DecodeInt32());
+        using IAsyncStream<string> stream = trackingReader.ToAsyncStream(
+            (ref SliceDecoder decoder) => decoder.DecodeString());
 
-        var items = new List<int>();
+        var items = new List<string>();
 
         Assert.That(
             async () =>
             {
-                await foreach (int item in stream)
+                await foreach (string item in stream)
                 {
                     items.Add(item);
                 }
             },
             Throws.TypeOf<InvalidDataException>());
 
-        Assert.That(items, Is.EqualTo(new[] { 1, 2, 3 }));
+        Assert.That(items, Is.EqualTo(new[] { "a", "b", "c" }));
         Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1));
     }
 
@@ -270,17 +272,24 @@ public class AsyncStreamTests
         }
     }
 
-    private static byte[] EncodeInt32Segments(params int[][] segments)
+    // Encodes a sequence of Slice segments, each holding the given variable-size (string) elements, prefixed by its
+    // encoded byte size. A segment with no elements produces a zero-size segment.
+    private static byte[] EncodeStringSegments(params string[][] segments)
     {
         var writer = new ArrayBufferWriter<byte>();
         var encoder = new SliceEncoder(writer);
-        foreach (int[] segment in segments)
+        foreach (string[] segment in segments)
         {
-            encoder.EncodeVarUInt62((ulong)(segment.Length * 4));
-            foreach (int value in segment)
+            // Encode the segment body first to measure its byte size.
+            var segmentWriter = new ArrayBufferWriter<byte>();
+            var segmentEncoder = new SliceEncoder(segmentWriter);
+            foreach (string value in segment)
             {
-                encoder.EncodeInt32(value);
+                segmentEncoder.EncodeString(value);
             }
+
+            encoder.EncodeVarUInt62((ulong)segmentWriter.WrittenCount);
+            encoder.WriteByteSpan(segmentWriter.WrittenSpan);
         }
         return writer.WrittenSpan.ToArray();
     }
