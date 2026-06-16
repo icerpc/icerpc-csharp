@@ -18,14 +18,14 @@ layout: landing
 | [IceRpc.Protobuf]                       | Provides support for the IceRPC + Protobuf integration.                                                                                            |
 | [IceRpc.RequestContext]                 | Provides the request context interceptor and middleware.                                                                                           |
 | [IceRpc.Retry]                          | Provides the retry interceptor.                                                                                                                    |
-| [IceRpc.Slice]                          | Provides support for the IceRPC + Slice integration. The Slice compiler for C# generates code for Slice interfaces that relies on these APIs.      |
+| [IceRpc.Slice]                          | Provides support for the IceRPC + Slice integration. The Slice compiler generates code for Slice interfaces that relies on these APIs.      |
 | [IceRpc.Telemetry]                      | Provides the telemetry interceptor and middleware; they add [OpenTelemetry] support to IceRPC.                                                     |
 | [IceRpc.Transports]                     | Provides the duplex and multiplexed transport abstractions.                                                                                        |
 | [IceRpc.Transports.Coloc]               | Provides the coloc duplex transport. It implements the duplex transport abstractions for "colocated" communications within the same address space. |
 | [IceRpc.Transports.Quic]                | Provides the QUIC multiplexed transport. It implements the multiplexed transport abstractions using QUIC.                                          |
 | [IceRpc.Transports.Slic]                | Provides the Slic multiplexing adapter. Slic implements the multiplexed transport abstractions over the duplex transport abstractions.             |
 | [IceRpc.Transports.Tcp]                 | Provides the TCP duplex transport. It implements the duplex transport abstractions using plain TCP and TCP + SSL.                                  |
-| [ZeroC.Slice.Codec]                     | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler for C# generates code that relies on these APIs.  |
+| [ZeroC.Slice.Codec]                     | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler generates code that relies on these APIs.  |
 
 [IceRpc]: reference/IceRpc.yml
 [IceRpc.Compressor]: reference/IceRpc.Compressor.yml
