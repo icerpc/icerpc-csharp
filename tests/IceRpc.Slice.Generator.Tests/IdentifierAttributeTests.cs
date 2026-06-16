@@ -6,9 +6,9 @@ using NUnit.Framework;
 
 namespace IceRpc.Slice.Generator.Tests.Identifiers;
 
-/// <summary>These tests verify that the cs::identifier attribute will cause slicec-cs to generate C# with the
-/// specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure that the
-/// code generation worked correctly. </summary>
+/// <summary>These tests verify that the cs::identifier attribute will cause 'IceRpc.Slice.Generator' to generate C#
+/// with the specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure
+/// that the code generation worked correctly. </summary>
 [Parallelizable(scope: ParallelScope.All)]
 public partial class IdentifierAttributeTests
 {
