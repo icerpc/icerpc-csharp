@@ -1754,9 +1754,11 @@ public class SlicTransportTests
             }
         }
 
-        // Like WriteStreamFrameAsync but with a buffer sized for the frame body.
+        // Like WriteStreamFrameAsync but encodes the frame into a single fixed-size buffer.
         static Task WriteRawStreamFrameAsync(IDuplexConnection connection, ulong streamId, int size)
         {
+            // size + headroom for the frame header that precedes the body: 1-byte frame type + 4-byte size
+            // placeholder + up to 8-byte stream ID (varuint62) = at most 13 bytes; 16 is a safe round bound.
             var writer = new MemoryBufferWriter(new byte[size + 16]);
             var encoder = new SliceEncoder(writer);
             encoder.EncodeFrameType(FrameType.Stream);
