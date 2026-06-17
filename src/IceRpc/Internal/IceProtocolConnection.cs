@@ -315,6 +315,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
 
             PipeReader? frameReader = null;
+            bool responseCreated = false;
             TaskCompletionSource<PipeReader>? responseCompletionSource = null;
             int requestId = 0;
 
@@ -418,7 +419,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     Payload = frameReader
                 };
 
-                frameReader = null; // response now owns frameReader
+                responseCreated = true; // the response now owns frameReader
                 return response;
             }
             catch (OperationCanceledException)
@@ -440,7 +441,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     try
                     {
-                        _ = await responseCompletionSource.Task.ConfigureAwait(false);
+                        // Retrieve (or re-retrieve) the response PipeReader. The cleanup at the end of this finally
+                        // completes it unless a response was created, in which case the response owns it.
+                        frameReader = await responseCompletionSource.Task.ConfigureAwait(false);
                     }
                     catch
                     {
@@ -459,7 +462,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     DecrementDispatchInvocationCount();
                 }
 
-                frameReader?.Complete();
+                if (!responseCreated)
+                {
+                    frameReader?.Complete();
+                }
+                // else the response owns the PipeReader
             }
         }
     }
@@ -1185,6 +1192,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     throw new InvalidDataException(
                         $"Received frame with size ({prologue.FrameSize}) greater than max frame size.");
+                }
+                if (prologue.FrameSize < IceDefinitions.PrologueSize)
+                {
+                    throw new InvalidDataException(
+                        $"Received frame with size ({prologue.FrameSize}) smaller than the prologue size.");
                 }
 
                 if (prologue.CompressionStatus == 2)
