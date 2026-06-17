@@ -703,9 +703,13 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="stream">The released stream.</param>
     internal void ReleaseStream(SlicStream stream)
     {
-        Debug.Assert(stream.IsStarted);
+        // A stream that was created but never started is always local; only started streams are registered in _streams.
+        Debug.Assert(stream.IsStarted || !stream.IsRemote);
 
-        _streams.Remove(stream.Id, out SlicStream? _);
+        if (stream.IsStarted)
+        {
+            _streams.Remove(stream.Id, out SlicStream? _);
+        }
 
         if (stream.IsRemote)
         {
@@ -719,26 +723,6 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
         else if (!_isClosed)
-        {
-            if (stream.IsBidirectional)
-            {
-                _bidirectionalStreamSemaphore!.Release();
-            }
-            else
-            {
-                _unidirectionalStreamSemaphore!.Release();
-            }
-        }
-    }
-
-    /// <summary>Releases the stream-count semaphore permit acquired by <see cref="CreateStreamAsync" /> for a local
-    /// stream that was created but never started.</summary>
-    /// <param name="stream">The unstarted stream.</param>
-    internal void ReleaseUnstartedStream(SlicStream stream)
-    {
-        Debug.Assert(!stream.IsRemote && !stream.IsStarted);
-
-        if (!_isClosed)
         {
             if (stream.IsBidirectional)
             {

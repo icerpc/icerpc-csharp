@@ -359,46 +359,58 @@ internal class SlicStream : IMultiplexedStream
     /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame; otherwise,
     /// <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    internal async ValueTask<FlushResult> WriteStreamFrameAsync(
+    internal ValueTask<FlushResult> WriteStreamFrameAsync(
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
         CancellationToken cancellationToken)
     {
-        bool writeReadsClosedFrame = false;
-        if (endStream)
+        if (!endStream)
         {
+            // Hot path: a non-final stream frame requires no writes-closure bookkeeping, so forward the inner
+            // ValueTask directly without an async state machine.
+            return _connection.WriteStreamDataFrameAsync(
+                this,
+                source1,
+                source2,
+                endStream: false,
+                writeReadsClosedFrame: false,
+                cancellationToken);
+        }
+
+        return WriteLastStreamFrameAsync();
+
+        async ValueTask<FlushResult> WriteLastStreamFrameAsync()
+        {
+            bool writeReadsClosedFrame;
             lock (_mutex)
             {
                 writeReadsClosedFrame = _closeReadsOnWritesClosure;
                 _writesClosePending = true;
             }
-        }
 
-        try
-        {
-            return await _connection.WriteStreamDataFrameAsync(
-                this,
-                source1,
-                source2,
-                endStream,
-                writeReadsClosedFrame,
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            // If the write failed before the StreamLast frame was queued on the connection (WroteLastStreamFrame
-            // completes _writesClosedTcs when the frame is queued), roll back _writesClosePending so that completing
-            // the stream output can still close writes and notify the peer with a StreamWritesClosed frame. The
-            // bundled reads closure isn't lost either since _closeReadsOnWritesClosure wasn't cleared.
-            if (endStream && !_writesClosedTcs.Task.IsCompleted)
+            try
             {
+                return await _connection.WriteStreamDataFrameAsync(
+                    this,
+                    source1,
+                    source2,
+                    endStream: true,
+                    writeReadsClosedFrame,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch when (!_writesClosedTcs.Task.IsCompleted)
+            {
+                // The write failed before the StreamLast frame was queued on the connection (WroteLastStreamFrame
+                // completes _writesClosedTcs when the frame is queued), so roll back _writesClosePending so that
+                // completing the stream output can still close writes and notify the peer with a StreamWritesClosed
+                // frame. The bundled reads closure isn't lost either since _closeReadsOnWritesClosure wasn't cleared.
                 lock (_mutex)
                 {
                     _writesClosePending = false;
                 }
+                throw;
             }
-            throw;
         }
     }
 
@@ -440,16 +452,12 @@ internal class SlicStream : IMultiplexedStream
             if (newState.HasFlag(State.ReadsClosed | State.WritesClosed))
             {
                 // The stream reads and writes are closed, it's time to release the stream to either allow creating or
-                // accepting a new stream.
-                if (IsStarted)
+                // accepting a new stream. We don't release an unstarted remote stream (which can briefly exist when
+                // AddStream fails on a closing connection) since it never acquired any resource. Releasing an unstarted
+                // local stream returns the stream-count semaphore permit acquired by CreateStreamAsync.
+                if (IsStarted || !IsRemote)
                 {
                     _connection.ReleaseStream(this);
-                }
-                else if (!IsRemote)
-                {
-                    // The stream was created but never started: release the stream-count semaphore permit acquired by
-                    // CreateStreamAsync.
-                    _connection.ReleaseUnstartedStream(this);
                 }
             }
             return true;
