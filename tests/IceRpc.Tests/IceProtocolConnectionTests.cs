@@ -868,6 +868,56 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
+    /// <summary>Verifies that an ice frame with a frame size smaller than the prologue size is rejected as invalid
+    /// data, aborting the connection.</summary>
+    [Test]
+    public async Task Receiving_a_frame_smaller_than_the_prologue_size_aborts_the_connection()
+    {
+        // Arrange: a server-side read decorator that rewrites the frame size of the incoming request frame to zero.
+        bool invalidRead = false;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
+            .AddTestDuplexTransportDecorator(
+                serverOperationsOptions: new DuplexTransportOperationsOptions()
+                {
+                    ReadDecorator = async (decoratee, buffer, cancellationToken) =>
+                        {
+                            int count = await decoratee.ReadAsync(buffer, cancellationToken);
+                            if (invalidRead && count >= IceDefinitions.PrologueSize)
+                            {
+                                // Rewrite the frame size (4 bytes at offset 10 of the ice prologue) to 0.
+                                buffer.Span.Slice(10, 4).Clear();
+                                invalidRead = false;
+                            }
+                            return count;
+                        }
+                })
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act
+        invalidRead = true;
+        Task invokeTask = sut.Client.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        // Cleanup
+        await sut.Server.DisposeAsync();
+
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     /// <summary>This test verifies that responses that are received after a request1 has been discarded are ignored,
     /// and doesn't interfere with other request1 and responses being send over the same connection.</summary>
     [Test]
