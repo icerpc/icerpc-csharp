@@ -869,7 +869,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     /// <summary>Verifies that an ice frame with a frame size smaller than the prologue size is rejected as invalid
-    /// data, aborting the connection. See icerpc/icerpc-csharp-audit#19.</summary>
+    /// data, aborting the connection.</summary>
     [Test]
     public async Task Receiving_a_frame_smaller_than_the_prologue_size_aborts_the_connection()
     {
