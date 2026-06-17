@@ -59,6 +59,58 @@ public class AsyncStreamTests
     }
 
     [Test]
+    public void Zero_size_segment_in_the_middle_of_the_stream_throws_InvalidDataException()
+    {
+        // A zero-size segment is never valid: the end of a stream is signaled by the reader completing with no
+        // bytes, not by a zero-size segment.
+        byte[] payload = EncodeStringSegments(["a", "b"], [], ["c"]);
+        var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
+        using IAsyncStream<string> stream = trackingReader.ToAsyncStream(
+            (ref SliceDecoder decoder) => decoder.DecodeString());
+
+        var items = new List<string>();
+
+        Assert.That(
+            async () =>
+            {
+                await foreach (string item in stream)
+                {
+                    items.Add(item);
+                }
+            },
+            Throws.TypeOf<InvalidDataException>());
+
+        Assert.That(items, Is.EqualTo(new[] { "a", "b" }));
+        Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Zero_size_segment_at_the_end_of_the_stream_throws_InvalidDataException()
+    {
+        // A zero-size segment is never valid, including at the end of the stream: the end of a stream is signaled
+        // by the reader completing with no bytes, not by a zero-size segment.
+        byte[] payload = EncodeStringSegments(["a", "b", "c"], []);
+        var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
+        using IAsyncStream<string> stream = trackingReader.ToAsyncStream(
+            (ref SliceDecoder decoder) => decoder.DecodeString());
+
+        var items = new List<string>();
+
+        Assert.That(
+            async () =>
+            {
+                await foreach (string item in stream)
+                {
+                    items.Add(item);
+                }
+            },
+            Throws.TypeOf<InvalidDataException>());
+
+        Assert.That(items, Is.EqualTo(new[] { "a", "b", "c" }));
+        Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task Break_during_iteration_completes_reader()
     {
         byte[] payload = EncodeInt32Values(1, 2, 3);
@@ -215,6 +267,28 @@ public class AsyncStreamTests
 
             Assert.That(trackingReader.CompleteCallCount, Is.EqualTo(1), $"iteration {i}");
         }
+    }
+
+    // Encodes a sequence of Slice segments, each holding the given variable-size (string) elements, prefixed by its
+    // encoded byte size. A segment with no elements produces a zero-size segment.
+    private static byte[] EncodeStringSegments(params string[][] segments)
+    {
+        var writer = new ArrayBufferWriter<byte>();
+        var encoder = new SliceEncoder(writer);
+        foreach (string[] segment in segments)
+        {
+            // Encode the segment body first to measure its byte size.
+            var segmentWriter = new ArrayBufferWriter<byte>();
+            var segmentEncoder = new SliceEncoder(segmentWriter);
+            foreach (string value in segment)
+            {
+                segmentEncoder.EncodeString(value);
+            }
+
+            encoder.EncodeVarUInt62((ulong)segmentWriter.WrittenCount);
+            encoder.WriteByteSpan(segmentWriter.WrittenSpan);
+        }
+        return writer.WrittenSpan.ToArray();
     }
 
     private static byte[] EncodeInt32Values(params int[] values)

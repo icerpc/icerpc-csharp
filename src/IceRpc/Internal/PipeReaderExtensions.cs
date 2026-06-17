@@ -174,6 +174,15 @@ internal static class PipeReaderExtensions
                 throw new InvalidDataException("The segment size can't be larger than int.MaxValue.", exception);
             }
 
+            if (segmentSize == 0)
+            {
+                // An encoded segment size of 0 is never valid: a segment holding non-streamed args or a return
+                // value is at least 1 byte (the tag end marker), and a segment holding streamed elements is at
+                // least 1 byte. The end of a stream is signaled by the reader completing with no bytes, not by a
+                // zero-size segment.
+                throw new InvalidDataException("Received a Slice segment with a size of 0.");
+            }
+
             if (segmentSize > maxSize)
             {
                 throw new InvalidDataException("The segment size exceeds the maximum value.");
@@ -181,7 +190,6 @@ internal static class PipeReaderExtensions
 
             if (readResult.Buffer.Length >= consumed + segmentSize)
             {
-                // When segmentSize is 0, we return a read result with an empty buffer.
                 readResult = new ReadResult(
                     readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
                     isCanceled: false,

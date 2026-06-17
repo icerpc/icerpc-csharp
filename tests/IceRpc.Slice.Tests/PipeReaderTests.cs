@@ -11,16 +11,31 @@ namespace IceRpc.Slice.Tests;
 public class PipeReaderTests
 {
     [Test]
-    public async Task Calling_advance_to_on_an_empty_segment()
+    public async Task Reading_a_zero_size_segment_fails()
     {
         var pipe = new Pipe();
-        await pipe.Writer.WriteAsync(new byte[] { 0 }); // empty segment
+        await pipe.Writer.WriteAsync(new byte[] { 0 }); // zero-size segment
+
+        Assert.That(
+            async () => await pipe.Reader.ReadSliceSegmentAsync(maxSize: 100, default),
+            Throws.TypeOf<InvalidDataException>());
+
+        pipe.Writer.Complete();
+        pipe.Reader.Complete();
+    }
+
+    [Test]
+    public async Task Calling_advance_to_on_an_empty_segment_at_end_of_stream()
+    {
+        // The end of a stream is signaled by completing the writer with no bytes, not by a zero-size segment.
+        var pipe = new Pipe();
+        pipe.Writer.Complete();
+
         ReadResult readResult = await pipe.Reader.ReadSliceSegmentAsync(maxSize: 100, default);
 
+        Assert.That(readResult.Buffer.IsEmpty, Is.True);
+        Assert.That(readResult.IsCompleted, Is.True);
         pipe.Reader.AdvanceTo(readResult.Buffer.End);
-
-        Assert.That(readResult.IsCompleted, Is.False);
-        pipe.Writer.Complete();
         pipe.Reader.Complete();
     }
 
