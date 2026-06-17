@@ -464,7 +464,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 if (!responseCreated)
                 {
-                    frameReader?.Complete();
+                    Debug.Assert(frameReader is not null);
+                    frameReader.Complete();
                 }
                 // else the response owns the PipeReader
             }
