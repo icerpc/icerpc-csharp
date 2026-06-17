@@ -419,8 +419,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     Payload = frameReader
                 };
 
-                frameReader = null; // response now owns frameReader
-                responseCreated = true;
+                responseCreated = true; // the response now owns frameReader
                 return response;
             }
             catch (OperationCanceledException)
@@ -442,15 +441,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     try
                     {
-                        PipeReader reader = await responseCompletionSource.Task.ConfigureAwait(false);
-
-                        // The read frames loop set the response frame reader (and transferred its ownership) but this
-                        // invocation was canceled before retrieving it: complete the reader here, no other code
-                        // completes it.
-                        if (!responseCreated && frameReader is null)
-                        {
-                            reader.Complete();
-                        }
+                        // Retrieve (or re-retrieve) the response PipeReader. The cleanup at the end of this finally
+                        // completes it unless a response was created, in which case the response owns it.
+                        frameReader = await responseCompletionSource.Task.ConfigureAwait(false);
                     }
                     catch
                     {
@@ -469,7 +462,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     DecrementDispatchInvocationCount();
                 }
 
-                frameReader?.Complete();
+                if (!responseCreated)
+                {
+                    frameReader?.Complete();
+                }
+                // else the response owns the PipeReader
             }
         }
     }
