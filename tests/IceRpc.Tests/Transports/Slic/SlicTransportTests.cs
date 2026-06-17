@@ -1528,6 +1528,20 @@ public class SlicTransportTests
         Assert.That(options.PauseWriterThreshold, Is.Zero);
     }
 
+    [Test]
+    public void MaxOutstandingPongs_default_value()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(options.MaxOutstandingPongs, Is.EqualTo(100));
+    }
+
+    [Test]
+    public void MaxOutstandingPongs_below_minimum_throws()
+    {
+        var options = new SlicTransportOptions();
+        Assert.That(() => options.MaxOutstandingPongs = 0, Throws.TypeOf<ArgumentException>());
+    }
+
     /// <summary>Verifies that <see cref="SlicTransportOptions.PauseWriterThreshold"/> = 0 disables connection-level
     /// flow control: a write can fill the outbound pipe arbitrarily without parking on FlushAsync, even when the
     /// background writer task can't drain the pipe.</summary>
@@ -1782,6 +1796,217 @@ public class SlicTransportTests
         catch
         {
         }
+    }
+
+    /// <summary>Verifies that the read frames loop is not blocked by the Pong frame write that responds to a Ping
+    /// frame when another write holds the connection's write semaphore while parked on the connection-level pipe
+    /// pause (PauseWriterThreshold reached).</summary>
+    [Test]
+    public async Task Read_frames_loop_is_not_blocked_by_pong_write_when_a_write_is_parked_on_pipe_threshold()
+    {
+        // Arrange: small server-side PauseWriterThreshold so a server stream write fills the connection-level
+        // outbound pipe and parks on FlushAsync while holding the write semaphore.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(options => options.PauseWriterThreshold = 1024);
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Open a bidirectional stream (the first client bidirectional stream ID is 0) and accept it on the server.
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+        IMultiplexedStream serverStream = await acceptStreamTask;
+
+        // Hold server duplex writes so the background writer task can't drain the connection-level outbound pipe.
+        var serverDuplexConnection =
+            provider.GetRequiredService<TestDuplexServerTransportDecorator>().LastAcceptedConnection;
+        serverDuplexConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        // This write fills the outbound pipe past PauseWriterThreshold and parks on FlushAsync while holding the
+        // write semaphore.
+        Task<FlushResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(serverWriteTask.IsCompleted, Is.False);
+
+        // Act: the Pong frame write that responds to this Ping frame can't make progress while the write semaphore
+        // is held.
+        await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
+
+        // Open a second stream (the next client bidirectional stream ID is 4) to verify that the read frames loop
+        // still processes incoming frames.
+        ValueTask<IMultiplexedStream> nextAcceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 4ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+
+        // Assert. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and
+        // dumped by the hang detection first; the timeout is only a fallback that fails this test instead of
+        // hanging the test run when hang detection is not enabled.
+        Assert.That(
+            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)),
+            Throws.Nothing);
+
+        // The parked write is still blocked while the read frames loop accepted the second stream above: reads
+        // make progress independently of the stalled write (and its still-queued pong).
+        Assert.That(serverWriteTask.IsCompleted, Is.False);
+
+        // Cleanup: release the hold so the parked write (and the queued pong write) can complete.
+        serverDuplexConnection.Operations.Hold = DuplexTransportOperations.None;
+        Assert.That(async () => await serverWriteTask, Throws.Nothing);
+    }
+
+    /// <summary>Verifies that the connection is aborted when a Ping frame is received while
+    /// <see cref="SlicTransportOptions.MaxOutstandingPongs" /> Pong frames are already queued for sending. See
+    /// icerpc/icerpc-csharp-audit#17.</summary>
+    [Test]
+    public async Task Connection_is_aborted_when_max_outstanding_pongs_is_exceeded()
+    {
+        // Arrange: same parked-write arrangement as the previous test, plus a small MaxOutstandingPongs.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(options =>
+        {
+            options.MaxOutstandingPongs = 3;
+            options.PauseWriterThreshold = 1024;
+        });
+        services.AddTestDuplexTransportDecorator();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Open a bidirectional stream (the first client bidirectional stream ID is 0) and accept it on the server.
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+        IMultiplexedStream serverStream = await acceptStreamTask;
+
+        // Hold server duplex writes so the background writer task can't drain the connection-level outbound pipe.
+        var serverDuplexConnection =
+            provider.GetRequiredService<TestDuplexServerTransportDecorator>().LastAcceptedConnection;
+        serverDuplexConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        // This write fills the outbound pipe past PauseWriterThreshold and parks on FlushAsync while holding the
+        // write semaphore.
+        Task<FlushResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(serverWriteTask.IsCompleted, Is.False);
+
+        ValueTask<IMultiplexedStream> nextAcceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Act: each Ping frame queues a Pong frame write that can't make progress while the write semaphore is
+        // held; the fourth Ping frame exceeds MaxOutstandingPongs.
+        for (int i = 0; i < 4; ++i)
+        {
+            await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
+        }
+
+        // Assert. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and
+        // dumped by the hang detection first; the timeout is only a fallback that fails this test instead of
+        // hanging the test run when hang detection is not enabled.
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(
+            exception.Message,
+            Is.EqualTo("Received a Ping frame while 3 Pong frames are already queued for sending."));
+
+        // Cleanup: the connection abort unblocks the parked write with an exception.
+        try
+        {
+            await serverWriteTask;
+        }
+        catch
+        {
+        }
+    }
+
+    /// <summary>Verifies that a Ping frame received after a local CloseAsync doesn't fault the read frames loop:
+    /// the read frames loop keeps reading until the peer shuts down the duplex connection, and the Pong write
+    /// failure on the closed connection must be ignored. See icerpc/icerpc-csharp-audit#29.</summary>
+    [Test]
+    public async Task Ping_received_after_local_close_does_not_fail_graceful_close()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Close the server connection; the read frames loop keeps reading until the client shuts down the duplex
+        // connection.
+        Task closeTask = multiplexedServerConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+
+        // Wait for the Close frame.
+        (FrameType frameType, ReadOnlySequence<byte> buffer) = await ReadFrameAsync(reader)
+            .WaitAsync(TimeSpan.FromMinutes(2));
+        Assert.That(frameType, Is.EqualTo(FrameType.Close));
+
+        // Act: send a Ping frame on the closed connection, then shut down the duplex connection.
+        await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
+        await duplexClientConnection.ShutdownWriteAsync(default);
+
+        // Assert: the graceful close completes successfully. The WaitAsync margin exceeds CI's --blame-hang-timeout
+        // (60 s) so that a hang is detected and dumped by the hang detection first; the timeout is only a fallback
+        // that fails this test instead of hanging the test run when hang detection is not enabled.
+        Assert.That(async () => await closeTask.WaitAsync(TimeSpan.FromMinutes(2)), Throws.Nothing);
     }
 
     [Test]
