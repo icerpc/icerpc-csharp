@@ -89,8 +89,6 @@ public class AsyncStreamTests
     {
         // A zero-size segment is never valid, including at the end of the stream: the end of a stream is signaled
         // by the reader completing with no bytes, not by a zero-size segment.
-        // See https://github.com/icerpc/icerpc-csharp/issues/4755. We use a variable-size element (string) because
-        // only variable-size element streams are encoded with segments.
         byte[] payload = EncodeStringSegments(["a", "b", "c"], []);
         var trackingReader = new TrackingPipeReader(PipeReader.Create(new ReadOnlySequence<byte>(payload)));
         using IAsyncStream<string> stream = trackingReader.ToAsyncStream(
