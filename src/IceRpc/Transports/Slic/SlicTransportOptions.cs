@@ -42,6 +42,24 @@ public sealed record class SlicTransportOptions
             value;
     }
 
+    /// <summary>Gets or sets the maximum number of Pong frames that can be queued for sending. A Pong frame is queued
+    /// for sending when a Ping frame is received, and remains queued until it is written to the underlying duplex
+    /// connection. The connection is aborted when a Ping frame is received while this limit is reached; this protects
+    /// against a peer that doesn't read from the connection but keeps sending Ping frames, which would otherwise
+    /// queue Pong frame writes without limit.</summary>
+    /// <value>The maximum number of Pong frames queued for sending. It can't be less than <c>1</c>. Defaults to
+    /// <c>100</c>.</value>
+    public int MaxOutstandingPongs
+    {
+        get => _maxOutstandingPongs;
+        set => _maxOutstandingPongs =
+            value < 1 ?
+            throw new ArgumentException(
+                $"The {nameof(MaxOutstandingPongs)} value cannot be less than 1.",
+                nameof(value)) :
+            value;
+    }
+
     /// <summary>Gets or sets the maximum stream frame size in bytes.</summary>
     /// <value>The maximum stream frame size in bytes. It can't be less than <c>1024</c> or greater than
     /// <c>16,777,215</c> (2^24 - 1). Defaults to <c>32,768</c>.</value>
@@ -93,5 +111,6 @@ public sealed record class SlicTransportOptions
 
     // The default specified in the HTTP/2 specification.
     private int _initialStreamWindowSize = 65_536;
+    private int _maxOutstandingPongs = 100;
     private int _maxStreamFrameSize = 32_768;
 }
