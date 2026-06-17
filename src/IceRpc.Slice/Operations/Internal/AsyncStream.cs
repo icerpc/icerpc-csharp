@@ -110,6 +110,8 @@ internal sealed class AsyncStream<T> : IAsyncStream<T>
                     }
                     if (readResult.Buffer.IsEmpty)
                     {
+                        // An empty buffer means the reader completed with no more bytes, which is how the end of a
+                        // stream is signaled. (A zero-size Slice segment is rejected when the segment is read.)
                         Debug.Assert(readResult.IsCompleted);
                         yield break;
                     }
