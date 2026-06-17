@@ -8,8 +8,8 @@ using System.Reflection;
 namespace IceRpc.Tests.Transports;
 
 /// <summary>Guards SslAuthenticationOptionsExtensions.ShallowClone. The drift tests fail when the .NET
-/// Ssl*AuthenticationOptions property set changes (a new property would be silently dropped by the hand-written
-/// clone); the round-trip tests fail when ShallowClone stops copying a property it used to copy. When a drift test
+/// Ssl*AuthenticationOptions property set changes (a new property is silently reset in the authentication options);
+/// the round-trip tests fail when ShallowClone stops copying a property it used to copy. When a drift test
 /// fails, add the new property to the corresponding ShallowClone method and to the property list below.</summary>
 [Parallelizable(ParallelScope.All)]
 public class SslAuthenticationOptionsExtensionsTests

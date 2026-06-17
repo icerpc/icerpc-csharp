@@ -7,9 +7,9 @@ namespace IceRpc.Transports.Internal;
 /// <summary>Provides extension methods for <see cref="SslClientAuthenticationOptions" /> and <see
 /// cref="SslServerAuthenticationOptions" />.</summary>
 /// <remarks>The clone methods copy each property by hand and sit on the security-configuration path: a property
-/// added by a future .NET release and not copied here would be silently dropped from the user's TLS configuration.
-/// The SslAuthenticationOptionsExtensionsTests reflection tests fail when the .NET property set changes; when they
-/// do, add the new property here and to the test's property list.</remarks>
+/// added by a future .NET release is not copied and is silently set to its initial value in the user's
+/// authentication options. The SslAuthenticationOptionsExtensionsTests reflection tests fail when the .NET
+/// property set changes; when they do, add the new property here and to the test's property list.</remarks>
 internal static class SslAuthenticationOptionsExtensions
 {
     /// <summary>Makes a shallow copy of an SSL client authentication options.</summary>
