@@ -106,7 +106,7 @@ public class LocationResolverTests
     }
 
     /// <summary>Verifies that when the well-known lookup is fresh but the recursive adapter-id resolution is served
-    /// from the cache, the resolution reports FromCache=true. See icerpc/icerpc-csharp-audit#39.</summary>
+    /// from the cache, the resolution reports FromCache=true.</summary>
     [Test]
     [NonParallelizable]
     public async Task Location_recursive_resolution_with_cached_adapter_id_is_from_cache()
