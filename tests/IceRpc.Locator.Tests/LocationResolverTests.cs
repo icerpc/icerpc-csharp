@@ -111,8 +111,8 @@ public class LocationResolverTests
     [NonParallelizable]
     public async Task Location_recursive_resolution_with_cached_adapter_id_is_from_cache()
     {
-        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/foo?adapter-id=bar"));
-        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/cached"));
+        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/hello?adapter-id=bar"));
+        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/hello"));
         var serverAddressFinder = new MockServerAddressFinder(wellKnownServiceAddress);
         var resolver = new LocationResolver(
                 serverAddressFinder,
