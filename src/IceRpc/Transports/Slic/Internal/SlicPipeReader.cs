@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
@@ -74,24 +73,7 @@ internal class SlicPipeReader : PipeReader
             _stream.ThrowIfConnectionClosed();
         }
 
-        ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-        if (result.IsCanceled)
-        {
-            return GetReadResult(result);
-        }
-
-        // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got examined
-        // and consumed.
-        _readResult = result;
-
-        // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
-        // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
-        if (result.IsCompleted)
-        {
-            _stream.CloseReads(graceful: true);
-        }
-
-        return result;
+        return ProcessReadResult(await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false));
     }
 
     public override bool TryRead(out ReadResult result)
@@ -105,22 +87,7 @@ internal class SlicPipeReader : PipeReader
 
         if (_pipe.Reader.TryRead(out result))
         {
-            if (result.IsCanceled)
-            {
-                result = GetReadResult(result);
-                return true;
-            }
-
-            // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got
-            // examined and consumed.
-            _readResult = result;
-
-            // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
-            // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
-            if (result.IsCompleted)
-            {
-                _stream.CloseReads(graceful: true);
-            }
+            result = ProcessReadResult(result);
             return true;
         }
         else
@@ -231,33 +198,42 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    private ReadResult GetReadResult(ReadResult readResult)
+    private ReadResult ProcessReadResult(ReadResult result)
     {
-        // This method is called by ReadAsync or TryRead when the read operation on _pipe.Reader returns a canceled read
-        // result (IsCanceled=true). The _pipe.Reader ReadAsync/TryRead operations can return a canceled read result for
-        // two different reasons:
-        // - the application called CancelPendingRead
-        // - the connection is closed while data is written on _pipe.Writer
-        Debug.Assert(readResult.IsCanceled);
+        // This method is called by ReadAsync or TryRead with the read result returned by the _pipe.Reader read
+        // operation.
+        if (result.IsCanceled)
+        {
+            // The _pipe.Reader ReadAsync/TryRead operations can return a canceled read result for two different
+            // reasons:
+            // - the application called CancelPendingRead
+            // - the connection is closed while data is written on _pipe.Writer
+            if (_state.HasFlag(State.PipeWriterCompleted))
+            {
+                // The connection was closed while the pipe writer was in use. Either throw or return a non-canceled
+                // result depending on the completion exception.
+                if (_exception is null)
+                {
+                    result = new ReadResult(result.Buffer, isCanceled: false, isCompleted: true);
+                }
+                else
+                {
+                    throw ExceptionUtil.Throw(_exception);
+                }
+            }
+            // else: the application called CancelPendingRead, return the canceled read result as-is.
+        }
+        else if (result.IsCompleted)
+        {
+            // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+            // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
+            _stream.CloseReads(graceful: true);
+        }
 
-        if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            // The connection was closed while the pipe writer was in use. Either throw or return a non-canceled result
-            // depending on the completion exception.
-            if (_exception is null)
-            {
-                return new ReadResult(readResult.Buffer, isCanceled: false, isCompleted: true);
-            }
-            else
-            {
-                throw ExceptionUtil.Throw(_exception);
-            }
-        }
-        else
-        {
-            // The application called CancelPendingRead, return the read result as-is.
-            return readResult;
-        }
+        // Cache the read result returned to the application: AdvanceTo computes the consumed and examined offsets
+        // against the cached buffer.
+        _readResult = result;
+        return result;
     }
 
     private void ThrowIfCompleted()
