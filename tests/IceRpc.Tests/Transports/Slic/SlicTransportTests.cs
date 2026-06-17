@@ -1667,7 +1667,7 @@ public class SlicTransportTests
 
     /// <summary>Verifies that AdvanceTo following a canceled read computes the window accounting against the buffer
     /// returned by the canceled read: the total of the StreamWindowUpdate increments sent to the peer never exceeds
-    /// the number of bytes the peer wrote on the stream. See icerpc/icerpc-csharp-audit#30.</summary>
+    /// the number of bytes the peer wrote on the stream.</summary>
     [Test]
     public async Task Canceled_read_advance_does_not_corrupt_window_accounting()
     {
