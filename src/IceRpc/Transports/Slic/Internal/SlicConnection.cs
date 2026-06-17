@@ -1319,8 +1319,6 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (Interlocked.Increment(ref _outstandingPongCount) > _maxOutstandingPongs)
             {
-                // Roll back the increment so the count keeps matching the number of queued Pong frames.
-                Interlocked.Decrement(ref _outstandingPongCount);
                 throw new IceRpcException(
                     IceRpcError.IceRpcError,
                     $"Received a {nameof(FrameType.Ping)} frame while {_maxOutstandingPongs} {nameof(FrameType.Pong)} frames are already queued for sending.");
