@@ -231,9 +231,7 @@ internal class SlicPipeReader : PipeReader
         }
 
         // Cache the read result returned to the application: AdvanceTo computes the consumed and examined offsets
-        // against the cached buffer. Without this, AdvanceTo called with positions from the returned buffer would
-        // compute the offsets against a stale buffer and corrupt the window accounting. The throw above is the only
-        // path that skips this cache, and it hands the caller an exception rather than a result to advance.
+        // against the cached buffer.
         _readResult = result;
         return result;
     }
