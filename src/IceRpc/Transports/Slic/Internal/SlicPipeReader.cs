@@ -222,26 +222,19 @@ internal class SlicPipeReader : PipeReader
                 }
             }
             // else: the application called CancelPendingRead, return the canceled read result as-is.
-
-            // Cache the read result returned to the application: AdvanceTo computes the consumed and examined offsets
-            // against the cached buffer. Without this, AdvanceTo called with positions from the returned buffer would
-            // compute the offsets against a stale buffer and corrupt the window accounting.
-            _readResult = result;
         }
-        else
+        else if (result.IsCompleted)
         {
-            // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got
-            // examined and consumed.
-            _readResult = result;
-
             // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
             // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
-            if (result.IsCompleted)
-            {
-                _stream.CloseReads(graceful: true);
-            }
+            _stream.CloseReads(graceful: true);
         }
 
+        // Cache the read result returned to the application: AdvanceTo computes the consumed and examined offsets
+        // against the cached buffer. Without this, AdvanceTo called with positions from the returned buffer would
+        // compute the offsets against a stale buffer and corrupt the window accounting. The throw above is the only
+        // path that skips this cache, and it hands the caller an exception rather than a result to advance.
+        _readResult = result;
         return result;
     }
 
