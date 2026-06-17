@@ -1816,6 +1816,10 @@ public class SlicTransportTests
             async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)),
             Throws.Nothing);
 
+        // The parked write is still blocked while the read frames loop accepted the second stream above: reads
+        // make progress independently of the stalled write (and its still-queued pong).
+        Assert.That(serverWriteTask.IsCompleted, Is.False);
+
         // Cleanup: release the hold so the parked write (and the queued pong write) can complete.
         serverDuplexConnection.Operations.Hold = DuplexTransportOperations.None;
         Assert.That(async () => await serverWriteTask, Throws.Nothing);
