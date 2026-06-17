@@ -1620,8 +1620,7 @@ public class SlicTransportTests
     }
 
     /// <summary>Verifies that a read returning a canceled result with buffered data can be advanced with positions
-    /// from the returned buffer, and that reading resumes correctly afterwards. See
-    /// icerpc/icerpc-csharp-audit#30.</summary>
+    /// from the returned buffer, and that reading resumes correctly afterwards.</summary>
     [Test]
     public async Task Canceled_read_with_buffered_data_then_resume_reading([Values] bool useTryRead)
     {
