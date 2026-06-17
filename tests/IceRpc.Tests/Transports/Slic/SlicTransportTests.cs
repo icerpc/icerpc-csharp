@@ -1747,7 +1747,7 @@ public class SlicTransportTests
 
     /// <summary>Verifies that the read frames loop is not blocked by the Pong frame write that responds to a Ping
     /// frame when another write holds the connection's write semaphore while parked on the connection-level pipe
-    /// pause (PauseWriterThreshold reached). See icerpc/icerpc-csharp-audit#17.</summary>
+    /// pause (PauseWriterThreshold reached).</summary>
     [Test]
     public async Task Read_frames_loop_is_not_blocked_by_pong_write_when_a_write_is_parked_on_pipe_threshold()
     {
