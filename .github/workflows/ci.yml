@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: ulimit -a
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
       - name: Build
