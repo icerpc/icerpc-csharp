@@ -39,7 +39,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
 
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
