@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
       - name: Build
@@ -24,13 +24,13 @@ jobs:
         shell: bash
 
       - name: Coveralls
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2.3.7
         with:
           files: tests/*/TestResults/*/coverage.cobertura.xml
           format: cobertura
 
       - name: ReportGenerator
-        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        uses: danielpalme/ReportGenerator-GitHub-Action@049f7ec958c672fd31d5cc1cb01622dc8d2e23ab # v5.5.10
         with:
           reports: tests/*/TestResults/*/coverage.cobertura.xml
           targetdir: coveragereport

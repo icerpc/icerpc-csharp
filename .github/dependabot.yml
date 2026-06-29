@@ -1,58 +1,23 @@
 version: 2
 updates:
-  - package-ecosystem: nuget
+  - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
+      interval: monthly
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
     groups:
-      microsoft-extensions:
-        patterns:
-          - "Microsoft.Extensions.*"
-      microsoft-aspnetcore:
-        patterns:
-          - "Microsoft.AspNetCore.*"
-      microsoft-build:
-        patterns:
-          - "Microsoft.Build.*"
-      microsoft-codeanalysis:
-        patterns:
-          - "Microsoft.CodeAnalysis.*"
-      system:
-        patterns:
-          - "System.*"
-      nunit:
-        patterns:
-          - "NUnit*"
-      test-sdk:
-        patterns:
-          - "Microsoft.NET.Test.Sdk"
-          - "coverlet.*"
-      grpc:
-        patterns:
-          - "Grpc.*"
-          - "Google.Protobuf"
-          - "Google.Protobuf.Tools"
-      opentelemetry:
-        patterns:
-          - "OpenTelemetry.*"
-      dunet:
-        patterns:
-          - "dunet*"
-      minor-and-patch:
-        update-types:
-          - minor
-          - patch
+      nuget:
+        patterns: ["*"]
 
-  - package-ecosystem: github-actions
-    directory: "/"
+  - package-ecosystem: "github-actions"
+    directories: ["/", "/.github/actions/*"]
     schedule:
-      interval: weekly
+      interval: monthly
     cooldown:
       default-days: 7
     groups:
-      github-actions-dependencies:
-        patterns:
-          - "*"
+      github-actions:
+        patterns: ["*"]
