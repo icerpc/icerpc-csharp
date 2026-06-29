@@ -365,23 +365,53 @@ internal class SlicStream : IMultiplexedStream
         bool endStream,
         CancellationToken cancellationToken)
     {
-        bool writeReadsClosedFrame = false;
-        if (endStream)
+        if (!endStream)
         {
+            // Hot path: a non-final stream frame requires no writes-closure bookkeeping, so forward the inner
+            // ValueTask directly without an async state machine.
+            return _connection.WriteStreamDataFrameAsync(
+                this,
+                source1,
+                source2,
+                endStream: false,
+                writeReadsClosedFrame: false,
+                cancellationToken);
+        }
+
+        return WriteLastStreamFrameAsync();
+
+        async ValueTask<FlushResult> WriteLastStreamFrameAsync()
+        {
+            bool writeReadsClosedFrame;
             lock (_mutex)
             {
                 writeReadsClosedFrame = _closeReadsOnWritesClosure;
                 _writesClosePending = true;
             }
-        }
 
-        return _connection.WriteStreamDataFrameAsync(
-            this,
-            source1,
-            source2,
-            endStream,
-            writeReadsClosedFrame,
-            cancellationToken);
+            try
+            {
+                return await _connection.WriteStreamDataFrameAsync(
+                    this,
+                    source1,
+                    source2,
+                    endStream: true,
+                    writeReadsClosedFrame,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch when (!_writesClosedTcs.Task.IsCompleted)
+            {
+                // The write failed before the StreamLast frame was queued on the connection (WroteLastStreamFrame
+                // completes _writesClosedTcs when the frame is queued), so roll back _writesClosePending so that
+                // completing the stream output can still close writes and notify the peer with a StreamWritesClosed
+                // frame. The bundled reads closure isn't lost either since _closeReadsOnWritesClosure wasn't cleared.
+                lock (_mutex)
+                {
+                    _writesClosePending = false;
+                }
+                throw;
+            }
+        }
     }
 
     /// <summary>Notifies the stream that the <see cref="FrameType.StreamLast" /> was written by the
@@ -423,10 +453,7 @@ internal class SlicStream : IMultiplexedStream
             {
                 // The stream reads and writes are closed, it's time to release the stream to either allow creating or
                 // accepting a new stream.
-                if (IsStarted)
-                {
-                    _connection.ReleaseStream(this);
-                }
+                _connection.ReleaseStream(this);
             }
             return true;
         }

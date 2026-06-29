@@ -703,9 +703,11 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="stream">The released stream.</param>
     internal void ReleaseStream(SlicStream stream)
     {
-        Debug.Assert(stream.IsStarted);
-
-        _streams.Remove(stream.Id, out SlicStream? _);
+        // Only a started stream has an Id and is registered in _streams.
+        if (stream.IsStarted)
+        {
+            _streams.Remove(stream.Id, out SlicStream? _);
+        }
 
         if (stream.IsRemote)
         {
