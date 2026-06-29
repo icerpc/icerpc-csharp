@@ -452,13 +452,8 @@ internal class SlicStream : IMultiplexedStream
             if (newState.HasFlag(State.ReadsClosed | State.WritesClosed))
             {
                 // The stream reads and writes are closed, it's time to release the stream to either allow creating or
-                // accepting a new stream. We don't release an unstarted remote stream (which can briefly exist when
-                // AddStream fails on a closing connection) since it never acquired any resource. Releasing an unstarted
-                // local stream returns the stream-count semaphore permit acquired by CreateStreamAsync.
-                if (IsStarted || !IsRemote)
-                {
-                    _connection.ReleaseStream(this);
-                }
+                // accepting a new stream.
+                _connection.ReleaseStream(this);
             }
             return true;
         }

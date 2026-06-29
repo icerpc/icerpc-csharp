@@ -703,9 +703,7 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="stream">The released stream.</param>
     internal void ReleaseStream(SlicStream stream)
     {
-        // A stream that was created but never started is always local; only started streams are registered in _streams.
-        Debug.Assert(stream.IsStarted || !stream.IsRemote);
-
+        // Only a started stream has an Id and is registered in _streams.
         if (stream.IsStarted)
         {
             _streams.Remove(stream.Id, out SlicStream? _);
