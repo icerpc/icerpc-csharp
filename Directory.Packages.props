@@ -20,8 +20,10 @@
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" />
 
-    <!-- 5.0.0 to maintain compatibility with .NET SDK 10.0.10x -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+    <!-- The service generator runs inside the consumer's compiler, so this version sets the minimum supported
+         .NET SDK: 5.0.0 is the compiler of SDK 10.0.1xx, the band Linux distros ship. The exact range keeps
+         Dependabot from bumping it. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="[5.0.0]" />
 
     <!-- MSBuild SDK packages (used by IceRpc.*.Tools) -->
     <PackageVersion Include="Microsoft.Build.Framework" Version="18.8.2" />
