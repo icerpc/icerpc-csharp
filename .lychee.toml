@@ -29,6 +29,8 @@ exclude = [
     # GitHub edit/blame links (may require auth)
     "github\\.com/.*/edit/",
     "github\\.com/.*/blame/",
+    # Coveralls blocks automated requests to repo pages
+    "^https?://coveralls\\.io/github/",
     # TODO: remove once 0.7 packages are published.
     "^https?://www\\.nuget\\.org/packages/IceRpc\\.Ice/?$",
     "^https?://www\\.nuget\\.org/packages/IceRpc\\.ServiceGenerator/?$",
