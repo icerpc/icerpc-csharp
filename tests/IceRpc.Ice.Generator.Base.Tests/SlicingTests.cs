@@ -10,6 +10,31 @@ namespace IceRpc.Ice.Generator.Base.Tests;
 public class SlicingTests
 {
     [Test]
+    public void Encoding_a_fully_sliced_class_with_the_compact_format_fails()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
+        encoder.EncodeClass(new SlicingMostDerivedClass("p1-m1", "p1-m2", null, null));
+
+        // Decode with an activator that knows none of the type IDs.
+        var decoder = new IceDecoder(buffer.WrittenMemory, activator: null);
+        IceClass r1 = decoder.DecodeClass<IceClass>()!;
+        Assert.That(r1, Is.TypeOf<UnknownIceClass>());
+
+        var compactBuffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var compactEncoder = new IceEncoder(compactBuffer); // Compact is the default class format.
+                compactEncoder.EncodeClass(r1);
+            },
+            Throws.TypeOf<NotSupportedException>());
+    }
+
+    [Test]
     public void Decoding_a_class_skips_and_preserves_unknown_slices([Values] bool partialSlicing)
     {
         // Arrange
