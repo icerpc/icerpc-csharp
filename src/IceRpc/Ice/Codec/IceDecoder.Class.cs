@@ -380,6 +380,14 @@ public ref partial struct IceDecoder
             case TypeIdKind.String:
                 string typeId = DecodeString();
 
+                // A valid type ID always starts with "::". This validation is essential for preserved slices:
+                // SliceInfo.TypeId holds either a type ID or a compact ID without recording which one, and the
+                // re-encoding of a preserved slice parses TypeId as a compact ID unless it starts with "::".
+                if (!typeId.StartsWith("::", StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException($"Received invalid type ID {typeId}.");
+                }
+
                 // The typeIds of slices in indirection tables can be decoded several times: when we skip the
                 // indirection table and later on when we decode it. We only want to add this type ID to the list and
                 // assign it an index when it's the first time we decode it, so we save the largest position we
