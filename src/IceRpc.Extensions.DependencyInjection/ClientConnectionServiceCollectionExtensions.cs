@@ -14,8 +14,34 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add a client connection.</summary>
 public static class ClientConnectionServiceCollectionExtensions
 {
-    /// <summary>Adds a <see cref="ClientConnection" /> and an <see cref="IInvoker" /> to this service collection.
-    /// </summary>
+    /// <summary>Adds a <see cref="ClientConnection" /> singleton that connects to the specified server address to this
+    /// service collection; this singleton is also registered as the <see cref="IInvoker" /> singleton.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="serverAddress">The server address of the client connection.</param>
+    /// <returns>The service collection.</returns>
+    /// <remarks>This method sets <see cref="ClientConnectionOptions.ServerAddress" /> in the client connection options
+    /// provided by the <see cref="IOptions{T}" /> of <see cref="ClientConnectionOptions" />; the client connection uses
+    /// all the other options from these injected options.</remarks>
+    /// <seealso cref="AddIceRpcClientConnection(IServiceCollection)" />
+    public static IServiceCollection AddIceRpcClientConnection(
+        this IServiceCollection services,
+        ServerAddress serverAddress)
+    {
+        services.AddOptions<ClientConnectionOptions>().Configure(options => options.ServerAddress = serverAddress);
+        return services.AddIceRpcClientConnection();
+    }
+
+    /// <summary>Adds a <see cref="ClientConnection" /> singleton that connects to the specified server address URI to
+    /// this service collection; this singleton is also registered as the <see cref="IInvoker" /> singleton.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="serverAddressUri">The server address URI of the client connection.</param>
+    /// <returns>The service collection.</returns>
+    /// <seealso cref="AddIceRpcClientConnection(IServiceCollection, ServerAddress)" />
+    public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services, Uri serverAddressUri) =>
+        services.AddIceRpcClientConnection(new ServerAddress(serverAddressUri));
+
+    /// <summary>Adds a <see cref="ClientConnection" /> singleton to this service collection; this singleton is also
+    /// registered as the <see cref="IInvoker" /> singleton.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     /// <remarks>This method uses the client connection options provided by the <see cref="IOptions{T}" /> of
