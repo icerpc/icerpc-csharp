@@ -1551,16 +1551,21 @@ public sealed class IceRpcProtocolConnectionTests
             async () => await taskExceptionObserver.DispatchFailedException,
             Is.InstanceOf<InvalidOperationException>());
 
-        // Cleanup
-        try
-        {
-            await responseTask;
-        }
-        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.TruncatedData)
-        {
-            // Depending on the timing, the payload stream send failure might abort the invocation before the response
-            // is sent.
-        }
+        // The client never sees the incomplete response payload as complete. Depending on the timing, the payload
+        // stream send failure aborts the invocation before the response is sent, or when the client reads the payload.
+        Assert.That(
+            async () =>
+            {
+                IncomingResponse response = await responseTask;
+                ReadResult readResult;
+                do
+                {
+                    readResult = await response.Payload.ReadAsync();
+                    response.Payload.AdvanceTo(readResult.Buffer.End);
+                }
+                while (!readResult.IsCompleted);
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid request.</summary>
