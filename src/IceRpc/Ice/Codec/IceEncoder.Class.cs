@@ -239,8 +239,7 @@ public ref partial struct IceEncoder
         {
             SliceInfo sliceInfo = unknownSlices[i];
 
-            // If type ID is a compact ID, extract it. The parsing cannot fail: the decoder rejects string type IDs
-            // that don't start with "::", so a TypeId without this prefix is always a decoded compact ID.
+            // If type ID is a compact ID, extract it.
             int? compactId = null;
             if (!sliceInfo.TypeId.StartsWith("::", StringComparison.Ordinal))
             {

@@ -380,9 +380,8 @@ public ref partial struct IceDecoder
             case TypeIdKind.String:
                 string typeId = DecodeString();
 
-                // A valid type ID always starts with "::". This validation is essential for preserved slices:
-                // SliceInfo.TypeId holds either a type ID or a compact ID without recording which one, and the
-                // re-encoding of a preserved slice parses TypeId as a compact ID unless it starts with "::".
+                // A valid type ID always starts with "::" (see SliceInfo.TypeId). Without this check, the
+                // re-encoding of a preserved slice would parse this type ID as a compact ID.
                 if (!typeId.StartsWith("::", StringComparison.Ordinal))
                 {
                     throw new InvalidDataException($"Received invalid type ID {typeId}.");
