@@ -36,6 +36,12 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 - Run all tests: `dotnet test`
 - Run a single test project: `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>"`
 
+## Pull requests
+
+- Every PR description ends with a `## What's Changed entry` section. Read
+  [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the format and the rules before writing
+  it — the template is not injected automatically when a PR is created from the command line.
+
 ## Dismissed audit patterns
 
 This section captures the reasoning behind `ai-audit` findings that have been closed as "not planned". Before opening a
