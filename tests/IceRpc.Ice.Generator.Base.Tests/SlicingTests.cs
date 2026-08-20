@@ -35,6 +35,39 @@ public class SlicingTests
     }
 
     [Test]
+    public void Decoding_a_class_with_an_invalid_string_type_id_fails()
+    {
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new IceEncoder(buffer, classFormat: ClassFormat.Sliced);
+        encoder.EncodeClass(new FakeTypeIdClass("9999999999")); // a string type ID that does not start with "::"
+
+        Assert.That(
+            () =>
+            {
+                var decoder = new IceDecoder(buffer.WrittenMemory, activator: null);
+                _ = decoder.DecodeClass<IceClass>();
+            },
+            Throws.TypeOf<InvalidDataException>());
+    }
+
+    private sealed class FakeTypeIdClass : IceClass
+    {
+        private readonly string _typeId;
+
+        internal FakeTypeIdClass(string typeId) => _typeId = typeId;
+
+        protected override void DecodeCore(ref IceDecoder decoder)
+        {
+        }
+
+        protected override void EncodeCore(ref IceEncoder encoder)
+        {
+            encoder.StartSlice(_typeId);
+            encoder.EndSlice(lastSlice: true);
+        }
+    }
+
+    [Test]
     public void Decoding_a_class_skips_and_preserves_unknown_slices([Values] bool partialSlicing)
     {
         // Arrange

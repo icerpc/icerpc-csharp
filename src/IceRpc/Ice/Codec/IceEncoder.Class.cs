@@ -247,14 +247,7 @@ public ref partial struct IceEncoder
             int? compactId = null;
             if (!sliceInfo.TypeId.StartsWith("::", StringComparison.Ordinal))
             {
-                try
-                {
-                    compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
-                }
-                catch (FormatException exception)
-                {
-                    throw new InvalidDataException($"Received invalid type ID {sliceInfo.TypeId}.", exception);
-                }
+                compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
             }
 
             StartSlice(sliceInfo.TypeId, compactId);
