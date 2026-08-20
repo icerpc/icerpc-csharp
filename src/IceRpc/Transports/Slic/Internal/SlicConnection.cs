@@ -1495,8 +1495,10 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new InvalidDataException("The frame size can't be larger than int.MaxValue.", exception);
             }
 
-            // Reject oversized control frame bodies before any buffering occurs.
-            if (header.FrameType < FrameType.Stream && header.FrameSize > MaxControlFrameBodySize)
+            // Reject oversized control frame bodies before any buffering occurs. Only the stream data frames are
+            // exempt: their size is bounded by the stream's flow control window.
+            if (header.FrameType is not (FrameType.Stream or FrameType.StreamLast) &&
+                header.FrameSize > MaxControlFrameBodySize)
             {
                 throw new InvalidDataException(
                     $"The {header.FrameType} frame body size ({header.FrameSize}) exceeds the maximum allowed size ({MaxControlFrameBodySize}).");

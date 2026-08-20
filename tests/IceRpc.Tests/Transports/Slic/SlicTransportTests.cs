@@ -1166,9 +1166,12 @@ public class SlicTransportTests
             Throws.InstanceOf<IceRpcException>());
     }
 
-    [Test]
-    public async Task Reject_slic_control_frame_with_oversized_body()
+    [TestCase(nameof(FrameType.Initialize))]
+    [TestCase(nameof(FrameType.StreamWindowUpdate))]
+    public async Task Reject_slic_control_frame_with_oversized_body(string frameTypeStr)
     {
+        FrameType frameType = Enum.Parse<FrameType>(frameTypeStr);
+
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
@@ -1186,8 +1189,8 @@ public class SlicTransportTests
         await using var _ = multiplexedServerConnection;
         await connectTask;
 
-        // Act - Write an Initialize frame header that declares a body larger than MaxControlFrameBodySize (16,383).
-        await WriteOversizedFrameAsync(duplexClientConnection, FrameType.Initialize, 16_384);
+        // Act - Write a frame header that declares a body larger than MaxControlFrameBodySize (16,383).
+        await WriteOversizedFrameAsync(duplexClientConnection, frameType, 16_384);
 
         // Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
