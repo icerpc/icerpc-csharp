@@ -386,7 +386,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" /> if the connection shutdown failed.</description></item>
+    /// <item><description><see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" /> if this
+    /// connection is disposed while being shut down.</description></item>
     /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" /> if this shutdown attempt or a previous attempt exceeded <see
@@ -419,16 +420,30 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
             cts.CancelAfter(_shutdownTimeout);
 
-            // Since a pending connection is "detached", it's shutdown and disposed via the connectTask, not directly by
-            // this method.
             try
             {
-                if (_activeConnection is not null)
+                // Since a pending connection is "detached", it's shutdown and disposed via the connectTask, not
+                // directly by this method.
+                try
                 {
-                    await _activeConnection.Value.Connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
-                }
+                    Task shutdownTask = _activeConnection is null ?
+                        Task.CompletedTask :
+                        _activeConnection.Value.Connection.ShutdownAsync(cts.Token);
 
-                await _detachedConnectionsTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                    await Task.WhenAll(shutdownTask, _detachedConnectionsTcs.Task.WaitAsync(cts.Token))
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Ignore other connection shutdown failures.
+
+                    // Throw OperationCanceledException if this WhenAll exception is hiding an OCE.
+                    cts.Token.ThrowIfCancellationRequested();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -445,10 +460,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     throw new TimeoutException(
                         $"The client connection shut down timed out after {_shutdownTimeout.TotalSeconds} s.");
                 }
-            }
-            catch
-            {
-                // ignore other shutdown exception
             }
         }
     }
