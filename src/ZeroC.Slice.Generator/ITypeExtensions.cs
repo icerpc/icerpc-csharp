@@ -94,7 +94,9 @@ internal static class ITypeExtensions
                 {
                     // cs::type on fixed-size primitives: wrap the fixed-size decode in the factory.
                     string csElemType = elemType.ToTypeString(currentNamespace);
-                    return $"new {concreteType}(decoder.DecodeSequence<{csElemType}>())";
+                    return ((Builtin)elemType).Kind == BuiltinKind.Bool ?
+                        $"new {concreteType}(decoder.DecodeSequence<{csElemType}>(checkElement: SliceDecoder.CheckBoolValue))" :
+                        $"new {concreteType}(decoder.DecodeSequence<{csElemType}>())";
                 }
                 return $$"""
                     {{method}}(

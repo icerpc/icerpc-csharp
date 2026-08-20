@@ -6,6 +6,10 @@ compact struct BoolS {
     value: Sequence<bool>
 }
 
+compact struct CustomBoolS {
+    value: [cs::type("List<bool>")] Sequence<bool>
+}
+
 compact struct CustomOptInt32S {
     value: [cs::type("List<int?>")] Sequence<int32?>
 }
