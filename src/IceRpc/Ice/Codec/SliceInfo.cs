@@ -6,7 +6,8 @@ namespace IceRpc.Ice.Codec;
 /// not decode.</summary>
 public sealed class SliceInfo
 {
-    /// <summary>Gets the Ice type ID or compact ID for this slice.</summary>
+    /// <summary>Gets the Ice type ID or compact ID for this slice. An Ice type ID starts with "::", while a
+    /// compact ID is a non-negative integer in decimal notation.</summary>
     public string TypeId { get; }
 
     /// <summary>Gets the encoded bytes for this slice, including the leading size integer.</summary>
