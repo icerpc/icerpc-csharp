@@ -47,6 +47,43 @@ public class SequenceDecodingTests
     }
 
     [Test]
+    public void Decode_custom_bool_sequence_field()
+    {
+        // Arrange
+        bool[] expected = [false, true, false];
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(3);
+        encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x00 });
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var sut = new CustomBoolS(ref decoder);
+
+        // Assert
+        Assert.That(sut.Value, Is.EqualTo(expected));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Decode_custom_bool_sequence_field_with_invalid_values()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        encoder.EncodeSize(3);
+        encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x02 });
+
+        // Act/Assert
+        Assert.Throws<InvalidDataException>(
+            () =>
+            {
+                var decoder = new SliceDecoder(buffer.WrittenMemory);
+                _ = new CustomBoolS(ref decoder);
+            });
+    }
+
+    [Test]
     public void Decode_custom_opt_int32_sequence_field()
     {
         // Arrange
