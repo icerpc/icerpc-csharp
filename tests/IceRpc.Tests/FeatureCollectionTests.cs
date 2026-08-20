@@ -68,6 +68,17 @@ public class FeatureCollectionTests
         Assert.That(features.Any(), Is.False);
     }
 
+    /// <summary>Verifies that a read-only feature collection cannot be updated.</summary>
+    [Test]
+    public void Setting_a_feature_in_read_only_feature_collection_fails()
+    {
+        IFeatureCollection features = new FeatureCollection().AsReadOnly();
+
+        Assert.That(() => features.Set("foo"), Throws.InvalidOperationException);
+        Assert.That(() => features[typeof(string)] = "foo", Throws.InvalidOperationException);
+        Assert.That(() => FeatureCollection.Empty.Set("foo"), Throws.InvalidOperationException);
+    }
+
     /// <summary>Verifies that we can set a feature using the index operator.</summary>
     [Test]
     public void Setting_a_feature_using_index_operator()
