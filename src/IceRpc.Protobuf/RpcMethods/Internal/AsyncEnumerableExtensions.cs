@@ -172,7 +172,7 @@ internal static class AsyncEnumerableExtensions
                         // If we reached the stream flush threshold, it's time to flush.
                         if (written >= _streamFlushThreshold)
                         {
-                            result = hasNext ? moveNext.AsTask() : null;
+                            result = hasNext ? Task.FromResult(true) : null;
                             keepEncoding = false;
                         }
                         else
