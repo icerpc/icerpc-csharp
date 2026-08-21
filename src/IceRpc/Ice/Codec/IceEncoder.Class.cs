@@ -166,10 +166,18 @@ public ref partial struct IceEncoder
             _classContext.Current.InstanceType = InstanceType.Class;
             _classContext.Current.FirstSlice = true;
 
-            if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
+            if (v.UnknownSlices.Count > 0)
             {
-                EncodeUnknownSlices(v.UnknownSlices, fullySliced: v is UnknownIceClass);
-                _classContext.Current.FirstSlice = false;
+                if (_classContext.ClassFormat == ClassFormat.Sliced)
+                {
+                    EncodeUnknownSlices(v.UnknownSlices, fullySliced: v is UnknownIceClass);
+                    _classContext.Current.FirstSlice = false;
+                }
+                else if (v is UnknownIceClass)
+                {
+                    throw new NotSupportedException(
+                        $"Cannot encode a fully-sliced class instance using the {_classContext.ClassFormat} class format.");
+                }
             }
             v.Encode(ref this);
 
@@ -227,13 +235,9 @@ public ref partial struct IceEncoder
     {
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
-        // We only re-encode preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
-        // slices, which essentially "slices" the instance into the most-derived type known by the sender.
-        if (_classContext.ClassFormat != ClassFormat.Sliced)
-        {
-            throw new NotSupportedException(
-                $"Cannot encode sliced data into payload using {_classContext.ClassFormat} format.");
-        }
+        // The caller only re-encodes preserved slices when using the Sliced format. With another format, it ignores
+        // the preserved slices, which "slices" the instance into the most-derived type known by the sender.
+        Debug.Assert(_classContext.ClassFormat == ClassFormat.Sliced);
 
         for (int i = 0; i < unknownSlices.Count; ++i)
         {
