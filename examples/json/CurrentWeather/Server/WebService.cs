@@ -54,8 +54,8 @@ internal class WebService : IDispatcher
         request.Payload.AdvanceTo(readResult.Buffer.End); // Reading a PipeReader is a two-step process.
         request.Payload.Complete(); // Done with the request payload.
 
-        // Create the request URI.
-        var requestUri = new Uri(_baseUri, query);
+        // Create the request URI from the base URI and the client-provided query string.
+        Uri requestUri = new UriBuilder(_baseUri) { Query = query }.Uri;
 
         // Send the HTTP request.
         Console.WriteLine($"GET {requestUri}");

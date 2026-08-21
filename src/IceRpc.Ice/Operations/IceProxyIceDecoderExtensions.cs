@@ -72,7 +72,12 @@ public static class IceProxyIceDecoderExtensions
         // With the Ice encoding, the ice server addresses are transport-specific, with a transport-specific encoding.
 
         ServerAddress? serverAddress = null;
-        var transportCode = (TransportCode)decoder.DecodeShort();
+        short transportCodeValue = decoder.DecodeShort();
+        if (transportCodeValue < 0)
+        {
+            throw new InvalidDataException($"Received invalid transport code: {transportCodeValue}.");
+        }
+        var transportCode = (TransportCode)transportCodeValue;
 
         int size = decoder.DecodeInt();
         if (size < 6)
@@ -117,6 +122,11 @@ public static class IceProxyIceDecoderExtensions
                         break;
 
                     default:
+                        if (size == 0)
+                        {
+                            throw new InvalidDataException("Received opaque server address with an empty body.");
+                        }
+
                         // Create a server address for transport opaque
                         ImmutableDictionary<string, string>.Builder builder =
                             ImmutableDictionary.CreateBuilder<string, string>();

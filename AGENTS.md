@@ -36,6 +36,12 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 - Run all tests: `dotnet test`
 - Run a single test project: `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>"`
 
+## Pull requests
+
+- Every PR description ends with a `## What's Changed entry` section. Read
+  [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the format and the rules before writing
+  it — the template is not injected automatically when a PR is created from the command line.
+
 ## Dismissed audit patterns
 
 This section captures the reasoning behind `ai-audit` findings that have been closed as "not planned". Before opening a
@@ -133,3 +139,11 @@ supported-platform constraint, consistent with the platforms .NET itself support
 host byte-order guards in these codecs or propose routing them through `BinaryPrimitives`. This pattern is only about
 host byte order: a type whose specified wire format is big-endian (such as `WellKnownTypes::Uuid`, RFC 9562 — #4801)
 still needs its byte-order conversion. (#4804.)
+
+### 13. Activator caches pin generated-code assemblies
+
+`IActivator.FromAssembly` caches the activator it builds for each assembly marked with `IceGeneratedCodeAttribute` —
+and, through its recursive merge, for every marked assembly it references — in a process-wide cache holding strong
+references. Unloading such assemblies (e.g. with a collectible `AssemblyLoadContext`) is unsupported: the cache pins
+them for the lifetime of the process. Don't file findings proposing weak-key caching or unload-safety for this cache.
+(#4827.)
