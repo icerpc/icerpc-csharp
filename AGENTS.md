@@ -130,6 +130,16 @@ does not apply. Bounding still happens, just at the consumer's decoder: Slice / 
 (`InvalidDataException`) and enforce per-decoder collection-allocation budgets. Don't propose a size cap inside the
 decompressor; the limit belongs to the decoder that materializes structured data from the stream. (#4507.)
 
+### 12. Little-endian host assumption
+
+The Slice and Ice encodings always encode multi-byte primitives in little-endian byte order. This C# implementation
+performs no byte-order conversion — it assumes the host is little-endian, so host order and wire order coincide, and
+the fast paths copy arrays of fixed-size primitives directly to and from the wire. A little-endian host is a
+supported-platform constraint, consistent with the platforms .NET itself supports. Don't file findings about missing
+host byte-order guards in these codecs or propose routing them through `BinaryPrimitives`. This pattern is only about
+host byte order: a type whose specified wire format is big-endian (such as `WellKnownTypes::Uuid`, RFC 9562 — #4801)
+still needs its byte-order conversion. (#4804.)
+
 ### 13. Activator caches pin generated-code assemblies
 
 `IActivator.FromAssembly` caches the activator it builds for each assembly marked with `IceGeneratedCodeAttribute` —
