@@ -75,8 +75,8 @@ public class FeatureCollectionTests
         IFeatureCollection features = new FeatureCollection().AsReadOnly();
 
         Assert.That(() => features.Set("foo"), Throws.InvalidOperationException);
+        Assert.That(() => features.Set<string>(null), Throws.InvalidOperationException);
         Assert.That(() => features[typeof(string)] = "foo", Throws.InvalidOperationException);
-        Assert.That(() => FeatureCollection.Empty.Set("foo"), Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that we can set a feature using the index operator.</summary>
