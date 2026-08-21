@@ -46,6 +46,11 @@ public sealed class IceFeature : IIceFeature
     /// <param name="baseProxy">The base proxy, used when decoding service addresses into proxies.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
     /// is equivalent to <see cref="Default" />.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxCollectionAllocation" /> is a
+    /// negative value other than <c>-1</c>, when <paramref name="maxDepth" /> is <c>0</c> or a negative value other
+    /// than <c>-1</c>, when <paramref name="maxPayloadSize" /> is <c>0</c>, <see cref="int.MaxValue" /> or a negative
+    /// value other than <c>-1</c>, or when <paramref name="maxPayloadSize" /> is greater than <c>int.MaxValue / 8</c>
+    /// (256 MB) while <paramref name="maxCollectionAllocation" /> is <c>-1</c>.</exception>
     public IceFeature(
         IActivator? activator = null,
         IceEncodeOptions? encodeOptions = null,
@@ -55,6 +60,31 @@ public sealed class IceFeature : IIceFeature
         IIceProxy? baseProxy = null,
         IIceFeature? defaultFeature = null)
     {
+        if (maxCollectionAllocation < -1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxCollectionAllocation),
+                $"The value of {nameof(maxCollectionAllocation)} must be 0, a positive value, or -1.");
+        }
+        if (maxDepth is < -1 or 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxDepth),
+                $"The value of {nameof(maxDepth)} must be a positive value or -1.");
+        }
+        if (maxPayloadSize is < -1 or 0 or int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxPayloadSize),
+                $"The value of {nameof(maxPayloadSize)} must be a positive value smaller than int.MaxValue, or -1.");
+        }
+        if (maxCollectionAllocation == -1 && maxPayloadSize > int.MaxValue / 8)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxPayloadSize),
+                $"The value of {nameof(maxPayloadSize)} must be less than or equal to int.MaxValue / 8 when {nameof(maxCollectionAllocation)} is -1.");
+        }
+
         defaultFeature ??= Default;
 
         Activator = activator ?? defaultFeature.Activator;

@@ -34,6 +34,10 @@ public sealed class SliceFeature : ISliceFeature
     /// <param name="baseProxy">The base proxy, used when decoding service addresses into proxies.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
     /// is equivalent to <see cref="Default" />.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxCollectionAllocation" /> is a
+    /// negative value other than <c>-1</c>, when <paramref name="maxSegmentSize" /> is <c>0</c> or a negative value
+    /// other than <c>-1</c>, or when <paramref name="maxSegmentSize" /> is greater than <c>int.MaxValue / 8</c>
+    /// (256 MB) while <paramref name="maxCollectionAllocation" /> is <c>-1</c>.</exception>
     public SliceFeature(
         SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
@@ -41,6 +45,25 @@ public sealed class SliceFeature : ISliceFeature
         ISliceProxy? baseProxy = null,
         ISliceFeature? defaultFeature = null)
     {
+        if (maxCollectionAllocation < -1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxCollectionAllocation),
+                $"The value of {nameof(maxCollectionAllocation)} must be 0, a positive value, or -1.");
+        }
+        if (maxSegmentSize is < -1 or 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxSegmentSize),
+                $"The value of {nameof(maxSegmentSize)} must be a positive value or -1.");
+        }
+        if (maxCollectionAllocation == -1 && maxSegmentSize > int.MaxValue / 8)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxSegmentSize),
+                $"The value of {nameof(maxSegmentSize)} must be less than or equal to int.MaxValue / 8 when {nameof(maxCollectionAllocation)} is -1.");
+        }
+
         defaultFeature ??= Default;
 
         EncodeOptions = encodeOptions ?? defaultFeature.EncodeOptions;
