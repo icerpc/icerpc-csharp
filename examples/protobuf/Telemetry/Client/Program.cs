@@ -28,7 +28,7 @@ await using var connection = new ClientConnection(
 // Create an invocation pipeline and add the telemetry interceptor to it.
 Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection);
 
-var greeter = new GreeterClient(connection);
+var greeter = new GreeterClient(pipeline);
 
 var request = new GreetRequest { Name = Environment.UserName };
 GreetResponse response = await greeter.GreetAsync(request);
