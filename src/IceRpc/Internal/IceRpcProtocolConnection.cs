@@ -1093,8 +1093,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     PipeWriter payloadWriter = response.GetPayloadWriter(streamOutput);
 
-                    // We give flushResult an initial "failed" value, in case the first CopyFromAsync throws.
-                    var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+                    // Remains false if a copy throws or is canceled.
+                    bool payloadWriterSuccess = false;
 
                     try
                     {
@@ -1106,7 +1106,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // ignored.
                         bool hasContinuation = response.PayloadContinuation is not null;
 
-                        flushResult = await payloadWriter.CopyFromAsync(
+                        FlushResult flushResult = await payloadWriter.CopyFromAsync(
                             response.Payload,
                             stream.WritesClosed,
                             endStream: !hasContinuation,
@@ -1120,10 +1120,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                 endStream: true,
                                 _disposedCts.Token).ConfigureAwait(false);
                         }
+
+                        payloadWriterSuccess = !flushResult.IsCanceled;
                     }
                     finally
                     {
-                        payloadWriter.CompleteOutput(success: !flushResult.IsCanceled);
+                        payloadWriter.CompleteOutput(payloadWriterSuccess);
                         response.Payload.Complete();
                         response.PayloadContinuation?.Complete();
                     }
