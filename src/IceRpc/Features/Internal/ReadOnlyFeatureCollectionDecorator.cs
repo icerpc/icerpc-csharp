@@ -30,7 +30,8 @@ internal class ReadOnlyFeatureCollectionDecorator : IFeatureCollection
     public TFeature? Get<TFeature>() => _decoratee.Get<TFeature>();
 
     /// <inheritdoc />
-    public void Set<TFeature>(TFeature? feature) => _decoratee.Set(feature);
+    public void Set<TFeature>(TFeature? feature) =>
+        throw new InvalidOperationException("Cannot update a read-only feature collection.");
 
     /// <summary>Constructs a read-only feature collection over another feature collection.</summary>
     /// <param name="decoratee">The decoratee.</param>

@@ -16,6 +16,8 @@ public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>
     /// <param name="key">The feature key.</param>
     /// <returns>The requested feature.</returns>
+    /// <exception cref="InvalidOperationException">Thrown by the setter when this feature collection is read-only.
+    /// </exception>
     object? this[Type key] { get; set; }
 
     /// <summary>Gets the requested feature. If the feature is not set, returns <see langword="null" />.</summary>
@@ -26,5 +28,6 @@ public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     /// <summary>Sets a new feature. Setting null removes the feature.</summary>
     /// <typeparam name="TFeature">The feature key.</typeparam>
     /// <param name="feature">The feature value.</param>
+    /// <exception cref="InvalidOperationException">Thrown when this feature collection is read-only.</exception>
     void Set<TFeature>(TFeature? feature);
 }
