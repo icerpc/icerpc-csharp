@@ -130,4 +130,6 @@ The Slice and Ice encodings always encode multi-byte primitives in little-endian
 performs no byte-order conversion — it assumes the host is little-endian, so host order and wire order coincide, and
 the fast paths copy arrays of fixed-size primitives directly to and from the wire. A little-endian host is a
 supported-platform constraint, consistent with the platforms .NET itself supports. Don't file findings about missing
-endianness guards or propose routing these codecs through `BinaryPrimitives`. (#4804.)
+host byte-order guards in these codecs or propose routing them through `BinaryPrimitives`. This pattern is only about
+host byte order: a type whose specified wire format is big-endian (such as `WellKnownTypes::Uuid`, RFC 9562 — #4801)
+still needs its byte-order conversion. (#4804.)
