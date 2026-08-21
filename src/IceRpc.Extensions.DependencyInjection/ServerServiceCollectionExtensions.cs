@@ -115,23 +115,17 @@ public static class ServerServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         string optionsName,
-        Action<IDispatcherBuilder> configure) =>
-        services
-            .TryAddIceRpcServerTransport()
-            .AddSingleton(provider =>
+        Action<IDispatcherBuilder> configure)
+    {
+        services.AddOptions<ServerOptions>(optionsName).Configure<IServiceProvider>(
+            (options, provider) =>
             {
                 var dispatcherBuilder = new DispatcherBuilder(provider);
                 configure(dispatcherBuilder);
-
-                ServerOptions options = provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName);
                 options.ConnectionOptions.Dispatcher = dispatcherBuilder.Build();
-
-                return new Server(
-                    options,
-                    provider.GetRequiredService<IDuplexServerTransport>(),
-                    provider.GetRequiredService<IMultiplexedServerTransport>(),
-                    provider.GetService<ILogger<Server>>());
             });
+        return services.AddIceRpcServer(optionsName);
+    }
 
     /// <summary>Adds a <see cref="Server" /> to this service collection; you specify the server's options by injecting
     /// an <see cref="IOptionsMonitor{T}" /> of <see cref="ServerOptions" /> named <paramref name="optionsName" />.
