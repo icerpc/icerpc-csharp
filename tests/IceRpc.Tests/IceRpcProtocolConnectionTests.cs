@@ -1826,6 +1826,36 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [TestCaseSource(nameof(InvalidGoAwayFrames))]
+    public async Task Invalid_go_away_frame_from_peer_requests_shutdown(byte[] invalidGoAwayFrame)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+
+        // Get a hold of the client protocol connection control stream.
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        var clientControlStream = clientTransport.LastCreatedConnection.LastCreatedStream;
+
+        // Act
+        if (invalidGoAwayFrame.Length == 0)
+        {
+            clientControlStream.Output.Complete();
+        }
+        else
+        {
+            await clientControlStream.Output.WriteAsync(invalidGoAwayFrame);
+        }
+
+        // Assert
+        Assert.That(() => serverShutdownRequested, Throws.Nothing);
+    }
+
+    [TestCaseSource(nameof(InvalidGoAwayFrames))]
     public async Task Shutdown_exception_handling_on_invalid_go_away_frame_from_peer(byte[] invalidGoAwayFrame)
     {
         // Arrange
