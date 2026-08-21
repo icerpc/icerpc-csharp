@@ -1093,7 +1093,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     PipeWriter payloadWriter = response.GetPayloadWriter(streamOutput);
 
-                    // Set to true only after the payload and its continuation are fully copied.
+                    // Remains false if a copy throws or is canceled.
                     bool payloadWriterSuccess = false;
 
                     try
