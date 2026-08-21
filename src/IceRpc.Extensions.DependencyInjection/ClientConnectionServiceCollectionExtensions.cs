@@ -11,7 +11,7 @@ using System.Net.Quic;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add a client connection.</summary>
+/// <summary>Provides extension methods for <see cref="IServiceCollection" /> to add a client connection.</summary>
 public static class ClientConnectionServiceCollectionExtensions
 {
     /// <summary>Adds a <see cref="ClientConnection" /> singleton that connects to the specified server address to this
