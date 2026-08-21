@@ -1376,11 +1376,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         catch (IceRpcException)
         {
+            RefuseNewInvocations("The connection was lost");
+            _ = _shutdownRequestedTcs.TrySetResult();
+
             // We let the task complete with this expected exception.
             throw;
         }
         catch (InvalidDataException exception)
         {
+            RefuseNewInvocations("The connection was lost");
+            _ = _shutdownRequestedTcs.TrySetResult();
+
             // "expected" in the sense it should not trigger a Debug.Fail.
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
@@ -1390,6 +1396,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         catch (Exception exception)
         {
             Debug.Fail($"The read go away task failed with an unexpected exception: {exception}");
+            RefuseNewInvocations("The connection was lost");
+            _ = _shutdownRequestedTcs.TrySetResult();
             throw;
         }
     }
