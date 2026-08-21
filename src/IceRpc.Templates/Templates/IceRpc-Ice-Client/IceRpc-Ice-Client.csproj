@@ -29,4 +29,9 @@
     </PackageReference>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.globalconfig" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="certs\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
