@@ -3,8 +3,9 @@ observes. -->
 
 ## What's Changed entry
 
-<!-- This section feeds the "What's Changed" section of the GitHub release notes; it's collected from merged PRs at
-release time. It should be in one of two forms:
+<!-- This section feeds the "What's Changed" section of the GitHub release notes; it's collected from the milestone's
+merged PRs at release time. Every PR therefore needs a milestone: the release that will include this entry. The
+section should be in one of two forms:
 
 1) For a user-facing change, specify the area (usually an area label name, such as "Core", "Slic" or "Ice codec") and
 write one bullet per user-visible change:
