@@ -129,3 +129,11 @@ is no buffer to overflow, so the "zip bomb" framing (amplification of a small in
 does not apply. Bounding still happens, just at the consumer's decoder: Slice / Protobuf reject malformed bytes
 (`InvalidDataException`) and enforce per-decoder collection-allocation budgets. Don't propose a size cap inside the
 decompressor; the limit belongs to the decoder that materializes structured data from the stream. (#4507.)
+
+### 13. Activator caches pin generated-code assemblies
+
+`IActivator.FromAssembly` caches the activator it builds for each assembly marked with `IceGeneratedCodeAttribute` —
+and, through its recursive merge, for every marked assembly it references — in a process-wide cache holding strong
+references. Unloading such assemblies (e.g. with a collectible `AssemblyLoadContext`) is unsupported: the cache pins
+them for the lifetime of the process. Don't file findings proposing weak-key caching or unload-safety for this cache.
+(#4827.)
