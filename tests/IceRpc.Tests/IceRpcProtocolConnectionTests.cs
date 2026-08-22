@@ -1835,24 +1835,29 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
-        // Get a hold of the client protocol connection control stream.
-        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
-        var clientControlStream = clientTransport.LastCreatedConnection.LastCreatedStream;
+        // Get a hold of the server protocol connection control stream.
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        var serverControlStream = serverTransport.LastAcceptedConnection.LastCreatedStream;
 
         // Act
         if (invalidGoAwayFrame.Length == 0)
         {
-            clientControlStream.Output.Complete();
+            serverControlStream.Output.Complete();
         }
         else
         {
-            await clientControlStream.Output.WriteAsync(invalidGoAwayFrame);
+            await serverControlStream.Output.WriteAsync(invalidGoAwayFrame);
         }
 
         // Assert
-        Assert.That(() => serverShutdownRequested, Throws.Nothing);
+        Assert.That(() => clientShutdownRequested, Throws.Nothing);
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        Assert.That(
+            () => sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationRefused));
     }
 
     [TestCaseSource(nameof(InvalidGoAwayFrames))]
