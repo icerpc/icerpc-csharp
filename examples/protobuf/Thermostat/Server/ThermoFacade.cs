@@ -72,21 +72,28 @@ internal sealed partial class ThermoFacade : IThermostatService
             // We stop yielding new values when the server shuts down or the client disconnects or stops reading.
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken, cancellationToken);
 
-            while (!cts.IsCancellationRequested)
+            try
             {
-                Reading reading;
-                try
+                while (!cts.IsCancellationRequested)
                 {
-                    reading = await channel.Reader.ReadAsync(cts.Token);
+                    Reading reading;
+                    try
+                    {
+                        reading = await channel.Reader.ReadAsync(cts.Token);
+                    }
+                    catch
+                    {
+                        break; // while
+                    }
+                    yield return reading;
                 }
-                catch
-                {
-                    break; // while
-                }
-                yield return reading;
             }
-
-            RemoveChannelWriter(node);
+            finally
+            {
+                // The consumer can dispose the enumerator while it's suspended at a yield return; only the
+                // finally block runs then.
+                RemoveChannelWriter(node);
+            }
         }
     }
 
@@ -146,14 +153,22 @@ internal sealed partial class ThermoFacade : IThermostatService
         {
             // Expected on shutdown or when superseded by a newer publish task.
         }
-
-        lock (_mutex)
+        catch (IceRpcException exception)
         {
-            // Cleanup unless a new publish task has already disposed publishCts.
-            if (_publishCts == publishCts)
+            // Expected when the device connection is lost. This method's task is not awaited, so we must not let
+            // the exception escape.
+            Console.WriteLine($"Stopped publishing readings: {exception.Message}");
+        }
+        finally
+        {
+            lock (_mutex)
             {
-                publishCts.Dispose();
-                _publishCts = null;
+                // Cleanup unless a new publish task has already disposed publishCts.
+                if (_publishCts == publishCts)
+                {
+                    publishCts.Dispose();
+                    _publishCts = null;
+                }
             }
         }
     }
