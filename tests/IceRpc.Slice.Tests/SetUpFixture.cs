@@ -3,7 +3,7 @@
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 
-namespace IceRpc.Logger.Tests;
+namespace IceRpc.Slice.Tests;
 
 [SetUpFixture]
 public sealed class SetUpFixture
