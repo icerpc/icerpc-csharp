@@ -14,9 +14,9 @@ if (args.Length < 1)
 }
 
 int serverInstances;
-if (!int.TryParse(args[0], out serverInstances))
+if (!int.TryParse(args[0], out serverInstances) || serverInstances < 1)
 {
-    Console.WriteLine($"Invalid server instances argument '{args[0]}', expected a number");
+    Console.WriteLine($"Invalid server instances argument '{args[0]}', expected a positive number");
     return;
 }
 

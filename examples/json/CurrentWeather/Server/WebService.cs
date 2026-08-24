@@ -42,10 +42,11 @@ internal class WebService : IDispatcher
     /// <returns>The outgoing IceRPC response.</returns>
     private async ValueTask<OutgoingResponse> GetAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        // Read the query string.
-        ReadResult readResult = await request.Payload.ReadAtLeastAsync(MaxQueryLength, cancellationToken);
-        if (!readResult.IsCompleted)
+        // Read the query string. Reading one byte more than MaxQueryLength tells us if the query is too long.
+        ReadResult readResult = await request.Payload.ReadAtLeastAsync(MaxQueryLength + 1, cancellationToken);
+        if (readResult.Buffer.Length > MaxQueryLength)
         {
+            request.Payload.AdvanceTo(readResult.Buffer.End);
             throw new DispatchException(StatusCode.InvalidData, "Query string too long.");
         }
 

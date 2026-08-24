@@ -18,7 +18,7 @@ var downloader = new DownloaderProxy(connection);
 PipeReader image = await downloader.DownloadImageAsync();
 
 // Create the file, or overwrite the file if it already exists.
-using FileStream fs = File.Create("Client/downloads/downloaded_earth.png");
+using FileStream fs = File.Create("Client/downloads/downloaded_earth.jpg");
 
 // Copy the image stream to the file stream.
 await image.CopyToAsync(fs);
