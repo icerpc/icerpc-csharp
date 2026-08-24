@@ -64,19 +64,19 @@ public sealed class IceFeature : IIceFeature
         {
             throw new ArgumentOutOfRangeException(
                 nameof(maxCollectionAllocation),
-                $"The value of {nameof(maxCollectionAllocation)} must be 0, a positive value, or -1.");
+                $"The value of {nameof(maxCollectionAllocation)} must be greater than or equal to 0, or -1.");
         }
         if (maxDepth is < -1 or 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(maxDepth),
-                $"The value of {nameof(maxDepth)} must be a positive value or -1.");
+                $"The value of {nameof(maxDepth)} must be greater than 0, or -1.");
         }
         if (maxPayloadSize is < -1 or 0 or int.MaxValue)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(maxPayloadSize),
-                $"The value of {nameof(maxPayloadSize)} must be a positive value smaller than int.MaxValue, or -1.");
+                $"The value of {nameof(maxPayloadSize)} must be greater than 0 and less than int.MaxValue, or -1.");
         }
         if (maxCollectionAllocation == -1 && maxPayloadSize > int.MaxValue / 8)
         {

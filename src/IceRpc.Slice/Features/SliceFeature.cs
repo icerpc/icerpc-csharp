@@ -49,13 +49,13 @@ public sealed class SliceFeature : ISliceFeature
         {
             throw new ArgumentOutOfRangeException(
                 nameof(maxCollectionAllocation),
-                $"The value of {nameof(maxCollectionAllocation)} must be 0, a positive value, or -1.");
+                $"The value of {nameof(maxCollectionAllocation)} must be greater than or equal to 0, or -1.");
         }
         if (maxSegmentSize is < -1 or 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(maxSegmentSize),
-                $"The value of {nameof(maxSegmentSize)} must be a positive value or -1.");
+                $"The value of {nameof(maxSegmentSize)} must be greater than 0, or -1.");
         }
         if (maxCollectionAllocation == -1 && maxSegmentSize > int.MaxValue / 8)
         {
