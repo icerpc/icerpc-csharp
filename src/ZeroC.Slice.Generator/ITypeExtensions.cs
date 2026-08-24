@@ -238,7 +238,11 @@ internal static class ITypeExtensions
                 return typeRef.GetEncodeLambda(isOptional: false, currentNamespace);
             }
             string csType = typeRef.FieldTypeString(true, currentNamespace);
-            string valueParam = typeRef.IsValueType ? "value!.Value" : "value!";
+
+            // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
+            string valueParam = type is CustomType
+                ? "(value ?? default!)"
+                : typeRef.IsValueType ? "value!.Value" : "value!";
             CodeBlock encodeBody = type.EncodeExpression(currentNamespace, valueParam);
             return $$"""
                 (ref SliceEncoder encoder, {{csType}} value) =>

@@ -38,3 +38,12 @@ struct OptionalCollectionResults {
 
     r10: Result<Sequence<Dictionary<string, bool?>?>?, string>?
 }
+
+// Just to test that the generated code compiles.
+struct OptionalCustomTypeResults {
+    r1: Result<WellKnownTypes::TimeStamp?, string>
+    r2: Result<string, WellKnownTypes::TimeStamp?>
+    r3: Result<WellKnownTypes::Uri?, string>
+    r4: Result<string, WellKnownTypes::Uri?>
+    r5: Result<CustomType?, string>
+}

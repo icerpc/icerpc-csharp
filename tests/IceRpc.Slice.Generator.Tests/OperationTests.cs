@@ -308,6 +308,35 @@ public partial class OperationTests
     }
 
     [Test]
+    public async Task Operation_with_optional_time_stamp_stream_argument_and_return()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MyOperationsAService());
+        var proxy = new MyOperationsAProxy(invoker);
+        var timeStamp = new DateTime(2026, 8, 24, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        var stream = await proxy.OpWithOptionalTimeStampStreamArgumentAndReturnAsync(GetDataAsync(timeStamp));
+
+        // Assert
+        var enumerator = stream.GetAsyncEnumerator();
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(timeStamp));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.False);
+
+        static async IAsyncEnumerable<DateTime?> GetDataAsync(DateTime timeStamp)
+        {
+            await Task.Yield();
+            yield return timeStamp;
+            yield return null;
+        }
+    }
+
+    [Test]
     public async Task Operation_with_string_stream_argument_and_return()
     {
         // Arrange
@@ -770,6 +799,11 @@ public partial class OperationTests
 
         public ValueTask<IAsyncEnumerable<string?>> OpWithOptionalStringStreamArgumentAndReturnAsync(
             IAsyncStream<string?> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+
+        public ValueTask<IAsyncEnumerable<DateTime?>> OpWithOptionalTimeStampStreamArgumentAndReturnAsync(
+            IAsyncStream<DateTime?> p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
 
