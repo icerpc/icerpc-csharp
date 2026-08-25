@@ -20,7 +20,7 @@ internal partial class EarthImageStore : IUploaderService
         try
         {
             // Create the file, or overwrite if the file exists.
-            using FileStream fs = File.Create("Server/uploads/uploaded_earth.png");
+            using FileStream fs = File.Create("Server/uploads/uploaded_earth.jpg");
 
             // Copy the image to the file stream.
             await image.CopyToAsync(fs, cancellationToken);
