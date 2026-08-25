@@ -70,6 +70,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
 
             // Add an additional stream for the icerpc protocol control stream.
             MaxUnidirectionalStreams = connectionOptions.Dispatcher is null ? 1 :
+                connectionOptions.MaxIceRpcUnidirectionalStreams == int.MaxValue ? int.MaxValue :
                 connectionOptions.MaxIceRpcUnidirectionalStreams + 1,
 
             Pool = connectionOptions.Pool,
