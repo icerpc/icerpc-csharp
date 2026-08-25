@@ -6,7 +6,7 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
+    <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
     <PackageReference Include="Google.Protobuf" />
     <ProjectReference Include="../IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj"
                       Condition="'$(DocFxBuild)' != 'true'"
