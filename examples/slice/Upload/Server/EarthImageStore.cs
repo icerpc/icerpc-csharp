@@ -17,14 +17,19 @@ internal partial class EarthImageStore : IUploaderService
     {
         Console.WriteLine("Reading image...");
 
-        // Create the file, or overwrite if the file exists.
-        using FileStream fs = File.Create("Server/uploads/uploaded_earth.jpg");
+        try
+        {
+            // Create the file, or overwrite if the file exists.
+            using FileStream fs = File.Create("Server/uploads/uploaded_earth.jpg");
 
-        // Copy the image to the file stream.
-        await image.CopyToAsync(fs, cancellationToken);
-
-        // Complete and cleanup the pipe reader.
-        image.Complete();
+            // Copy the image to the file stream.
+            await image.CopyToAsync(fs, cancellationToken);
+        }
+        finally
+        {
+            // Complete and cleanup the pipe reader.
+            image.Complete();
+        }
 
         Console.WriteLine("Image fully read and saved to disk.");
     }
