@@ -53,17 +53,6 @@ internal sealed partial class ThermoFacade : IThermostatService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        // Each call to MonitorAsync gets its own bounded channel with a single element.
-        var channel = Channel.CreateBounded<Reading>(
-            new BoundedChannelOptions(1)
-            {
-                SingleReader = true,
-                SingleWriter = true,
-                FullMode = BoundedChannelFullMode.DropOldest
-            });
-
-        LinkedListNode<ChannelWriter<Reading>> node = AddChannelWriter(channel.Writer);
-
         return new(ReadAsync(CancellationToken.None));
 
         // The injected cancellation token is canceled when the client disconnects or stops reading.
@@ -71,6 +60,19 @@ internal sealed partial class ThermoFacade : IThermostatService
         {
             // We stop yielding new values when the server shuts down or the client disconnects or stops reading.
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken, cancellationToken);
+
+            // Each enumeration gets its own bounded channel with a single element.
+            var channel = Channel.CreateBounded<Reading>(
+                new BoundedChannelOptions(1)
+                {
+                    SingleReader = true,
+                    SingleWriter = true,
+                    FullMode = BoundedChannelFullMode.DropOldest
+                });
+
+            // We pair AddChannelWriter with RemoveChannelWriter in the finally block: both run when the enumeration
+            // starts, or neither runs when the consumer disposes the enumerator without ever starting it.
+            LinkedListNode<ChannelWriter<Reading>> node = AddChannelWriter(channel.Writer);
 
             try
             {
