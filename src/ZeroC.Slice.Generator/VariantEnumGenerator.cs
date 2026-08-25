@@ -134,7 +134,7 @@ internal static class VariantEnumGenerator
 
         // Build parameter list for the record constructor.
         string nameWithParams = variant.Fields.Count > 0
-            ? $"{variantName}({BuildParameterList(variant.Fields, "")})"
+            ? $"{variantName}({BuildParameterList(variant.Fields, currentNamespace)})"
             : variantName;
 
         return new ContainerBuilder("partial record class", nameWithParams)
@@ -324,13 +324,25 @@ internal static class VariantEnumGenerator
         return code;
     }
 
+    /// <summary>Builds the positional parameter list of a variant's record declaration: one parameter per field, with
+    /// the field's <c>cs::attribute</c> and <c>deprecated</c> attributes emitted on the property that the record
+    /// generates for the parameter.</summary>
     private static string BuildParameterList(ImmutableList<Field> fields, string currentNamespace)
     {
         return string.Join(", ", fields.Select(f =>
         {
+            string attributes = string.Concat(
+                f.Attributes.CSAttributes().Select(attr => $"[property: {attr.Args[0]}] "));
+            if (f.Attributes.IsDeprecated)
+            {
+                attributes += f.Attributes.DeprecatedMessage is string message ?
+                    $"[property: global::System.Obsolete(\"{message}\")] " :
+                    "[property: global::System.Obsolete] ";
+            }
+
             string typeString = f.DataType.FieldTypeString(f.DataTypeIsOptional, currentNamespace);
             string paramName = f.Name;
-            return $"{typeString} {paramName}";
+            return $"{attributes}{typeString} {paramName}";
         }));
     }
 }
