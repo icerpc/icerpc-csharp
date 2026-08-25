@@ -23,7 +23,7 @@ internal static class PipeReaderExtensions
         int maxSize,
         CancellationToken cancellationToken)
     {
-        Debug.Assert(maxSize is > 0 and < int.MaxValue);
+        Debug.Assert(maxSize is >= 0 and < int.MaxValue);
 
         // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
         // call TryReadFullPayload.
@@ -59,7 +59,7 @@ internal static class PipeReaderExtensions
         int maxSize,
         out ReadResult readResult)
     {
-        Debug.Assert(maxSize is > 0 and < int.MaxValue);
+        Debug.Assert(maxSize is >= 0 and < int.MaxValue);
 
         if (reader.TryRead(out readResult))
         {

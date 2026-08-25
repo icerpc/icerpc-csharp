@@ -48,8 +48,8 @@ public sealed class IceFeature : IIceFeature
     /// is equivalent to <see cref="Default" />.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxCollectionAllocation" /> is a
     /// negative value other than <c>-1</c>, when <paramref name="maxDepth" /> is <c>0</c> or a negative value other
-    /// than <c>-1</c>, when <paramref name="maxPayloadSize" /> is <c>0</c>, <see cref="int.MaxValue" /> or a negative
-    /// value other than <c>-1</c>, or when <paramref name="maxPayloadSize" /> is greater than <c>int.MaxValue / 8</c>
+    /// than <c>-1</c>, when <paramref name="maxPayloadSize" /> is <see cref="int.MaxValue" /> or a negative value other
+    /// than <c>-1</c>, or when <paramref name="maxPayloadSize" /> is greater than <c>int.MaxValue / 8</c>
     /// (256 MB) while <paramref name="maxCollectionAllocation" /> is <c>-1</c>.</exception>
     public IceFeature(
         IActivator? activator = null,
@@ -72,11 +72,11 @@ public sealed class IceFeature : IIceFeature
                 nameof(maxDepth),
                 $"The value of {nameof(maxDepth)} must be greater than 0, or -1.");
         }
-        if (maxPayloadSize is < -1 or 0 or int.MaxValue)
+        if (maxPayloadSize is < -1 or int.MaxValue)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(maxPayloadSize),
-                $"The value of {nameof(maxPayloadSize)} must be greater than 0 and less than int.MaxValue, or -1.");
+                $"The value of {nameof(maxPayloadSize)} must be greater than or equal to 0 and less than int.MaxValue, or -1.");
         }
         if (maxCollectionAllocation == -1 && maxPayloadSize > int.MaxValue / 8)
         {
@@ -93,7 +93,7 @@ public sealed class IceFeature : IIceFeature
         MaxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
             (maxPayloadSize >= 0 ? 8 * maxPayloadSize : defaultFeature.MaxCollectionAllocation);
 
-        MaxDepth = maxDepth >= 0 ? maxDepth : defaultFeature.MaxDepth;
+        MaxDepth = maxDepth > 0 ? maxDepth : defaultFeature.MaxDepth;
 
         MaxPayloadSize = maxPayloadSize >= 0 ? maxPayloadSize : defaultFeature.MaxPayloadSize;
 
