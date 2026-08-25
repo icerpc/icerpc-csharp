@@ -32,7 +32,9 @@ public readonly record struct ServerAddress
             {
                 throw new ArgumentException($"Cannot set {nameof(Host)} to '{value}'.", nameof(value));
             }
-            _host = value;
+            // Brackets are only valid around an IPv6 address; store the address without them, like the Uri
+            // constructor does.
+            _host = value.StartsWith('[') ? value[1..^1] : value;
             OriginalUri = null; // new host invalidates OriginalUri
         }
     }
