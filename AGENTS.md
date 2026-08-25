@@ -57,8 +57,9 @@ For dismissals newer than this section, also consult:
 data. Code-injection framing does not apply: anyone who can author IDL in a project can already author C#. Malformed
 values (cs::type, cs::attribute, cs::identifier, csharp_namespace, deprecated message, attribute payloads, deeply
 nested types, slicec symbol output) surface as C# compiler errors on the generated source, which is an acceptable
-failure mode.
-(See #4444, #4449, #4459, #4467, #4470, #4485, #4495, #4496, #4497, #4502, #4503.)
+failure mode. In particular, `cs::identifier` emits exactly the string the user specifies: the generators do not
+validate, `@`-escape, or otherwise fix a "bad" identifier such as a C# keyword.
+(See #4444, #4449, #4459, #4467, #4470, #4485, #4495, #4496, #4497, #4502, #4503, #4813.)
 
 ### 2. Trusted toolchain downloads
 
@@ -147,3 +148,12 @@ and, through its recursive merge, for every marked assembly it references — in
 references. Unloading such assemblies (e.g. with a collectible `AssemblyLoadContext`) is unsupported: the cache pins
 them for the lifetime of the process. Don't file findings proposing weak-key caching or unload-safety for this cache.
 (#4827.)
+
+### 14. IceRpc and ZeroC are reserved namespaces
+
+`IceRpc` and `ZeroC` are reserved namespaces: a project that consumes generated code must not define its own types or
+namespaces with these names. Generated code relies on this reservation — it references framework namespaces with
+ordinary `using` directives and unqualified names, not `global::` qualification on every reference. Shadowing a
+reserved namespace breaks the compilation of the generated code; that's an error in the consuming project, not in the
+generators. Don't file findings proposing to `global::`-qualify the generated references to these namespaces as a
+defense against shadowing. (#4813.)
