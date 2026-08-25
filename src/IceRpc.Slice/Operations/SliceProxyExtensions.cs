@@ -65,6 +65,8 @@ public static class SliceProxyExtensions
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
+            payload.Complete();
+            payloadContinuation?.Complete();
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
@@ -135,6 +137,8 @@ public static class SliceProxyExtensions
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
+            payload.Complete();
+            payloadContinuation?.Complete();
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 

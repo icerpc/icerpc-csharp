@@ -66,6 +66,7 @@ public static class IceProxyExtensions
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
+            payload.Complete();
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
@@ -135,6 +136,7 @@ public static class IceProxyExtensions
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
+            payload.Complete();
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
