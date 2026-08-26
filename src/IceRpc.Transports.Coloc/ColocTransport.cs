@@ -28,8 +28,18 @@ public sealed class ColocTransport
 
     /// <summary>Constructs a <see cref="ColocTransport" />.</summary>
     /// <param name="options">The options to configure the Coloc transport.</param>
+    /// <exception cref="ArgumentException">Thrown when the <see cref="ColocTransportOptions.ResumeWriterThreshold" />
+    /// of <paramref name="options" /> is greater than its <see cref="ColocTransportOptions.PauseWriterThreshold"
+    /// />.</exception>
     public ColocTransport(ColocTransportOptions options)
     {
+        if (options.ResumeWriterThreshold > options.PauseWriterThreshold)
+        {
+            throw new ArgumentException(
+                $"The value of {nameof(ColocTransportOptions.ResumeWriterThreshold)} cannot be greater than the value of {nameof(ColocTransportOptions.PauseWriterThreshold)}.",
+                nameof(options));
+        }
+
         var listeners = new ConcurrentDictionary<(string Host, ushort Port), ColocListener>();
         ClientTransport = new ColocClientTransport(listeners, options);
         ServerTransport = new ColocServerTransport(listeners, options);

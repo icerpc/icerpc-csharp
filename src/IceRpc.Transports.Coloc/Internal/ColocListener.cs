@@ -6,6 +6,11 @@ using System.IO.Pipelines;
 using System.Net;
 using System.Threading.Channels;
 
+using ConnectRequest = (
+    System.Threading.Tasks.TaskCompletionSource<System.IO.Pipelines.PipeReader> Tcs,
+    System.IO.Pipelines.PipeReader ClientPipeReader,
+    System.Threading.CancellationTokenRegistration Registration);
+
 namespace IceRpc.Transports.Coloc.Internal;
 
 /// <summary>The listener implementation for the colocated transport.</summary>
@@ -30,7 +35,9 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
     //   pipe reader is set as the result. ClientColocConnection.ConnectAsync waits on the task completion source task.
     // - the client connection pipe reader provided to the server connection when the server connection is created by
     //   AcceptAsync.
-    private readonly Channel<(TaskCompletionSource<PipeReader>, PipeReader)> _channel;
+    // - the cancellation token registration that cancels the TaskCompletionSource; it's disposed when the request is
+    //   dequeued.
+    private readonly Channel<ConnectRequest> _channel;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
@@ -45,16 +52,16 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
         {
             while (true)
             {
-                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader) =
-                    await _channel.Reader.ReadAsync(cts.Token).ConfigureAwait(false);
+                ConnectRequest request = await _channel.Reader.ReadAsync(cts.Token).ConfigureAwait(false);
+                request.Registration.Dispose();
 
                 var serverPipe = new Pipe(_pipeOptions);
-                if (tcs.TrySetResult(serverPipe.Reader))
+                if (request.Tcs.TrySetResult(serverPipe.Reader))
                 {
                     var serverConnection = new ServerColocConnection(
                         TransportAddress,
                         serverPipe.Writer,
-                        clientPipeReader);
+                        request.ClientPipeReader);
                     return (serverConnection, _networkAddress);
                 }
                 else
@@ -95,8 +102,9 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
 
             // Complete all the queued client connection establishment requests with IceRpcError.ConnectionRefused.
             // Use TrySetException in case the task has been already canceled.
-            while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader) item))
+            while (_channel.Reader.TryRead(out ConnectRequest item))
             {
+                item.Registration.Dispose();
                 item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
             }
         }
@@ -127,7 +135,7 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
 
         // Create a bounded channel with a capacity that matches the listen backlog, and with
         // the default concurrency settings that allow multiple reader and writers.
-        _channel = Channel.CreateBounded<(TaskCompletionSource<PipeReader>, PipeReader)>(
+        _channel = Channel.CreateBounded<ConnectRequest>(
             new BoundedChannelOptions(colocTransportOptions.ListenBacklog));
     }
 
@@ -147,14 +155,16 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
         // We use RunContinuationsAsynchronously to avoid the ConnectAsync continuation end up running in the AcceptAsync
         // loop that completes this tcs.
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (_channel.Writer.TryWrite((tcs, clientPipeReader)))
-        {
+        CancellationTokenRegistration registration =
             cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+        if (_channel.Writer.TryWrite((tcs, clientPipeReader, registration)))
+        {
             serverPipeReaderTask = tcs.Task;
             return true;
         }
         else
         {
+            registration.Dispose();
             serverPipeReaderTask = null;
             return false;
         }
