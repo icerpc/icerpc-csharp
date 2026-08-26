@@ -29,7 +29,8 @@ public static class LocatorPipelineExtensions
             new LocatorLocationResolver(
                 locator,
                 new LocatorOptions(),
-                loggerFactory.CreateLogger<LocatorInterceptor>()));
+                loggerFactory is NullLoggerFactory ? NullLogger.Instance :
+                    loggerFactory.CreateLogger<LocatorInterceptor>()));
 
     /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified location resolver.
     /// </summary>
