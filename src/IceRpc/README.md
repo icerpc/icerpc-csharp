@@ -7,10 +7,13 @@ and package represent the base assembly and package for the [C# implementation o
 
 ## QUIC Transport
 
-IceRPC's default transport is QUIC, a new UDP-based multiplexed transport used by HTTP/3 and other modern application
+IceRPC's default multiplexed transport is QUIC, a new UDP-based transport used by HTTP/3 and other modern application
 protocols.
 
-IceRPC has the same platform dependencies as `System.Net.Quic`. See .NET's [QUIC Platform dependencies][platform].
+The QUIC transport implementation is included in the main IceRpc assembly, so you can build an application that uses
+QUIC on any platform. At runtime, this implementation relies on `System.Net.Quic`, which works out of the box on
+Windows but requires extra setup steps on Linux and macOS, as documented in .NET's
+[QUIC Platform dependencies][platform].
 
 ## Sample Code
 

@@ -8,6 +8,9 @@ on a different server address. The retry interceptor will automatically retry fa
 max attempts. If the retry interceptor reaches the max retry attempts, or if it exhausted all available server
 addresses, it gives up on retrying and reports the failure.
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -48,3 +51,5 @@ attempts, or if it has exhausted all available server addresses.
 
 You can also stop some of the servers while the client is running. The client will keep sending invocations unless all
 remaining servers throw `DispatchException(StatusCode.Unavailable)`.
+
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies

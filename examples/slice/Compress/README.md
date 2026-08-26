@@ -3,6 +3,9 @@
 This example application illustrates how to use the compress interceptor and middleware to
 transparently compress and decompress requests and responses.
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -22,3 +25,5 @@ In a separate terminal, start the Client program:
 cd Client
 dotnet run
 ```
+
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies

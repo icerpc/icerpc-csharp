@@ -49,6 +49,9 @@ Server also calls a service on the device that implements Protobuf service `Ther
 
 ## Build and run
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client, server and device with:
 
 ``` shell
@@ -86,3 +89,5 @@ set point to 70°F with:
 cd Client
 dotnet run set 70
 ```
+
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
