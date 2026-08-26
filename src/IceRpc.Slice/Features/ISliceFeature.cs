@@ -19,11 +19,13 @@ public interface ISliceFeature
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     /// <value>The maximum collection allocation.</value>
+    /// <remarks>Implementations must return a value greater than or equal to <c>0</c>.</remarks>
     int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
     /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>
     /// <value>The maximum size of a Slice payload segment, in bytes.</value>
+    /// <remarks>Implementations must return a value greater than <c>0</c>.</remarks>
     int MaxSegmentSize { get; }
 }
