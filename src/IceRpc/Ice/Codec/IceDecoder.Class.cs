@@ -93,7 +93,12 @@ public ref partial struct IceDecoder
             Debug.Assert(_classContext.Current.PosAfterIndirectionTable is not null &&
                          _classContext.Current.IndirectionTable is not null);
 
-            _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);
+            long count = _classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed;
+            if (count < 0)
+            {
+                throw new InvalidDataException("The slice fields extend beyond the declared slice size.");
+            }
+            _reader.Advance(count);
             _classContext.Current.PosAfterIndirectionTable = null;
             _classContext.Current.IndirectionTable = null;
         }
@@ -279,7 +284,12 @@ public ref partial struct IceDecoder
                 // else remains empty
             }
 
-            _reader.Advance(savedPos - _reader.Consumed);
+            long count = savedPos - _reader.Consumed;
+            if (count < 0)
+            {
+                throw new InvalidDataException("An indirection table extends beyond the end of its slice.");
+            }
+            _reader.Advance(count);
         }
 
         if (decodeIndirectionTable)
@@ -527,7 +537,9 @@ public ref partial struct IceDecoder
             Debug.Assert(_classContext.Current.PosAfterIndirectionTable is not null);
 
             // Move past indirection table
-            _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);
+            long count = _classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed;
+            Debug.Assert(count > 0);
+            _reader.Advance(count);
             _classContext.Current.PosAfterIndirectionTable = null;
         }
 
