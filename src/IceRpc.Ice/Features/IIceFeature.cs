@@ -33,8 +33,8 @@ public interface IIceFeature
 
     /// <summary>Gets the maximum size of an Ice-encoded payload, in bytes. An Ice-encoded payload corresponds to the
     /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
-    /// <value>The maximum size of an Ice-encoded payload, in bytes. Must be greater than <c>0</c> and less than
-    /// <see cref="int.MaxValue" />.</value>
+    /// <value>The maximum size of an Ice-encoded payload, in bytes. Must be greater than or equal to <c>0</c> and less
+    /// than <see cref="int.MaxValue" />.</value>
     /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
     /// header with the ice protocol.</remarks>
     int MaxPayloadSize { get; }
