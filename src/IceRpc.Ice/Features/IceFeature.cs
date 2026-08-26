@@ -21,17 +21,15 @@ public sealed class IceFeature : IIceFeature
     public IceEncodeOptions? EncodeOptions { get; }
 
     /// <inheritdoc/>
+    /// <value>The maximum collection allocation. Defaults to 8 times <see cref="MaxPayloadSize" />.</value>
     public int MaxCollectionAllocation { get; }
 
-    /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
+    /// <inheritdoc/>
     /// <value>The maximum depth. Defaults to <c>100</c>.</value>
     public int MaxDepth { get; }
 
-    /// <summary>Gets the maximum size of an Ice-encoded payload, in bytes. An Ice-encoded payload corresponds to the
-    /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
+    /// <inheritdoc/>
     /// <value>The maximum size of an Ice-encoded payload, in bytes. Defaults to <c>1</c> MB.</value>
-    /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
-    /// header with the ice protocol.</remarks>
     public int MaxPayloadSize { get; }
 
     /// <summary>Constructs an Ice feature.</summary>

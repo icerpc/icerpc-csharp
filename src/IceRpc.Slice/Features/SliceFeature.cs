@@ -17,12 +17,11 @@ public sealed class SliceFeature : ISliceFeature
     public SliceEncodeOptions? EncodeOptions { get; }
 
     /// <inheritdoc/>
+    /// <value>The maximum collection allocation. Defaults to 8 times <see cref="MaxSegmentSize" />.</value>
     public int MaxCollectionAllocation { get; }
 
-    /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
-    /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
-    /// variable-size elements.</summary>
-    /// <value>The maximum segment size. Defaults to <c>1</c> MB.</value>
+    /// <inheritdoc/>
+    /// <value>The maximum size of a Slice payload segment, in bytes. Defaults to <c>1</c> MB.</value>
     public int MaxSegmentSize { get; }
 
     /// <summary>Constructs a Slice feature.</summary>

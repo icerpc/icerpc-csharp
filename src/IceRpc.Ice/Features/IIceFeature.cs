@@ -24,18 +24,20 @@ public interface IIceFeature
     IceEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
-    /// <value>The maximum collection allocation. Must be greater than or equal to <c>0</c>.</value>
+    /// <value>The maximum collection allocation.</value>
+    /// <remarks>Implementations must return a value greater than or equal to <c>0</c>.</remarks>
     int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
-    /// <value>The maximum depth. Must be greater than <c>0</c>.</value>
+    /// <value>The maximum depth.</value>
+    /// <remarks>Implementations must return a value greater than <c>0</c>.</remarks>
     int MaxDepth { get; }
 
     /// <summary>Gets the maximum size of an Ice-encoded payload, in bytes. An Ice-encoded payload corresponds to the
     /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
-    /// <value>The maximum size of an Ice-encoded payload, in bytes. Must be greater than or equal to <c>0</c> and less
-    /// than <see cref="int.MaxValue" />.</value>
+    /// <value>The maximum size of an Ice-encoded payload, in bytes.</value>
     /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
-    /// header with the ice protocol.</remarks>
+    /// header with the ice protocol. Implementations must return a value greater than or equal to <c>0</c> and less
+    /// than <see cref="int.MaxValue" />.</remarks>
     int MaxPayloadSize { get; }
 }
