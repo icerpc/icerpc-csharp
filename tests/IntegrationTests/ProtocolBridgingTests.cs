@@ -118,8 +118,6 @@ public sealed partial class ProtocolBridgingTests
         {
             // First create an outgoing request to _target from the incoming request:
 
-            Protocol targetProtocol = _target.ServiceAddress.Protocol!;
-
             using var outgoingRequest = new OutgoingRequest(_target.ServiceAddress)
             {
                 IsOneway = request.IsOneway,
@@ -134,18 +132,14 @@ public sealed partial class ProtocolBridgingTests
 
             // Then create an outgoing response from the incoming response.
 
-            // TODO: copy fields memory?
-            var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
-                    incomingResponse.Fields.Select(
-                        pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
-                            pair.Key,
-                            new OutgoingFieldValue(pair.Value))));
+            // A protocol bridge cannot forward response fields (the ice protocol doesn't support them), so this
+            // forwarder doesn't forward fields at all and expects the target to return none.
+            Assert.That(incomingResponse.Fields, Is.Empty);
 
             if (incomingResponse.StatusCode == StatusCode.Ok)
             {
                 return new OutgoingResponse(request)
                 {
-                    Fields = fields,
                     Payload = incomingResponse.DetachPayload()
                 };
             }
@@ -153,7 +147,6 @@ public sealed partial class ProtocolBridgingTests
             {
                 return new OutgoingResponse(request, incomingResponse.StatusCode, incomingResponse.ErrorMessage!)
                 {
-                    Fields = fields,
                     Payload = incomingResponse.DetachPayload()
                 };
             }
