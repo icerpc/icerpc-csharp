@@ -294,7 +294,8 @@ public static class IceProxyIceDecoderExtensions
     {
         var body = new TcpServerAddressBody(ref decoder);
 
-        if (Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)
+        // The host name in an Ice tcp/ssl server address is never bracketed, even when it's an IPv6 address.
+        if (body.Host.StartsWith('[') || Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)
         {
             throw new InvalidDataException($"Received service address with invalid host '{body.Host}'.");
         }

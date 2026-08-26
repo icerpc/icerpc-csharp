@@ -176,18 +176,20 @@ public class ServerAddressTests
         Assert.That(serverAddress.Params, Is.EquivalentTo(parameters));
     }
 
-    /// <summary>Verifies that setting the host works with a supported host name.</summary>
+    /// <summary>Verifies that setting the host works with a supported host name, and that an IPv6 address specified
+    /// with brackets is stored without them.</summary>
     /// <param name="host">The value to set the <see cref="ServerAddress.Host" /> property to.</param>
-    [TestCase("localhost")]
-    [TestCase("[::0]")]
-    [TestCase("::1")]
-    public void Setting_the_server_address_host(string host)
+    /// <param name="expectedHost">The expected value of the <see cref="ServerAddress.Host" /> property.</param>
+    [TestCase("localhost", "localhost")]
+    [TestCase("[::0]", "::0")]
+    [TestCase("::1", "::1")]
+    public void Setting_the_server_address_host(string host, string expectedHost)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
         serverAddress = serverAddress with { Host = host };
 
-        Assert.That(serverAddress.Host, Is.EqualTo(host));
+        Assert.That(serverAddress.Host, Is.EqualTo(expectedHost));
     }
 
     [Test]
