@@ -35,14 +35,10 @@ public sealed record class ColocTransportOptions
     public int ResumeWriterThreshold
     {
         get => _resumeWriterThreshold;
-        set => _resumeWriterThreshold =
-            value < 1024 ? throw new ArgumentOutOfRangeException(
+        set => _resumeWriterThreshold = value >= 1024 ? value :
+            throw new ArgumentOutOfRangeException(
                 nameof(value),
-                $"Invalid value '{value}' for {nameof(ResumeWriterThreshold)}, it cannot be less than 1KB.") :
-            value > _pauseWriterThreshold ? throw new ArgumentException(
-                $"The value of {nameof(ResumeWriterThreshold)} cannot be greater than the value of {nameof(PauseWriterThreshold)}.",
-                nameof(value)) :
-            value;
+                $"Invalid value '{value}' for {nameof(ResumeWriterThreshold)}, it cannot be less than 1KB.");
     }
 
     private int _listenBacklog = 511;
