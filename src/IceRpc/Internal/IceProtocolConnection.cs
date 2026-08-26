@@ -398,15 +398,28 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 Debug.Assert(responseCompletionSource is not null);
                 frameReader = await responseCompletionSource.Task.WaitAsync(invocationCts.Token).ConfigureAwait(false);
 
-                if (!frameReader.TryRead(out ReadResult readResult))
+                StatusCode statusCode;
+                string? errorMessage;
+                SequencePosition consumed;
+                try
                 {
-                    throw new InvalidDataException($"Received empty response frame for request with id '{requestId}'.");
+                    if (!frameReader.TryRead(out ReadResult readResult))
+                    {
+                        throw new InvalidDataException(
+                            $"Received empty response frame for request with ID '{requestId}'.");
+                    }
+
+                    Debug.Assert(readResult.IsCompleted);
+
+                    (statusCode, errorMessage, consumed) = DecodeResponseHeader(readResult.Buffer, requestId);
                 }
-
-                Debug.Assert(readResult.IsCompleted);
-
-                (StatusCode statusCode, string? errorMessage, SequencePosition consumed) =
-                    DecodeResponseHeader(readResult.Buffer, requestId);
+                catch (InvalidDataException exception)
+                {
+                    throw new IceRpcException(
+                        IceRpcError.IceRpcError,
+                        "Received an ice response with an invalid header.",
+                        exception);
+                }
 
                 frameReader.AdvanceTo(consumed);
 
@@ -734,6 +747,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         ReadOnlySequence<byte> buffer,
         int requestId)
     {
+        if (buffer.IsEmpty)
+        {
+            throw new InvalidDataException($"Received empty response header for request with ID '{requestId}'.");
+        }
+
         var replyStatus = (ReplyStatus)buffer.FirstSpan[0];
 
         if (replyStatus <= ReplyStatus.UserException)
@@ -744,7 +762,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             if (buffer.Length < headerSize)
             {
-                throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
+                throw new InvalidDataException($"Received invalid frame header for request with ID '{requestId}'.");
             }
 
             EncapsulationHeader encapsulationHeader =
