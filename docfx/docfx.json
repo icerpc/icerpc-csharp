@@ -44,7 +44,7 @@
       }
     ],
     "sitemap": {
-      "baseUrl": "https://docs.icerpc.dev"
+      "baseUrl": "https://code.icerpc.dev/csharp/main/api"
     },
     "overwrite": [
       {

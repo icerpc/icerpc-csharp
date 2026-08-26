@@ -7,6 +7,9 @@ activity context is propagated with the request using the trace context request 
 an activity per dispatch. When the trace context request field is present in the incoming request the telemetry
 middleware restores the activity context and uses it to set the parent activity of the dispatch activity it starts.
 
+The telemetry interceptor and middleware create activities only for requests that use the `icerpc` protocol; they
+don't create activities for requests that use the `ice` protocol.
+
 [Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
