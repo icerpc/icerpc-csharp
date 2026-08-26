@@ -10,6 +10,7 @@ public interface IProtobufFeature
 {
     /// <summary>Gets the maximum length of an encoded Protobuf message, in bytes.</summary>
     /// <value>The maximum length of a Protobuf message, in bytes.</value>
+    /// <remarks>Implementations must return a value greater than or equal to <c>0</c>.</remarks>
     int MaxMessageLength { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
