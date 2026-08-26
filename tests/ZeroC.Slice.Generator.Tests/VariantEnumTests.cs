@@ -166,6 +166,18 @@ public class VariantEnumTests
             Assert.That(decoder.Consumed, Is.EqualTo(1 + 1 + 1 + name.Length + 4 + 4));
         }
     }
+
+    [Test]
+    public void Cs_attribute_on_variant_field()
+    {
+        // Arrange / Act
+        var propertyInfo = typeof(ShapeWithFieldAttributes.Circle).GetProperty("Radius")!;
+        var attributes = propertyInfo.GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false);
+        var description = ((System.ComponentModel.DescriptionAttribute)attributes[0]).Description;
+
+        // Assert
+        Assert.That(description, Is.EqualTo("The radius"));
+    }
 }
 
 [AttributeUsage(AttributeTargets.Class)]
