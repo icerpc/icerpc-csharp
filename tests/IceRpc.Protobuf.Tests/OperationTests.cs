@@ -326,8 +326,8 @@ public partial class OperationTests
         await client.UnaryOpAsync(message);
 
         // Assert
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(await requestPayload!.Completed, Is.Null);
+        Assert.That(await responsePayload!.Completed, Is.Null);
     }
 
     [Test]
@@ -361,8 +361,8 @@ public partial class OperationTests
 
         // Act//Assert
         Assert.ThrowsAsync<DispatchException>(async () => await client.UnaryOpAsync(message));
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
+        Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
     }
 
     [Test]
@@ -371,33 +371,31 @@ public partial class OperationTests
         // Arrange
         PayloadPipeReaderDecorator? requestPayload = null;
         PayloadPipeReaderDecorator? responsePayload = null;
+        var service = new MyOperationsService();
 
         var pipeline = new Pipeline().Use(next =>
             new InlineInvoker(
                 async (request, cancellationToken) =>
                 {
-                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    // The stream of messages is carried by the payload continuation; the payload is empty.
+                    Assert.That(request.Payload, Is.SameAs(EmptyPipeReader.Instance));
+                    requestPayload = new PayloadPipeReaderDecorator(request.PayloadContinuation!);
                     request.PayloadContinuation = requestPayload;
                     var response = await next.InvokeAsync(request, cancellationToken);
                     responsePayload = new PayloadPipeReaderDecorator(response.Payload);
                     response.Payload = responsePayload;
                     return response;
-                })).Into(new ColocInvoker(new MyOperationsService()));
+                })).Into(new ColocInvoker(service));
 
         var client = new MyOperationsClient(pipeline);
-
-        var message = new InputMessage()
-        {
-            P1 = "P1",
-            P2 = 2,
-        };
 
         // Act
         await client.ClientStreamingOpAsync(GetDataAsync());
 
         // Assert
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(service.Messages, Has.Count.EqualTo(10));
+        Assert.That(await requestPayload!.Completed, Is.Null);
+        Assert.That(await responsePayload!.Completed, Is.Null);
 
         static async IAsyncEnumerable<InputMessage> GetDataAsync()
         {
@@ -425,7 +423,9 @@ public partial class OperationTests
             new InlineInvoker(
                 async (request, cancellationToken) =>
                 {
-                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    // The stream of messages is carried by the payload continuation; the payload is empty.
+                    Assert.That(request.Payload, Is.SameAs(EmptyPipeReader.Instance));
+                    requestPayload = new PayloadPipeReaderDecorator(request.PayloadContinuation!);
                     request.PayloadContinuation = requestPayload;
                     var response = await next.InvokeAsync(request, cancellationToken);
                     responsePayload = new PayloadPipeReaderDecorator(response.Payload);
@@ -437,16 +437,10 @@ public partial class OperationTests
 
         var client = new MyOperationsClient(pipeline);
 
-        var message = new InputMessage()
-        {
-            P1 = "P1",
-            P2 = 2,
-        };
-
         // Act/Assert
         Assert.ThrowsAsync<DispatchException>(async () => await client.ClientStreamingOpAsync(GetDataAsync()));
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
+        Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
 
         static async IAsyncEnumerable<InputMessage> GetDataAsync()
         {
@@ -494,8 +488,8 @@ public partial class OperationTests
         }
 
         Assert.That(messages, Has.Count.EqualTo(10));
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(await requestPayload!.Completed, Is.Null);
+        Assert.That(await responsePayload!.Completed, Is.Null);
     }
 
     [Test]
@@ -523,8 +517,8 @@ public partial class OperationTests
 
         // Act/Assert
         Assert.ThrowsAsync<DispatchException>(async () => await client.ServerStreamingOpAsync(new Empty()));
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
+        Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
     }
 
     [Test]
@@ -533,18 +527,21 @@ public partial class OperationTests
         // Arrange
         PayloadPipeReaderDecorator? requestPayload = null;
         PayloadPipeReaderDecorator? responsePayload = null;
+        var service = new MyOperationsService();
 
         var pipeline = new Pipeline().Use(next =>
             new InlineInvoker(
                 async (request, cancellationToken) =>
                 {
-                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    // The stream of messages is carried by the payload continuation; the payload is empty.
+                    Assert.That(request.Payload, Is.SameAs(EmptyPipeReader.Instance));
+                    requestPayload = new PayloadPipeReaderDecorator(request.PayloadContinuation!);
                     request.PayloadContinuation = requestPayload;
                     var response = await next.InvokeAsync(request, cancellationToken);
                     responsePayload = new PayloadPipeReaderDecorator(response.Payload);
                     response.Payload = responsePayload;
                     return response;
-                })).Into(new ColocInvoker(new MyOperationsService()));
+                })).Into(new ColocInvoker(service));
 
         var client = new MyOperationsClient(pipeline);
 
@@ -559,8 +556,9 @@ public partial class OperationTests
         }
 
         Assert.That(messages.Count, Is.EqualTo(10));
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(service.Messages, Has.Count.EqualTo(10));
+        Assert.That(await requestPayload!.Completed, Is.Null);
+        Assert.That(await responsePayload!.Completed, Is.Null);
 
         static async IAsyncEnumerable<InputMessage> GetDataAsync()
         {
@@ -588,7 +586,9 @@ public partial class OperationTests
             new InlineInvoker(
                 async (request, cancellationToken) =>
                 {
-                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    // The stream of messages is carried by the payload continuation; the payload is empty.
+                    Assert.That(request.Payload, Is.SameAs(EmptyPipeReader.Instance));
+                    requestPayload = new PayloadPipeReaderDecorator(request.PayloadContinuation!);
                     request.PayloadContinuation = requestPayload;
                     var response = await next.InvokeAsync(request, cancellationToken);
                     responsePayload = new PayloadPipeReaderDecorator(response.Payload);
@@ -602,8 +602,8 @@ public partial class OperationTests
 
         // Act
         Assert.ThrowsAsync<DispatchException>(async () => await client.BidiStreamingOpAsync(GetDataAsync()));
-        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
-        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+        Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
+        Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
 
         static async IAsyncEnumerable<InputMessage> GetDataAsync()
         {
