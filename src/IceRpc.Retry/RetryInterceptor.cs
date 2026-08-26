@@ -4,6 +4,7 @@ using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Retry.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 
@@ -196,5 +197,5 @@ public class RetryInterceptor : IInvoker
     }
 
     private IDisposable? CreateRetryLogScope(int attempt) =>
-        attempt > 1 ? _logger.RetryScope(attempt, _maxAttempts) : null;
+        _logger != NullLogger.Instance && attempt > 1 ? _logger.RetryScope(attempt, _maxAttempts) : null;
 }

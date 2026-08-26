@@ -48,5 +48,9 @@ public static class RetryPipelineExtensions
     /// </example>
     /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/slice/Retry"/>
     public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options, ILoggerFactory loggerFactory) =>
-        pipeline.Use(next => new RetryInterceptor(next, options, loggerFactory.CreateLogger<RetryInterceptor>()));
+        pipeline.Use(next => new RetryInterceptor(
+            next,
+            options,
+            loggerFactory is NullLoggerFactory ? NullLogger.Instance :
+                loggerFactory.CreateLogger<RetryInterceptor>()));
 }
