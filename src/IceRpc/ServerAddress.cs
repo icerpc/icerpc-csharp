@@ -22,6 +22,8 @@ public readonly record struct ServerAddress
     /// <summary>Gets or initializes the host.</summary>
     /// <value>The host of this server address. Defaults to <c>::0</c> meaning that the server will listen on all the
     /// network interfaces. This default value is parsed into <see cref="IPAddress.IPv6Any" />.</value>
+    /// <remarks>When you initialize this property with a bracketed IPv6 address such as <c>[::1]</c>, the brackets
+    /// are stripped: the property value is the IPv6 address without brackets.</remarks>
     public string Host
     {
         get => _host;
@@ -32,7 +34,10 @@ public readonly record struct ServerAddress
             {
                 throw new ArgumentException($"Cannot set {nameof(Host)} to '{value}'.", nameof(value));
             }
-            _host = value;
+            // A value that starts with '[' is necessarily a well-formed bracketed IPv6 address: for any other value
+            // with brackets, including mismatched brackets, CheckHostName returns Unknown. We store the address
+            // without the brackets, like the Uri constructor does.
+            _host = value.StartsWith('[') ? value[1..^1] : value;
             OriginalUri = null; // new host invalidates OriginalUri
         }
     }
