@@ -19,10 +19,12 @@ public abstract class MultiplexedStreamConformanceTests
         {
             // These tests assume that the default segment size of the stream output is 4096.
 
-            byte[] bytes1K = new byte[1024];
-            byte[] bytes2K = new byte[2048];
-            byte[] bytes3K = new byte[3072];
-            byte[] bytes8K = new byte[8192];
+            // Each buffer holds a distinct byte pattern so that the content assertion detects reordered or
+            // duplicated data.
+            byte[] bytes1K = CreatePattern(1024, seed: 1);
+            byte[] bytes2K = CreatePattern(2048, seed: 2);
+            byte[] bytes3K = CreatePattern(3072, seed: 3);
+            byte[] bytes8K = CreatePattern(8192, seed: 4);
 
             yield return new TestCaseData(Array.Empty<byte>(), Array.Empty<byte[]>());
             yield return new TestCaseData(Array.Empty<byte>(), new byte[][] { bytes1K });
@@ -31,6 +33,9 @@ public abstract class MultiplexedStreamConformanceTests
             yield return new TestCaseData(bytes1K, new byte[][] { bytes1K });
             yield return new TestCaseData(bytes2K, new byte[][] { bytes3K });
             yield return new TestCaseData(bytes8K, new byte[][] { bytes1K });
+
+            static byte[] CreatePattern(int size, byte seed) =>
+                Enumerable.Range(0, size).Select(i => (byte)(seed + i)).ToArray();
         }
     }
 
@@ -695,6 +700,7 @@ public abstract class MultiplexedStreamConformanceTests
         // Assert
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
+        Assert.That(readResult.Buffer.FirstSpan[0], Is.EqualTo(_oneBytePayload.Span[0]));
     }
 
     [TestCaseSource(nameof(WriteData))]
@@ -729,15 +735,19 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult;
-        long length = 0;
+        var receivedData = new ArrayBufferWriter<byte>();
         do
         {
             readResult = await input.ReadAsync();
-            length += readResult.Buffer.Length;
+            foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
+            {
+                receivedData.Write(segment.Span);
+            }
             input.AdvanceTo(readResult.Buffer.End);
         }
         while (!readResult.IsCompleted);
-        Assert.That(length, Is.EqualTo(bufferedData.Length + dataReadResult.Buffer.Length));
+        byte[] expectedData = [.. bufferedData, .. writeData.SelectMany(buffer => buffer)];
+        Assert.That(receivedData.WrittenMemory.ToArray(), Is.EqualTo(expectedData));
 
         pipe.Reader.Complete();
     }
