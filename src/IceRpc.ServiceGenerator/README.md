@@ -5,7 +5,7 @@ decorated with the `[IceRpc.Service]` attribute.
 
 [Package][package] | [Source code][source]
 
-This package is a dependency of the [IceRPC + Slice][icerpc+slice], [IceRPC + Protobuf][icerpc+protobuf] and
+This package is a dependency of the [IceRPC + Slice][icerpc+slice], [IceRPC + Protobuf][icerpc+protobuf], and
 [IceRPC + Ice][icerpc+ice] integrations.
 
 [icerpc+ice]: https://www.nuget.org/packages/IceRpc.Ice
