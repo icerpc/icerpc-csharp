@@ -168,6 +168,110 @@ public class VariantEnumTests
     }
 
     [Test]
+    public void Decode_variant_enum_with_struct_field()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        var value = new VariantFieldKinds.PlainStruct(new MyStruct(1, 2));
+        encoder.EncodeVariantFieldKinds(value);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var decoded = decoder.DecodeVariantFieldKinds();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(value));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Decode_variant_enum_with_optional_struct_field(bool setField)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        var value = new VariantFieldKinds.OptionalStruct(setField ? new MyStruct(3, 4) : null);
+        encoder.EncodeVariantFieldKinds(value);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var decoded = decoder.DecodeVariantFieldKinds();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(value));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Decode_variant_enum_with_tagged_struct_field(bool setField)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        var value = new VariantFieldKinds.TaggedStruct(setField ? new MyStruct(5, 6) : null);
+        encoder.EncodeVariantFieldKinds(value);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var decoded = decoder.DecodeVariantFieldKinds();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(value));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
+    public void Decode_variant_enum_with_sequence_field()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        var value = new VariantFieldKinds.IntSequence([1, 2, 3]);
+        encoder.EncodeVariantFieldKinds(value);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var decoded = decoder.DecodeVariantFieldKinds();
+
+        // Assert
+        // The record equality of IntSequence compares the Values properties by reference, so we compare the decoded
+        // property instead.
+        Assert.That(decoded, Is.InstanceOf<VariantFieldKinds.IntSequence>());
+        Assert.That(((VariantFieldKinds.IntSequence)decoded).Values, Is.EqualTo(value.Values));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
+    public void Decode_variant_enum_with_dictionary_field()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        var value = new VariantFieldKinds.StringDictionary(
+            new Dictionary<int, string> { [1] = "one", [2] = "two" });
+        encoder.EncodeVariantFieldKinds(value);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var decoded = decoder.DecodeVariantFieldKinds();
+
+        // Assert
+        // The record equality of StringDictionary compares the Entries properties by reference, so we compare the
+        // decoded property instead.
+        Assert.That(decoded, Is.InstanceOf<VariantFieldKinds.StringDictionary>());
+        Assert.That(((VariantFieldKinds.StringDictionary)decoded).Entries, Is.EqualTo(value.Entries));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
     public void Cs_attribute_on_variant_field()
     {
         // Arrange / Act
