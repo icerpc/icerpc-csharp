@@ -67,7 +67,7 @@ public class TransportOperations<T> where T : struct, Enum
     /// <summary>Gets a task which can be awaited to wait for the given operation to be called. The task must be
     /// obtained before the operation is called. It can't be obtained again until the operation is called.</summary>
     /// <param name="operation">The operation for which the task will complete when the operation is called.</param>
-    /// <exception cref="InvalidOperationException">Thrown if the task has already been returned and the operation has
+    /// <exception cref="InvalidOperationException">Thrown when the task has already been returned and the operation has
     /// not been called yet. The caller should only obtain a new task after the operation has been called.</exception>
     public Task GetCalledTask(T operation)
     {

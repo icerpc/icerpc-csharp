@@ -24,7 +24,7 @@ public interface IDispatcherBuilder
     /// service must implement <see cref="IDispatcher" />.</typeparam>
     /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
     /// must start with a <c>/</c>.</param>
-    /// <exception cref="FormatException">Thrown if <paramref name="path" /> is not a valid path.</exception>
+    /// <exception cref="FormatException">Thrown when <paramref name="path" /> is not a valid path.</exception>
     /// <returns>This builder.</returns>
     /// <remarks>With Slice, it is common for <typeparamref name="TService" /> to correspond to a generated
     /// I{name}Service interface. This generated interface does not extend <see cref="IDispatcher" />.</remarks>
@@ -36,7 +36,7 @@ public interface IDispatcherBuilder
     /// service must implement <see cref="IDispatcher" />.</typeparam>
     /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
     /// the request.</param>
-    /// <exception cref="FormatException">Thrown if <paramref name="prefix" /> is not a valid path.</exception>
+    /// <exception cref="FormatException">Thrown when <paramref name="prefix" /> is not a valid path.</exception>
     /// <returns>This builder.</returns>
     /// <remarks>With Slice, it is common for <typeparamref name="TService" /> to correspond to a generated
     /// I{name}Service interface. This generated interface does not extend <see cref="IDispatcher" />.</remarks>

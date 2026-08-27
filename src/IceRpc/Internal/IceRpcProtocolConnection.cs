@@ -381,7 +381,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // Connection was shutdown or disposed and we did not read the payload at all.
+                    // Connection was shut down or disposed and we did not read the payload at all.
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                 }
                 catch (IceRpcException exception)

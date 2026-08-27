@@ -142,7 +142,7 @@ internal class DuplexConnectionReader : IDisposable
 
     /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer has always at
     /// least minimumSize bytes or if canReturnEmptyBuffer is true, the returned buffer can be empty if the peer
-    /// shutdown the connection.</summary>
+    /// shut down the connection.</summary>
     private async ValueTask<ReadOnlySequence<byte>> ReadAsyncCore(
         int minimumSize,
         bool canReturnEmptyBuffer,
