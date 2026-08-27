@@ -13,7 +13,7 @@ protocols.
 The QUIC transport implementation is included in the main IceRpc assembly, so you can build an application that uses
 QUIC on any platform. At runtime, this implementation relies on `System.Net.Quic`, which works out of the box on
 Windows but requires extra setup steps on Linux and macOS, as documented in .NET's
-[QUIC Platform dependencies][platform].
+[QUIC platform dependencies][platform].
 
 ## Sample Code
 

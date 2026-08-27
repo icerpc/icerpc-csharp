@@ -51,7 +51,7 @@ Server also calls a service on the device that implements Slice interface `Therm
 This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
 steps; see .NET's [QUIC platform dependencies][quic-platform].
 
-You can build the client, server and device with:
+You can build the client, server, and device applications with:
 
 ``` shell
 dotnet build
