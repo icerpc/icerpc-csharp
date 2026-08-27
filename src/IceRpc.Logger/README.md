@@ -10,8 +10,8 @@ logs every dispatch.
 ```csharp
 // Client application
 
-using Microsoft.Extensions.Logging;
 using IceRpc;
+using Microsoft.Extensions.Logging;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
@@ -31,8 +31,8 @@ Pipeline pipeline = new Pipeline()
 ```csharp
 // Server application
 
-using Microsoft.Extensions.Logging;
 using IceRpc;
+using Microsoft.Extensions.Logging;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>

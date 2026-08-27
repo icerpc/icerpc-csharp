@@ -56,6 +56,7 @@ await connection.ShutdownAsync();
 // Server application
 
 using IceRpc;
+using IceRpc.Features;
 using VisitorCenter;
 
 // Create a server that dispatches all requests to the same service, an instance of
@@ -64,6 +65,8 @@ await using var server = new Server(new Chatbot());
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
+// examples/common/Program.CancelKeyPressed.cs in the icerpc-csharp repo provides
+// the CancelKeyPressed helper.
 await CancelKeyPressed;
 await server.ShutdownAsync();
 

@@ -114,6 +114,8 @@ await using var server = new Server(
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
+// examples/common/Program.CancelKeyPressed.cs in the icerpc-csharp repo provides
+// the CancelKeyPressed helper.
 await CancelKeyPressed;
 await server.ShutdownAsync();
 

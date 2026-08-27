@@ -17,6 +17,7 @@ This transport does not use network APIs. It is available on all platforms.
 
 using IceRpc;
 using IceRpc.Transports.Coloc;
+using IceRpc.Transports.Slic;
 
 var coloc = new ColocTransport();
 

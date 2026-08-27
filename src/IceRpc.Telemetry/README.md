@@ -18,13 +18,14 @@ don't create activities for requests that use the `ice` protocol.
 // Client application
 
 using IceRpc;
+using System.Diagnostics;
 
 // The activity source used by the telemetry interceptor.
 using var activitySource = new ActivitySource("IceRpc");
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-// Add the deadline interceptor to the invocation pipeline.
+// Add the telemetry interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection);
 ```
 
@@ -32,7 +33,7 @@ Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection)
 // Server application
 
 using IceRpc;
-using VisitorCenter;
+using System.Diagnostics;
 
 // The activity source used by the telemetry interceptor and middleware.
 using var activitySource = new ActivitySource("IceRpc");
@@ -51,7 +52,9 @@ configuration, see the [GenericHost example].
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Diagnostics;
 
 HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
@@ -74,7 +77,9 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Diagnostics;
 
 HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(args);
 
