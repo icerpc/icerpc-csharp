@@ -21,6 +21,9 @@ flowchart LR
     ForecastService -- https --> OpenWeather[OpenMeteo Weather Forecast Service]
 ```
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -42,3 +45,4 @@ dotnet run Paris
 ```
 
 [Open Meteo]: https://open-meteo.com/
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies

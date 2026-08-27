@@ -10,6 +10,9 @@ Since C# does not provide native support for discriminated unions, the Slice cod
 enum to several C# record classes and relies on the [Dunet] source generator to provide various methods for these record
 classes.
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -31,3 +34,4 @@ dotnet run
 ```
 
 [Dunet]: https://github.com/domn1995/dunet
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies

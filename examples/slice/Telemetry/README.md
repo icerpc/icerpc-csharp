@@ -5,6 +5,9 @@ with OpenTelemetry to export traces over the OpenTelemetry Protocol (OTLP). The 
 context is propagated from the client to the server, by just configuring the IceRPC telemetry interceptor and
 middleware.
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -36,3 +39,5 @@ dotnet run
 The trace information should now be available in the Jaeger UI:
 
 - <http://localhost:16686>
+
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
