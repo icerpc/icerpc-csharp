@@ -130,26 +130,18 @@ public sealed partial class ProtocolBridgingTests
 
             IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancellationToken);
 
-            // Then create an outgoing response from the incoming response.
-
             // A protocol bridge cannot forward response fields (the ice protocol doesn't support them), so this
             // forwarder doesn't forward fields at all and expects the target to return none.
             Assert.That(incomingResponse.Fields, Is.Empty);
 
-            if (incomingResponse.StatusCode == StatusCode.Ok)
-            {
-                return new OutgoingResponse(request)
-                {
-                    Payload = incomingResponse.DetachPayload()
-                };
-            }
-            else
-            {
-                return new OutgoingResponse(request, incomingResponse.StatusCode, incomingResponse.ErrorMessage!)
-                {
-                    Payload = incomingResponse.DetachPayload()
-                };
-            }
+            // Then create an outgoing response from the incoming response.
+
+            OutgoingResponse outgoingResponse = incomingResponse.StatusCode == StatusCode.Ok ?
+                new OutgoingResponse(request) :
+                new OutgoingResponse(request, incomingResponse.StatusCode, incomingResponse.ErrorMessage!);
+
+            outgoingResponse.Payload = incomingResponse.DetachPayload();
+            return outgoingResponse;
         }
 
         internal Forwarder(IIceProxy target) => _target = target;
