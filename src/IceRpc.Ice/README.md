@@ -65,6 +65,8 @@ await using var server = new Server(new Chatbot(), new Uri("ice://[::0]"));
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
+// examples/common/Program.CancelKeyPressed.cs in the icerpc-csharp repo provides
+// the CancelKeyPressed helper.
 await CancelKeyPressed;
 await server.ShutdownAsync();
 

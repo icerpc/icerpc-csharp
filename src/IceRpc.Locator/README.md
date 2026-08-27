@@ -15,6 +15,7 @@ The Locator interceptor resolves only service addresses for the `ice` protocol.
 
 ```csharp
 using IceRpc;
+using IceRpc.Ice;
 
 // Create an invocation pipeline.
 var pipeline = new Pipeline();
