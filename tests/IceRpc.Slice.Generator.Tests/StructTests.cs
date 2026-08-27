@@ -2,6 +2,8 @@
 
 using IceRpc.Slice.Operations;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 

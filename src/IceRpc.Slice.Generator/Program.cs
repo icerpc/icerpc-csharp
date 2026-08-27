@@ -16,6 +16,14 @@ await GeneratorDriver.RunAsync(
         ? CodeBlock.FromBlocks([ProxyGenerator.Generate(interfaceDef), ServiceGenerator.Generate(interfaceDef)])
         : null,
     mapOutputPath: path => Path.ChangeExtension(Path.GetFileName(path), ".IceRpc.cs"),
-    usings: ["IceRpc.Slice", "IceRpc.Slice.Operations", "ZeroC.Slice.Codec"]).ConfigureAwait(false);
+    usings:
+    [
+        "IceRpc.Slice",
+        "IceRpc.Slice.Operations",
+        "System",
+        "System.Collections.Generic",
+        "System.Linq",
+        "ZeroC.Slice.Codec"
+    ]).ConfigureAwait(false);
 
 return 0;

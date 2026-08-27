@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Verify that the generated code compiles without implicit usings. -->
+    <ImplicitUsings>disable</ImplicitUsings>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
     <TargetFramework>net10.0</TargetFramework>

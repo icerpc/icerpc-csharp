@@ -2,7 +2,9 @@
 
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using System.Collections.Generic;
 using System.IO.Pipelines;
+using System.Threading.Tasks;
 
 namespace IceRpc.Ice.Generator.Tests;
 

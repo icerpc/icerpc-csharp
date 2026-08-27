@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System;
+using System.IO;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 

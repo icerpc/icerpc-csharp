@@ -4,9 +4,13 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using IceRpc.Protobuf.RpcMethods.Internal;
 using NUnit.Framework;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.IO;
 using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc.Protobuf.Tests;
 

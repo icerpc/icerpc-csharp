@@ -18,6 +18,6 @@ await GeneratorDriver.RunAsync(
         _ => null,
     },
     mapOutputPath: path => Path.ChangeExtension(Path.GetFileName(path), ".cs"),
-    usings: ["ZeroC.Slice.Codec"]).ConfigureAwait(false);
+    usings: ["System.Collections.Generic", "System.Linq", "ZeroC.Slice.Codec"]).ConfigureAwait(false);
 
 return 0;

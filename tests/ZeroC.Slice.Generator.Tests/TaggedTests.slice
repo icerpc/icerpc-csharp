@@ -8,6 +8,8 @@ struct MyStructWithTaggedFields {
     tag(3) c: MyEnum?
     tag(4) d: Sequence<uint8>?
     tag(5) e: string?
+    tag(6) f: Sequence<int32>?
+    tag(7) g: Dictionary<int32, int32>?
 }
 
 struct MyStructWithoutTaggedFields {}

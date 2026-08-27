@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Collections.Generic;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
@@ -60,14 +61,18 @@ internal class TaggedTests
             new MyStruct(20, 20),
             MyEnum.Enum1,
             new byte[] { 1, 2, 3 },
-            "hello world!"),
+            "hello world!",
+            new int[] { 4, 5, 6 },
+            new Dictionary<int, int> { [1] = 10, [2] = 20 }),
         new MyStructWithTaggedFields(),
         new MyStructWithTaggedFields(
             10,
             null,
             MyEnum.Enum1,
             null,
-            "hello world!"),
+            "hello world!",
+            null,
+            new Dictionary<int, int> { [1] = 10 }),
     };
 
     [Test]
@@ -99,6 +104,25 @@ internal class TaggedTests
         {
             encoder.EncodeTagged(5, e, (ref SliceEncoder encoder, string value) => encoder.EncodeString(e));
         }
+        if (expected.F is IList<int> f)
+        {
+            encoder.EncodeTagged(
+                6,
+                size: SliceEncoder.GetSizeLength(f.Count) + (4 * f.Count),
+                f,
+                (ref SliceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value));
+        }
+        if (expected.G is IDictionary<int, int> g)
+        {
+            encoder.EncodeTagged(
+                7,
+                size: SliceEncoder.GetSizeLength(g.Count) + (8 * g.Count),
+                g,
+                (ref SliceEncoder encoder, IDictionary<int, int> value) => encoder.EncodeDictionary(
+                    value,
+                    (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
+                    (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value)));
+        }
         encoder.EncodeVarInt32(SliceDefinitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
@@ -108,6 +132,8 @@ internal class TaggedTests
         Assert.That(decoded.C, Is.EqualTo(expected.C));
         Assert.That(decoded.D, Is.EqualTo(expected.D));
         Assert.That(decoded.E, Is.EqualTo(expected.E));
+        Assert.That(decoded.F, Is.EqualTo(expected.F));
+        Assert.That(decoded.G, Is.EqualTo(expected.G));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -141,6 +167,17 @@ internal class TaggedTests
         Assert.That(
             decoder.DecodeTagged(5, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expected.E));
+
+        Assert.That(
+            decoder.DecodeTagged(6, (ref SliceDecoder decoder) => decoder.DecodeSequence<int>()),
+            Is.EqualTo(expected.F));
+
+        Assert.That(
+            decoder.DecodeTagged(7, (ref SliceDecoder decoder) => decoder.DecodeDictionary(
+                size => new Dictionary<int, int>(size),
+                (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                (ref SliceDecoder decoder) => decoder.DecodeInt32())),
+            Is.EqualTo(expected.G));
 
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(SliceDefinitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
