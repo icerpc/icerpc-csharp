@@ -15,7 +15,7 @@ you can use proto2, proto3, or editions (e.g. `edition = "2024"`) in your own pr
 | [MultipleServices](./MultipleServices) | Shows how a service can implement multiple Protobuf services.                                                                       |
 | [RequestContext](./RequestContext/)    | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
 | [Retry](./Retry/)                      | Shows how to use the retry interceptor to retry failed requests.                                                                    |
-| [Stream](./Stream/)                    | Shows how to stream data from a client to a server.                                                                                 |
+| [Stream](./Stream/)                    | Shows how to stream data from a server to a client.                                                                                 |
 | [Tcp](./Tcp/)                          | Shows how to use the TCP transport.                                                                                                 |
 | [TcpFallback](./TcpFallback/)          | Shows how to create client and server applications that communicate over QUIC when possible but can fall back to TCP.               |
 | [Telemetry](./Telemetry/)              | Shows how to use the telemetry interceptor and middleware.                                                                          |

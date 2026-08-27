@@ -4,8 +4,8 @@ The `IceRpc.Protobuf.Tools` NuGet package allows you to compile Protobuf definit
 within MSBuild projects.
 
 This package includes the Protobuf compiler, `protoc`, and the `protoc-gen-icerpc-csharp` generator. The `protoc`
-compiler is a native tool with binaries for Linux x64, Linux arm64, macOS x64, macOS arm64, and Windows x64. The
-`protoc-gen-icerpc-csharp` generator is a .NET program and requires .NET 8 or later.
+compiler is a native tool with binaries for Linux (x64 and arm64), macOS (x64 and arm64) and Windows (x64). The
+`protoc-gen-icerpc-csharp` generator is a cross-platform .NET program.
 
 Once you've added the IceRpc.Protobuf.Tools NuGet package to your project, the Protobuf files of your project are
 automatically compiled into C# files every time you build this project.
@@ -84,8 +84,9 @@ You need to reference the `IceRpc.Protobuf` NuGet package to compile the generat
 ## Protobuf compiler
 
 This package includes the `protoc` compiler binaries, and the Protobuf well-known type definitions from the
-[Google.Protobuf.Tools][google-protobuf-tools] package. Additionally, it includes the `protoc` ARM64 binaries
-for Linux and macOS from the [Google Protobuf release page][google-protobuf-release].
+[Google.Protobuf.Tools][google-protobuf-tools] package. Additionally, it includes the `protoc` macOS ARM64 binary
+from the [Google Protobuf release page][google-protobuf-release], as the Google.Protobuf.Tools package doesn't
+provide this binary.
 
 ## Build telemetry
 

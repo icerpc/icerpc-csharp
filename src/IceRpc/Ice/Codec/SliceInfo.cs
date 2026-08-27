@@ -10,7 +10,8 @@ public sealed class SliceInfo
     /// compact ID is a non-negative integer in decimal notation.</summary>
     public string TypeId { get; }
 
-    /// <summary>Gets the encoded bytes for this slice, including the leading size integer.</summary>
+    /// <summary>Gets the encoded bytes for this slice, excluding the leading slice size. When the slice has tagged
+    /// fields, the trailing tag end marker is also excluded.</summary>
     public ReadOnlyMemory<byte> Bytes { get; }
 
     /// <summary>Gets a value indicating whether or not the slice contains tagged fields.</summary>
