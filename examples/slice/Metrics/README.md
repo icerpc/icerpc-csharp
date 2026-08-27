@@ -7,6 +7,9 @@ To collect counter metrics, you need to install the `dotnet-counters` tools.
 
 https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -38,3 +41,5 @@ To monitor the client counter metrics, in a separate window run:
 ```shell
 dotnet-counters monitor --name Client --counters IceRpc.Invocation
 ```
+
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies

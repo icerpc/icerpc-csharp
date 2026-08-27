@@ -9,6 +9,9 @@ The server program creates a server for QUIC and another server for TCP; both se
 The client program first attempts to establish a QUIC connection; if this connection establishment fails, it falls back
 to a TCP connection.
 
+This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
+steps; see .NET's [QUIC platform dependencies][quic-platform].
+
 You can build the client and server applications with:
 
 ``` shell
@@ -30,3 +33,5 @@ dotnet run
 ```
 
 In order to see the fallback to TCP, run the TCP fallback client with the server from the [../Secure] example.
+
+[quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
