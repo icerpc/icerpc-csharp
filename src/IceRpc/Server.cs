@@ -142,7 +142,8 @@ public sealed class Server : IAsyncDisposable
                         HandshakeTimeout = options.ConnectTimeout,
                         MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.
-                        MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
+                        MaxUnidirectionalStreams =
+                            int.Min(options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1, ushort.MaxValue),
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool
                     },

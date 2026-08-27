@@ -334,6 +334,19 @@ public abstract class DuplexConnectionConformanceTests
         Assert.That(async () => await serverShutdownTask, Throws.Nothing);
     }
 
+    /// <summary>Verifies that a write with an empty buffer throws <see cref="ArgumentException" />.</summary>
+    [Test]
+    public async Task Write_with_empty_buffer_fails()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        Assert.That(
+            async () => await sut.Client.WriteAsync(ReadOnlySequence<byte>.Empty, default),
+            Throws.TypeOf<ArgumentException>());
+    }
+
     /// <summary>Verifies that we can write and read using the duplex connection.</summary>
     [TestCase(3)]
     [TestCase(11)]

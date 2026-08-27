@@ -11,8 +11,9 @@ public interface IMultiplexedStream : IDuplexPipe
 {
     /// <summary>Gets the stream ID.</summary>
     /// <value>The stream ID.</value>
-    /// <exception cref="InvalidOperationException">Thrown if the stream is not started. Local streams are not started
-    /// until data is written. A remote stream is always started.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the stream is not started. A remote stream is always
+    /// started; depending on the transport implementation, a local stream is started at construction or by the first
+    /// write.</exception>
     /// <remarks>The stream IDs have the same format as the QUIC stream IDs
     /// <see href="https://datatracker.ietf.org/doc/html/rfc9000#name-stream-types-and-identifier"/>.</remarks>
     ulong Id { get; }
@@ -30,8 +31,8 @@ public interface IMultiplexedStream : IDuplexPipe
 
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     /// <value><see langword="true" /> if the stream is started; otherwise, <see langword="false" />.</value>
-    /// <remarks>Remote streams are always started after construction. A local stream is started by the first write.
-    /// </remarks>
+    /// <remarks>Remote streams are always started after construction. Depending on the transport implementation, a
+    /// local stream is started at construction or by the first write.</remarks>
     bool IsStarted { get; }
 
     /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:

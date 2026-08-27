@@ -82,14 +82,14 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// bidirectional stream. Since an bidirectional stream is opened for each two-way invocation, the sending of the
     /// two-way invocation will be delayed until another two-way invocation's stream completes.</summary>
-    /// <value>The maximum number of bidirectional streams. It can't be less than <c>1</c>. Defaults to <c>100</c>.
-    /// </value>
+    /// <value>The maximum number of bidirectional streams. It can't be less than <c>1</c> or greater than
+    /// <c>65,535</c>. Defaults to <c>100</c>.</value>
     public int MaxIceRpcBidirectionalStreams
     {
         get => _maxIceRpcBidirectionalStreams;
-        set => _maxIceRpcBidirectionalStreams = value > 0 ? value :
+        set => _maxIceRpcBidirectionalStreams = value is > 0 and <= ushort.MaxValue ? value :
             throw new ArgumentException(
-                $"{nameof(MaxIceRpcBidirectionalStreams)} can't be less than 1",
+                $"{nameof(MaxIceRpcBidirectionalStreams)} must be between 1 and {ushort.MaxValue}",
                 nameof(value));
     }
 
@@ -106,14 +106,14 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// unidirectional stream. Since an unidirectional stream is opened for each one-way invocation, the sending of the
     /// one-way invocation will be delayed until another one-way invocation's stream completes.</summary>
-    /// <value>The maximum number of unidirectional streams. It can't be less than <c>1</c>. Defaults to
-    /// <c>100</c>.</value>
+    /// <value>The maximum number of unidirectional streams. It can't be less than <c>1</c> or greater than
+    /// <c>65,535</c>. Defaults to <c>100</c>.</value>
     public int MaxIceRpcUnidirectionalStreams
     {
         get => _maxIceRpcUnidirectionalStreams;
-        set => _maxIceRpcUnidirectionalStreams = value > 0 ? value :
+        set => _maxIceRpcUnidirectionalStreams = value is > 0 and <= ushort.MaxValue ? value :
             throw new ArgumentException(
-                $"{nameof(MaxIceRpcUnidirectionalStreams)} can't be less than 1",
+                $"{nameof(MaxIceRpcUnidirectionalStreams)} must be between 1 and {ushort.MaxValue}",
                 nameof(value));
     }
 
