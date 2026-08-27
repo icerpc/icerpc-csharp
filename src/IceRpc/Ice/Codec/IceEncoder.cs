@@ -171,7 +171,7 @@ public ref partial struct IceEncoder
     // Other methods
 
     /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
-    /// encoding the value. This method always use the VSize tag format.</summary>
+    /// encoding the value. This method always uses the VSize tag format.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="size">The number of bytes needed to encode the value.</param>
@@ -202,11 +202,13 @@ public ref partial struct IceEncoder
     /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is not known before
     /// encoding this value. T can be a proxy such as IceObjectProxy? and therefore nullable.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag. Must be either FSize or OptimizedVSize.</param>
-    /// <param name="tagFormat">The tag format.</param>
+    /// <param name="tag">The tag.</param>
+    /// <param name="tagFormat">The tag format. Must not be <see cref="TagFormat.VSize" /> or
+    /// <see cref="TagFormat.Class" />.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat" /> is VSize.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="tagFormat" /> is not a tag format supported by
+    /// this method.</exception>
     public void EncodeTagged<T>(
         int tag,
         TagFormat tagFormat,

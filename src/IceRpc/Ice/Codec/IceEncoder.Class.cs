@@ -103,7 +103,7 @@ public ref partial struct IceEncoder
 
     /// <summary>Marks the start of the encoding of a class or exception slice.</summary>
     /// <param name="typeId">The type ID of this slice.</param>
-    /// <param name="compactId ">The compact ID of this slice, if any.</param>
+    /// <param name="compactId">The compact ID of this slice, if any.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void StartSlice(string typeId, int? compactId = null)
     {
@@ -230,7 +230,8 @@ public ref partial struct IceEncoder
 
     /// <summary>Encodes sliced-off slices.</summary>
     /// <param name="unknownSlices">The sliced-off slices to encode.</param>
-    /// <param name="fullySliced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
+    /// <param name="fullySliced">When <see langword="true" />, <paramref name="unknownSlices" /> holds all the data of
+    /// this instance.</param>
     private void EncodeUnknownSlices(ImmutableList<SliceInfo> unknownSlices, bool fullySliced)
     {
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);

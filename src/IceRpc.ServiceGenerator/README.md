@@ -5,9 +5,11 @@ decorated with the `[IceRpc.Service]` attribute.
 
 [Package][package] | [Source code][source]
 
-This package is a dependency of the [IceRPC + Slice][icerpc+slice] and [IceRPC + Ice][icerpc+ice] integrations.
+This package is a dependency of the [IceRPC + Slice][icerpc+slice], [IceRPC + Protobuf][icerpc+protobuf], and
+[IceRPC + Ice][icerpc+ice] integrations.
 
 [icerpc+ice]: https://www.nuget.org/packages/IceRpc.Ice
+[icerpc+protobuf]: https://www.nuget.org/packages/IceRpc.Protobuf
 [icerpc+slice]: https://www.nuget.org/packages/IceRpc.Slice
 [package]: https://www.nuget.org/packages/IceRpc.ServiceGenerator
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.ServiceGenerator

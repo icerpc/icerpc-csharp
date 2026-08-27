@@ -343,7 +343,7 @@ public ref partial struct IceDecoder
                 break;
             }
 
-            var format = (TagFormat)(v & 0x07); // Read first 3 bits.
+            var format = (TagFormat)(v & 0x07); // Read the low-order 3 bits.
             if ((v >> 3) == 30)
             {
                 SkipSize();
@@ -417,7 +417,7 @@ public ref partial struct IceDecoder
                 return false;
             }
 
-            var format = (TagFormat)(v & 0x07); // First 3 bits.
+            var format = (TagFormat)(v & 0x07); // The low-order 3 bits.
             tag = v >> 3;
             if (tag == 30)
             {

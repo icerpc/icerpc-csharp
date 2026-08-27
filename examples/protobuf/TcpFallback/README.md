@@ -32,6 +32,7 @@ cd Client
 dotnet run
 ```
 
-In order to see the fallback to TCP, run the TCP fallback client with the server from the [../Secure] example.
+In order to see the fallback to TCP, comment out `quicServer.Listen();` in the Server program and restart it: the
+client's QUIC connection attempt fails and the client falls back to a TCP connection.
 
 [quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
