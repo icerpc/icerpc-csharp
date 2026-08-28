@@ -155,10 +155,10 @@ internal sealed partial class ThermoFacade : IThermostatService
         {
             // Expected on shutdown or when superseded by a newer publish task.
         }
-        catch (IceRpcException exception)
+        catch (Exception exception)
         {
-            // Expected when the device connection is lost. This method's task is not awaited, so we must not let
-            // the exception escape.
+            // This method's task is not awaited, so we must not let any exception escape. An IceRpcException is
+            // expected when the device connection is lost.
             Console.WriteLine($"Stopped publishing readings: {exception.Message}");
         }
         finally
