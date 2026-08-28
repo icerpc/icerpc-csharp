@@ -27,7 +27,12 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly byte[]? _responsePayload;
+
+    // Each of the first _holdDispatchCount dispatches waits on the _hold semaphore; it's also the maximum number of
+    // dispatches that can be waiting on this semaphore at any point.
     private readonly int _holdDispatchCount;
+
+    // The number of dispatches started so far.
     private int _dispatchCount;
 
     /// <inheritdoc/>
@@ -72,9 +77,10 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_hold.CurrentCount > 0)
+        if (_holdDispatchCount > 0)
         {
-            _hold.Release(_hold.CurrentCount);
+            // Release enough permits to unblock any dispatch still waiting on the semaphore.
+            _hold.Release(_holdDispatchCount);
         }
         _hold.Dispose();
     }
