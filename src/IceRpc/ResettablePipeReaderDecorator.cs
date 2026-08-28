@@ -212,8 +212,8 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     }
 
     /// <summary>Resets this pipe reader.</summary>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable" /> is <see langword="false" /> or
-    /// if reading is in progress.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="IsResettable" /> is <see langword="false" />
+    /// or when reading is in progress.</exception>
     public void Reset()
     {
         if (_isResettable)

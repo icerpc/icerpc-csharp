@@ -24,7 +24,7 @@ public sealed class DispatchException : Exception
     /// cref="StatusCode.Ok" />.</param>
     /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="statusCode" /> is equal to <see
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="statusCode" /> is equal to <see
     /// cref="StatusCode.Ok" />.</exception>
     public DispatchException(
         StatusCode statusCode,

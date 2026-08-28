@@ -32,9 +32,9 @@ public interface IDuplexConnection : IDisposable
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully with transport connection information when the connection is
     /// established.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this connection is connected, connecting or if a previous
-    /// connection attempt failed.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when this connection is connected, connecting or when a
+    /// previous connection attempt failed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection is disposed.</exception>
     /// <remarks><para>When you call this method on a client connection, the returned task can complete successfully
     /// before the server accepts the connection with <see cref="IListener{T}.AcceptAsync" />: a connected client
     /// connection may be in the server-side listen backlog when the transport has such a backlog. See for example
@@ -55,10 +55,10 @@ public interface IDuplexConnection : IDisposable
     /// <returns>A value task that completes successfully with the number of bytes read into <paramref name="buffer" />.
     /// This number is <c>0</c> when no data is available and the peer has called <see cref="ShutdownWriteAsync"/>;
     /// otherwise, it is always greater than <c>0</c>.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected or if a read operation is
-    /// already in progress.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer" /> is empty.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the connection is not connected or when a read operation
+    /// is already in progress.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection is disposed.</exception>
     /// <remarks><para>The returned value task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
@@ -72,9 +72,9 @@ public interface IDuplexConnection : IDisposable
     /// </summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully when the shutdown completes successfully.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
+    /// <exception cref="InvalidOperationException">Thrown when the connection is not connected, already shut down or
     /// shutting down, or a write operation is in progress.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection is disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
@@ -88,10 +88,10 @@ public interface IDuplexConnection : IDisposable
     /// <param name="buffer">The buffer containing the data to write.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes successfully when the data is written successfully.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer" /> is empty.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the connection is not connected, already shut down or
     /// shutting down, or a write operation is already in progress.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection is disposed.</exception>
     /// <remarks><para>The returned value task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>

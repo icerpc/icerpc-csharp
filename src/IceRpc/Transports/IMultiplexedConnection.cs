@@ -28,10 +28,10 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <summary>Accepts a remote stream.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully with the remote stream.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> did not complete successfully
-    /// prior to this call.</exception>
-    /// <exception cref="IceRpcException">Thrown if the connection is closed.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="ConnectAsync" /> did not complete
+    /// successfully prior to this call.</exception>
+    /// <exception cref="IceRpcException">Thrown when the connection is closed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection has been disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
@@ -45,8 +45,8 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully with transport connection information when the connection is
     /// established.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection has been disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="AuthenticationException" /> if authentication failed.</description></item>
@@ -61,9 +61,9 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <param name="closeError">The error to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection closure completes successfully.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> did not complete successfully
-    /// prior to this call, or if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="ConnectAsync" /> did not complete
+    /// successfully prior to this call, or when this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection has been disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
@@ -79,10 +79,10 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <see langword="false"/>.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully with the local stream.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> did not complete successfully
-    /// prior to this call.</exception>
-    /// <exception cref="IceRpcException">Thrown if the connection is closed.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="ConnectAsync" /> did not complete
+    /// successfully prior to this call.</exception>
+    /// <exception cref="IceRpcException">Thrown when the connection is closed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the connection has been disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>

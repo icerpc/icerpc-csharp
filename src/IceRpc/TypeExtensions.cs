@@ -12,9 +12,9 @@ public static class TypeExtensions
     /// <param name="type">The interface with the <see cref="DefaultServicePathAttribute"/> attribute, or a class
     /// that implements such an interface.</param>
     /// <returns>The default service path.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="type" /> is neither a class nor an interface, or
-    /// if it does not have a <see cref="DefaultServicePathAttribute" /> attribute, or if it is a class that implements
-    /// multiple interfaces with a <see cref="DefaultServicePathAttribute" /> attribute.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="type" /> is neither a class nor an interface, or
+    /// when it does not have a <see cref="DefaultServicePathAttribute" /> attribute, or when it is a class that
+    /// implements multiple interfaces with a <see cref="DefaultServicePathAttribute" /> attribute.</exception>
     /// <remarks>When <paramref name="type" /> is an interface, this method only searches for the attribute on the
     /// interface itself.</remarks>
     /// <seealso cref="RouterExtensions.Map(Router, IDispatcher)" />

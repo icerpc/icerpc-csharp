@@ -572,7 +572,7 @@ public sealed class Server : IAsyncDisposable
                 }
                 else
                 {
-                    // _connections is immutable and ShutdownAsync/DisposeAsync is responsible to shutdown/dispose
+                    // _connections is immutable and ShutdownAsync/DisposeAsync is responsible to shut down/dispose
                     // this connection.
                     return;
                 }
@@ -588,8 +588,8 @@ public sealed class Server : IAsyncDisposable
     /// <returns>A task that completes successfully once the shutdown of all connections accepted by the server has
     /// completed. This includes connections that were active when this method is called and connections whose shutdown
     /// was initiated prior to this call.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the server is disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" /> if the

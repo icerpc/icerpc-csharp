@@ -22,7 +22,7 @@ public interface IDuplexClientTransport
     /// <param name="transportName">The transport name, or <see langword="null" /> which is equivalent to
     /// <see cref="DefaultName" />.</param>
     /// <returns><see langword="true" /> if SSL is required; otherwise, <see langword="false" />.</returns>
-    /// <exception cref="NotSupportedException">Thrown if <paramref name="transportName" /> is not supported by this
+    /// <exception cref="NotSupportedException">Thrown when <paramref name="transportName" /> is not supported by this
     /// transport.</exception>
     bool IsSslRequired(string? transportName);
 

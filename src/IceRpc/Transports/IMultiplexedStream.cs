@@ -11,7 +11,7 @@ public interface IMultiplexedStream : IDuplexPipe
 {
     /// <summary>Gets the stream ID.</summary>
     /// <value>The stream ID.</value>
-    /// <exception cref="InvalidOperationException">Thrown if the stream is not started. A remote stream is always
+    /// <exception cref="InvalidOperationException">Thrown when the stream is not started. A remote stream is always
     /// started; depending on the transport implementation, a local stream is started at construction or by the first
     /// write.</exception>
     /// <remarks>The stream IDs have the same format as the QUIC stream IDs

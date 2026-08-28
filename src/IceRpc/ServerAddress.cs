@@ -120,9 +120,9 @@ public readonly record struct ServerAddress
 
     /// <summary>Constructs a server address from a <see cref="Uri" />.</summary>
     /// <param name="uri">An absolute URI.</param>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="uri" /> is not an absolute URI, or if its scheme
-    /// is not a supported protocol, or if it has a non-empty path or fragment, or if it has an empty host, or if its
-    /// query can't be parsed or if it has an alt-server query parameter.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not an absolute URI, or when its
+    /// scheme is not a supported protocol, or when it has a non-empty path or fragment, or when it has an empty host,
+    /// or when its query can't be parsed or has an alt-server query parameter.</exception>
     public ServerAddress(Uri uri)
     {
         if (!uri.IsAbsoluteUri)

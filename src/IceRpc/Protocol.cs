@@ -81,7 +81,7 @@ public class Protocol
     /// <summary>Checks if a path is valid for this protocol.</summary>
     /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.
     /// </param>
-    /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
+    /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
     internal virtual void CheckPath(string uriPath)
     {
         // by default, any URI absolute path is ok
@@ -89,7 +89,7 @@ public class Protocol
 
     /// <summary>Checks if these service address parameters are valid for this protocol.</summary>
     /// <param name="serviceAddressParams">The service address parameters to check.</param>
-    /// <exception cref="FormatException">Thrown if the service address parameters are not valid.</exception>
+    /// <exception cref="FormatException">Thrown when the service address parameters are not valid.</exception>
     /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
     /// it does not check for the invalid empty and alt-server parameter names either.</remarks>
     internal virtual void CheckServiceAddressParams(ImmutableDictionary<string, string> serviceAddressParams)

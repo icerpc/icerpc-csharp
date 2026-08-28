@@ -141,7 +141,7 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         if (_state.HasFlag(State.ShuttingDown))
         {
-            throw new InvalidOperationException("Writing is not allowed after the connection is shutdown.");
+            throw new InvalidOperationException("Writing is not allowed after the connection is shut down.");
         }
         if (!_state.TrySetFlag(State.Writing))
         {

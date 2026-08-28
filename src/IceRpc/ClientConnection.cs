@@ -150,9 +150,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
     /// once this connection is established.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this client connection is shut down or shutting down.
+    /// <exception cref="InvalidOperationException">Thrown when this client connection is shut down or shutting down.
     /// </exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when this client connection is disposed.</exception>
     /// <remarks><para>This method can be called multiple times and concurrently. If the connection is not established,
     /// it will be connected or reconnected.</para>
     /// <para>The returned task can also complete with one of the following exceptions:</para>
@@ -274,11 +274,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if none of the request's server addresses matches this
+    /// <exception cref="InvalidOperationException">Thrown when none of the request's server addresses matches this
     /// connection's server address.</exception>
-    /// <exception cref="IceRpcException">Thrown with error <see cref="IceRpcError.InvocationRefused" /> if this client
-    /// connection is shutdown.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
+    /// <exception cref="IceRpcException">Thrown with error <see cref="IceRpcError.InvocationRefused" /> when this
+    /// client connection is shut down.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when this client connection is disposed.</exception>
     /// <remarks>If the connection is not established, it will be connected or reconnected.</remarks>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
@@ -381,9 +381,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// complete.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this connection is already shut down or shutting down.
+    /// <exception cref="InvalidOperationException">Thrown when this connection is already shut down or shutting down.
     /// </exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when this connection is disposed.</exception>
     /// <remarks><para>The returned task can also complete with one of the following exceptions:</para>
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" /> if this
@@ -587,7 +587,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Removes the connection from _activeConnection, and when successful, shuts down and disposes this
     /// connection.</summary>
-    /// <param name="connection">The connected connection to shutdown and dispose.</param>
+    /// <param name="connection">The connected connection to shut down and dispose.</param>
     private Task RemoveFromActiveAsync(IProtocolConnection connection)
     {
         lock (_mutex)

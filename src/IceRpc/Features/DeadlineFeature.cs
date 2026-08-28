@@ -12,7 +12,7 @@ public sealed class DeadlineFeature : IDeadlineFeature
     /// <summary>Creates a deadline from a timeout.</summary>
     /// <param name="timeout">The timeout. Must be a positive value not exceeding ~24.8 days.</param>
     /// <returns>A new deadline equal to now plus the timeout.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="timeout" /> is not a positive value
+    /// <exception cref="ArgumentException">Thrown when <paramref name="timeout" /> is not a positive value
     /// within the supported range.</exception>
     public static DeadlineFeature FromTimeout(TimeSpan timeout)
     {

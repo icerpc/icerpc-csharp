@@ -270,7 +270,7 @@ public sealed class ProtocolLoggerTests
                     ServerAddress = serverAddress
                 });
 
-            // Send a request to ensure the server side is connected before than we shutdown the connection
+            // Send a request to ensure the server side is connected before we shut down the connection
             _ = await clientConnection.InvokeAsync(request);
         }
 

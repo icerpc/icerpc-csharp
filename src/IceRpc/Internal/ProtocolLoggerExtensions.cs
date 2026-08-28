@@ -133,7 +133,7 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionShutdownFailed,
         EventName = nameof(ProtocolEventIds.ConnectionShutdownFailed),
         Level = LogLevel.Debug,
-        Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed to shutdown")]
+        Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed to shut down")]
     internal static partial void LogConnectionShutdownFailed(
         this ILogger logger,
         string kind,

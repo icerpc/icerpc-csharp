@@ -12,10 +12,10 @@ public static class RouterExtensions
     /// <param name="router">The router being configured.</param>
     /// <param name="service">The target service of this route.</param>
     /// <returns>The router being configured.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
-    /// <exception cref="ArgumentException">Thrown if the interface(s) implemented by <paramref name="service" /> do not
-    /// have a <see cref="DefaultServicePathAttribute"/> attribute, or if <paramref name="service" /> implements
+    /// <exception cref="ArgumentException">Thrown when the interface(s) implemented by <paramref name="service" /> do
+    /// not have a <see cref="DefaultServicePathAttribute"/> attribute, or when <paramref name="service" /> implements
     /// multiple interfaces with a <see cref="DefaultServicePathAttribute"/> attribute.</exception>
     public static Router Map(this Router router, IDispatcher service) =>
         router.Map(service.GetType().GetDefaultServicePath(), service);
@@ -27,9 +27,9 @@ public static class RouterExtensions
     /// <param name="router">The router being configured.</param>
     /// <param name="service">The target service of this route.</param>
     /// <returns>The router being configured.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
-    /// <exception cref="ArgumentException">Thrown if <typeparamref name="TService"/> does not have a
+    /// <exception cref="ArgumentException">Thrown when <typeparamref name="TService"/> does not have a
     /// <see cref="DefaultServicePathAttribute"/> attribute.</exception>
     public static Router Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
@@ -41,7 +41,7 @@ public static class RouterExtensions
     /// <param name="prefix">The prefix of the route to the sub-router.</param>
     /// <param name="configure">A delegate that configures the new sub-router.</param>
     /// <returns>The new sub-router.</returns>
-    /// <exception cref="FormatException">Thrown if <paramref name="prefix" /> is not a valid path.</exception>
+    /// <exception cref="FormatException">Thrown when <paramref name="prefix" /> is not a valid path.</exception>
     public static Router Route(this Router router, string prefix, Action<Router> configure)
     {
         ServiceAddress.CheckPath(prefix);

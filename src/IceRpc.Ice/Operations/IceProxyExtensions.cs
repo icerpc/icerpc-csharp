@@ -54,7 +54,7 @@ public static class IceProxyExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="IceException">Thrown if the response carries an Ice exception.</exception>
+    /// <exception cref="IceException">Thrown when the response carries an Ice exception.</exception>
     public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -123,7 +123,7 @@ public static class IceProxyExtensions
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
-    /// <exception cref="IceException">Thrown if the response carries a failure.</exception>
+    /// <exception cref="IceException">Thrown when the response carries a failure.</exception>
     public static Task InvokeOperationAsync<TProxy>(
         this TProxy proxy,
         string operation,

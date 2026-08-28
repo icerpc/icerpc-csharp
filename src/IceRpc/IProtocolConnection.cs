@@ -32,8 +32,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// cancellation token.</description></item>
     /// </list>
     /// </remarks>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when this connection is disposed.</exception>
     Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken = default);
 
@@ -47,8 +47,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// cancellation token.</description></item>
     /// </list>
     /// </remarks>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> did not complete successfully
-    /// prior to this call, or if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="ConnectAsync" /> did not complete
+    /// successfully prior to this call, or when this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when this connection is disposed.</exception>
     Task ShutdownAsync(CancellationToken cancellationToken = default);
 }
