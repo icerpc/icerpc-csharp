@@ -132,7 +132,7 @@ internal static class VariantEnumGenerator
     {
         string variantName = variant.Name;
 
-        // Inside the union record, the case record names shadow the type names of the enclosing namespace. We set
+        // Inside the union record, the case record names can shadow type names from the enclosing namespace. We set
         // currentNamespace to "" to generate fully qualified type names for the parameter list and the encode method.
 
         // Build parameter list for the record constructor.
