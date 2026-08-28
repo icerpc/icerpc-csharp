@@ -101,7 +101,7 @@
       SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
       ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
       Plugins="@(_ProtocCodeGenPlugin)"
-      AdditionalOptions="--dependency_out=&quot;%(_ProtoFile.OutputDir)/%(_ProtoFile.OutputFileName).d&quot;"
+      AdditionalOptions="%(_ProtoFile.AdditionalOptions);--dependency_out=&quot;%(_ProtoFile.OutputDir)/%(_ProtoFile.OutputFileName).d&quot;"
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />
