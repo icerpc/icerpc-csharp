@@ -48,3 +48,11 @@ compact enum CompactShape {
 enum ShapeWithFieldAttributes {
     Circle([cs::attribute("System.ComponentModel.Description(\"The radius\")")] radius: uint32)
 }
+
+// The case names deliberately match the names of types used as field types: the nested case records must not
+// shadow these type names.
+enum ShadowedSymbol {
+    MyStruct(v: MyStruct)
+    Wrapper(v: MyStruct?)
+    TaggedWrapper(tag(1) v: MyStruct?)
+}

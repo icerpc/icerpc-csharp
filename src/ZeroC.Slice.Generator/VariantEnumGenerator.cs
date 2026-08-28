@@ -132,9 +132,12 @@ internal static class VariantEnumGenerator
     {
         string variantName = variant.Name;
 
+        // Inside the union record, the case record names can shadow type names from the enclosing namespace. We set
+        // currentNamespace to "" to generate fully qualified type names for the parameter list and the encode method.
+
         // Build parameter list for the record constructor.
         string nameWithParams = variant.Fields.Count > 0
-            ? $"{variantName}({BuildParameterList(variant.Fields, currentNamespace)})"
+            ? $"{variantName}({BuildParameterList(variant.Fields, currentNamespace: "")})"
             : variantName;
 
         return new ContainerBuilder("partial record class", nameWithParams)
@@ -147,7 +150,7 @@ internal static class VariantEnumGenerator
                 /// <summary>The discriminant of this variant, used for encoding/decoding.</summary>
                 public const int Discriminant = {discriminant};
                 """)
-            .AddBlock(GenerateEncodeMethod(variant, enumDef, currentNamespace))
+            .AddBlock(GenerateEncodeMethod(variant, enumDef, currentNamespace: ""))
             .Build();
     }
 
