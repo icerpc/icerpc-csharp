@@ -22,7 +22,7 @@ internal class ServiceGenerator
 /// with IceRPC.</summary>
 /// <remarks>protoc-gen-icerpc-csharp generated this server-side interface.</remarks>
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
-public partial interface I{service.Name.ToPascalCase()}Service
+public partial interface I{service.Name.ToProtocPascalCase()}Service
 {{
     {methods}
 }}";
@@ -36,7 +36,7 @@ public partial interface I{service.Name.ToPascalCase()}Service
             new FunctionBuilder(
                 access: "", // abstract interface methods are implicitly public
                 $"global::System.Threading.Tasks.ValueTask<{returnType}>",
-                $"{method.Name.ToPascalCase()}Async",
+                $"{method.Name.ToProtocPascalCase()}Async",
                 FunctionType.Declaration)
             .AddComment("summary", $"Implements rpc method <c>{method.Name}</c>.");
 
