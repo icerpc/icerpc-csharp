@@ -30,7 +30,7 @@ public static class PipeReaderExtensions
     /// <param name="elementSize">The size in bytes of one element.</param>
     /// <param name="sliceFeature">The Slice feature to customize the decoding.</param>
     /// <returns>The async stream to decode and return the streamed elements.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="elementSize" /> is equal of inferior to
+    /// <exception cref="ArgumentException">Thrown when <paramref name="elementSize" /> is equal of inferior to
     /// <c>0</c>.</exception>
     /// <remarks>The reader ownership is transferred to the returned async stream. The caller should no longer use
     /// the reader after this call, and must dispose the returned async stream when done to release the reader.

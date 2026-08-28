@@ -40,7 +40,7 @@ public record class ConnectionOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(IceIdleTimeout)}", nameof(value));
     }
 
-    /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shutdown the connection if
+    /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shut down the connection if
     /// it's inactive for longer than this timeout. A connection is considered inactive when there's no invocation or
     /// dispatch in progress.</summary>
     /// <value>The inactivity timeout. Defaults to <c>5</c> minutes.</value>

@@ -37,7 +37,7 @@ public sealed class Pipeline : IInvoker
     /// <summary>Sets the last invoker of this pipeline. The pipeline flows into this invoker.</summary>
     /// <param name="lastInvoker">The last invoker.</param>
     /// <returns>This pipeline.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
+    /// <exception cref="InvalidOperationException">Thrown when this method is called after the first call to
     /// <see cref="InvokeAsync" />.</exception>
     public Pipeline Into(IInvoker lastInvoker)
     {
@@ -53,7 +53,7 @@ public sealed class Pipeline : IInvoker
     /// <summary>Installs an interceptor at the end of the pipeline.</summary>
     /// <param name="interceptor">The interceptor to install.</param>
     /// <returns>This pipeline.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
+    /// <exception cref="InvalidOperationException">Thrown when this method is called after the first call to
     /// <see cref="InvokeAsync" />.</exception>
     public Pipeline Use(Func<IInvoker, IInvoker> interceptor)
     {

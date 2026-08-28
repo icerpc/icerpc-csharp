@@ -53,7 +53,7 @@ public sealed class Router : IDispatcher
 
     /// <summary>Constructs a router with an absolute prefix.</summary>
     /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
-    /// <exception cref="FormatException">Thrown if <paramref name="absolutePrefix" /> is not a valid path.
+    /// <exception cref="FormatException">Thrown when <paramref name="absolutePrefix" /> is not a valid path.
     /// </exception>
     public Router(string absolutePrefix)
         : this()
@@ -75,8 +75,8 @@ public sealed class Router : IDispatcher
     /// must start with a <c>/</c>.</param>
     /// <param name="dispatcher">The target of this route. It is typically a service.</param>
     /// <returns>This router.</returns>
-    /// <exception cref="FormatException">Thrown if <paramref name="path" /> is not a valid path.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// <exception cref="FormatException">Thrown when <paramref name="path" /> is not a valid path.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <seealso cref="Mount" />
     public Router Map(string path, IDispatcher dispatcher)
@@ -97,8 +97,8 @@ public sealed class Router : IDispatcher
     /// the request.</param>
     /// <param name="dispatcher">The target of this route.</param>
     /// <returns>This router.</returns>
-    /// <exception cref="FormatException">Thrown if <paramref name="prefix" /> is not a valid path.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// <exception cref="FormatException">Thrown when <paramref name="prefix" /> is not a valid path.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <seealso cref="Map(string, IDispatcher)" />
     public Router Mount(string prefix, IDispatcher dispatcher)
@@ -118,7 +118,7 @@ public sealed class Router : IDispatcher
     /// <see cref="IDispatcher.DispatchAsync" />.</summary>
     /// <param name="middleware">The middleware to install.</param>
     /// <returns>This router.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     public Router Use(Func<IDispatcher, IDispatcher> middleware)
     {

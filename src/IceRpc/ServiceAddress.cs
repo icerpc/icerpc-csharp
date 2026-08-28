@@ -462,7 +462,7 @@ public sealed record class ServiceAddress
 
     /// <summary>Checks if <paramref name="params" /> contains properly escaped names and values.</summary>
     /// <param name="params">The dictionary to check.</param>
-    /// <exception cref="FormatException">Thrown if the dictionary is not valid.</exception>
+    /// <exception cref="FormatException">Thrown when the dictionary is not valid.</exception>
     /// <remarks>A dictionary returned by <see cref="UriExtensions.ParseQuery" /> is properly escaped.</remarks>
     internal static void CheckParams(ImmutableDictionary<string, string> @params)
     {
@@ -483,7 +483,7 @@ public sealed record class ServiceAddress
     /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, and reserved characters other than
     /// <c>?</c> and <c>#</c>.</summary>
     /// <param name="path">The path to check.</param>
-    /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
+    /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
     /// <remarks>The absolute path of a URI with a supported protocol satisfies these requirements.</remarks>
     internal static void CheckPath(string path)
     {
@@ -522,7 +522,7 @@ public sealed record class ServiceAddress
     /// <summary>Checks if <paramref name="fragment" /> is a properly escaped URI fragment, i.e. it contains only
     /// unreserved characters, reserved characters, and '%'.</summary>
     /// <param name="fragment">The fragment to check.</param>
-    /// <exception cref="FormatException">Thrown if the fragment is not valid.</exception>
+    /// <exception cref="FormatException">Thrown when the fragment is not valid.</exception>
     /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
     private static void CheckFragment(string fragment)
     {
