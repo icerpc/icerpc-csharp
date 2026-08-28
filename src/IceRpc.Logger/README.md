@@ -12,6 +12,7 @@ logs every dispatch.
 
 using IceRpc;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
@@ -19,7 +20,15 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the test root CA certificate in order to connect to the server that uses a test
+// server certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateClientAuthenticationOptions helper method
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 // Create an invocation pipeline and install the logger interceptor. This interceptor logs
 // invocations using category `IceRpc.Logger.LoggerInterceptor`.
