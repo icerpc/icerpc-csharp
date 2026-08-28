@@ -21,7 +21,9 @@ public static class ClientConnectionServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     /// <remarks>This method sets <see cref="ClientConnectionOptions.ServerAddress" /> in the client connection options
     /// provided by the <see cref="IOptions{T}" /> of <see cref="ClientConnectionOptions" />; the client connection uses
-    /// all the other options from these injected options.</remarks>
+    /// all the other options from these injected options. If your application connects to multiple servers, call
+    /// <see cref="ConnectionCacheServiceCollectionExtensions.AddIceRpcConnectionCache(IServiceCollection)" />
+    /// instead.</remarks>
     /// <seealso cref="AddIceRpcClientConnection(IServiceCollection)" />
     public static IServiceCollection AddIceRpcClientConnection(
         this IServiceCollection services,
@@ -36,6 +38,9 @@ public static class ClientConnectionServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="serverAddressUri">The server address URI of the client connection.</param>
     /// <returns>The service collection.</returns>
+    /// <remarks>If your application connects to multiple servers, call
+    /// <see cref="ConnectionCacheServiceCollectionExtensions.AddIceRpcConnectionCache(IServiceCollection)" />
+    /// instead.</remarks>
     /// <seealso cref="AddIceRpcClientConnection(IServiceCollection, ServerAddress)" />
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services, Uri serverAddressUri) =>
         services.AddIceRpcClientConnection(new ServerAddress(serverAddressUri));
@@ -45,7 +50,9 @@ public static class ClientConnectionServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     /// <remarks>This method uses the client connection options provided by the <see cref="IOptions{T}" /> of
-    /// <see cref="ClientConnectionOptions" />.</remarks>
+    /// <see cref="ClientConnectionOptions" />. If your application connects to multiple servers, call
+    /// <see cref="ConnectionCacheServiceCollectionExtensions.AddIceRpcConnectionCache(IServiceCollection)" />
+    /// instead.</remarks>
     /// <example>
     /// The following code adds a ClientConnection singleton to the service collection.
     /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcClientConnectionExamples.cs"
