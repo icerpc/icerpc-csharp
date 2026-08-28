@@ -56,3 +56,12 @@ enum ShadowedSymbol {
     Wrapper(v: MyStruct?)
     TaggedWrapper(tag(1) v: MyStruct?)
 }
+
+// Exercises the field shapes not covered by the other variant enums in this file.
+enum VariantFieldKinds {
+    PlainStruct(v: MyStruct)
+    OptionalStruct(v: MyStruct?)
+    TaggedStruct(tag(1) v: MyStruct?)
+    IntSequence(values: Sequence<int32>)
+    StringDictionary(entries: Dictionary<int32, string>)
+}
