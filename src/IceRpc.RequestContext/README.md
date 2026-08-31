@@ -12,8 +12,17 @@ features.
 // Client application
 
 using IceRpc;
+using System.Security.Cryptography.X509Certificates;
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the test root CA certificate in order to connect to the server that uses a test
+// server certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateClientAuthenticationOptions helper method
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 // Add the request context interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline()
@@ -25,13 +34,25 @@ Pipeline pipeline = new Pipeline()
 // Server application
 
 using IceRpc;
+using System.Security.Cryptography.X509Certificates;
 
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router()
     .UseRequestContext()
     .Map(...);
 
-await using var server = new Server(router);
+// The default transport (QUIC) requires a server certificate.
+// We use a test certificate here.
+using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+    "certs/server.p12",
+    password: null,
+    keyStorageFlags: X509KeyStorageFlags.Exportable);
+
+await using var server = new Server(
+    router,
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateServerAuthenticationOptions helper method
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
 server.Listen();
 ```
 

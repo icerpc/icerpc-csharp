@@ -19,11 +19,20 @@ don't create activities for requests that use the `ice` protocol.
 
 using IceRpc;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 // The activity source used by the telemetry interceptor.
 using var activitySource = new ActivitySource("IceRpc");
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the test root CA certificate in order to connect to the server that uses a test
+// server certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateClientAuthenticationOptions helper method
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 // Add the telemetry interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection);
