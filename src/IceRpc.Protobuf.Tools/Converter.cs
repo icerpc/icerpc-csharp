@@ -25,29 +25,11 @@ internal static class Converter
         bool capitalizeNext = true;
         foreach (char c in value)
         {
-            if (c is >= 'a' and <= 'z')
+            if (char.IsAsciiLetterOrDigit(c) || (c == '.' && preservePeriods))
             {
-                sb.Append(capitalizeNext ? (char)(c + ('A' - 'a')) : c);
-                capitalizeNext = false;
+                sb.Append(capitalizeNext ? char.ToUpperInvariant(c) : c);
             }
-            else if (c is >= 'A' and <= 'Z')
-            {
-                sb.Append(c);
-                capitalizeNext = false;
-            }
-            else if (c is >= '0' and <= '9')
-            {
-                sb.Append(c);
-                capitalizeNext = true;
-            }
-            else
-            {
-                capitalizeNext = true;
-                if (c == '.' && preservePeriods)
-                {
-                    sb.Append('.');
-                }
-            }
+            capitalizeNext = !char.IsAsciiLetter(c);
         }
         return sb.ToString();
     }
