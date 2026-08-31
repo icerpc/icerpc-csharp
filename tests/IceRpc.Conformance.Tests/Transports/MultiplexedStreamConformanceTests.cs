@@ -35,7 +35,7 @@ public abstract class MultiplexedStreamConformanceTests
             yield return new TestCaseData(bytes8K, new byte[][] { bytes1K });
 
             static byte[] CreatePattern(int size, byte seed) =>
-                Enumerable.Range(0, size).Select(i => (byte)(seed + i)).ToArray();
+                Enumerable.Range(0, size).Select(i => (byte)(seed + i + (i >> 8))).ToArray();
         }
     }
 
