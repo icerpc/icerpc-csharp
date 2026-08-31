@@ -48,6 +48,108 @@ public class CompressorInterceptorTests
         payloadWriter.Complete();
     }
 
+    /// <summary>Verifies that completing the compressor's payload writer with an exception completes the decorated
+    /// payload writer with an exception (and not gracefully with a valid compression trailer).</summary>
+    [Test]
+    public async Task Complete_compressor_payload_writer_with_exception_completes_output_with_exception(
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+        var sut = new CompressorInterceptor(invoker, compressionFormat);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        request.Features = request.Features.With(CompressFeature.Compress);
+        await sut.InvokeAsync(request, default);
+
+        var pipe = new Pipe();
+        PipeWriter payloadWriter = request.GetPayloadWriter(pipe.Writer);
+        await payloadWriter.WriteAsync(_payload);
+
+        // Act
+        payloadWriter.Complete(new InvalidOperationException("payload copy failed"));
+
+        // Assert
+        Assert.That(
+            async () =>
+            {
+                while (true)
+                {
+                    ReadResult readResult = await pipe.Reader.ReadAsync();
+                    pipe.Reader.AdvanceTo(readResult.Buffer.End);
+                    if (readResult.IsCompleted)
+                    {
+                        break;
+                    }
+                }
+            },
+            Throws.InstanceOf<InvalidOperationException>());
+        pipe.Reader.Complete();
+    }
+
+    /// <summary>Verifies that completing the compressor's payload writer does not throw when writing the last bytes of
+    /// the compressed data fails, and completes the decorated payload writer with the exception.</summary>
+    [Test]
+    public async Task Complete_compressor_payload_writer_does_not_throw_when_write_fails(
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+        var sut = new CompressorInterceptor(invoker, compressionFormat);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        request.Features = request.Features.With(CompressFeature.Compress);
+        await sut.InvokeAsync(request, default);
+
+        var failingWriter = new FailingPipeWriter();
+        PipeWriter payloadWriter = request.GetPayloadWriter(failingWriter);
+        await payloadWriter.WriteAsync(_payload);
+        failingWriter.FailWrites = true;
+
+        // Act/Assert
+        Assert.That(() => payloadWriter.Complete(), Throws.Nothing);
+        Assert.That(failingWriter.CompleteException, Is.Not.Null);
+    }
+
+    // A pipe writer that throws IOException on every write or flush once FailWrites is set.
+    private class FailingPipeWriter : PipeWriter
+    {
+        internal Exception? CompleteException { get; private set; }
+
+        internal bool FailWrites { get; set; }
+
+        private bool _isCompleted;
+
+        private readonly Pipe _pipe = new();
+
+        public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+
+        public override void CancelPendingFlush() => _pipe.Writer.CancelPendingFlush();
+
+        public override void Complete(Exception? exception = null)
+        {
+            if (!_isCompleted)
+            {
+                _isCompleted = true;
+                CompleteException = exception;
+                _pipe.Writer.Complete();
+                _pipe.Reader.Complete();
+            }
+        }
+
+        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default) =>
+            FailWrites ? throw new IOException("write failed") : _pipe.Writer.FlushAsync(cancellationToken);
+
+        public override Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
+
+        public override Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
+
+        public override ValueTask<FlushResult> WriteAsync(
+            ReadOnlyMemory<byte> source,
+            CancellationToken cancellationToken = default) =>
+            FailWrites ? throw new IOException("write failed") : _pipe.Writer.WriteAsync(source, cancellationToken);
+    }
+
     /// <summary>Verifies that the compressor interceptor does not install a payload writer interceptor if the request
     /// does not contain the compress payload feature.</summary>
     [Test]
