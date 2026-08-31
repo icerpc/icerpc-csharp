@@ -906,6 +906,7 @@ public class SlicTransportTests
             streamId: 0ul,
             (ref SliceEncoder encoder) => encoder.EncodeBool(false));
         IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
 
         // Act - send a StreamWindowUpdate that pushes the server's cumulative window over int.MaxValue.
         await WriteStreamFrameAsync(
@@ -914,15 +915,118 @@ public class SlicTransportTests
             streamId: 0ul,
             (ref SliceEncoder encoder) => new StreamWindowUpdateBody(1).Encode(ref encoder));
 
-        // Assert - the overflow rejection tears down the connection. Depending on whether AcceptStreamAsync
-        // observes the close state via the already-set _isClosed path or via the accept-channel completion, it
-        // may surface the close error (ConnectionAborted) or the original SlicPipeWriter exception (IceRpcError),
-        // so accept either.
-        IceRpcException exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await multiplexedServerConnection.AcceptStreamAsync(default))!;
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(
-            exception.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
+            exception.InnerException?.Message,
+            Is.EqualTo("The window update is trying to increase the window size to a value larger than allowed."));
+
+        acceptedStream.Output.Complete();
+        acceptedStream.Input.Complete();
+    }
+
+    [Test]
+    public async Task Reject_window_update_on_remote_unidirectional_stream()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var serverConnectionHandle = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Open the first remote unidirectional stream (stream ID 2).
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 2ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+        IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Act - send a StreamWindowUpdate on the stream the client writes to; the server has no output on it.
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.StreamWindowUpdate,
+            streamId: 2ul,
+            (ref SliceEncoder encoder) => new StreamWindowUpdateBody(1).Encode(ref encoder));
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
+        Assert.That(
+            exception.InnerException?.Message,
+            Is.EqualTo("Received unexpected StreamWindowUpdate frame on remote unidirectional stream."));
+
+        acceptedStream.Input.Complete();
+    }
+
+    [Test]
+    public async Task Reject_window_update_with_zero_increment()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var serverConnectionHandle = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Open the first remote bidirectional stream (stream ID 0).
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+        IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Act
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.StreamWindowUpdate,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => new StreamWindowUpdateBody(0).Encode(ref encoder));
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
+        Assert.That(
+            exception.InnerException?.Message,
+            Is.EqualTo("Received StreamWindowUpdate frame with a zero window size increment."));
 
         acceptedStream.Output.Complete();
         acceptedStream.Input.Complete();
