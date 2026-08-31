@@ -58,7 +58,8 @@ internal sealed partial class ThermoFacade : IThermostatService
             // We stop yielding new values when the server shuts down or the client disconnects or stops reading.
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken, cancellationToken);
 
-            // Each enumeration gets its own bounded channel with a single element.
+            // Each enumeration gets its own bounded channel holding a single reading: when the client falls behind, the
+            // channel keeps only the latest reading and drops the older ones.
             var channel = Channel.CreateBounded<Reading>(
                 new BoundedChannelOptions(1)
                 {
@@ -67,8 +68,8 @@ internal sealed partial class ThermoFacade : IThermostatService
                     FullMode = BoundedChannelFullMode.DropOldest
                 });
 
-            // We pair AddChannelWriter with RemoveChannelWriter in the finally block: both run when the enumeration
-            // starts, or neither runs when the consumer disposes the enumerator without ever starting it.
+            // Register the writer when the iteration starts and unregister it in the finally block when the iteration
+            // ends or the enumerator is disposed.
             LinkedListNode<ChannelWriter<Reading>> node = AddChannelWriter(channel.Writer);
 
             try
