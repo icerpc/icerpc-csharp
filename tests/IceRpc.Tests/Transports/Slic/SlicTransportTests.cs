@@ -1032,6 +1032,69 @@ public class SlicTransportTests
         acceptedStream.Input.Complete();
     }
 
+    /// <summary>Verifies that the StreamReadsClosed frame bundled with the closure of writes is sent once, after the
+    /// last stream frame, when the data is written in multiple stream frames.</summary>
+    [Test]
+    public async Task Bundled_reads_closed_frame_is_sent_once_after_the_last_stream_frame()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.TransportAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var serverConnectionHandle = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // WriteInitializeFrameAsync advertises MaxStreamFrameSize = 4096.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+
+        // Open the first remote bidirectional stream (stream ID 0) and close its writes with a last stream frame.
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.StreamLast,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+        IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Consume all the stream data to gracefully close reads; the StreamReadsClosed frame is deferred until the
+        // closure of writes.
+        ReadResult readResult = await acceptedStream.Input.ReadAsync(default);
+        Assert.That(readResult.IsCompleted, Is.True);
+        acceptedStream.Input.AdvanceTo(readResult.Buffer.End);
+
+        // Act - write data that spans multiple stream frames, closing writes.
+        await ((ReadOnlySequencePipeWriter)acceptedStream.Output).WriteAsync(
+            new ReadOnlySequence<byte>(new byte[10_000]),
+            endStream: true,
+            default);
+
+        // Assert - the StreamReadsClosed frame is sent once, after the StreamLast frame.
+        List<FrameType> frameTypes = [];
+        while (frameTypes.Count < 4)
+        {
+            (FrameType frameType, ReadOnlySequence<byte> _) = await ReadFrameAsync(reader);
+            frameTypes.Add(frameType);
+        }
+        Assert.That(
+            frameTypes,
+            Is.EqualTo(new[] { FrameType.Stream, FrameType.Stream, FrameType.StreamLast, FrameType.StreamReadsClosed }));
+
+        acceptedStream.Output.Complete();
+        acceptedStream.Input.Complete();
+    }
+
     [Test]
     public async Task Reject_stream_frame_exceeding_max_size()
     {
