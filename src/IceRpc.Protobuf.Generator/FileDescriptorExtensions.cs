@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using Google.Protobuf.Reflection;
+using IceRpc.CaseConverter.Internal;
 
 namespace IceRpc.Protobuf.Generator;
 
@@ -15,7 +16,7 @@ internal static class FileDescriptorExtensions
         }
         else
         {
-            return descriptor.Package;
+            return descriptor.Package.ToCsharpNamespace();
         }
     }
 }

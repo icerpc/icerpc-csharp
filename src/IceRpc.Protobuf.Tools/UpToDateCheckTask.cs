@@ -40,7 +40,7 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
         foreach (ITaskItem source in Sources)
         {
             bool upToDate = true;
-            string fileName = source.GetMetadata("FileName").ToPascalCase();
+            string fileName = source.GetMetadata("FileName").ToProtocPascalCase();
             string dependOutput = Path.Combine(OutputDir, $"{fileName}.d");
             string csharpOutput = Path.Combine(OutputDir, $"{fileName}.cs");
             string icerpcOutput = Path.Combine(OutputDir, $"{fileName}.IceRpc.cs");

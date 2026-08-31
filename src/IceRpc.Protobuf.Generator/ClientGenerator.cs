@@ -10,12 +10,12 @@ internal class ClientGenerator
 {
     internal static CodeBlock GenerateClient(ServiceDescriptor service)
     {
-        string clientName = $"{service.Name.ToPascalCase()}Client";
+        string clientName = $"{service.Name.ToProtocPascalCase()}Client";
 
         ContainerBuilder clientBuilder =
             new ContainerBuilder(
                 "public readonly partial record struct",
-                $"{clientName} : I{service.Name.ToPascalCase()}, IProtobufClient")
+                $"{clientName} : I{service.Name.ToProtocPascalCase()}, IProtobufClient")
             .AddComment(
                 "summary",
                 @$"Makes invocations on a remote IceRPC service. This remote service must implement Protobuf service
@@ -92,11 +92,11 @@ public {clientName}()
         ContainerBuilder interfaceBuilder =
             new ContainerBuilder(
                 "public partial interface",
-                $"I{service.Name.ToPascalCase()}")
+                $"I{service.Name.ToProtocPascalCase()}")
             .AddComment(
                 "remarks",
                 @$"protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
-It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
+It's implemented by <c>{service.Name.ToProtocPascalCase()}Client</c>.")
         .AddObsoleteAttribute(condition: service.GetOptions()?.Deprecated ?? false);
 
         foreach (MethodDescriptor method in service.Methods)
@@ -115,7 +115,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
             new FunctionBuilder(
                 access: "public",
                 $"global::System.Threading.Tasks.Task<{returnType}>",
-                $"{method.Name.ToPascalCase()}Async",
+                $"{method.Name.ToProtocPascalCase()}Async",
                 FunctionType.ExpressionBody)
             .AddParameter(
                 method.InputType.GetOutgoingType(scope, method.IsClientStreaming),
@@ -162,7 +162,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
             new FunctionBuilder(
                 access: "",
                 $"global::System.Threading.Tasks.Task<{returnType}>",
-                $"{method.Name.ToPascalCase()}Async",
+                $"{method.Name.ToProtocPascalCase()}Async",
                 FunctionType.Declaration)
             .AddParameter(
                 method.InputType.GetOutgoingType(scope, method.IsClientStreaming),

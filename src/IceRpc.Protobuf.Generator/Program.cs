@@ -83,7 +83,7 @@ using IceRpc.Protobuf.RpcMethods;
     response.File.Add(
         new CodeGeneratorResponse.Types.File
         {
-            Name = $"{Path.GetFileNameWithoutExtension(descriptor.Name).ToPascalCase()}.IceRpc.cs",
+            Name = $"{Path.GetFileNameWithoutExtension(descriptor.Name).ToProtocPascalCase()}.IceRpc.cs",
             Content = codeBlock.ToString().ReplaceLineEndings()
         });
 }

@@ -48,7 +48,7 @@ foreach (FileDescriptor descriptor in descriptors)
         continue;
     }
 
-    fileName ??= Path.GetFileNameWithoutExtension(descriptor.Name).ToPascalCase();
+    fileName ??= Path.GetFileNameWithoutExtension(descriptor.Name).ToProtocPascalCase();
 
     serviceCount += descriptor.Services.Count;
     rpcCount += descriptor.Services.Sum(service => service.Methods.Count);
