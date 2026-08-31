@@ -75,7 +75,7 @@ internal static class FieldExtensions
                 $$"""
                 if ({{param}} is {{csType}} {{varName}})
                 {
-                    int count_ = {{param}}.Count();
+                    int count_ = global::System.Linq.Enumerable.Count({{varName}});
                     {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{varName}}, {{encodeLambda}});
                 }
                 """).ToString();

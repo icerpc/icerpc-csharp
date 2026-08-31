@@ -4,8 +4,12 @@ using IceRpc.Features;
 using IceRpc.Slice.Derived.Generator.Tests;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
 using ZeroC.Slice;
 
 namespace IceRpc.Slice.Generator.Tests;

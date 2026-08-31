@@ -2,6 +2,7 @@
 
 using IceRpc.Ice.Codec;
 using NUnit.Framework;
+using System.Collections.Generic;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.Base.Tests;

@@ -3,6 +3,9 @@
 using Ice.Generator.Base.Tests.ReferencedAssemblies;
 using IceRpc.Ice.Codec;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace IceRpc.Ice.Generator.Base.Tests;
