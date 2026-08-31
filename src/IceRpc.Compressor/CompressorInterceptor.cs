@@ -3,7 +3,6 @@
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Compression;
 using System.IO.Pipelines;
 using ZeroC.Slice.Codec;
@@ -57,15 +56,7 @@ public class CompressorInterceptor : IInvoker
             compress.Value &&
             !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
-            if (_compressionFormat == CompressionFormat.Brotli)
-            {
-                request.Use(next => PipeWriter.Create(new BrotliStream(next.AsStream(), _compressionLevel)));
-            }
-            else
-            {
-                Debug.Assert(_compressionFormat == CompressionFormat.Deflate);
-                request.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
-            }
+            request.Use(next => new CompressorPipeWriter(next, _compressionFormat, _compressionLevel));
 
             request.Fields = request.Fields.With(RequestFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }
