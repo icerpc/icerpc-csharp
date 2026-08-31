@@ -166,7 +166,11 @@ way modern C# treats a synchronous method that also has an async counterpart. Th
 Microsoft's (which considers such a method potentially blocking), and it was adopted deliberately. Two rules make it
 work: IceRPC never calls `Complete()` on a writer with unflushed bytes (the payload is flushed before completion, and
 the transport writers throw `InvalidOperationException` when this rule is broken), and a decorator or transport
-implementation must not implement `Complete` by waiting. A decorator that has to emit a trailer (the compressor's
-compression stream) writes those few bytes synchronously in `Complete` and completes its decoratee with the exception
-when the write fails. Don't propose an asynchronous finalization step ahead of `Complete`, switching call sites to
-`CompleteAsync`, or flagging a synchronous `Complete` as sync-over-async. (#965, #4840.)
+implementation must not implement `Complete` by waiting. Switching call sites to `CompleteAsync` would fix nothing
+anyway: `CompleteAsync` takes no cancellation token, so it cannot bound anything `Complete` couldn't. Don't propose an
+asynchronous finalization step ahead of `Complete` or a switch to `CompleteAsync`, and don't flag a `Complete`
+implementation that follows the rules above as sync-over-async. (#965, #4840.)
+
+Known deviation: the compressor's payload writer writes the compression trailer during its graceful `Complete` — a
+network write that can block on flow control when the peer stops reading without closing its input. That's a real bug,
+tracked by #4911; don't file it again, and don't dismiss it as by-design.
