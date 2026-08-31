@@ -352,7 +352,10 @@ internal static class OperationExtensions
     {
         IType elemType = streamField.DataType.Type;
         string csType = streamField.DataType.FieldTypeString(true, currentNamespace);
-        string valueExpr = streamField.DataType.IsValueType ? "value!.Value" : "value!";
+        // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
+        string valueExpr = elemType is CustomType
+            ? "(value ?? default!)"
+            : streamField.DataType.IsValueType ? "value!.Value" : "value!";
         string encodeExpr = elemType.EncodeExpression(currentNamespace, valueExpr);
         return $$"""
             (ref SliceEncoder encoder, {{csType}} value) =>
