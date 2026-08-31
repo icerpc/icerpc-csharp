@@ -157,3 +157,16 @@ ordinary `using` directives and unqualified names, not `global::` qualification 
 reserved namespace breaks the compilation of the generated code; that's an error in the consuming project, not in the
 generators. Don't file findings proposing to `global::`-qualify the generated references to these namespaces as a
 defense against shadowing. (#4813.)
+
+### 15. `Complete` is synchronous and non-blocking by convention
+
+IceRPC completes every `PipeReader` and `PipeWriter` — including the payload writers installed by interceptors and
+middleware — with `Complete`, never `CompleteAsync` (#965). We interpret `Complete` as a fast, non-blocking call, the
+way modern C# treats a synchronous method that also has an async counterpart. This is our interpretation, not
+Microsoft's (which considers such a method potentially blocking), and it was adopted deliberately. Two rules make it
+work: IceRPC never calls `Complete()` on a writer with unflushed bytes (the payload is flushed before completion, and
+the transport writers throw `InvalidOperationException` when this rule is broken), and a decorator or transport
+implementation must not implement `Complete` by waiting. A decorator that has to emit a trailer (the compressor's
+compression stream) writes those few bytes synchronously in `Complete` and completes its decoratee with the exception
+when the write fails. Don't propose an asynchronous finalization step ahead of `Complete`, switching call sites to
+`CompleteAsync`, or flagging a synchronous `Complete` as sync-over-async. (#965, #4840.)
