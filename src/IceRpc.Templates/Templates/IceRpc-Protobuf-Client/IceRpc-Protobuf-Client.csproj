@@ -23,4 +23,10 @@
     </PackageReference>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.globalconfig" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Copy the test certificates to the output directory. -->
+    <None Update="certs\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
