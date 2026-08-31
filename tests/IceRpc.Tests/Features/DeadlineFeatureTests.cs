@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using NUnit.Framework;
 
-namespace IceRpc.Features.Tests;
+namespace IceRpc.Tests.Features;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class DeadlineFeatureTests

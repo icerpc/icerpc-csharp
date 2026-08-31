@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using NUnit.Framework;
+
 namespace IceRpc.Tests.Common;
 
 /// <summary>A test fixture that is responsible for the common shared setup.</summary>
@@ -41,6 +43,7 @@ public sealed class CommonSetUpFixture
             {
                 Console.Error.WriteLine($"\n+++ Unobserved task exception {sender}:\n{exception}");
             }
+            Assert.Fail($"Tests triggered {_unobservedTaskExceptions.Count} unobserved task exceptions");
         }
     }
 
