@@ -65,8 +65,8 @@ follows:
 
 ## ProtoFile item metadata
 
-You can use the following `ProtoFile` item metadata to customize the compilation of your Proto files. Each
-unique set of options results in a separate execution of `protoc`.
+You can use the following `ProtoFile` item metadata to customize the compilation of your Proto files. `protoc` runs
+once per Proto file.
 
 | Name              | Default   | Description                                                                                                                                      |
 |-------------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -74,6 +74,10 @@ unique set of options results in a separate execution of `protoc`.
 | OutputDir         | generated | Sets the output directory for the generated code. This metadata corresponds to the `--csharp_out` and `--icerpc-csharp_out` options of `protoc`. |
 | Pack              | `false`   | Specifies whether or not to include the items (Proto files) in the NuGet package.                                                                |
 | PackagePath       | protobuf  | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                        |
+
+> [!NOTE]
+> Changing `AdditionalOptions` does not mark previously generated code as out of date. Run `dotnet clean` and then
+> build again to regenerate the code with the new options.
 
 ## Generated code and NuGet packages
 
