@@ -15,8 +15,17 @@ You can display the collected measurements with [dotnet-counters][dotnet_counter
 // Client application
 
 using IceRpc;
+using System.Security.Cryptography.X509Certificates;
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the test root CA certificate in order to connect to the server that uses a test
+// server certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    // examples/common/Program.Authentication.cs in the icerpc-csharp repo provides the
+    // CreateClientAuthenticationOptions helper method
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 // Create an invocation pipeline and install the metrics interceptor.
 Pipeline pipeline = new Pipeline().UseMetrics().Into(connection);
