@@ -53,17 +53,6 @@ internal sealed partial class ThermoFacade : IThermostatService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        // Each call to MonitorAsync gets its own bounded channel with a single element.
-        var channel = Channel.CreateBounded<Reading>(
-            new BoundedChannelOptions(1)
-            {
-                SingleReader = true,
-                SingleWriter = true,
-                FullMode = BoundedChannelFullMode.DropOldest
-            });
-
-        LinkedListNode<ChannelWriter<Reading>> node = AddChannelWriter(channel.Writer);
-
         return new(ReadAsync(CancellationToken.None));
 
         // The injected cancellation token is canceled when the client disconnects or stops reading.
@@ -72,21 +61,42 @@ internal sealed partial class ThermoFacade : IThermostatService
             // We stop yielding new values when the server shuts down or the client disconnects or stops reading.
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken, cancellationToken);
 
-            while (!cts.IsCancellationRequested)
-            {
-                Reading reading;
-                try
+            // Each enumeration gets its own bounded channel holding a single reading: when the client falls behind, the
+            // channel keeps only the latest reading and drops the older ones.
+            var channel = Channel.CreateBounded<Reading>(
+                new BoundedChannelOptions(1)
                 {
-                    reading = await channel.Reader.ReadAsync(cts.Token);
-                }
-                catch
-                {
-                    break; // while
-                }
-                yield return reading;
-            }
+                    SingleReader = true,
+                    SingleWriter = true,
+                    FullMode = BoundedChannelFullMode.DropOldest
+                });
 
-            RemoveChannelWriter(node);
+            // Register the writer when the iteration starts and unregister it in the finally block when the iteration
+            // ends or the enumerator is disposed.
+            LinkedListNode<ChannelWriter<Reading>> node = AddChannelWriter(channel.Writer);
+
+            try
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    Reading reading;
+                    try
+                    {
+                        reading = await channel.Reader.ReadAsync(cts.Token);
+                    }
+                    catch
+                    {
+                        break; // while
+                    }
+                    yield return reading;
+                }
+            }
+            finally
+            {
+                // The consumer can dispose the enumerator while it's suspended at a yield return; only the
+                // finally block runs then.
+                RemoveChannelWriter(node);
+            }
         }
     }
 
@@ -146,14 +156,22 @@ internal sealed partial class ThermoFacade : IThermostatService
         {
             // Expected on shutdown or when superseded by a newer publish task.
         }
-
-        lock (_mutex)
+        catch (Exception exception)
         {
-            // Cleanup unless a new publish task has already disposed publishCts.
-            if (_publishCts == publishCts)
+            // This method's task is not awaited, so we must not let any exception escape. An IceRpcException is
+            // expected when the device connection is lost.
+            Console.WriteLine($"Stopped publishing readings: {exception.Message}");
+        }
+        finally
+        {
+            lock (_mutex)
             {
-                publishCts.Dispose();
-                _publishCts = null;
+                // Cleanup unless a new publish task has already disposed publishCts.
+                if (_publishCts == publishCts)
+                {
+                    publishCts.Dispose();
+                    _publishCts = null;
+                }
             }
         }
     }
