@@ -23,7 +23,8 @@ runs:
         sudo dpkg -i packages-microsoft-prod.deb
         rm packages-microsoft-prod.deb
         sudo apt update
-        sudo apt install libmsquic
+        # 2.6.1 fails every QUIC handshake to an IP address (see #4906); pin until a fixed release ships.
+        sudo apt install libmsquic=2.6.0
       shell: bash
 
     - name: Install libmsquic on macOS
