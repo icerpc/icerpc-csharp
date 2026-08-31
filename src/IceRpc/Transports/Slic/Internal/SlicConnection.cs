@@ -1243,7 +1243,7 @@ internal class SlicConnection : IMultiplexedConnection
                     throw new InvalidDataException($"Received {frameType} frame for unknown stream.");
                 }
 
-                return ReadStreamWindowUpdateFrameAsync(size, streamId!.Value, cancellationToken);
+                return ReadStreamWindowUpdateFrameAsync(size, streamId.Value, cancellationToken);
             }
             case FrameType.StreamReadsClosed:
             case FrameType.StreamWritesClosed:
@@ -1410,6 +1410,12 @@ internal class SlicConnection : IMultiplexedConnection
                 cancellationToken).ConfigureAwait(false);
             if (_streams.TryGetValue(streamId, out SlicStream? stream))
             {
+                if (stream.IsRemote && !stream.IsBidirectional)
+                {
+                    // The local side doesn't write on a remote unidirectional stream, so there is no window to update.
+                    throw new InvalidDataException(
+                        $"Received unexpected {nameof(FrameType.StreamWindowUpdate)} frame on remote unidirectional stream.");
+                }
                 stream.ReceivedWindowUpdateFrame(frame);
             }
         }

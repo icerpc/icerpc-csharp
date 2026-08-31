@@ -316,13 +316,21 @@ internal class SlicStream : IMultiplexedStream
     /// <param name="frame">The body of the <see cref="FrameType.StreamWindowUpdate" /> frame.</param>
     internal void ReceivedWindowUpdateFrame(StreamWindowUpdateBody frame)
     {
+        // The connection rejects window updates on remote unidirectional streams, the only streams with no output
+        // pipe writer.
+        Debug.Assert(_outputPipeWriter is not null);
+
+        if (frame.WindowSizeIncrement == 0)
+        {
+            throw new InvalidDataException(
+                $"Received {nameof(FrameType.StreamWindowUpdate)} frame with a zero window size increment.");
+        }
         if (frame.WindowSizeIncrement > SlicTransportOptions.MaxWindowSize)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The window update is trying to increase the window size to a value larger than allowed.");
+            throw new InvalidDataException(
+                "The window update is trying to increase the window size to a value larger than allowed.");
         }
-        _outputPipeWriter!.ReceivedWindowUpdateFrame((int)frame.WindowSizeIncrement);
+        _outputPipeWriter.ReceivedWindowUpdateFrame((int)frame.WindowSizeIncrement);
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamWritesClosed" /> frame.</summary>

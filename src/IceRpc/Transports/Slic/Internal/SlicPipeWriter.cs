@@ -216,9 +216,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         int newPeerWindowSize = Interlocked.Add(ref _peerWindowSize, size);
         if (newPeerWindowSize <= 0)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The window update is trying to increase the window size to a value larger than allowed.");
+            throw new InvalidDataException(
+                "The window update is trying to increase the window size to a value larger than allowed.");
         }
 
         int previousPeerWindowSize = newPeerWindowSize - size;
