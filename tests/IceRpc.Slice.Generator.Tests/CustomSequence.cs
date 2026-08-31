@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Collections;
+using System.Collections.Generic;
 
 namespace IceRpc.Slice.Generator.Tests;
 

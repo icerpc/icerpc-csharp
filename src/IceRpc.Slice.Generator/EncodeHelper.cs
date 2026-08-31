@@ -17,7 +17,7 @@ internal static class EncodeHelper
                 {{encodeOptionsName}}?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
             var encoder_ = new SliceEncoder(pipe_.Writer);
 
-            Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+            global::System.Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
             int startPos_ = encoder_.EncodedByteCount;
 
             {{encodeBody}}

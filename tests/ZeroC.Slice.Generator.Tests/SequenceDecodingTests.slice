@@ -7,9 +7,9 @@ compact struct BoolS {
 }
 
 compact struct CustomBoolS {
-    value: [cs::type("List<bool>")] Sequence<bool>
+    value: [cs::type("global::System.Collections.Generic.List<bool>")] Sequence<bool>
 }
 
 compact struct CustomOptInt32S {
-    value: [cs::type("List<int?>")] Sequence<int32?>
+    value: [cs::type("global::System.Collections.Generic.List<int?>")] Sequence<int32?>
 }

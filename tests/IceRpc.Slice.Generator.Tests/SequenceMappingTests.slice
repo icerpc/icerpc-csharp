@@ -70,8 +70,8 @@ interface SequenceMappingOperations {
     returnCustomSequenceOfOptionalMyUncheckedEnum() -> [cs::type("CustomSequence<MyUncheckedEnum?>")] Sequence<MyUncheckedEnum?>
     sendCustomSequenceOfOptionalMyUncheckedEnum(p: [cs::type("CustomSequence<MyUncheckedEnum?>")] Sequence<MyUncheckedEnum?>)
 
-    returnHashSetOfInt32() -> [cs::type("HashSet<int>")] Sequence<int32>
-    sendHashSetOfInt32(p: [cs::type("HashSet<int>")] Sequence<int32>)
+    returnHashSetOfInt32() -> [cs::type("global::System.Collections.Generic.HashSet<int>")] Sequence<int32>
+    sendHashSetOfInt32(p: [cs::type("global::System.Collections.Generic.HashSet<int>")] Sequence<int32>)
 
     opNumericTypeNestedSequence(p1: Sequence<Sequence<Sequence<uint8>>>) -> Sequence<Sequence<Sequence<uint8>>>
     opStructNestedSequence(p1: Sequence<Sequence<Sequence<MyStruct>>>) -> Sequence<Sequence<Sequence<MyStruct>>>

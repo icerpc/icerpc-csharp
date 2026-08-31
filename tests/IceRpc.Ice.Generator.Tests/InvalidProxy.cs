@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using System;
+
 namespace IceRpc.Ice.Generator.Tests;
 
 internal class InvalidProxy : IIceProxy

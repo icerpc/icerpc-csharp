@@ -1,6 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace IceRpc.Ice.Generator.Tests;
 

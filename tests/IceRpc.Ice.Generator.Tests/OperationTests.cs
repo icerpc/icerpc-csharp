@@ -4,7 +4,10 @@ using IceRpc.Features;
 using IceRpc.Ice.Derived.Generator.Tests;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using System;
 using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc.Ice.Generator.Tests;
 

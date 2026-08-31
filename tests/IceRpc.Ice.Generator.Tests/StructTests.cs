@@ -3,6 +3,8 @@
 using IceRpc.Ice.Codec;
 using IceRpc.Ice.Operations;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
 using ZeroC.Tests.Common;
 
 namespace IceRpc.Ice.Generator.Tests;
