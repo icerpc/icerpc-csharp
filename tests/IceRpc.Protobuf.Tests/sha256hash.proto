@@ -1,0 +1,17 @@
+// Copyright (c) ZeroC, Inc.
+
+// The file name (digit followed by a lowercase letter) and the package (lowercase with an underscore) verify that
+// the build tasks and the generator map names to C# exactly like protoc: this file compiles into Sha256Hash.cs and
+// Sha256Hash.IceRpc.cs, in namespace Lower.SnakeCase.
+
+syntax = "proto3";
+
+package lower.snake_case;
+
+service HashOperations {
+    rpc ComputeHash(HashMessage) returns (HashMessage);
+}
+
+message HashMessage {
+    string value = 1;
+}

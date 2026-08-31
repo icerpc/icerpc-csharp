@@ -30,7 +30,9 @@ public class OutputFileNamesTask : Microsoft.Build.Utilities.Task
             string fullPath = source.GetMetadata("FullPath");
             var computedSource = new TaskItem(source.ItemSpec);
             source.CopyMetadataTo(computedSource);
-            computedSource.SetMetadata("OutputFileName", Path.GetFileNameWithoutExtension(fullPath).ToPascalCase());
+            computedSource.SetMetadata(
+                "OutputFileName",
+                Path.GetFileNameWithoutExtension(fullPath).ToProtocPascalCase());
             computedSources.Add(computedSource);
         }
         ComputedSources = [.. computedSources];
