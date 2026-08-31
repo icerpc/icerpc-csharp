@@ -87,6 +87,13 @@ internal partial class Chatbot : IGreeterService
 }
 ```
 
+## Slice files
+
+This package ships `Identity.ice`, `Locator.ice`, `LocatorRegistry.ice` and `Process.ice` in its `slice` directory,
+and adds this directory to the include directories of every `SliceCompile` item: referencing the package is all you
+need to `#include <Ice/Identity.ice>`. A `SliceCompile` item that sets the `IncludeDirectories` metadata explicitly
+must write `%(IncludeDirectories)` back into the value to keep this directory.
+
 [api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Ice.html
 [docs]: https://docs.icerpc.dev/icerpc-for-ice-users
 [ice]: https://zeroc.com/ice
