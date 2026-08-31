@@ -865,7 +865,7 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame and
     /// <see langword="false" /> to write a <see cref="FrameType.Stream" /> frame.</param>
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
-    /// frame should be written after the stream frame.</param>
+    /// frame should be written after the last stream frame.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
     /// also be closed concurrently while it's in progress.</remarks>
@@ -982,7 +982,7 @@ internal class SlicConnection : IMultiplexedConnection
                         _duplexConnectionWriter.Write(sendSource2);
                     }
 
-                    if (writeReadsClosedFrame)
+                    if (writeReadsClosedFrame && lastStreamFrame)
                     {
                         WriteFrame(FrameType.StreamReadsClosed, stream.Id, encode: null);
                     }
