@@ -36,5 +36,10 @@
     <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
     <Content Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
+    <Content
+      Include="../../slice/Ice/Identity.ice;../../slice/Ice/Locator.ice;../../slice/Ice/LocatorRegistry.ice;../../slice/Ice/Process.ice"
+      Pack="true"
+      PackagePath="slice/Ice"
+    />
   </ItemGroup>
 </Project>
