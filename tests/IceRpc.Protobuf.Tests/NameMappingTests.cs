@@ -4,6 +4,8 @@ using IceRpc.Features;
 using IceRpc.Tests.Common;
 using Lower.SnakeCase;
 using NUnit.Framework;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc.Protobuf.Tests;
 
