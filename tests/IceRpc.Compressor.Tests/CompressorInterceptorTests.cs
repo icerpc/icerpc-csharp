@@ -103,24 +103,20 @@ public class CompressorInterceptorTests
 
         var failingWriter = new FailingPipeWriter();
         PipeWriter payloadWriter = request.GetPayloadWriter(failingWriter);
-        try
-        {
-            await payloadWriter.WriteAsync(_payload);
-        }
-        catch (IOException)
-        {
-            // Ignore the write failure, if any.
-        }
+        await payloadWriter.WriteAsync(_payload);
+        failingWriter.FailWrites = true;
 
         // Act/Assert
         Assert.That(() => payloadWriter.Complete(), Throws.Nothing);
         Assert.That(failingWriter.CompleteException, Is.Not.Null);
     }
 
-    // A pipe writer that throws IOException on every write or flush.
+    // A pipe writer that throws IOException on every write or flush once FailWrites is set.
     private class FailingPipeWriter : PipeWriter
     {
         internal Exception? CompleteException { get; private set; }
+
+        internal bool FailWrites { get; set; }
 
         private bool _isCompleted;
 
@@ -142,7 +138,7 @@ public class CompressorInterceptorTests
         }
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default) =>
-            throw new IOException("write failed");
+            FailWrites ? throw new IOException("write failed") : _pipe.Writer.FlushAsync(cancellationToken);
 
         public override Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
 
@@ -151,7 +147,7 @@ public class CompressorInterceptorTests
         public override ValueTask<FlushResult> WriteAsync(
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken = default) =>
-            throw new IOException("write failed");
+            FailWrites ? throw new IOException("write failed") : _pipe.Writer.WriteAsync(source, cancellationToken);
     }
 
     /// <summary>Verifies that the compressor interceptor does not install a payload writer interceptor if the request
