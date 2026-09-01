@@ -29,13 +29,19 @@ internal class CompressorPipeWriter : PipeWriter
     {
         if (!_isCompleted)
         {
+            if (exception is null && _compressedDataWriter.UnflushedBytes > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Completing a {nameof(CompressorPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
+            }
+
             _isCompleted = true;
 
             if (exception is null)
             {
                 try
                 {
-                    // Flushes the buffered data and the compression trailer into the decoratee.
+                    // Writes the compression trailer into the decoratee.
                     _compressedDataWriter.Complete();
                 }
                 catch (Exception completeException)
