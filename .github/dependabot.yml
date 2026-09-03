@@ -11,6 +11,8 @@ updates:
     groups:
       nuget:
         patterns: ["*"]
+        exclude-patterns:
+          - "Microsoft.CodeAnalysis.CSharp"
 
   - package-ecosystem: "github-actions"
     directories: ["/", "/.github/actions/*"]
