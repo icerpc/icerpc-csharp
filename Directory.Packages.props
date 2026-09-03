@@ -22,7 +22,7 @@
 
     <!-- The service generator runs inside the C# compiler, so use the Microsoft.CodeAnalysis.CSharp
      version bundled with .NET SDK 10.0.1xx, the minimum SDK supported by IceRPC. -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="[5.9.0]" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="[5.0.0]" />
 
     <!-- MSBuild SDK packages (used by IceRpc.*.Tools) -->
     <PackageVersion Include="Microsoft.Build.Framework" Version="18.9.6" />
