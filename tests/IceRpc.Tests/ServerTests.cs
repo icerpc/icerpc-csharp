@@ -380,6 +380,132 @@ public class ServerTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
     }
 
+    /// <summary>Verifies that the server shutdown waits for the establishment of an accepted transport connection to
+    /// complete. The connection is refused and its transport connection disposed before the shutdown completes.
+    /// </summary>
+    [Test]
+    public async Task Shutdown_waits_for_pending_connection_establishment()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport));
+        var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+
+        await using var server = new Server(
+            dispatcher: NotFoundDispatcher.Instance,
+            serverAddress: new ServerAddress(new Uri("icerpc://foo")),
+            multiplexedServerTransport: multiplexedServerTransport);
+
+        // Hold the connection establishment of the accepted transport connections.
+        multiplexedServerTransport.ConnectionOperationsOptions = new()
+        {
+            Hold = MultiplexedTransportOperations.Connect
+        };
+
+        // The accept operation is reported as called when it starts and again when it completes.
+        Task acceptStartedTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Accept);
+        ServerAddress serverAddress = server.Listen();
+        await acceptStartedTask;
+        Task acceptCompletedTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Accept);
+
+        await using var clientConnection = new ClientConnection(
+            serverAddress,
+            multiplexedClientTransport: multiplexedClientTransport);
+        Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync();
+        await acceptCompletedTask;
+
+        TestMultiplexedConnectionDecorator serverConnection = multiplexedServerTransport.LastAcceptedConnection;
+        Task disposeCalledTask = serverConnection.Operations.GetCalledTask(MultiplexedTransportOperations.Dispose);
+
+        // Act
+        Task shutdownTask = server.ShutdownAsync();
+
+        // Assert
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Assert.That(() => shutdownTask.WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
+
+        serverConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release connect
+        await shutdownTask;
+
+        Assert.That(disposeCalledTask.IsCompleted, Is.True);
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
+    }
+
+    /// <summary>Verifies that the server shutdown waits for the establishment of an accepted transport connection to
+    /// complete when the server stopped accepting connections because of a fatal accept exception.</summary>
+    [Test]
+    public async Task Shutdown_waits_for_pending_connection_establishment_after_fatal_accept_exception()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport),
+            operationsOptions: new() { FailureException = new Exception() });
+        var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+
+        await using var server = new Server(
+            dispatcher: NotFoundDispatcher.Instance,
+            serverAddress: new ServerAddress(new Uri("icerpc://foo")),
+            multiplexedServerTransport: multiplexedServerTransport);
+
+        // Hold the connection establishment of the accepted transport connections.
+        multiplexedServerTransport.ConnectionOperationsOptions = new()
+        {
+            Hold = MultiplexedTransportOperations.Connect
+        };
+
+        // The accept operation is reported as called when it starts and again when it completes.
+        Task acceptStartedTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Accept);
+        ServerAddress serverAddress = server.Listen();
+        await acceptStartedTask;
+        Task acceptCompletedTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Accept);
+
+        await using var clientConnection1 = new ClientConnection(
+            serverAddress,
+            multiplexedClientTransport: multiplexedClientTransport);
+        Task<TransportConnectionInformation> connectTask1 = clientConnection1.ConnectAsync();
+        await acceptCompletedTask;
+
+        TestMultiplexedConnectionDecorator serverConnection = multiplexedServerTransport.LastAcceptedConnection;
+        Task disposeCalledTask = serverConnection.Operations.GetCalledTask(MultiplexedTransportOperations.Dispose);
+
+        // Make the next accept fail with a fatal exception. The server stops accepting connections and disposes the
+        // listener while the first connection is still connecting.
+        Task listenerDisposeCalledTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Dispose);
+        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
+
+        // The failure is raised either before the next accept starts or once it accepts this second connection. In
+        // both cases the second connection establishment fails and the server stops accepting connections.
+        await using var clientConnection2 = new ClientConnection(
+            serverAddress,
+            multiplexedClientTransport: multiplexedClientTransport);
+        Assert.That(() => clientConnection2.ConnectAsync(), Throws.InstanceOf<IceRpcException>());
+        await listenerDisposeCalledTask;
+
+        // Act
+        Task shutdownTask = server.ShutdownAsync();
+
+        // Assert
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Assert.That(() => shutdownTask.WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
+
+        serverConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release connect
+        await shutdownTask;
+
+        Assert.That(disposeCalledTask.IsCompleted, Is.True);
+        Assert.That(
+            async () => await connectTask1,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
+    }
+
     /// <summary>Verifies that the Server's ConnectTimeout is transmitted to the multiplexed transport as
     /// HandshakeTimeout.</summary>
     [Test]

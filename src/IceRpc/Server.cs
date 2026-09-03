@@ -364,12 +364,18 @@ public sealed class Server : IAsyncDisposable
         {
             await Task.Yield(); // exit mutex lock
 
+            // The semaphore is disposed once the accept loop has exited and all the connect tasks have completed.
+            using var pendingConnectionSemaphore = new SemaphoreSlim(
+                _maxPendingConnections,
+                _maxPendingConnections);
+
+            // The connect tasks of the accepted connections. A connect task completes after it disposes its connector
+            // and releases its pending connection semaphore permit. The completed tasks are removed from this list
+            // before adding a new task, so the list holds about _maxPendingConnections tasks at most.
+            var connectTasks = new List<Task>();
+
             try
             {
-                using var pendingConnectionSemaphore = new SemaphoreSlim(
-                    _maxPendingConnections,
-                    _maxPendingConnections);
-
                 while (!_shutdownCts.IsCancellationRequested)
                 {
                     await pendingConnectionSemaphore.WaitAsync(_shutdownCts.Token).ConfigureAwait(false);
@@ -394,7 +400,8 @@ public sealed class Server : IAsyncDisposable
                     // connection initialization as we wouldn't be able to accept new connections in the meantime. The
                     // call will eventually timeout if the ConnectTimeout expires.
                     CancellationToken cancellationToken = _disposedCts.Token;
-                    _ = Task.Run(
+                    connectTasks.RemoveAll(task => task.IsCompleted);
+                    connectTasks.Add(Task.Run(
                         async () =>
                         {
                             try
@@ -412,18 +419,11 @@ public sealed class Server : IAsyncDisposable
                                 // adopted by the protocol connection.
                                 await connector.DisposeAsync().ConfigureAwait(false);
 
-                                // The pending connection semaphore is disposed by the listen task completion once
-                                // shutdown / dispose is initiated.
-                                lock (_mutex)
-                                {
-                                    if (_shutdownTask is null)
-                                    {
-                                        pendingConnectionSemaphore.Release();
-                                    }
-                                }
+                                // The semaphore is not disposed until this connect task completes.
+                                pendingConnectionSemaphore.Release();
                             }
                         },
-                        CancellationToken.None); // the task must run to dispose the connector.
+                        CancellationToken.None)); // the task must run to dispose the connector.
                 }
             }
             catch
@@ -433,6 +433,10 @@ public sealed class Server : IAsyncDisposable
             finally
             {
                 await listener.DisposeAsync().ConfigureAwait(false);
+
+                // Wait for the connect tasks of the accepted connections to complete. ShutdownAsync (within its
+                // shutdown timeout) and DisposeAsync wait for the completion of this listen task.
+                await Task.WhenAll(connectTasks).ConfigureAwait(false);
             }
 
             async Task ConnectAsync(IConnector connector, CancellationToken cancellationToken)
@@ -441,7 +445,7 @@ public sealed class Server : IAsyncDisposable
                 connectCts.CancelAfter(_connectTimeout);
 
                 // Connect the transport connection first. This connection establishment can be interrupted by the
-                // connect timeout or the server ShutdownAsync/DisposeAsync.
+                // connect timeout or the server DisposeAsync.
                 TransportConnectionInformation transportConnectionInformation =
                     await connector.ConnectTransportConnectionAsync(connectCts.Token).ConfigureAwait(false);
 
