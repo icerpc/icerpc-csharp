@@ -21,7 +21,8 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 
     <!-- The service generator runs inside the C# compiler, so use the Microsoft.CodeAnalysis.CSharp
-     version bundled with .NET SDK 10.0.1xx, the minimum SDK supported by IceRPC. -->
+         version bundled with .NET SDK 10.0.1xx, the minimum SDK supported by IceRPC, and keep this
+         package ignored in .github/dependabot.yml. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="[5.0.0]" />
 
     <!-- MSBuild SDK packages (used by IceRpc.*.Tools) -->
