@@ -25,19 +25,20 @@ public interface ISliceFeature
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     /// <value>The maximum collection allocation.</value>
     /// <remarks>This value is a cumulative budget for the decoding of one Slice payload segment, not a limit on the
-    /// size of each collection: the decoder adds the estimated memory size of every string, sequence, and dictionary
-    /// it decodes, and throws <see cref="InvalidDataException" /> once this total exceeds the maximum collection
-    /// allocation. Implementations must return a value greater than or equal to <c>0</c>.</remarks>
+    /// size of each collection: the decoder charges the estimated memory size of each string, sequence, and
+    /// dictionary against this budget before decoding it, based on the size or element count found in the encoded
+    /// data, and throws <see cref="InvalidDataException" /> when the charge exceeds the remaining budget.
+    /// Implementations must return a value greater than or equal to <c>0</c>.</remarks>
     int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
     /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>
     /// <value>The maximum size of a Slice payload segment, in bytes.</value>
-    /// <remarks>This limit applies only when decoding the payload of an incoming request or response: each segment is
-    /// read in full into memory before it is decoded, and this read throws <see cref="InvalidDataException" /> when
-    /// the segment exceeds this size. It does not restrict the size of the segments encoded by the application. The
-    /// segment size does not include the size of its size prefix. Implementations must return a value greater than
-    /// <c>0</c>.</remarks>
+    /// <remarks>This limit applies only when decoding the payload of an incoming request or response: the decoding
+    /// throws <see cref="InvalidDataException" /> when the size encoded in the size prefix of a segment exceeds this
+    /// maximum, before decoding any byte of the segment. It does not restrict the size of the segments encoded by the
+    /// application. The segment size does not include the size of its size prefix. Implementations must return a value
+    /// greater than <c>0</c>.</remarks>
     int MaxSegmentSize { get; }
 }

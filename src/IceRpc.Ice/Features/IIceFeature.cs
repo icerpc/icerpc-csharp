@@ -29,9 +29,10 @@ public interface IIceFeature
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     /// <value>The maximum collection allocation.</value>
     /// <remarks>This value is a cumulative budget for the decoding of one payload, not a limit on the size of each
-    /// collection: the decoder adds the estimated memory size of every string, sequence, and dictionary it decodes,
-    /// and throws <see cref="InvalidDataException" /> once this total exceeds the maximum collection allocation.
-    /// Implementations must return a value greater than or equal to <c>0</c>.</remarks>
+    /// collection: the decoder charges the estimated memory size of each string, sequence, and dictionary against
+    /// this budget before decoding it, based on the size or element count found in the encoded data, and throws
+    /// <see cref="InvalidDataException" /> when the charge exceeds the remaining budget. Implementations must return
+    /// a value greater than or equal to <c>0</c>.</remarks>
     int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
@@ -43,11 +44,15 @@ public interface IIceFeature
     /// encoded arguments of an operation, the encoded return values of an operation, or the encoded Ice exception
     /// carried by a response with status code <see cref="StatusCode.ApplicationError" />.</summary>
     /// <value>The maximum size of an Ice-encoded payload, in bytes.</value>
-    /// <remarks>This limit applies only when decoding the payload of an incoming request or response: the payload is
-    /// read in full into memory before it is decoded, and this read throws <see cref="InvalidDataException" /> when
-    /// the payload exceeds this size. It does not restrict the size of the payloads encoded by the application. The
-    /// payload size does not include the size of any header for this payload, such as the encapsulation header with
-    /// the ice protocol. Implementations must return a value greater than or equal to <c>0</c> and less than
-    /// <see cref="int.MaxValue" />.</remarks>
+    /// <remarks><para>This limit applies only when decoding the payload of an incoming request or response: the
+    /// decoding throws <see cref="InvalidDataException" /> when the payload size carried by the request or response
+    /// exceeds this maximum, before decoding any byte of the payload. It does not restrict the size of the payloads
+    /// encoded by the application. The payload size does not include the size of any header for this payload, such
+    /// as the encapsulation header with the ice protocol. Implementations must return a value greater than or equal
+    /// to <c>0</c> and less than <see cref="int.MaxValue" />.</para>
+    /// <para>This property is the counterpart of the Ice property
+    /// <see href="https://docs.zeroc.com/ice/3.8/cpp/ice#Ice.MessageSizeMax">Ice.MessageSizeMax</see>, with two
+    /// differences: the maximum payload size is in bytes rather than kilobytes, and it excludes the protocol header
+    /// that Ice.MessageSizeMax includes.</para></remarks>
     int MaxPayloadSize { get; }
 }
