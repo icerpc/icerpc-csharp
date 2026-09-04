@@ -33,6 +33,7 @@ runs:
       run: |
         # 2.6.1 fails every QUIC handshake to an IP address (see #4906); pin until a fixed release ships.
         brew tap-new --no-git icerpc/local
-        cp "$GITHUB_ACTION_PATH/libmsquic.rb" "$(brew --repository icerpc/local)/Formula/"
+        curl -fsSL -o "$(brew --repository icerpc/local)/Formula/libmsquic.rb" \
+          https://raw.githubusercontent.com/Homebrew/homebrew-core/a1043160de64ac2d680c73dcd74b7d97c60fdbe5/Formula/lib/libmsquic.rb
         brew install icerpc/local/libmsquic
         echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
