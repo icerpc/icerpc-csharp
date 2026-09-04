@@ -15,7 +15,10 @@ public interface IIceFeature
     IActivator? Activator { get; }
 
     /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
-    /// <value>The base proxy.</value>
+    /// <value>The base proxy. A decoded proxy inherits the invoker and encode options of the base proxy. When
+    /// <see langword="null" />, the proxy that sent the request serves as the base proxy for a proxy decoded from an
+    /// incoming response, while a proxy decoded from an incoming request receives
+    /// <see cref="InvalidInvoker.Instance" /> as its invoker.</value>
     IIceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
@@ -25,7 +28,11 @@ public interface IIceFeature
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     /// <value>The maximum collection allocation.</value>
-    /// <remarks>Implementations must return a value greater than or equal to <c>0</c>.</remarks>
+    /// <remarks>This value is a cumulative budget for the decoding of one payload, not a limit on the size of each
+    /// collection: the decoder charges the estimated memory size of each string, sequence, and dictionary against
+    /// this budget before decoding it, based on the size or element count found in the encoded data, and throws
+    /// <see cref="InvalidDataException" /> when the charge exceeds the remaining budget. Implementations must return
+    /// a value greater than or equal to <c>0</c>.</remarks>
     int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
@@ -34,10 +41,14 @@ public interface IIceFeature
     int MaxDepth { get; }
 
     /// <summary>Gets the maximum size of an Ice-encoded payload, in bytes. An Ice-encoded payload corresponds to the
-    /// encoded arguments of an operation, or the encoded return values of an operation.</summary>
+    /// encoded arguments of an operation, the encoded return values of an operation, or the encoded Ice exception
+    /// carried by a response with status code <see cref="StatusCode.ApplicationError" />.</summary>
     /// <value>The maximum size of an Ice-encoded payload, in bytes.</value>
-    /// <remarks>The payload size does not include the size of any header for this payload, such as the encapsulation
-    /// header with the ice protocol. Implementations must return a value greater than or equal to <c>0</c> and less
-    /// than <see cref="int.MaxValue" />.</remarks>
+    /// <remarks>This limit applies only when decoding the payload of an incoming request or response: the decoding
+    /// throws <see cref="InvalidDataException" /> when the payload size carried by the request or response exceeds
+    /// this maximum, before decoding any byte of the payload. It does not restrict the size of the payloads encoded by
+    /// the application. The payload size does not include the size of any header for this payload, such as the
+    /// encapsulation header with the ice protocol. Implementations must return a value greater than or equal to
+    /// <c>0</c> and less than <see cref="int.MaxValue" />.</remarks>
     int MaxPayloadSize { get; }
 }

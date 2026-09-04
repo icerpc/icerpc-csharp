@@ -69,6 +69,11 @@ public record class ConnectionOptions
     /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
     /// <value>The maximum size of an incoming frame, in bytes. This value must be at least <c>256</c>. Defaults to
     /// <c>1</c> MB.</value>
+    /// <remarks>This property is the counterpart of the Ice property
+    /// <see href="https://docs.zeroc.com/ice/3.8/cpp/ice#Ice.MessageSizeMax">Ice.MessageSizeMax</see>: both limit
+    /// the size of a whole frame, header included, and both close the connection when the size of an incoming frame
+    /// exceeds this limit. Unlike Ice.MessageSizeMax, this property is expressed in bytes rather than kilobytes and
+    /// cannot be set to <c>0</c> to disable the limit.</remarks>
     public int MaxIceFrameSize
     {
         get => _maxIceFrameSize;
