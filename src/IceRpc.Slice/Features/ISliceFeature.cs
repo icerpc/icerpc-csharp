@@ -11,10 +11,9 @@ public interface ISliceFeature
     /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
     /// <value>The base proxy. A decoded proxy inherits the invoker and encode options of the base proxy, and a decoded
     /// relative service address is resolved against the service address of the base proxy. When
-    /// <see langword="null" />, a proxy decoded from an incoming request receives
-    /// <see cref="InvalidInvoker.Instance" /> as its invoker and keeps its relative service address as is, and a proxy
-    /// decoded from an incoming response inherits the invoker and encode options of the proxy that sent the request.
-    /// </value>
+    /// <see langword="null" />, the proxy that sent the request serves as the base proxy for a proxy decoded from an
+    /// incoming response, while a proxy decoded from an incoming request receives
+    /// <see cref="InvalidInvoker.Instance" /> as its invoker and keeps its relative service address as is.</value>
     ISliceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>

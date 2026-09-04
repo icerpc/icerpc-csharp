@@ -16,9 +16,9 @@ public interface IIceFeature
 
     /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
     /// <value>The base proxy. A decoded proxy inherits the invoker and encode options of the base proxy. When
-    /// <see langword="null" />, a proxy decoded from an incoming request receives
-    /// <see cref="InvalidInvoker.Instance" /> as its invoker, and a proxy decoded from an incoming response inherits
-    /// the invoker and encode options of the proxy that sent the request.</value>
+    /// <see langword="null" />, the proxy that sent the request serves as the base proxy for a proxy decoded from an
+    /// incoming response, while a proxy decoded from an incoming request receives
+    /// <see cref="InvalidInvoker.Instance" /> as its invoker.</value>
     IIceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
@@ -44,15 +44,11 @@ public interface IIceFeature
     /// encoded arguments of an operation, the encoded return values of an operation, or the encoded Ice exception
     /// carried by a response with status code <see cref="StatusCode.ApplicationError" />.</summary>
     /// <value>The maximum size of an Ice-encoded payload, in bytes.</value>
-    /// <remarks><para>This limit applies only when decoding the payload of an incoming request or response: the
-    /// decoding throws <see cref="InvalidDataException" /> when the payload size carried by the request or response
-    /// exceeds this maximum, before decoding any byte of the payload. It does not restrict the size of the payloads
-    /// encoded by the application. The payload size does not include the size of any header for this payload, such
-    /// as the encapsulation header with the ice protocol. Implementations must return a value greater than or equal
-    /// to <c>0</c> and less than <see cref="int.MaxValue" />.</para>
-    /// <para>This property is the counterpart of the Ice property
-    /// <see href="https://docs.zeroc.com/ice/3.8/cpp/ice#Ice.MessageSizeMax">Ice.MessageSizeMax</see>, with two
-    /// differences: the maximum payload size is in bytes rather than kilobytes, and it excludes the protocol header
-    /// that Ice.MessageSizeMax includes.</para></remarks>
+    /// <remarks>This limit applies only when decoding the payload of an incoming request or response: the decoding
+    /// throws <see cref="InvalidDataException" /> when the payload size carried by the request or response exceeds
+    /// this maximum, before decoding any byte of the payload. It does not restrict the size of the payloads encoded by
+    /// the application. The payload size does not include the size of any header for this payload, such as the
+    /// encapsulation header with the ice protocol. Implementations must return a value greater than or equal to
+    /// <c>0</c> and less than <see cref="int.MaxValue" />.</remarks>
     int MaxPayloadSize { get; }
 }
