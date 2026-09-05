@@ -121,14 +121,19 @@
       />
     </ItemGroup>
   </Target>
+  <!--
+    _ProtoCleanFile is deliberately distinct from the _ProtoFile item that ProtoCompile emits: a task <Output> appends
+    to an existing item, and Rebuild runs Clean and Build in the same project instance, so sharing the item would leave
+    ProtoCompile with two entries per ProtoFile, run protoc twice, and pass duplicate Compile items to csc.
+  -->
   <Target Name="ProtoClean" BeforeTargets="Clean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
     <OutputFileNamesTask Sources="@(ProtoFile)">
-      <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
+      <Output ItemName="_ProtoCleanFile" TaskParameter="ComputedSources" />
     </OutputFileNamesTask>
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).BuildTelemetry.txt')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).cs')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).d')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).BuildTelemetry.txt')" />
   </Target>
 
   <!-- Package ProtoFile items -->
