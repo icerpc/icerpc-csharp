@@ -60,9 +60,94 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
+  <!--
+    Computes the files that protoc produces for the current ProtoFile items, as absolute paths, and the fingerprint
+    of the configuration that produces them. ProtoCompile and the prune, manifest and clean targets share it, and
+    MSBuild runs it once per build.
+
+    It deliberately doesn't run the up-to-date check, and ProtoCompile keeps its own _ProtoFile item: Rebuild runs
+    Clean and Build in the same project instance, so an up-to-date check made before Clean would mark as current the
+    very outputs Clean is about to delete. A task <Output> also appends to an existing item, so sharing _ProtoFile
+    with ProtoCompile would leave it with two entries per ProtoFile.
+
+    The task assembly only exists in source builds once IceRpc.Protobuf.Tools has been built, which isn't the case
+    for a Clean that precedes any Build; the Exists check skips the computation in that case.
+  -->
+  <Target Name="_ComputeProtoOutputs"
+          Condition="@(ProtoFile) != '' And Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
+    <OutputFileNamesTask Sources="@(ProtoFile)">
+      <Output ItemName="_ProtoNamedFile" TaskParameter="ComputedSources" />
+    </OutputFileNamesTask>
+    <ItemGroup>
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).cs'))" />
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).IceRpc.cs'))" />
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).d'))" />
+      <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
+      <_ProtoOutput
+        Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).BuildTelemetry.txt'))"
+        Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'" />
+    </ItemGroup>
+    <PropertyGroup>
+      <!--
+        Everything that changes the generated code without touching a Proto file: the compiler and generator
+        versions, the import search path and the per-file protoc options. A change regenerates every Proto file.
+      -->
+      <_ProtocFingerprint>protoc=$(ProtocBundledPluginVersion);icerpc-csharp=$(ProtocIceRpcPluginVersion);search-path=@(ProtoSearchPath->'%(FullPath)', ',');options=@(ProtoFile->'%(Identity)=%(AdditionalOptions)', ',')</_ProtocFingerprint>
+    </PropertyGroup>
+  </Target>
+
+  <!--
+    Delete generated files recorded in the previous build's manifest that the current build no longer produces.
+    Without this, a removed or renamed .proto file (or a ProtoFile whose OutputDir changed) leaves orphan .cs files
+    behind that the SDK's default Compile glob keeps picking up.
+
+    BeforeTargets covers both the ProtoFile-present case (ProtoCompile/ProtoClean) and the ProtoFile-empty case where
+    those targets are skipped by their conditions but stale files from a previous build still need pruning
+    (CoreCompile/Clean).
+  -->
+  <Target Name="_ProtoPruneStaleOutputs"
+          BeforeTargets="ProtoCompile;CoreCompile;ProtoClean;Clean"
+          DependsOnTargets="_ComputeProtoOutputs"
+          Condition="Exists('$(IntermediateOutputPath)protoc.outputs.txt')">
+    <ReadLinesFromFile File="$(IntermediateOutputPath)protoc.outputs.txt">
+      <Output TaskParameter="Lines" ItemName="_PreviousProtoOutput" />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <_StaleProtoOutput Include="@(_PreviousProtoOutput)" Exclude="@(_ProtoOutput)" />
+      <!--
+        The SDK's default Compile glob captured these paths during item evaluation, with project-relative
+        Identities. We materialize the relative form into its own item so that <Compile Remove> can match it
+        - inlining the MakeRelative call inside an item transform pattern doesn't evaluate the property
+        function as expected.
+      -->
+      <_StaleProtoOutputRelative
+        Include="$([MSBuild]::MakeRelative($(MSBuildProjectDirectory), %(_StaleProtoOutput.Identity)))"
+        Condition="'%(_StaleProtoOutput.Identity)' != ''" />
+      <!--
+        Remove now, otherwise csc still reports the stale files as inputs and fails with CS2001 once we
+        delete them on disk. We try both the absolute and relative form to cover Compile entries added by
+        either explicit ProjectReference users or the SDK glob.
+      -->
+      <Compile Remove="@(_StaleProtoOutput)" />
+      <Compile Remove="@(_StaleProtoOutputRelative)" />
+    </ItemGroup>
+    <Delete Files="@(_StaleProtoOutput)" />
+  </Target>
+
+  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeProtoOutputs" Condition="@(ProtoFile) != ''">
+    <ItemGroup>
+      <!-- Tools whose update must regenerate the code, in addition to the inputs recorded in the dependency files. -->
+      <_ProtocInput Include="$(IceRpcProtocPath)$(IceRpcProtocPrefix)/protoc$(_ProtocExecutableExtension)" />
+      <_ProtocInput Include="$(IceRpcProtocGenPath)IceRpc.Protobuf.Generator.dll" />
+    </ItemGroup>
+
     <MakeDir Directories="%(ProtoFile.OutputDir)" />
-    <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
+    <UpToDateCheckTask
+      OutputDir="%(ProtoFile.OutputDir)"
+      Sources="@(ProtoFile)"
+      AdditionalInputs="@(_ProtocInput)"
+      Fingerprint="$(_ProtocFingerprint)"
+      FingerprintFile="$(IntermediateOutputPath)protoc.fingerprint.txt">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
 
@@ -121,19 +206,36 @@
       />
     </ItemGroup>
   </Target>
+
   <!--
-    _ProtoCleanFile is deliberately distinct from the _ProtoFile item that ProtoCompile emits: a task <Output> appends
-    to an existing item, and Rebuild runs Clean and Build in the same project instance, so sharing the item would leave
-    ProtoCompile with two entries per ProtoFile, run protoc twice, and pass duplicate Compile items to csc.
+    Record this build's outputs and configuration so the next build can prune anything no longer produced and
+    detect a configuration change. As an AfterTargets of ProtoCompile this only runs once protoc succeeded, so a
+    failed run never records a fingerprint its outputs don't match. The fingerprint is escaped because
+    WriteLinesToFile would otherwise split it on the semicolons.
   -->
-  <Target Name="ProtoClean" BeforeTargets="Clean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
-    <OutputFileNamesTask Sources="@(ProtoFile)">
-      <Output ItemName="_ProtoCleanFile" TaskParameter="ComputedSources" />
-    </OutputFileNamesTask>
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).cs')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).d')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).BuildTelemetry.txt')" />
+  <Target Name="_ProtoWriteOutputManifest"
+          AfterTargets="ProtoCompile"
+          DependsOnTargets="_ComputeProtoOutputs"
+          Condition="@(ProtoFile) != ''">
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)protoc.outputs.txt"
+      Lines="@(_ProtoOutput)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)protoc.fingerprint.txt"
+      Lines="$([MSBuild]::Escape($(_ProtocFingerprint)))"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="ProtoClean" BeforeTargets="Clean" DependsOnTargets="_ComputeProtoOutputs">
+    <Delete Files="@(_ProtoOutput)" />
+    <Delete Files="$(IntermediateOutputPath)protoc.outputs.txt"
+            Condition="Exists('$(IntermediateOutputPath)protoc.outputs.txt')" />
+    <Delete Files="$(IntermediateOutputPath)protoc.fingerprint.txt"
+            Condition="Exists('$(IntermediateOutputPath)protoc.fingerprint.txt')" />
   </Target>
 
   <!-- Package ProtoFile items -->
