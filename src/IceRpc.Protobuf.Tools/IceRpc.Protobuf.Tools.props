@@ -25,6 +25,7 @@
   <Choose>
     <When Condition="$([MSBuild]::IsOSPlatform('Windows'))">
       <PropertyGroup>
+        <_ProtocExecutableExtension>.exe</_ProtocExecutableExtension>
         <_ProtocPluginScriptExtension>.bat</_ProtocPluginScriptExtension>
       </PropertyGroup>
     </When>
