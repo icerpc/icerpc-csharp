@@ -21,9 +21,9 @@
                       ReferenceOutputAssembly="false" Private="false" Targets="Build" />
     <!--
       IceRpc.Protobuf.BuildTelemetry imports this project's props/targets (to compile its
-      protobuf_build_telemetry.proto), so a ProjectReference from here back to it would create a cycle. Release
-      packaging expects a prior `dotnet build` on the solution so its outputs exist in
-      ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/ when the None Include glob below is evaluated.
+      protobuf_build_telemetry.proto), so a ProjectReference from here back to it would create a cycle. Packaging
+      expects a prior `dotnet build` on the solution so its outputs exist in
+      ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/; IncludeProtocPluginsInPackage fails the pack otherwise.
     -->
     <PackageReference Include="Microsoft.Build.Framework" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" />
@@ -55,19 +55,6 @@
       <PackagePath />
     </None>
     <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <!--
-      Pack everything from the protoc plug-in (IceRpc.Protobuf.Generator) and the build-telemetry plug-in
-      (IceRpc.Protobuf.BuildTelemetry) bin folders, excluding files in the BuildTelemetry bin that have the
-      same name as a file already coming from the Generator bin (e.g. Google.Protobuf.dll). The bins are
-      otherwise clean - neither contains transitive tooling outputs because we use Targets="Build" on the
-      generator ProjectReferences (see IceRpc.Protobuf.Tools.targets).
-    -->
-    <_ProtobufGeneratorBinFile Include="../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/*" />
-    <_ProtobufBuildTelemetryBinFile
-      Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/*"
-      Exclude="@(_ProtobufGeneratorBinFile -> '../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/%(Filename)%(Extension)')" />
-    <None Include="@(_ProtobufGeneratorBinFile);@(_ProtobufBuildTelemetryBinFile)"
-          Pack="true" PackagePath="tools/" Visible="false" />
   </ItemGroup>
   <Target Name="CopyGoogleProtobufTools" BeforeTargets="CoreCompile">
     <ItemGroup>
@@ -120,6 +107,35 @@
         <PackagePath>tools/</PackagePath>
         <Pack>true</Pack>
       </None>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Pack everything from the protoc plug-in (IceRpc.Protobuf.Generator) and the build-telemetry plug-in
+    (IceRpc.Protobuf.BuildTelemetry) bin folders, excluding files in the BuildTelemetry bin that have the
+    same name as a file already coming from the Generator bin (e.g. Google.Protobuf.dll). The bins are
+    otherwise clean - neither contains transitive tooling outputs because we use Targets="Build" on the
+    generator ProjectReferences (see IceRpc.Protobuf.Tools.targets).
+
+    The globs run in a target rather than at evaluation time so that packing this project on its own picks up
+    the Generator outputs that its ProjectReference has just built. The build-telemetry plug-in can't be
+    referenced (see above), so the pack fails when a plug-in hasn't been built instead of silently producing a
+    package without it.
+  -->
+  <Target Name="IncludeProtocPluginsInPackage" BeforeTargets="_GetPackageFiles">
+    <Error
+      Condition="!Exists('$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/IceRpc.Protobuf.Generator.dll')"
+      Text="IceRpc.Protobuf.Generator has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Protobuf.Tools." />
+    <Error
+      Condition="!Exists('$(MSBuildThisFileDirectory)../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.dll')"
+      Text="IceRpc.Protobuf.BuildTelemetry has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Protobuf.Tools." />
+    <ItemGroup>
+      <_ProtobufGeneratorBinFile Include="../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/*" />
+      <_ProtobufBuildTelemetryBinFile
+        Include="../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/*"
+        Exclude="@(_ProtobufGeneratorBinFile -> '../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/%(Filename)%(Extension)')" />
+      <None Include="@(_ProtobufGeneratorBinFile);@(_ProtobufBuildTelemetryBinFile)"
+            Pack="true" PackagePath="tools/" Visible="false" />
     </ItemGroup>
   </Target>
 
