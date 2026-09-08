@@ -1209,7 +1209,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 if (prologue.FrameSize > _maxFrameSize)
                 {
                     throw new InvalidDataException(
-                        $"Received frame with size ({prologue.FrameSize}) greater than max frame size.");
+                        $"Received frame with size ({prologue.FrameSize}) greater than {nameof(ConnectionOptions.MaxIceFrameSize)} ({_maxFrameSize}).");
                 }
                 if (prologue.FrameSize < IceDefinitions.PrologueSize)
                 {
