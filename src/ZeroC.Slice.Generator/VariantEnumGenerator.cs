@@ -142,6 +142,7 @@ internal static class VariantEnumGenerator
 
         return new ContainerBuilder("partial record class", nameWithParams)
             .AddDocCommentSummary(variant.Comment, currentNamespace)
+            .AddDocCommentParams(variant.Fields, currentNamespace)
             .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
             .AddDeprecatedAttribute(variant.Attributes)
             .AddBase(parentIdentifier)

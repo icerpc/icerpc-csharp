@@ -21,6 +21,20 @@ internal static class BuilderExtensions
         return builder;
     }
 
+    /// <summary>Adds a <c>&lt;param&gt;</c> tag for each field that has a doc comment.</summary>
+    internal static T AddDocCommentParams<T>(this T builder, IEnumerable<Field> fields, string currentNamespace)
+        where T : ICommentBuilder<T>
+    {
+        foreach (Field field in fields)
+        {
+            if (DocCommentFormatter.FormatOverview(field.Comment, currentNamespace) is string overview)
+            {
+                builder.AddComment("param", "name", field.Name, overview);
+            }
+        }
+        return builder;
+    }
+
     /// <summary>Adds the <c>&lt;seealso&gt;</c> tags from a <see cref="Comment"/> to a builder.</summary>
     internal static T AddDocCommentSeeAlso<T>(this T builder, Comment? comment, string currentNamespace)
         where T : ICommentBuilder<T>

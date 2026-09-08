@@ -310,9 +310,14 @@ internal static class ServiceGenerator
             op.CancellationTokenParamName,
             docComment: "A cancellation token that receives the cancellation requests.");
 
-        if (op.NonStreamedReturns.Count == 0 && !op.HasStreamedReturn)
+        if (op.ReturnType.Count == 0)
         {
             operationBuilder.AddComment("returns", "A value task that completes when this implementation completes.");
+        }
+        else if (!op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn) &&
+            op.GetReturnsDocComment(currentNamespace) is string returns)
+        {
+            operationBuilder.AddComment("returns", returns);
         }
 
         // Build SliceOperation attribute with optional named parameters
