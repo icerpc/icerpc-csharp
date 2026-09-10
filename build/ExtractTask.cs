@@ -11,10 +11,13 @@ using Microsoft.Build.Utilities;
 /// <summary>A custom MSBuild task that extracts .zip archive files to a destination folder. This tasks uses
 /// <see cref="ZipFile.ExtractToDirectory(string, string)"/> to extract the files, which ensures that Unix permissions
 /// are correctly restored. The MSBuild Unzip task does not restore Unix permissions.</summary>
+/// <remarks>The archives are extracted into a sibling staging folder that replaces the destination folder only once
+/// all of them are extracted, so that an interrupted build does not leave a partially extracted destination folder
+/// behind.</remarks>
 public class ExtractTask : Task
 {
-    /// <summary>Gets or sets a <see cref="ITaskItem"/> with a destination folder path to unzip the files to.
-    /// </summary>
+    /// <summary>Gets or sets a <see cref="ITaskItem"/> with a destination folder path to unzip the files to. An
+    /// existing destination folder is replaced.</summary>
     [Required]
     public ITaskItem DestinationFolder { get; set; }
 
@@ -27,10 +30,32 @@ public class ExtractTask : Task
     /// <returns>Returns whether or not the execution completed successfully.</returns>
     public override bool Execute()
     {
-        foreach (ITaskItem sourceFile in SourceFiles)
+        string destinationFolder =
+            DestinationFolder.ItemSpec.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string stagingFolder = destinationFolder + ".extracting";
+
+        DeleteFolder(stagingFolder);
+        try
         {
-            ZipFile.ExtractToDirectory(sourceFile.ItemSpec, DestinationFolder.ItemSpec);
+            foreach (ITaskItem sourceFile in SourceFiles)
+            {
+                ZipFile.ExtractToDirectory(sourceFile.ItemSpec, stagingFolder);
+            }
+            DeleteFolder(destinationFolder);
+            Directory.Move(stagingFolder, destinationFolder);
+        }
+        finally
+        {
+            DeleteFolder(stagingFolder);
         }
         return true;
+    }
+
+    private static void DeleteFolder(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
     }
 }
