@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Collections.Immutable;
 using ZeroC.CodeBuilder;
 using ZeroC.Slice.Symbols;
 
@@ -130,18 +129,21 @@ internal static class VariantEnumGenerator
         string currentNamespace,
         int discriminant)
     {
-        string variantName = variant.Name;
+        ContainerBuilder builder = new ContainerBuilder("partial record class", variant.Name)
+            .AddDocCommentSummary(variant.Comment, currentNamespace);
 
         // Inside the union record, the case record names can shadow type names from the enclosing namespace. We set
-        // currentNamespace to "" to generate fully qualified type names for the parameter list and the encode method.
+        // currentNamespace to "" to generate fully qualified type names for the parameters and the encode method.
+        foreach (Field field in variant.Fields)
+        {
+            string type = field.DataType.FieldTypeString(field.DataTypeIsOptional, currentNamespace: "");
+            builder.AddPrimaryConstructorParameter(
+                PropertyAttributes(field) + type,
+                field.Name,
+                DocCommentFormatter.FormatOverview(field.Comment, currentNamespace));
+        }
 
-        // Build parameter list for the record constructor.
-        string nameWithParams = variant.Fields.Count > 0
-            ? $"{variantName}({BuildParameterList(variant.Fields, currentNamespace: "")})"
-            : variantName;
-
-        return new ContainerBuilder("partial record class", nameWithParams)
-            .AddDocCommentSummary(variant.Comment, currentNamespace)
+        return builder
             .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
             .AddDeprecatedAttribute(variant.Attributes)
             .AddBase(parentIdentifier)
@@ -327,25 +329,18 @@ internal static class VariantEnumGenerator
         return code;
     }
 
-    /// <summary>Builds the positional parameter list of a variant's record declaration: one parameter per field, with
-    /// the field's <c>cs::attribute</c> and <c>deprecated</c> attributes emitted on the property that the record
-    /// generates for the parameter.</summary>
-    private static string BuildParameterList(ImmutableList<Field> fields, string currentNamespace)
+    /// <summary>Returns the <c>cs::attribute</c> and <c>deprecated</c> attributes of a variant field, with the
+    /// <c>property:</c> target that applies them to the property the record generates for the parameter.</summary>
+    private static string PropertyAttributes(Field field)
     {
-        return string.Join(", ", fields.Select(f =>
+        string attributes = string.Concat(
+            field.Attributes.CSAttributes().Select(attr => $"[property: {attr.Args[0]}] "));
+        if (field.Attributes.IsDeprecated)
         {
-            string attributes = string.Concat(
-                f.Attributes.CSAttributes().Select(attr => $"[property: {attr.Args[0]}] "));
-            if (f.Attributes.IsDeprecated)
-            {
-                attributes += f.Attributes.DeprecatedMessage is string message ?
-                    $"[property: global::System.Obsolete(\"{message}\")] " :
-                    "[property: global::System.Obsolete] ";
-            }
-
-            string typeString = f.DataType.FieldTypeString(f.DataTypeIsOptional, currentNamespace);
-            string paramName = f.Name;
-            return $"{attributes}{typeString} {paramName}";
-        }));
+            attributes += field.Attributes.DeprecatedMessage is string message ?
+                $"[property: global::System.Obsolete(\"{message}\")] " :
+                "[property: global::System.Obsolete] ";
+        }
+        return attributes;
     }
 }

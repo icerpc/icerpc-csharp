@@ -99,9 +99,13 @@ internal static class ProxyGenerator
             "default",
             "A cancellation token that receives the cancellation requests.");
 
-        if (op.NonStreamedReturns.Count == 0 && !op.HasStreamedReturn)
+        if (op.ReturnType.Count == 0)
         {
             builder.AddComment("returns", "A task that completes when the response is received.");
+        }
+        else if (op.GetReturnsDocComment(currentNamespace) is string returns)
+        {
+            builder.AddComment("returns", returns);
         }
 
         builder.AddDocCommentSeeAlso(op.Comment, currentNamespace);
