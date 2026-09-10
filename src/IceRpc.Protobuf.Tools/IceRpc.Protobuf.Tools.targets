@@ -61,17 +61,11 @@
     />
   </ItemGroup>
   <!--
-    Computes the files that protoc produces for the current ProtoFile items, as absolute paths, and the fingerprint
-    of the configuration that produces them. ProtoCompile and the prune, manifest and clean targets share it, and
-    MSBuild runs it once per build.
+    This target must not run the up-to-date check: Rebuild runs Clean then Build in the same project instance, so a
+    check made before Clean would mark as current the outputs Clean is about to delete. ProtoCompile keeps its own
+    _ProtoFile item because a task <Output> appends to an existing item.
 
-    It deliberately doesn't run the up-to-date check, and ProtoCompile keeps its own _ProtoFile item: Rebuild runs
-    Clean and Build in the same project instance, so an up-to-date check made before Clean would mark as current the
-    very outputs Clean is about to delete. A task <Output> also appends to an existing item, so sharing _ProtoFile
-    with ProtoCompile would leave it with two entries per ProtoFile.
-
-    The task assembly only exists in source builds once IceRpc.Protobuf.Tools has been built, which isn't the case
-    for a Clean that precedes any Build; the Exists check skips the computation in that case.
+    In a source build the task assembly doesn't exist until IceRpc.Protobuf.Tools is built, hence the Exists check.
   -->
   <Target Name="_ComputeProtoOutputs"
           Condition="@(ProtoFile) != '' And Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
@@ -82,28 +76,19 @@
       <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).cs'))" />
       <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).IceRpc.cs'))" />
       <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).d'))" />
-      <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
       <_ProtoOutput
         Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).BuildTelemetry.txt'))"
         Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'" />
     </ItemGroup>
     <PropertyGroup>
-      <!--
-        Everything that changes the generated code without touching a Proto file: the compiler and generator
-        versions, the import search path and the per-file protoc options. A change regenerates every Proto file.
-      -->
+      <!-- Anything that changes the generated code without touching a Proto file; a change regenerates them all. -->
       <_ProtocFingerprint>protoc=$(ProtocBundledPluginVersion);icerpc-csharp=$(ProtocIceRpcPluginVersion);search-path=@(ProtoSearchPath->'%(FullPath)', ',');options=@(ProtoFile->'%(Identity)=%(AdditionalOptions)', ',')</_ProtocFingerprint>
     </PropertyGroup>
   </Target>
 
   <!--
-    Delete generated files recorded in the previous build's manifest that the current build no longer produces.
-    Without this, a removed or renamed .proto file (or a ProtoFile whose OutputDir changed) leaves orphan .cs files
-    behind that the SDK's default Compile glob keeps picking up.
-
-    BeforeTargets covers both the ProtoFile-present case (ProtoCompile/ProtoClean) and the ProtoFile-empty case where
-    those targets are skipped by their conditions but stale files from a previous build still need pruning
-    (CoreCompile/Clean).
+    BeforeTargets includes CoreCompile and Clean for the case where ProtoFile is empty: ProtoCompile and ProtoClean
+    are then skipped, but the outputs of a previous build still need pruning.
   -->
   <Target Name="_ProtoPruneStaleOutputs"
           BeforeTargets="ProtoCompile;CoreCompile;ProtoClean;Clean"
@@ -115,18 +100,15 @@
     <ItemGroup>
       <_StaleProtoOutput Include="@(_PreviousProtoOutput)" Exclude="@(_ProtoOutput)" />
       <!--
-        The SDK's default Compile glob captured these paths during item evaluation, with project-relative
-        Identities. We materialize the relative form into its own item so that <Compile Remove> can match it
-        - inlining the MakeRelative call inside an item transform pattern doesn't evaluate the property
-        function as expected.
+        The SDK's default Compile glob records project-relative identities, and <Compile Remove> matches identities
+        exactly. A MakeRelative call inlined in an item transform doesn't evaluate, hence the separate item.
       -->
       <_StaleProtoOutputRelative
         Include="$([MSBuild]::MakeRelative($(MSBuildProjectDirectory), %(_StaleProtoOutput.Identity)))"
         Condition="'%(_StaleProtoOutput.Identity)' != ''" />
       <!--
-        Remove now, otherwise csc still reports the stale files as inputs and fails with CS2001 once we
-        delete them on disk. We try both the absolute and relative form to cover Compile entries added by
-        either explicit ProjectReference users or the SDK glob.
+        Remove before deleting, or csc fails with CS2001 on the missing files. The absolute form covers explicit
+        Compile items, the relative form the SDK glob.
       -->
       <Compile Remove="@(_StaleProtoOutput)" />
       <Compile Remove="@(_StaleProtoOutputRelative)" />
@@ -208,10 +190,8 @@
   </Target>
 
   <!--
-    Record this build's outputs and configuration so the next build can prune anything no longer produced and
-    detect a configuration change. As an AfterTargets of ProtoCompile this only runs once protoc succeeded, so a
-    failed run never records a fingerprint its outputs don't match. The fingerprint is escaped because
-    WriteLinesToFile would otherwise split it on the semicolons.
+    AfterTargets keeps this after a successful protoc run, so a failed run never records a fingerprint its outputs
+    don't match. The fingerprint is escaped because WriteLinesToFile splits its Lines on semicolons.
   -->
   <Target Name="_ProtoWriteOutputManifest"
           AfterTargets="ProtoCompile"

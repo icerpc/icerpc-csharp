@@ -103,16 +103,14 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
             return false;
         }
 
-        // The outputs are only up to date when all of them are newer than every input, so compare against the
-        // oldest output rather than the newest.
+        // Every output must be newer than every input, so compare against the oldest output.
         long oldestOutputTime = outputs.Min(output => File.GetLastWriteTime(output).Ticks);
 
         foreach (string input in ProcessDependencies(dependOutput).Concat(additionalInputs))
         {
             if (!File.Exists(input))
             {
-                // File.GetLastWriteTime returns a placeholder date for missing files, which would otherwise make a
-                // deleted import look older than the outputs.
+                // File.GetLastWriteTime returns a placeholder date for a missing file, older than any output.
                 Log.LogMessage(MessageImportance.Low, $"'{source}' is out of date: input '{input}' is missing.");
                 return false;
             }
