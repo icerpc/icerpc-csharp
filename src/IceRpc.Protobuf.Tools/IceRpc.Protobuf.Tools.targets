@@ -121,14 +121,18 @@
       />
     </ItemGroup>
   </Target>
+  <!--
+    _ProtoCleanFile must stay distinct from _ProtoFile: a task <Output> appends to an existing item, and Rebuild runs
+    Clean then Build in the same project instance.
+  -->
   <Target Name="ProtoClean" BeforeTargets="Clean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
     <OutputFileNamesTask Sources="@(ProtoFile)">
-      <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
+      <Output ItemName="_ProtoCleanFile" TaskParameter="ComputedSources" />
     </OutputFileNamesTask>
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
-    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).BuildTelemetry.txt')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).cs')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).IceRpc.cs')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).d')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).BuildTelemetry.txt')" />
   </Target>
 
   <!-- Package ProtoFile items -->
