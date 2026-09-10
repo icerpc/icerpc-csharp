@@ -264,16 +264,16 @@ internal static class OperationExtensions
             foreach (Field field in sortedFields)
             {
                 string decodeExpr = field.GetFieldDecodeExpression(currentNamespace, useIncomingType: true);
-                body.WriteLine($"var sliceP_{field.ParameterName} = {decodeExpr};");
+                body.WriteLine($"var {field.DecodedVariableName} = {decodeExpr};");
             }
 
             if (fields.Count == 1)
             {
-                body.WriteLine($"return sliceP_{sortedFields[0].ParameterName};");
+                body.WriteLine($"return {sortedFields[0].DecodedVariableName};");
             }
             else
             {
-                body.WriteLine($"return ({string.Join(", ", fields.Select(f => $"sliceP_{f.ParameterName}"))});");
+                body.WriteLine($"return ({string.Join(", ", fields.Select(f => f.DecodedVariableName))});");
             }
 
             return $$"""

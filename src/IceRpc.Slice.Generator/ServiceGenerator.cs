@@ -133,8 +133,8 @@ internal static class ServiceGenerator
                 {
                     string decodeLambda = nonStreamedParams.GenerateDecodeLambda(currentNamespace);
                     string varName = nonStreamedParams.Count == 1 ?
-                        $"sliceP_{nonStreamedParams[0].ParameterName}" :
-                        $"({string.Join(", ", nonStreamedParams.Select(p => $"sliceP_{p.ParameterName}"))})";
+                        nonStreamedParams[0].DecodedVariableName :
+                        $"({string.Join(", ", nonStreamedParams.Select(p => p.DecodedVariableName))})";
                     body.WriteLine($$"""
                         var {{varName}} = await request.DecodeArgsAsync(
                             {{decodeLambda}},
@@ -182,7 +182,7 @@ internal static class ServiceGenerator
                 }
                 else
                 {
-                    var returnParts = nonStreamedParams.Select(p => $"sliceP_{p.ParameterName}").ToList();
+                    var returnParts = nonStreamedParams.Select(p => p.DecodedVariableName).ToList();
                     returnParts.Add("sliceP_stream");
                     body.WriteLine($"return ({string.Join(", ", returnParts)});");
                 }
