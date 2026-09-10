@@ -115,11 +115,6 @@
     </ItemGroup>
     <Delete Files="@(_StaleProtoOutput)" />
     <!--
-      With no ProtoFile left, _ProtoWriteOutputManifest do't run to replace the manifest; delete it here, or
-      every later build deletes whatever appears at the former output paths.
-    -->
-    <Delete Files="$(IntermediateOutputPath)protoc.outputs.txt" Condition="@(ProtoFile) == ''" />
-    <!--
       With no ProtoFile left, _ProtoWriteOutputManifest doesn't run to replace the manifest; delete it here, or
       every later build deletes whatever appears at the former output paths.
     -->
