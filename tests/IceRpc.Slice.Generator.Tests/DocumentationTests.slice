@@ -41,6 +41,7 @@ interface MySessionManager {
     /// Creates a session. The {@link MySession::status} is always {@link MyStatus::Idle} after creation. To retrieve the
     /// status of a user call {@link getStatus}.
     /// @param authToken: The authentication token.
+    /// @returns: The new session.
     createSession(authToken: MyAuthToken) -> MySession
 
     /// Retrieve the status of the given user.

@@ -10,7 +10,7 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
     private readonly List<CommentTag> _comments = [];
     private readonly string _containerType;
     private readonly List<CodeBlock> _contents = [];
-    private readonly List<string> _fields = [];
+    private readonly List<string> _parameters = [];
     private readonly string _name;
 
     /// <summary>Initializes a new instance of the <see cref="ContainerBuilder"/> class.</summary>
@@ -77,18 +77,21 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
         return this;
     }
 
-    /// <summary>Adds a primary constructor field to the container.</summary>
-    /// <param name="fieldName">The name of the field.</param>
-    /// <param name="fieldType">The type of the field.</param>
-    /// <param name="docComment">An optional documentation comment for the field.</param>
+    /// <summary>Adds a parameter to the primary constructor of the container.</summary>
+    /// <param name="paramType">The parameter type, including any attributes.</param>
+    /// <param name="paramName">The parameter name.</param>
+    /// <param name="docComment">An optional documentation comment.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public ContainerBuilder AddField(string fieldName, string fieldType, string? docComment = null)
+    public ContainerBuilder AddPrimaryConstructorParameter(
+        string paramType,
+        string paramName,
+        string? docComment = null)
     {
         if (docComment is not null)
         {
-            AddComment("param", "name", fieldName, docComment);
+            AddComment("param", "name", paramName, docComment);
         }
-        _fields.Add($"{fieldType} {fieldName}");
+        _parameters.Add($"{paramType} {paramName}");
         return this;
     }
 
@@ -111,11 +114,11 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
             ? $" : {string.Join(", ", _bases)}"
             : string.Empty;
 
-        string fieldsClause = _fields.Count > 0
-            ? $"({string.Join(", ", _fields)})"
+        string parametersClause = _parameters.Count > 0
+            ? $"({string.Join(", ", _parameters)})"
             : string.Empty;
 
-        code.WriteLine($"{_containerType} {_name}{fieldsClause}{basesClause}");
+        code.WriteLine($"{_containerType} {_name}{parametersClause}{basesClause}");
 
         var bodyContent = CodeBlock.FromBlocks(_contents);
 

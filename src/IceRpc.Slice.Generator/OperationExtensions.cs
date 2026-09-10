@@ -144,6 +144,27 @@ internal static class OperationExtensions
             return fn.Build();
         }
 
+        /// <summary>Returns the <c>&lt;returns&gt;</c> doc comment for the operation: the doc comment of its single
+        /// return field, or a list with one item per documented field of a tuple return. Returns null when no return
+        /// field is documented.</summary>
+        internal string? GetReturnsDocComment(string currentNamespace)
+        {
+            if (op.ReturnType.Count == 1)
+            {
+                return DocCommentFormatter.FormatOverview(op.ReturnType[0].Comment, currentNamespace);
+            }
+
+            var items = op.ReturnType
+                .Select(r => (r.Name, Overview: DocCommentFormatter.FormatOverview(r.Comment, currentNamespace)))
+                .Where(item => item.Overview is not null)
+                .Select(item => $"<item><term>{item.Name}</term><description>{item.Overview}</description></item>")
+                .ToList();
+
+            return items.Count > 0
+                ? $"A tuple containing:\n<list type=\"bullet\">\n{string.Join("\n", items)}\n</list>"
+                : null;
+        }
+
         /// <summary>Returns the C# return type for an operation (<c>Task</c>, <c>Task&lt;T&gt;</c>, or
         /// <c>Task&lt;tuple&gt;</c>). Stream returns are included in the tuple with their stream type.</summary>
         internal string GetClientReturnType(string currentNamespace) =>

@@ -3,6 +3,9 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
@@ -271,6 +274,28 @@ public class VariantEnumTests
         Assert.That(decoded, Is.InstanceOf<VariantFieldKinds.StringDictionary>());
         Assert.That(((VariantFieldKinds.StringDictionary)decoded).Entries, Is.EqualTo(value.Entries));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
+    public void Variant_fields_get_param_doc_comments()
+    {
+        // Arrange
+        var xmlDoc = XDocument.Load(Path.ChangeExtension(typeof(Shape).Assembly.Location, ".xml"));
+
+        // Act
+        XElement member = xmlDoc.Descendants("member")
+            .Single(m => m.Attribute("name")!.Value == "T:ZeroC.Slice.Generator.Tests.Shape.Rectangle");
+        var parameters = member.Elements("param").ToDictionary(p => p.Attribute("name")!.Value, p => p.Value);
+
+        // Assert
+        Assert.That(
+            parameters,
+            Is.EqualTo(
+                new Dictionary<string, string>
+                {
+                    ["Width"] = "The width of the rectangle.",
+                    ["Height"] = "The height of the rectangle."
+                }));
     }
 
     [Test]
