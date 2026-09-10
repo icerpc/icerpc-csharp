@@ -157,12 +157,36 @@ internal static class OperationExtensions
             var items = op.ReturnType
                 .Select(r => (r.Name, Overview: DocCommentFormatter.FormatOverview(r.Comment, currentNamespace)))
                 .Where(item => item.Overview is not null)
-                .Select(item => $"<item><term>{item.Name}</term><description>{item.Overview}</description></item>")
+                .Select(item => (item.Name, item.Overview!))
                 .ToList();
 
-            return items.Count > 0
-                ? $"A tuple containing:\n<list type=\"bullet\">\n{string.Join("\n", items)}\n</list>"
-                : null;
+            return items.Count > 0 ? TupleReturnsDocComment(items) : null;
+        }
+
+        /// <summary>Returns the <c>&lt;returns&gt;</c> doc comment for a service operation with
+        /// <c>cs::encodedReturn</c>: a fixed description of the encoded return payload, or for an operation with a
+        /// streamed return, a list with the payload and the streamed return.</summary>
+        internal string GetEncodedReturnsDocComment(string currentNamespace)
+        {
+            const string payloadDescription = "The encoded return value.";
+
+            if (op.StreamedReturn is Field streamReturn)
+            {
+                var items = new List<(string, string)> { (op.EncodedReturnPayloadName, payloadDescription) };
+                if (DocCommentFormatter.FormatOverview(streamReturn.Comment, currentNamespace) is string overview)
+                {
+                    items.Add((streamReturn.Name, overview));
+                }
+                return TupleReturnsDocComment(items);
+            }
+            return payloadDescription;
+        }
+
+        private static string TupleReturnsDocComment(IEnumerable<(string Name, string Description)> items)
+        {
+            IEnumerable<string> listItems = items.Select(
+                item => $"<item><term>{item.Name}</term><description>{item.Description}</description></item>");
+            return $"A tuple containing:\n<list type=\"bullet\">\n{string.Join("\n", listItems)}\n</list>";
         }
 
         /// <summary>Returns the C# return type for an operation (<c>Task</c>, <c>Task&lt;T&gt;</c>, or
