@@ -18,6 +18,11 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 - Prefer `#1234` over full GitHub URLs when referencing issues or PRs in this repo
   (`icerpc/icerpc-csharp`). Use full URLs only when linking to other repositories.
 - XML doc comments use `<summary>`, `<remarks>`, `<param>`, etc. — not Markdown.
+- A comment states what the code cannot show: a why, a constraint, a contract, a non-obvious rule. It never narrates
+  the code below it; assume the reader reads the code.
+- A comment never describes the bug a change fixes or the behavior it replaces. That history belongs in the PR
+  description, not in the source.
+- Keep comments terse. Delete a comment that does not earn its keep.
 
 ## Branch conventions
 
