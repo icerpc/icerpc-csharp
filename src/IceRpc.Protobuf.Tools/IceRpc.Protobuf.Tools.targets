@@ -122,9 +122,8 @@
     </ItemGroup>
   </Target>
   <!--
-    _ProtoCleanFile is deliberately distinct from the _ProtoFile item that ProtoCompile emits: a task <Output> appends
-    to an existing item, and Rebuild runs Clean and Build in the same project instance, so sharing the item would leave
-    ProtoCompile with two entries per ProtoFile, run protoc twice, and pass duplicate Compile items to csc.
+    _ProtoCleanFile must stay distinct from _ProtoFile: a task <Output> appends to an existing item, and Rebuild runs
+    Clean then Build in the same project instance.
   -->
   <Target Name="ProtoClean" BeforeTargets="Clean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
     <OutputFileNamesTask Sources="@(ProtoFile)">
