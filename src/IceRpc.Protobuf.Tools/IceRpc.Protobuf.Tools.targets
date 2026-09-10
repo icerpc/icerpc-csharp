@@ -130,10 +130,10 @@
     <OutputFileNamesTask Sources="@(ProtoFile)">
       <Output ItemName="_ProtoCleanFile" TaskParameter="ComputedSources" />
     </OutputFileNamesTask>
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).cs')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).d')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFilename).BuildTelemetry.txt')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).cs')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).IceRpc.cs')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).d')" />
+    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).BuildTelemetry.txt')" />
   </Target>
 
   <!-- Package ProtoFile items -->
