@@ -114,6 +114,11 @@
       <Compile Remove="@(_StaleProtoOutputRelative)" />
     </ItemGroup>
     <Delete Files="@(_StaleProtoOutput)" />
+    <!--
+      With no ProtoFile left, _ProtoWriteOutputManifest doesn't run to replace the manifest; delete it here, or
+      every later build deletes whatever appears at the former output paths.
+    -->
+    <Delete Files="$(IntermediateOutputPath)protoc.outputs.txt" Condition="@(ProtoFile) == ''" />
   </Target>
 
   <Target Name="ProtoCompile" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeProtoOutputs" Condition="@(ProtoFile) != ''">
@@ -131,7 +136,17 @@
       Fingerprint="$(_ProtocFingerprint)"
       FingerprintFile="$(IntermediateOutputPath)protoc.fingerprint.txt">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
+      <Output PropertyName="_ProtocFingerprintChanged" TaskParameter="FingerprintChanged" />
     </UpToDateCheckTask>
+
+    <!--
+      When the fingerprint changed, the recorded one describes outputs protoc is about to replace. Delete it first,
+      so a run that fails part-way leaves no fingerprint for the next build to trust; _ProtoWriteOutputManifest
+      records the new one once protoc succeeds.
+    -->
+    <Delete
+      Files="$(IntermediateOutputPath)protoc.fingerprint.txt"
+      Condition="'$(_ProtocFingerprintChanged)' == 'true' And Exists('$(IntermediateOutputPath)protoc.fingerprint.txt')" />
 
     <PropertyGroup>
        <!-- Parameter for the Build Telemetry plug-in -->
@@ -191,7 +206,8 @@
 
   <!--
     AfterTargets keeps this after a successful protoc run, so a failed run never records a fingerprint its outputs
-    don't match. The fingerprint is escaped because WriteLinesToFile splits its Lines on semicolons.
+    don't match (when the fingerprint changed, ProtoCompile deleted the previous one). The fingerprint is escaped
+    because WriteLinesToFile splits its Lines on semicolons.
   -->
   <Target Name="_ProtoWriteOutputManifest"
           AfterTargets="ProtoCompile"

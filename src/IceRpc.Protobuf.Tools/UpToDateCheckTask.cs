@@ -40,6 +40,11 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
     [Output]
     public ITaskItem[] ComputedSources { get; private set; } = [];
 
+    /// <summary>Gets a value indicating whether <see cref="Fingerprint"/> differs from the content of
+    /// <see cref="FingerprintFile"/>.</summary>
+    [Output]
+    public bool FingerprintChanged { get; private set; }
+
     /// <summary>Computes whether or not an output file is up to date or needs to be rebuilt. After executing this
     /// task, <see cref="ComputedSources"/> contains a task item for each item in <see cref="Sources"/> with two
     /// additional metadata entries. The <c>UpToDate</c> metadata is set to 'true' or 'false', indicating whether the
@@ -91,6 +96,7 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
         }
 
         ComputedSources = [.. computedSources];
+        FingerprintChanged = fingerprintChanged;
         return true;
     }
 
