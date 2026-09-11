@@ -2,6 +2,7 @@
 
 - [Prerequisites](#prerequisites)
 - [Building IceRPC](#building-icerpc)
+- [Formatting XML files](#formatting-xml-files)
 - [Running the tests](#running-the-tests)
 - [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Generating the API reference](#generating-the-api-reference)
@@ -35,6 +36,15 @@ dotnet build
 ```
 
 This command builds all the tools, sources and tests with the default configuration (debug).
+
+## Formatting XML files
+
+To use the repository's Prettier configuration, install Node.js and run `npm ci` from the repository root. This installs
+Prettier and its XML plugin for the VS Code Prettier extension and the command line:
+
+```shell
+npx prettier --write path/to/project.csproj
+```
 
 ## Running the tests
 
