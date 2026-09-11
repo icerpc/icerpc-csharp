@@ -27,8 +27,7 @@ services.AddSingleton<X509Certificate2>(_ =>
         Path.Combine(
             hostBuilder.Environment.ContentRootPath,
             hostBuilder.Configuration.GetValue<string>("Certificate:File")!),
-        password: null,
-        keyStorageFlags: X509KeyStorageFlags.Exportable));
+        password: null));
 
 // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
 // callback to configure its authentication options.

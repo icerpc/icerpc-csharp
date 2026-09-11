@@ -125,7 +125,7 @@ internal static class OperationExtensions
                 bool useSegments;
                 if (streamField.DataTypeIsOptional)
                 {
-                    encodeLambda = GetStreamOfOptionalEncodeLambda(streamField, currentNamespace);
+                    encodeLambda = streamField.DataType.GetEncodeLambdaWithNullMarker(currentNamespace);
                     useSegments = true;
                 }
                 else
@@ -142,6 +142,27 @@ internal static class OperationExtensions
             }
 
             return fn.Build();
+        }
+
+        /// <summary>Returns the <c>&lt;returns&gt;</c> doc comment for the operation: the doc comment of its single
+        /// return field, or a list with one item per documented field of a tuple return. Returns null when no return
+        /// field is documented.</summary>
+        internal string? GetReturnsDocComment(string currentNamespace)
+        {
+            if (op.ReturnType.Count == 1)
+            {
+                return DocCommentFormatter.FormatOverview(op.ReturnType[0].Comment, currentNamespace);
+            }
+
+            var items = op.ReturnType
+                .Select(r => (r.Name, Overview: DocCommentFormatter.FormatOverview(r.Comment, currentNamespace)))
+                .Where(item => item.Overview is not null)
+                .Select(item => $"<item><term>{item.Name}</term><description>{item.Overview}</description></item>")
+                .ToList();
+
+            return items.Count > 0
+                ? $"A tuple containing:\n<list type=\"bullet\">\n{string.Join("\n", items)}\n</list>"
+                : null;
         }
 
         /// <summary>Returns the C# return type for an operation (<c>Task</c>, <c>Task&lt;T&gt;</c>, or
@@ -345,28 +366,6 @@ internal static class OperationExtensions
         }
 
         return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
-    }
-
-    /// <summary>Returns an encode lambda for an optional stream element with a one bit bit-sequence.</summary>
-    internal static string GetStreamOfOptionalEncodeLambda(Field streamField, string currentNamespace)
-    {
-        IType elemType = streamField.DataType.Type;
-        string csType = streamField.DataType.FieldTypeString(true, currentNamespace);
-        // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
-        string valueExpr = elemType is CustomType
-            ? "(value ?? default!)"
-            : streamField.DataType.IsValueType ? "value!.Value" : "value!";
-        string encodeExpr = elemType.EncodeExpression(currentNamespace, valueExpr);
-        return $$"""
-            (ref SliceEncoder encoder, {{csType}} value) =>
-            {
-                encoder.EncodeBool(value is not null);
-                if (value is not null)
-                {
-                    {{encodeExpr}};
-                }
-            }
-            """;
     }
 
     /// <summary>Returns a decode lambda for an optional stream element with a one bit bit-sequence.</summary>
