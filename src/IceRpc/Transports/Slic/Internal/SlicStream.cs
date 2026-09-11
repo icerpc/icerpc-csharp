@@ -265,7 +265,12 @@ internal class SlicStream : IMultiplexedStream
         }
         else
         {
-            TrySetWritesClosed();
+            // A started local stream either already closed writes or queued a StreamLast frame; in the latter case,
+            // writes are closed once the peer's StreamReadsClosed frame is received (see WroteLastStreamFrame).
+            if (!IsStarted || IsRemote)
+            {
+                TrySetWritesClosed();
+            }
         }
     }
 

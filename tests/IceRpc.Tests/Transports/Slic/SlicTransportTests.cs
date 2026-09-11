@@ -2186,6 +2186,155 @@ public class SlicTransportTests
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
     }
 
+    /// <summary>Verifies that a local unidirectional stream keeps its stream-count permit when its output is completed
+    /// after a write with endStream, until the peer consumed the data.</summary>
+    [Test]
+    [CancelAfter(120_000)]
+    public async Task Unidirectional_stream_keeps_its_permit_after_end_stream_write_until_the_peer_consumed_the_data(
+        CancellationToken cancellationToken)
+    {
+        // Arrange: the peer allows a single unidirectional stream.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(options => options.MaxUnidirectionalStreams = 1);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync(cancellationToken);
+        using var streams = await sut.CreateAndAcceptStreamAsync(
+            bidirectional: false,
+            cancellationToken: cancellationToken);
+
+        // Write the last stream frame and complete the output; the peer doesn't consume the data yet.
+        _ = await ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+            new ReadOnlySequence<byte>(new byte[] { 0xFF }),
+            endStream: true,
+            cancellationToken);
+        streams.Local.Output.Complete();
+
+        // Act
+        ValueTask<IMultiplexedStream> nextStreamTask = sut.Client.CreateStreamAsync(
+            bidirectional: false,
+            cancellationToken);
+        await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
+        bool nextStreamCreated = nextStreamTask.IsCompleted;
+
+        // The peer consumes the data, which releases the local stream and its permit.
+        ReadResult readResult;
+        do
+        {
+            readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+        IMultiplexedStream nextStream = await nextStreamTask;
+
+        // Assert: the permit was not released before the peer consumed the data.
+        Assert.That(nextStreamCreated, Is.False);
+
+        // Cleanup
+        nextStream.Output.Complete();
+    }
+
+    /// <summary>Verifies that a local bidirectional stream keeps its stream-count permit when its output is completed
+    /// after a write with endStream, until the peer consumed the data.</summary>
+    [Test]
+    [CancelAfter(120_000)]
+    public async Task Bidirectional_stream_keeps_its_permit_after_end_stream_write_until_the_peer_consumed_the_data(
+        CancellationToken cancellationToken)
+    {
+        // Arrange: the peer allows a single bidirectional stream.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(options => options.MaxBidirectionalStreams = 1);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync(cancellationToken);
+        using var streams = await sut.CreateAndAcceptStreamAsync(
+            bidirectional: true,
+            cancellationToken: cancellationToken);
+
+        // Write the last stream frame and complete the output; the peer doesn't consume the data yet.
+        _ = await ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+            new ReadOnlySequence<byte>(new byte[] { 0xFF }),
+            endStream: true,
+            cancellationToken);
+        streams.Local.Output.Complete();
+
+        // The peer completes its output, which closes reads on the local stream.
+        streams.Remote.Output.Complete();
+        ReadResult readResult;
+        do
+        {
+            readResult = await streams.Local.Input.ReadAsync(cancellationToken);
+            streams.Local.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+
+        // Act
+        ValueTask<IMultiplexedStream> nextStreamTask = sut.Client.CreateStreamAsync(
+            bidirectional: true,
+            cancellationToken);
+        await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
+        bool nextStreamCreated = nextStreamTask.IsCompleted;
+
+        // The peer consumes the data, which releases the local stream and its permit.
+        do
+        {
+            readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
+            streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+        IMultiplexedStream nextStream = await nextStreamTask;
+
+        // Assert: the permit was not released before the peer consumed the data.
+        Assert.That(nextStreamCreated, Is.False);
+
+        // Cleanup
+        nextStream.Output.Complete();
+        nextStream.Input.Complete();
+    }
+
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
+    /// bidirectional stream is sent when the peer sent its StreamLast frame with an endStream write and closes its
+    /// reads before the remote stream closes its writes, so that the peer's stream is released.</summary>
+    [Test]
+    [CancelAfter(120_000)]
+    public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_after_its_end_stream_write(
+        CancellationToken cancellationToken)
+    {
+        // Arrange: the peer allows a single bidirectional stream.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(options => options.MaxBidirectionalStreams = 1);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync(cancellationToken);
+
+        // The client sends its request with an endStream write and completes the output: the client stream closes
+        // its writes only once the server's StreamReadsClosed frame is received.
+        IMultiplexedStream clientStream = await sut.Client.CreateStreamAsync(bidirectional: true, cancellationToken);
+        _ = await ((ReadOnlySequencePipeWriter)clientStream.Output).WriteAsync(
+            new ReadOnlySequence<byte>(new byte[1]),
+            endStream: true,
+            cancellationToken);
+        clientStream.Output.Complete();
+
+        // The server consumes the request: reads are gracefully closed and the StreamReadsClosed frame is deferred
+        // until the closure of writes.
+        IMultiplexedStream serverStream = await sut.Server.AcceptStreamAsync(cancellationToken);
+        ReadResult readResult;
+        do
+        {
+            readResult = await serverStream.Input.ReadAsync(cancellationToken);
+            serverStream.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+
+        // The client closes its reads, like a canceled invocation does, before the server closes its writes.
+        clientStream.Input.Complete(new OperationCanceledException());
+        await serverStream.WritesClosed.WaitAsync(cancellationToken);
+
+        // Act/Assert
+        await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
+    }
+
     /// <summary>Verifies that a write blocked on the connection-level pipe pause (PauseWriterThreshold reached)
     /// can be canceled.</summary>
     [Test]
