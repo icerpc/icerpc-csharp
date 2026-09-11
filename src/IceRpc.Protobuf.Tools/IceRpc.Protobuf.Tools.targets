@@ -20,6 +20,7 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
+
   <!--
     Build-order-only reference: the consuming project just needs IceRpc.Protobuf.Tools (and, via its own
     ProjectReference, IceRpc.Protobuf.Generator) to be built so the protoc plug-in scripts exist on disk before we
@@ -33,10 +34,12 @@
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj"
                       ReferenceOutputAssembly="false" Private="false" Targets="Build" />
   </ItemGroup>
+
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />
   </ItemGroup>
+
   <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
     <ProtoFile Update="@(ProtoFile)">
       <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
@@ -60,9 +63,96 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
+
+  <!--
+    This target must not run the up-to-date check: Rebuild runs Clean then Build in the same project instance, so a
+    check made before Clean would mark as current the outputs Clean is about to delete. ProtoCompile keeps its own
+    _ProtoFile item because a task <Output> appends to an existing item.
+
+    In a source build the task assembly doesn't exist until IceRpc.Protobuf.Tools is built, hence the Exists check.
+  -->
+  <Target Name="_ComputeProtoOutputs"
+          Condition="@(ProtoFile) != '' And Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
+    <OutputFileNamesTask Sources="@(ProtoFile)">
+      <Output ItemName="_ProtoNamedFile" TaskParameter="ComputedSources" />
+    </OutputFileNamesTask>
+    <ItemGroup>
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).cs'))" />
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).IceRpc.cs'))" />
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).d'))" />
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).options'))" />
+      <_ProtoOutput
+        Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).BuildTelemetry.txt'))"
+        Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Runs even when ProtoFile is empty: the outputs of a previous build still need pruning. -->
+  <Target Name="_ProtoPruneStaleOutputs"
+          BeforeTargets="ProtoCompile;ProtoClean"
+          DependsOnTargets="_ComputeProtoOutputs"
+          Condition="Exists('$(IntermediateOutputPath)protoc.outputs.txt')">
+    <ReadLinesFromFile File="$(IntermediateOutputPath)protoc.outputs.txt">
+      <Output TaskParameter="Lines" ItemName="_PreviousProtoOutput" />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <!-- _ProtoOutput is also empty when _ComputeProtoOutputs was skipped; that must not prune everything. -->
+      <_StaleProtoOutput Include="@(_PreviousProtoOutput)" Exclude="@(_ProtoOutput)"
+                         Condition="'@(_ProtoOutput)' != '' Or '@(ProtoFile)' == ''" />
+      <!-- Remove before deleting, or csc fails with CS2001 on the missing files. -->
+      <Compile Remove="@(_StaleProtoOutput)" MatchOnMetadata="FullPath" MatchOnMetadataOptions="PathLike" />
+    </ItemGroup>
+    <Delete Files="@(_StaleProtoOutput)" />
+    <!-- With no ProtoFile left, _ProtoWriteOutputManifest doesn't run to replace the manifest. -->
+    <Delete Files="$(IntermediateOutputPath)protoc.outputs.txt" Condition="@(ProtoFile) == ''" />
+  </Target>
+
+  <Target Name="ProtoCompile"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="_ComputeProtoOutputs"
+          Condition="@(ProtoFile) != ''">
+
+    <ItemGroup>
+      <!--
+        The inputs shared by every Proto file that change the generated code without touching a Proto file. Each
+        file's AdditionalOptions get their own record below.
+      -->
+      <_ProtocInputsCacheLine Include="protoc=$(ProtocBundledPluginVersion)" />
+      <_ProtocInputsCacheLine Include="icerpc-csharp=$(ProtocIceRpcPluginVersion)" />
+      <_ProtocInputsCacheLine Include="@(ProtoSearchPath->'search-path=%(FullPath)')" />
+    </ItemGroup>
+
+    <!--
+      WriteOnlyWhenDifferent moves the file's timestamp only when a value changes. As an input of every Proto file,
+      it then makes all outputs out of date, including those a failed protoc run left untouched.
+    -->
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)protoc.inputs.cache"
+      Lines="@(_ProtocInputsCacheLine)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+
+    <ItemGroup>
+      <!-- Inputs of every Proto file, in addition to those recorded in its dependency file. -->
+      <_ProtocInput Include="$(IntermediateOutputPath)protoc.inputs.cache" />
+      <_ProtocInput Include="$(IceRpcProtocPath)$(IceRpcProtocPrefix)/protoc$(_ProtocExecutableExtension)" />
+      <_ProtocInput Include="$(IceRpcProtocGenPath)IceRpc.Protobuf.Generator.dll" />
+    </ItemGroup>
+
+    <!--
+      Each Proto file's own inputs cache, next to its dependency file: its AdditionalOptions, one per line, with the
+      same WriteOnlyWhenDifferent rule. A change makes that file, and only that file, out of date. The Condition skips
+      the empty batch MSBuild runs when _ComputeProtoOutputs was skipped, so the task load below fails first.
+    -->
+    <WriteLinesToFile
+      File="%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).options"
+      Lines="%(_ProtoNamedFile.AdditionalOptions)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"
+      Condition="'%(_ProtoNamedFile.Identity)' != ''" />
+
     <MakeDir Directories="%(ProtoFile.OutputDir)" />
-    <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
+    <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)" AdditionalInputs="@(_ProtocInput)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
 
@@ -121,18 +211,24 @@
       />
     </ItemGroup>
   </Target>
-  <!--
-    _ProtoCleanFile must stay distinct from _ProtoFile: a task <Output> appends to an existing item, and Rebuild runs
-    Clean then Build in the same project instance.
-  -->
-  <Target Name="ProtoClean" BeforeTargets="Clean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
-    <OutputFileNamesTask Sources="@(ProtoFile)">
-      <Output ItemName="_ProtoCleanFile" TaskParameter="ComputedSources" />
-    </OutputFileNamesTask>
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).cs')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).IceRpc.cs')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).d')" />
-    <Delete Files="@(_ProtoCleanFile->'%(OutputDir)/%(OutputFileName).BuildTelemetry.txt')" />
+
+  <!-- Record this build's outputs so the next build can prune anything it no longer produces. -->
+  <Target Name="_ProtoWriteOutputManifest"
+          AfterTargets="ProtoCompile"
+          DependsOnTargets="_ComputeProtoOutputs"
+          Condition="@(ProtoFile) != ''">
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)protoc.outputs.txt"
+      Lines="@(_ProtoOutput)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="ProtoClean" BeforeTargets="Clean" DependsOnTargets="_ComputeProtoOutputs">
+    <Delete Files="@(_ProtoOutput)" />
+    <!-- Keep the manifest when _ComputeProtoOutputs was skipped: the next build still needs it to prune. -->
+    <Delete Files="$(IntermediateOutputPath)protoc.outputs.txt;$(IntermediateOutputPath)protoc.inputs.cache"
+            Condition="'@(_ProtoOutput)' != '' Or '@(ProtoFile)' == ''" />
   </Target>
 
   <!-- Package ProtoFile items -->
