@@ -47,6 +47,7 @@
     <Project Path="tests/IceRpc.Ice.Generator.Tests/IceRpc.Ice.Generator.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Generator.Tests/IceRpc.Slice.Generator.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
+    <Project Path="tests/IceRpc.Slice.Tools.Tests/IceRpc.Slice.Tools.Tests.csproj" />
     <Project Path="tests/IceRpc.Telemetry.Tests/IceRpc.Telemetry.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />

@@ -17,6 +17,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run whitespace validation
-        uses: zeroc-ice/github-actions@main
+        uses: zeroc-ice/github-actions@333b1fd88d8edc678e008c9a3b63b40f3e2a2ae3
         with:
           whitespace_patterns: "'*'"
