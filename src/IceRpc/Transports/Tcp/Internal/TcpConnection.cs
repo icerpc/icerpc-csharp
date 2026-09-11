@@ -337,12 +337,12 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (SocketException exception)
         {
-            Socket.Dispose();
+            Dispose();
             throw exception.ToIceRpcException();
         }
         catch
         {
-            Socket.Dispose();
+            Dispose();
             throw;
         }
     }
