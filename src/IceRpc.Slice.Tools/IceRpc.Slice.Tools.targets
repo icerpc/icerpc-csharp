@@ -136,10 +136,7 @@
       <Compile Remove="@(_StaleSlicecOutputRelative)" />
     </ItemGroup>
     <Delete Files="@(_StaleSlicecOutput)" />
-    <!--
-      With no SliceFile left, _SlicecWriteOutputManifest doesn't run to replace the manifest; delete it here, or
-      every later build deletes whatever appears at the former output paths.
-    -->
+    <!-- With no SliceFile left, _SlicecWriteOutputManifest doesn't run to replace the manifest. -->
     <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" Condition="@(SliceFile) == ''" />
   </Target>
 
