@@ -11,9 +11,8 @@ using Microsoft.Build.Utilities;
 /// <summary>A custom MSBuild task that extracts .zip archive files to a destination folder. This tasks uses
 /// <see cref="ZipFile.ExtractToDirectory(string, string)"/> to extract the files, which ensures that Unix permissions
 /// are correctly restored. The MSBuild Unzip task does not restore Unix permissions.</summary>
-/// <remarks>The archives are extracted into a sibling staging folder that replaces the destination folder only once
-/// all of them are extracted, so that an interrupted build does not leave a partially extracted destination folder
-/// behind.</remarks>
+/// <remarks>The destination folder is replaced only once every archive is extracted into a sibling staging folder,
+/// so it is either complete or absent.</remarks>
 public class ExtractTask : Task
 {
     /// <summary>Gets or sets a <see cref="ITaskItem"/> with a destination folder path to unzip the files to. An
