@@ -245,8 +245,8 @@ internal class SlicStream : IMultiplexedStream
             }
             else if (_closeReadsOnWritesClosure && !_wroteLastStreamFrame)
             {
-                // The peer closed writes before the StreamLast frame could bundle the deferred StreamReadsClosed frame.
-                // The peer still needs this frame to close its stream, so it's sent on its own.
+                // The peer closed its reads before StreamLast could carry our deferred StreamReadsClosed frame.
+                // Send the deferred frame on its own so the peer can release its stream.
                 writeReadsClosedFrame = true;
             }
         }
