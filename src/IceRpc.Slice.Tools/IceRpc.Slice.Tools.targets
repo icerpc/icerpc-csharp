@@ -80,12 +80,15 @@
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
-        <Generators>%(_SliceFile.Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <BundledGenerators>$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</BundledGenerators>
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).cs'))</GeneratedPath>
       </_SliceFile>
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
-        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <BundledGenerators>%(_SliceFile.BundledGenerators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</BundledGenerators>
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
+      </_SliceFile>
+      <_SliceFile>
+        <Generators>%(_SliceFile.Generators);%(_SliceFile.BundledGenerators)</Generators>
       </_SliceFile>
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
         <BuildTelemetryGenerator>$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions)</BuildTelemetryGenerator>
@@ -146,6 +149,7 @@
       References="@(SliceDirectory->'%(FullPath)')"
       ToolsPath="$(_SliceCPath)"
       Generators="%(_SliceFile.Generators)"
+      BundledGenerators="%(_SliceFile.BundledGenerators)"
       BuildTelemetryGenerator="%(_SliceFile.BuildTelemetryGenerator)"
       IceRpcSliceToolsVersion="$(IceRpcSliceToolsVersion)"
       AdditionalOptions="%(_SliceFile.AdditionalOptions)"

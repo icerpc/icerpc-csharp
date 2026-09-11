@@ -16,6 +16,7 @@ public class SlicecTaskTests
             Generators = iceRpc ?
                 ["/tools/slicec-csharp-generator.sh", "/tools/slicec-icerpc-csharp-generator.sh"] :
                 ["/tools/slicec-csharp-generator.sh"],
+            BundledGenerators = ["/tools/slicec-csharp-generator.sh", "/tools/slicec-icerpc-csharp-generator.sh"],
             BuildTelemetryGenerator = "/tools/slicec-build-telemetry.sh,dry_run,ci",
             IceRpcSliceToolsVersion = "1.2.3",
         };
@@ -38,11 +39,18 @@ public class SlicecTaskTests
     [TestCase(@"C:\private\tools\custom.bat,secret=value", "custom")]
     [TestCase(@"C:\private\tools\custom.exe,secret=value", "custom")]
     [TestCase("/private/tools/custom.generator,secret=value", "custom.generator")]
+    [TestCase("/private/tools/slicec-csharp-generator.sh", "slicec-csharp-generator")]
+    [TestCase("/private/tools/slicec-icerpc-csharp-generator.sh", "slicec-icerpc-csharp-generator")]
+    [TestCase("/private/tools/slicec-build-telemetry.sh", "slicec-build-telemetry")]
+    [TestCase(@"C:\private\tools\slicec-csharp-generator.bat", "slicec-csharp-generator")]
+    [TestCase(@"C:\private\tools\slicec-icerpc-csharp-generator.bat", "slicec-icerpc-csharp-generator")]
+    [TestCase(@"C:\private\tools\slicec-build-telemetry.bat", "slicec-build-telemetry")]
     public void Telemetry_reports_custom_generator_names_without_paths_or_options(string generator, string name)
     {
         var task = new TestSlicecTask
         {
             Generators = [generator],
+            BundledGenerators = ["/tools/slicec-csharp-generator.sh", "/tools/slicec-icerpc-csharp-generator.sh"],
             BuildTelemetryGenerator = "/tools/slicec-build-telemetry.sh",
             IceRpcSliceToolsVersion = "1.2.3",
         };

@@ -20,6 +20,9 @@ public class SlicecTask : ToolTask
     /// </summary>
     public string BuildTelemetryGenerator { get; set; } = "";
 
+    /// <summary>The bundled generator scripts whose versions are known.</summary>
+    public string[] BundledGenerators { get; set; } = [];
+
     /// <summary>The code-generator plugins to run after parsing and validation. Each entry is the full path to a
     /// generator script.</summary>
     [Required]
@@ -72,8 +75,7 @@ public class SlicecTask : ToolTask
                 {
                     name = Path.GetFileNameWithoutExtension(name);
                 }
-                string version = name is
-                    "slicec-csharp-generator" or "slicec-icerpc-csharp-generator" or "slicec-build-telemetry" ?
+                string version = generator == BuildTelemetryGenerator || BundledGenerators.Contains(generator) ?
                     IceRpcSliceToolsVersion : "unknown";
                 return $",generator={name}:{version}";
             }));
