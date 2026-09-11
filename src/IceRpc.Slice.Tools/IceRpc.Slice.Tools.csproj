@@ -107,7 +107,7 @@
     <ExtractTask
       SourceFiles="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity).zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity)"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity)')" />
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/slicec-$(SlicecVersion)-%(SlicecPlatform.Identity)/%(SlicecPlatform.Exe)')" />
 
     <!-- Copy binaries to the tools directory structure expected by the props file. -->
     <Copy
