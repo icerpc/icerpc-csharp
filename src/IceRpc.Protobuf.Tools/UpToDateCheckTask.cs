@@ -37,8 +37,8 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
     /// the generated outputs. This is the input item's file name without the extension, and converted to PascalCase.
     /// </summary>
     /// <remarks>A source is up to date only when all of its outputs exist, every input recorded in its dependency
-    /// file and every <see cref="AdditionalInputs"/> entry exists, and the newest input is older than the oldest
-    /// output.</remarks>
+    /// file, its options record and every <see cref="AdditionalInputs"/> entry exists, and the newest input is older
+    /// than the oldest output.</remarks>
     /// <returns>Returns <see langword="true"/> if the task was executed successfully, <see langword="false"/>
     /// otherwise.</returns>
     public override bool Execute()
@@ -57,7 +57,11 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
                 Path.Combine(OutputDir, $"{fileName}.IceRpc.cs"),
             ];
 
-            bool upToDate = IsUpToDate(source.ItemSpec, outputs, dependOutput, additionalInputs);
+            // The options record is the source's own inputs cache: the build rewrites it only when the source's
+            // AdditionalOptions change, so it is newer than the outputs exactly then.
+            string[] inputs = [.. additionalInputs, Path.Combine(OutputDir, $"{fileName}.options")];
+
+            bool upToDate = IsUpToDate(source.ItemSpec, outputs, dependOutput, inputs);
 
             var computedSource = new TaskItem(source.ItemSpec);
             source.CopyMetadataTo(computedSource);

@@ -79,8 +79,8 @@ once per Proto file.
 
 The build runs `protoc` only for the Proto files whose generated code is missing or out of date. A Proto file is
 out of date when the Proto file itself, one of the files it imports, `protoc` or the `protoc-gen-icerpc-csharp`
-generator is newer than one of its generated files. Changing `AdditionalOptions` or `ProtoSearchPath`, or upgrading
-this package, regenerates the code of all Proto files.
+generator is newer than one of its generated files, or when its `AdditionalOptions` differ from those used to generate
+it. Changing `ProtoSearchPath` or upgrading this package regenerates the code of all Proto files.
 
 When you remove a Proto file from the project, rename it, or change its `OutputDir`, the next build deletes the code
 previously generated for it.

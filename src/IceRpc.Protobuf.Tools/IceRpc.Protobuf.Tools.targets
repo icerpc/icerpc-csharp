@@ -80,6 +80,7 @@
       <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).cs'))" />
       <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).IceRpc.cs'))" />
       <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).d'))" />
+      <_ProtoOutput Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).options'))" />
       <_ProtoOutput
         Include="$([MSBuild]::NormalizePath('%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).BuildTelemetry.txt'))"
         Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'" />
@@ -113,13 +114,12 @@
 
     <ItemGroup>
       <!--
-        Anything that changes the generated code without touching a Proto file. Only the distinct option values: with
-        the file set in the list, adding a Proto file would regenerate them all.
+        The inputs shared by every Proto file that change the generated code without touching a Proto file. Each
+        file's AdditionalOptions get their own record below.
       -->
       <_ProtocInputsCacheLine Include="protoc=$(ProtocBundledPluginVersion)" />
       <_ProtocInputsCacheLine Include="icerpc-csharp=$(ProtocIceRpcPluginVersion)" />
       <_ProtocInputsCacheLine Include="@(ProtoSearchPath->'search-path=%(FullPath)')" />
-      <_ProtocInputsCacheLine Include="@(ProtoFile->'options=%(AdditionalOptions)'->DistinctWithCase())" />
     </ItemGroup>
 
     <!--
@@ -138,6 +138,18 @@
       <_ProtocInput Include="$(IceRpcProtocPath)$(IceRpcProtocPrefix)/protoc$(_ProtocExecutableExtension)" />
       <_ProtocInput Include="$(IceRpcProtocGenPath)IceRpc.Protobuf.Generator.dll" />
     </ItemGroup>
+
+    <!--
+      Each Proto file's own inputs cache, next to its dependency file: its AdditionalOptions, one per line, with the
+      same WriteOnlyWhenDifferent rule. A change makes that file, and only that file, out of date. The Condition skips
+      the empty batch MSBuild runs when _ComputeProtoOutputs was skipped, so the task load below fails first.
+    -->
+    <WriteLinesToFile
+      File="%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).options"
+      Lines="%(_ProtoNamedFile.AdditionalOptions)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"
+      Condition="'%(_ProtoNamedFile.Identity)' != ''" />
 
     <MakeDir Directories="%(ProtoFile.OutputDir)" />
     <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)" AdditionalInputs="@(_ProtocInput)">
