@@ -367,6 +367,158 @@ public sealed class ConnectionCacheTests
         await cache.ShutdownAsync();
     }
 
+    /// <summary>Verifies that an invocation that requires a new connection fails once the connection cache reached
+    /// <see cref="ConnectionCacheOptions.MaxConnections" />, while invocations over an active connection still succeed.
+    /// </summary>
+    [Test]
+    public async Task Invocation_fails_when_max_connections_is_reached()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+        var colocTransport = new ColocTransport();
+        await using var server1 = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        server1.Listen();
+
+        await using var server2 = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        server2.Listen();
+
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions { MaxConnections = 1 },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
+
+        // Act/Assert
+        Assert.That(
+            () => SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar"))),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
+        Assert.That(
+            () => SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo"))),
+            Throws.Nothing);
+
+        // Cleanup
+        await server1.ShutdownAsync();
+        await server2.ShutdownAsync();
+        await cache.ShutdownAsync();
+    }
+
+    /// <summary>Verifies that a connection being established counts toward
+    /// <see cref="ConnectionCacheOptions.MaxConnections" />.</summary>
+    [Test]
+    public async Task Pending_connection_counts_toward_max_connections()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+        var colocTransport = new ColocTransport();
+        var multiplexedClientTransport = new TestMultiplexedClientTransportDecorator(
+            new SlicClientTransport(colocTransport.ClientTransport),
+            operationsOptions: new() { Hold = MultiplexedTransportOperations.Connect });
+
+        await using var server1 = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        server1.Listen();
+
+        await using var server2 = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        server2.Listen();
+
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions { MaxConnections = 1 },
+            multiplexedClientTransport: multiplexedClientTransport);
+
+        Task pendingInvokeTask = SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
+
+        // Act/Assert
+        Assert.That(
+            () => SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar"))),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
+
+        multiplexedClientTransport.LastCreatedConnection.Operations.Hold = MultiplexedTransportOperations.None;
+        Assert.That(async () => await pendingInvokeTask, Throws.Nothing);
+
+        // Cleanup
+        await server1.ShutdownAsync();
+        await server2.ShutdownAsync();
+        await cache.ShutdownAsync();
+    }
+
+    /// <summary>Verifies that once the connection cache reached <see cref="ConnectionCacheOptions.MaxConnections" />,
+    /// it still uses an active connection to an alt server address, even when it does not prefer existing connections.
+    /// </summary>
+    [Test]
+    public async Task Use_active_connection_to_alt_server_when_max_connections_is_reached()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+        var colocTransport = new ColocTransport();
+        await using var server1 = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        server1.Listen();
+
+        await using var server2 = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        ServerAddress server2Address = server2.Listen();
+
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions { MaxConnections = 1, PreferExistingConnection = false },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        ServerAddress? serverAddress = null;
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker(async (request, cancellationToken) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
+                    serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
+                    return response;
+                }))
+            .Into(cache);
+
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
+
+        // Act
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
+
+        // Assert
+        Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
+
+        // Cleanup
+        await server1.ShutdownAsync();
+        await server2.ShutdownAsync();
+        await cache.ShutdownAsync();
+    }
+
     private static async Task SendEmptyRequestAsync(IInvoker invoker, ServiceAddress serviceAddress)
     {
         using var request = new OutgoingRequest(serviceAddress)

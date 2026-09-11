@@ -13,7 +13,9 @@ namespace IceRpc;
 /// <summary>Represents an invoker that routes outgoing requests to connections it manages.</summary>
 /// <remarks><para>The connection cache routes requests based on the request's <see cref="IServerAddressFeature" />
 /// feature or the server addresses of the request's target service.</para>
-/// <para>The connection cache keeps at most one active connection per server address.</para></remarks>
+/// <para>The connection cache keeps at most one active connection per server address.
+/// <see cref="ConnectionCacheOptions.MaxConnections" /> bounds the total number of connections it manages.</para>
+/// </remarks>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections.
@@ -36,6 +38,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly CancellationTokenSource _disposedCts = new();
 
     private Task? _disposeTask;
+
+    private readonly int _maxConnections;
 
     private readonly Lock _mutex = new();
 
@@ -72,6 +76,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             logger);
 
         _connectTimeout = options.ConnectTimeout;
+        _maxConnections = options.MaxConnections;
         _shutdownTimeout = options.ShutdownTimeout;
 
         _preferExistingConnection = options.PreferExistingConnection;
@@ -141,8 +146,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <exception cref="InvalidOperationException">Thrown when no <see cref="IServerAddressFeature" /> feature is set
     /// and the request's service address has no server addresses.</exception>
     /// <exception cref="IceRpcException">Thrown with <see cref="IceRpcError.InvocationRefused" /> when the connection
-    /// cache is shut down, or with <see cref="IceRpcError.NoConnection" /> when the request's
-    /// <see cref="IServerAddressFeature" /> feature has no server addresses.</exception>
+    /// cache is shut down, with <see cref="IceRpcError.NoConnection" /> when the request's
+    /// <see cref="IServerAddressFeature" /> feature has no server addresses, or with
+    /// <see cref="IceRpcError.LimitExceeded" /> when the request requires a new connection and the connection cache
+    /// has reached <see cref="ConnectionCacheOptions.MaxConnections" />.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when this connection cache is disposed.</exception>
     /// <remarks><para>If the request <see cref="IServerAddressFeature" /> feature is not set, the cache sets it from
     /// the server addresses of the target service.</para>
@@ -150,7 +157,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// property influences how the cache selects this active connection. If no active connection can be found, the
     /// cache creates a new connection to one of the server addresses from the <see cref="IServerAddressFeature" />
     /// feature.</para>
-    /// <para>If the connection establishment to <see cref="IServerAddressFeature.ServerAddress" /> fails, <see
+    /// <para>If the connection establishment to <see cref="IServerAddressFeature.ServerAddress" /> fails, or is not
+    /// attempted because the connection cache has reached <see cref="ConnectionCacheOptions.MaxConnections" />, <see
     /// cref="IServerAddressFeature.ServerAddress" /> is appended at the end of <see
     /// cref="IServerAddressFeature.AltServerAddresses" /> and the first address from <see
     /// cref="IServerAddressFeature.AltServerAddresses" /> replaces <see cref="IServerAddressFeature.ServerAddress" />.
@@ -477,6 +485,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                     if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
                     {
+                        Debug.Assert(
+                            _maxConnections == 0 ||
+                            _activeConnections.Count + _detachedConnectionCount <= _maxConnections);
+
+                        if (_maxConnections > 0 &&
+                            _activeConnections.Count + _detachedConnectionCount == _maxConnections)
+                        {
+                            // Another server address may have an active or pending connection.
+                            connectionException = new IceRpcException(
+                                IceRpcError.LimitExceeded,
+                                $"The connection cache has reached its maximum number of connections ({_maxConnections}).");
+                            continue;
+                        }
+
                         connection = _connectionFactory.CreateConnection(serverAddress);
                         _detachedConnectionCount++;
                         pendingConnectionValue = (connection, CreateConnectTask(connection, serverAddress));

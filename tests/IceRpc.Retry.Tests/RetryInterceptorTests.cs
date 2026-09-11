@@ -22,6 +22,7 @@ public sealed class RetryInterceptorTests
             yield return new IceRpcException(IceRpcError.NoConnection);
             yield return new ArgumentException();
             yield return new IceRpcException(IceRpcError.IceRpcError);
+            yield return new IceRpcException(IceRpcError.LimitExceeded);
         }
     }
 

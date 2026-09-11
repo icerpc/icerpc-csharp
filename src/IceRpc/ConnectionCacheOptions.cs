@@ -27,6 +27,21 @@ public record class ConnectionCacheOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
     }
 
+    /// <summary>Gets or sets the maximum number of connections managed by the connection cache. This count includes
+    /// active connections and connections being established, shut down or disposed. Once the maximum number of
+    /// connections has been reached, an invocation that requires a new connection fails with <see
+    /// cref="IceRpcError.LimitExceeded" />.</summary>
+    /// <value>The maximum number of connections. Defaults to <c>0</c>, meaning unlimited.</value>
+    public int MaxConnections
+    {
+        get => _maxConnections;
+        set => _maxConnections = value >= 0 ? value :
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"{nameof(MaxConnections)} must be greater than or equal to 0 (where 0 means unlimited).");
+    }
+
     /// <summary>Gets or sets a value indicating whether or not the connection cache prefers an active connection over
     /// creating a new one.</summary>
     /// <value>When <see langword="true" />, the connection cache first checks the server addresses of the target
@@ -46,5 +61,6 @@ public record class ConnectionCacheOptions
     }
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+    private int _maxConnections;
     private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 }
