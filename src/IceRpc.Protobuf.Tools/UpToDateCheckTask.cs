@@ -87,7 +87,6 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
         {
             if (!File.Exists(input))
             {
-                // File.GetLastWriteTime returns a placeholder date for a missing file, older than any output.
                 Log.LogMessage(MessageImportance.Low, $"'{source}' is out of date: input '{input}' is missing.");
                 return false;
             }
