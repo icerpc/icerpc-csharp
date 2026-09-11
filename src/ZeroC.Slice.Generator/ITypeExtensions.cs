@@ -191,70 +191,25 @@ internal static class ITypeExtensions
             string param,
             string encoderName)
         {
-            IType elemType = seq.ElementType.Type;
-            if (seq.ElementTypeIsOptional)
-            {
-                string csOptType = seq.ElementType.FieldTypeString(true, currentNamespace);
-                string lambda = EncodeOptionalValueLambda(elemType, csOptType, currentNamespace);
-                return $$"""
-                    {{encoderName}}.EncodeSequenceOfOptionals(
-                        {{param}},
-                        {{lambda}})
-                    """;
-            }
-
             // Fixed-size primitives use the optimized EncodeSequence<T> overload (no lambda).
-            if (!seq.ElementTypeIsOptional && elemType is Builtin builtin && builtin.IsFixedSize)
+            if (!seq.ElementTypeIsOptional && seq.ElementType.Type is Builtin { IsFixedSize: true })
             {
                 return $"{encoderName}.EncodeSequence({param})";
             }
 
             CodeBlock elementEncodeLambda = seq.ElementType.GetEncodeLambda(seq.ElementTypeIsOptional, currentNamespace);
+            string method = seq.ElementTypeIsOptional ? "EncodeSequenceOfOptionals" : "EncodeSequence";
             return $$"""
-                {{encoderName}}.EncodeSequence(
+                {{encoderName}}.{{method}}(
                     {{param}},
                     {{elementEncodeLambda.Indent()}})
                 """;
-
-            static string EncodeOptionalValueLambda(IType elemType, string csOptType, string currentNamespace)
-            {
-                // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
-                string valueExpr = elemType is CustomType
-                    ? "(value ?? default!)"
-                    : elemType is Struct or BasicEnum or Builtin { IsValueType: true } ? "value!.Value" : "value!";
-                string encodeExpr = elemType.EncodeExpression(currentNamespace, valueExpr);
-                return $"(ref SliceEncoder encoder, {csOptType} value) => {encodeExpr}";
-            }
         }
 
-        // Returns an encode lambda for a result success/failure type, handling optional inner types with a
-        // one bit bit-sequence.
-        static string ResultEncodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace)
-        {
-            IType type = typeRef.Type;
-
-            if (!isOptional)
-            {
-                return typeRef.GetEncodeLambda(isOptional: false, currentNamespace);
-            }
-            string csType = typeRef.FieldTypeString(true, currentNamespace);
-
-            // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
-            string valueParam = type is CustomType
-                ? "(value ?? default!)"
-                : typeRef.IsValueType ? "value!.Value" : "value!";
-            CodeBlock encodeBody = type.EncodeExpression(currentNamespace, valueParam);
-            return $$"""
-                (ref SliceEncoder encoder, {{csType}} value) =>
-                {
-                    encoder.EncodeBool(value is not null);
-                    if (value is not null)
-                    {
-                        {{encodeBody.Indent().Indent()}};
-                    }
-                }
-                """;
-        }
+        static string ResultEncodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace) =>
+            isOptional
+                ? typeRef.GetEncodeLambdaWithNullMarker(currentNamespace)
+                : typeRef.GetEncodeLambda(isOptional: false, currentNamespace);
     }
 
     /// <summary>Returns a decode lambda for a type. When <paramref name="withCast"/> is true, a cast to the field
