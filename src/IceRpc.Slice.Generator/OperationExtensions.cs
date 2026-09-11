@@ -172,14 +172,16 @@ internal static class OperationExtensions
 
             if (op.StreamedReturn is Field streamReturn)
             {
-                var items = new List<(string, string)> { (op.EncodedReturnPayloadName, payloadDescription) };
-                if (DocCommentFormatter.FormatOverview(streamReturn.Comment, currentNamespace) is string overview)
-                {
-                    items.Add((streamReturn.Name, overview));
-                }
-                return TupleReturnsDocComment(items);
+                string streamDescription =
+                    DocCommentFormatter.FormatOverview(streamReturn.Comment, currentNamespace) ??
+                    "The streamed return value.";
+                return TupleReturnsDocComment(
+                    [(op.EncodedReturnPayloadName, payloadDescription), (streamReturn.Name, streamDescription)]);
             }
-            return payloadDescription;
+            else
+            {
+                return payloadDescription;
+            }
         }
 
         private static string TupleReturnsDocComment(IEnumerable<(string Name, string Description)> items)
