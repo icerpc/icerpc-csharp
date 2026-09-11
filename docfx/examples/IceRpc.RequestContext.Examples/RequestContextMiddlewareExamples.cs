@@ -8,7 +8,7 @@ using static Program;
 namespace IceRpc.RequestContext.Examples;
 
 // This class provides code snippets used by the doc-comments of the request context middleware.
-public static class MetricsMiddlewareExamples
+public static class RequestContextMiddlewareExamples
 {
     public static async Task UseRequestContext()
     {
