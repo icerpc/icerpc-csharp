@@ -209,10 +209,10 @@ internal static class FieldExtensions
                 }
                 else
                 {
-                    string valueParam = field.DataType.Type is CustomType
-                        ? $"({param} ?? default!)"
-                        : field.DataType.IsValueType ? $"{param}.Value" : param;
-                    CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam, encoderName);
+                    CodeBlock encodeExpr = field.DataType.EncodeExpression(
+                        currentNamespace,
+                        field.DataType.UnwrapNonNullOptional(param),
+                        encoderName);
                     body.WriteLine($$"""
                         bitSequenceWriter.Write({{param}} != null);
                         if ({{param}} != null)
