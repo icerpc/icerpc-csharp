@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -11,7 +12,10 @@ namespace IceRpc.Telemetry;
 /// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The middleware restores the parent invocation
 /// activity from the request <see cref="RequestFieldKey.TraceContext" /> field before starting the dispatch activity.
 /// </summary>
-/// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
+/// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
+/// of the dispatch: the <c>rpc.response.status_code</c> tag holds the status code of the response, and a failure (a
+/// response with a status code other than <see cref="StatusCode.Ok" />, or an exception) sets the activity status to
+/// <see cref="ActivityStatusCode.Error" /> together with the <c>error.type</c> tag.</remarks>
 /// <seealso cref="TelemetryRouterExtensions" />
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryMiddleware : IDispatcher
@@ -43,7 +47,17 @@ public class TelemetryMiddleware : IDispatcher
                 RestoreActivityContext(buffer, activity);
             }
             activity.Start();
-            return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+                activity.RecordStatusCode(response.StatusCode, response.ErrorMessage);
+                return response;
+            }
+            catch (Exception exception)
+            {
+                activity.RecordException(exception);
+                throw;
+            }
         }
         else
         {

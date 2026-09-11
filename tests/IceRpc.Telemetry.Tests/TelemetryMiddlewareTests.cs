@@ -205,6 +205,135 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(expected));
     }
 
+    /// <summary>Verifies that a response with a status code other than <see cref="StatusCode.Ok" /> marks the
+    /// dispatch activity as failed before it stops, and that the response is returned unchanged.</summary>
+    [TestCase(StatusCode.NotFound, "NotFound")]
+    [TestCase((StatusCode)42, "42")]
+    public async Task Dispatch_activity_records_failure_response(StatusCode statusCode, string expectedStatusCode)
+    {
+        // Arrange
+        OutgoingResponse? response = null;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            response = new OutgoingResponse(request, statusCode, "error message");
+            return new(response);
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        OutgoingResponse returnedResponse = await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(returnedResponse, Is.SameAs(response));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
+        Assert.That(outcome.StatusDescription, Is.EqualTo("error message"));
+        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
+        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo(expectedStatusCode));
+        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
+        Assert.That(outcome.Tags["error.type"], Is.EqualTo(expectedStatusCode));
+    }
+
+    /// <summary>Verifies that an exception thrown by the dispatch marks the dispatch activity as failed before it
+    /// stops, and that the exception propagates unchanged.</summary>
+    [TestCaseSource(nameof(DispatchExceptions))]
+    public async Task Dispatch_activity_records_exception(Exception exception)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            await Task.Yield();
+            throw exception;
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        Exception? thrownException = null;
+        try
+        {
+            await sut.DispatchAsync(request, default);
+        }
+        catch (Exception caughtException)
+        {
+            thrownException = caughtException;
+        }
+
+        // Assert
+        Assert.That(thrownException, Is.SameAs(exception));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
+        Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
+        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
+        Assert.That(outcome.Tags["error.type"], Is.EqualTo(exception.GetType().FullName));
+        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.False);
+    }
+
+    /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the dispatch
+    /// activity status unset and records the status code.</summary>
+    [Test]
+    public async Task Dispatch_activity_records_ok_response()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
+        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo("Ok"));
+        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.False);
+    }
+
+    private static IEnumerable<Exception> DispatchExceptions
+    {
+        get
+        {
+            yield return new DispatchException(StatusCode.Unauthorized, "dispatch failed");
+            yield return new OperationCanceledException("dispatch canceled");
+        }
+    }
+
     // Mirrors TelemetryInterceptor.WriteActivityContext but writes the baggage sequence raw so tests can
     // simulate a peer that did not honor the 180-entry clip on its outgoing path.
     private static PipeReader EncodeTraceContextWithRawBaggage(int entryCount)
@@ -236,11 +365,13 @@ public sealed class TelemetryMiddlewareTests
         return pipe.Reader;
     }
 
-    private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
+    private static ActivityListener CreateMockActivityListener(
+        ActivitySource activitySource,
+        Action<Activity>? onActivityStopped = null)
     {
         var mockActivityListener = new ActivityListener();
         mockActivityListener.ActivityStarted = activity => { };
-        mockActivityListener.ActivityStopped = activity => { };
+        mockActivityListener.ActivityStopped = activity => onActivityStopped?.Invoke(activity);
         mockActivityListener.ShouldListenTo = source => ReferenceEquals(source, activitySource);
         mockActivityListener.Sample =
             (ref ActivityCreationOptions<ActivityContext> activityOptions) => ActivitySamplingResult.AllData;
@@ -248,5 +379,18 @@ public sealed class TelemetryMiddlewareTests
             (ref ActivityCreationOptions<string> activityOptions) => ActivitySamplingResult.AllData;
         ActivitySource.AddActivityListener(mockActivityListener);
         return mockActivityListener;
+    }
+
+    /// <summary>The status and tags of an activity, captured when the activity stops.</summary>
+    private sealed record class ActivityOutcome(
+        ActivityStatusCode Status,
+        string? StatusDescription,
+        IReadOnlyDictionary<string, string?> Tags)
+    {
+        internal static ActivityOutcome From(Activity activity) =>
+            new(
+                activity.Status,
+                activity.StatusDescription,
+                activity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value));
     }
 }

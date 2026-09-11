@@ -178,11 +178,140 @@ public sealed class TelemetryInterceptorTests
         }
     }
 
-    private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
+    /// <summary>Verifies that a response with a status code other than <see cref="StatusCode.Ok" /> marks the
+    /// invocation activity as failed before it stops, and that the response is returned unchanged.</summary>
+    [TestCase(StatusCode.NotFound, "NotFound")]
+    [TestCase((StatusCode)42, "42")]
+    public async Task Invocation_activity_records_failure_response(StatusCode statusCode, string expectedStatusCode)
+    {
+        // Arrange
+        IncomingResponse? response = null;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            response = new IncomingResponse(request, FakeConnectionContext.Instance, statusCode, "error message");
+            return Task.FromResult(response);
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+
+        var sut = new TelemetryInterceptor(invoker, activitySource);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+
+        // Act
+        IncomingResponse returnedResponse = await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(returnedResponse, Is.SameAs(response));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
+        Assert.That(outcome.StatusDescription, Is.EqualTo("error message"));
+        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
+        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo(expectedStatusCode));
+        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
+        Assert.That(outcome.Tags["error.type"], Is.EqualTo(expectedStatusCode));
+    }
+
+    /// <summary>Verifies that an exception thrown by the invocation marks the invocation activity as failed before it
+    /// stops, and that the exception propagates unchanged.</summary>
+    [TestCaseSource(nameof(InvocationExceptions))]
+    public async Task Invocation_activity_records_exception(Exception exception)
+    {
+        // Arrange
+        var invoker = new InlineInvoker(async (request, cancellationToken) =>
+        {
+            await Task.Yield();
+            throw exception;
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+
+        var sut = new TelemetryInterceptor(invoker, activitySource);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+
+        // Act
+        Exception? thrownException = null;
+        try
+        {
+            await sut.InvokeAsync(request, default);
+        }
+        catch (Exception caughtException)
+        {
+            thrownException = caughtException;
+        }
+
+        // Assert
+        Assert.That(thrownException, Is.SameAs(exception));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
+        Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
+        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
+        Assert.That(outcome.Tags["error.type"], Is.EqualTo(exception.GetType().FullName));
+        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.False);
+    }
+
+    /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the invocation
+    /// activity status unset and records the status code.</summary>
+    [Test]
+    public async Task Invocation_activity_records_ok_response()
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+
+        var sut = new TelemetryInterceptor(invoker, activitySource);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
+        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo("Ok"));
+        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.False);
+    }
+
+    private static IEnumerable<Exception> InvocationExceptions
+    {
+        get
+        {
+            yield return new InvalidOperationException("invocation failed");
+            yield return new OperationCanceledException("invocation canceled");
+        }
+    }
+
+    private static ActivityListener CreateMockActivityListener(
+        ActivitySource activitySource,
+        Action<Activity>? onActivityStopped = null)
     {
         var mockActivityListener = new ActivityListener();
         mockActivityListener.ActivityStarted = activity => { };
-        mockActivityListener.ActivityStopped = activity => { };
+        mockActivityListener.ActivityStopped = activity => onActivityStopped?.Invoke(activity);
         mockActivityListener.ShouldListenTo = source => ReferenceEquals(source, activitySource);
         mockActivityListener.Sample =
             (ref ActivityCreationOptions<ActivityContext> activityOptions) => ActivitySamplingResult.AllData;
@@ -212,5 +341,18 @@ public sealed class TelemetryInterceptorTests
         {
             return null;
         }
+    }
+
+    /// <summary>The status and tags of an activity, captured when the activity stops.</summary>
+    private sealed record class ActivityOutcome(
+        ActivityStatusCode Status,
+        string? StatusDescription,
+        IReadOnlyDictionary<string, string?> Tags)
+    {
+        internal static ActivityOutcome From(Activity activity) =>
+            new(
+                activity.Status,
+                activity.StatusDescription,
+                activity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value));
     }
 }
