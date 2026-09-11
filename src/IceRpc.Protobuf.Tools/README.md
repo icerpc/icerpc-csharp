@@ -77,13 +77,13 @@ once per Proto file.
 
 ## Incremental builds
 
-`protoc` runs only for the Proto files whose generated code is missing or out of date. A Proto file is out of date
-when the Proto file itself, one of the files it imports, `protoc` or the `protoc-gen-icerpc-csharp` generator is newer
-than one of its generated files. Changing `AdditionalOptions` or `ProtoSearchPath`, or upgrading this package,
-regenerates the code of all Proto files.
+The build runs `protoc` only for the Proto files whose generated code is missing or out of date. A Proto file is
+out of date when the Proto file itself, one of the files it imports, `protoc` or the `protoc-gen-icerpc-csharp`
+generator is newer than one of its generated files. Changing `AdditionalOptions` or `ProtoSearchPath`, or upgrading
+this package, regenerates the code of all Proto files.
 
-The generated code of a Proto file that is removed from the project, renamed, or given a different `OutputDir` is
-deleted during the next build.
+When you remove a Proto file from the project, rename it, or change its `OutputDir`, the next build deletes the code
+previously generated for it.
 
 ## Generated code and NuGet packages
 

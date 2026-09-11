@@ -17,16 +17,6 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
     /// newer than one of the source's outputs.</summary>
     public ITaskItem[] AdditionalInputs { get; set; } = [];
 
-    /// <summary>Gets or sets a string that identifies the configuration used to generate the outputs, such as the
-    /// compiler and plug-in versions and the options passed to them. When this value differs from the content of
-    /// <see cref="FingerprintFile"/>, every source is out of date.</summary>
-    public string Fingerprint { get; set; } = "";
-
-    /// <summary>Gets or sets the path of the file that holds the <see cref="Fingerprint"/> recorded by the previous
-    /// successful build. A missing file counts as a changed fingerprint. When empty, the fingerprint check is
-    /// skipped.</summary>
-    public string FingerprintFile { get; set; } = "";
-
     /// <summary>Gets or sets the output directory for the generated code.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
@@ -40,37 +30,19 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
     [Output]
     public ITaskItem[] ComputedSources { get; private set; } = [];
 
-    /// <summary>Gets a value indicating whether <see cref="Fingerprint"/> differs from the content of
-    /// <see cref="FingerprintFile"/>.</summary>
-    [Output]
-    public bool FingerprintChanged { get; private set; }
-
     /// <summary>Computes whether or not an output file is up to date or needs to be rebuilt. After executing this
     /// task, <see cref="ComputedSources"/> contains a task item for each item in <see cref="Sources"/> with two
     /// additional metadata entries. The <c>UpToDate</c> metadata is set to 'true' or 'false', indicating whether the
     /// item is up to date or needs to be rebuilt. The <c>OutputFileName</c> metadata contains the base file name for
     /// the generated outputs. This is the input item's file name without the extension, and converted to PascalCase.
     /// </summary>
-    /// <remarks>A source is up to date only when the <see cref="Fingerprint"/> matches the recorded one, all of its
-    /// outputs exist, every input recorded in its dependency file and every <see cref="AdditionalInputs"/> entry
-    /// exists, and the newest input is older than the oldest output.</remarks>
+    /// <remarks>A source is up to date only when all of its outputs exist, every input recorded in its dependency
+    /// file and every <see cref="AdditionalInputs"/> entry exists, and the newest input is older than the oldest
+    /// output.</remarks>
     /// <returns>Returns <see langword="true"/> if the task was executed successfully, <see langword="false"/>
     /// otherwise.</returns>
     public override bool Execute()
     {
-        bool fingerprintChanged = false;
-        if (FingerprintFile.Length > 0)
-        {
-            fingerprintChanged =
-                !File.Exists(FingerprintFile) || File.ReadAllText(FingerprintFile).Trim() != Fingerprint.Trim();
-            if (fingerprintChanged)
-            {
-                Log.LogMessage(
-                    MessageImportance.Normal,
-                    "The protoc configuration changed since the previous build; all Proto files are out of date.");
-            }
-        }
-
         string[] additionalInputs = [.. AdditionalInputs.Select(item => item.GetMetadata("FullPath"))];
 
         var computedSources = new List<ITaskItem>();
@@ -85,7 +57,7 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
                 Path.Combine(OutputDir, $"{fileName}.IceRpc.cs"),
             ];
 
-            bool upToDate = !fingerprintChanged && IsUpToDate(source.ItemSpec, outputs, dependOutput, additionalInputs);
+            bool upToDate = IsUpToDate(source.ItemSpec, outputs, dependOutput, additionalInputs);
 
             var computedSource = new TaskItem(source.ItemSpec);
             source.CopyMetadataTo(computedSource);
@@ -96,7 +68,6 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
         }
 
         ComputedSources = [.. computedSources];
-        FingerprintChanged = fingerprintChanged;
         return true;
     }
 
@@ -109,7 +80,7 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
             return false;
         }
 
-        // Every output must be newer than every input, so compare against the oldest output.
+        // Every output must be newer than every input.
         long oldestOutputTime = outputs.Min(output => File.GetLastWriteTime(output).Ticks);
 
         foreach (string input in ProcessDependencies(dependOutput).Concat(additionalInputs))
