@@ -55,7 +55,7 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
-    // This mutex protects _writesClosePending, _closeReadsOnWritesClosure.
+    // This mutex protects _writesClosePending, _closeReadsOnWritesClosure and _wroteLastStreamFrame.
     private readonly Lock _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
     // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
@@ -63,6 +63,9 @@ internal class SlicStream : IMultiplexedStream
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _writesClosePending;
+    // Set once the StreamLast frame is queued on the connection. Unlike WritesClosed, it is not set when the peer
+    // closes writes.
+    private bool _wroteLastStreamFrame;
 
     internal SlicStream(SlicConnection connection, bool isBidirectional, bool isRemote)
     {
@@ -130,6 +133,7 @@ internal class SlicStream : IMultiplexedStream
     internal void CloseReads(bool graceful)
     {
         bool writeReadsClosedFrame = false;
+        bool deferReadsClosedFrame = false;
 
         lock (_mutex)
         {
@@ -146,13 +150,32 @@ internal class SlicStream : IMultiplexedStream
                     !_state.HasFlag(State.WritesClosed) &&
                     !_writesClosePending)
                 {
-                    _closeReadsOnWritesClosure = true;
+                    deferReadsClosedFrame = true;
                 }
                 else if (!graceful || IsRemote)
                 {
                     // If forcefully closed because the input was completed before the data was fully read or if writes
                     // are already closed and the stream is a remote stream, we send the StreamReadsClosed frame to
                     // notify the peer that reads are closed.
+                    writeReadsClosedFrame = true;
+                }
+            }
+        }
+
+        if (deferReadsClosedFrame)
+        {
+            // Reads must be closed before the StreamReadsClosed frame can be sent, by CloseWrites or by a concurrent
+            // StreamLast write, so that the connection's stream count is decreased before the peer receives the frame.
+            TrySetReadsClosed();
+
+            lock (_mutex)
+            {
+                if (!_state.HasFlag(State.WritesClosed) && !_writesClosePending)
+                {
+                    _closeReadsOnWritesClosure = true;
+                }
+                else
+                {
                     writeReadsClosedFrame = true;
                 }
             }
@@ -208,21 +231,28 @@ internal class SlicStream : IMultiplexedStream
                 writeReadsClosedFrame = _closeReadsOnWritesClosure;
                 _writesClosePending = true;
                 writeWritesClosedFrame = true;
+
+                if (IsRemote)
+                {
+                    // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
+                    // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
+                    // is decreased before the peer receives the frame. This is necessary to prevent a race condition
+                    // where the peer could release the connection's bidirectional or unidirectional stream semaphore
+                    // before this connection's stream count is actually decreased. Doing so while holding the mutex
+                    // ensures CloseReads observes _writesClosePending only once the stream count is decreased.
+                    TrySetWritesClosed();
+                }
+            }
+            else if (_closeReadsOnWritesClosure && !_wroteLastStreamFrame)
+            {
+                // The peer closed writes before the StreamLast frame could bundle the deferred StreamReadsClosed frame.
+                // The peer still needs this frame to close its stream, so it's sent on its own.
+                writeReadsClosedFrame = true;
             }
         }
 
         if (writeWritesClosedFrame)
         {
-            if (IsRemote)
-            {
-                // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
-                // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
-                // is decreased before the peer receives the frame. This is necessary to prevent a race condition
-                // where the peer could release the connection's bidirectional or unidirectional stream semaphore
-                // before this connection's stream count is actually decreased.
-                TrySetWritesClosed();
-            }
-
             if (graceful)
             {
                 try
@@ -261,6 +291,18 @@ internal class SlicStream : IMultiplexedStream
         }
         else
         {
+            if (writeReadsClosedFrame)
+            {
+                try
+                {
+                    WriteStreamFrame(FrameType.StreamReadsClosed, encode: null, writeReadsClosedFrame: false);
+                }
+                catch (IceRpcException)
+                {
+                    // Ignore connection failures.
+                }
+            }
+
             TrySetWritesClosed();
         }
     }
@@ -407,15 +449,16 @@ internal class SlicStream : IMultiplexedStream
                     writeReadsClosedFrame,
                     cancellationToken).ConfigureAwait(false);
             }
-            catch when (!_writesClosedTcs.Task.IsCompleted)
+            catch
             {
-                // The write failed before the StreamLast frame was queued on the connection (WroteLastStreamFrame
-                // completes _writesClosedTcs when the frame is queued), so roll back _writesClosePending so that
-                // completing the stream output can still close writes and notify the peer with a StreamWritesClosed
-                // frame. The bundled reads closure isn't lost either since _closeReadsOnWritesClosure wasn't cleared.
                 lock (_mutex)
                 {
-                    _writesClosePending = false;
+                    if (!_wroteLastStreamFrame)
+                    {
+                        // The StreamLast frame wasn't queued, so completing the stream output must still be able to
+                        // close writes and notify the peer.
+                        _writesClosePending = false;
+                    }
                 }
                 throw;
             }
@@ -426,6 +469,11 @@ internal class SlicStream : IMultiplexedStream
     /// connection.</summary>
     internal void WroteLastStreamFrame()
     {
+        lock (_mutex)
+        {
+            _wroteLastStreamFrame = true;
+        }
+
         if (IsRemote)
         {
             TrySetWritesClosed();
