@@ -136,6 +136,8 @@
       <Compile Remove="@(_StaleSlicecOutputRelative)" />
     </ItemGroup>
     <Delete Files="@(_StaleSlicecOutput)" />
+    <!-- With no SliceFile left, _SlicecWriteOutputManifest doesn't run to replace the manifest. -->
+    <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" Condition="@(SliceFile) == ''" />
   </Target>
 
   <Target Name="Slicec" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
