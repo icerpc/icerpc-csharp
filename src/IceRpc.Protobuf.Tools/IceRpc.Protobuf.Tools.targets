@@ -20,6 +20,7 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
+
   <!--
     Build-order-only reference: the consuming project just needs IceRpc.Protobuf.Tools (and, via its own
     ProjectReference, IceRpc.Protobuf.Generator) to be built so the protoc plug-in scripts exist on disk before we
@@ -33,10 +34,12 @@
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj"
                       ReferenceOutputAssembly="false" Private="false" Targets="Build" />
   </ItemGroup>
+
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />
   </ItemGroup>
+
   <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
     <ProtoFile Update="@(ProtoFile)">
       <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
@@ -60,6 +63,7 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
+
   <!--
     This target must not run the up-to-date check: Rebuild runs Clean then Build in the same project instance, so a
     check made before Clean would mark as current the outputs Clean is about to delete. ProtoCompile keeps its own
@@ -109,6 +113,7 @@
           BeforeTargets="CoreCompile"
           DependsOnTargets="_ComputeProtoOutputs"
           Condition="@(ProtoFile) != ''">
+
     <ItemGroup>
       <!--
         Anything that changes the generated code without touching a Proto file. Only the distinct option values: with
@@ -119,6 +124,7 @@
       <_ProtocInputsCacheLine Include="@(ProtoSearchPath->'search-path=%(FullPath)')" />
       <_ProtocInputsCacheLine Include="@(ProtoFile->'options=%(AdditionalOptions)'->DistinctWithCase())" />
     </ItemGroup>
+
     <!--
       WriteOnlyWhenDifferent moves the file's timestamp only when a value changes. As an input of every Proto file,
       it then makes all outputs out of date, including those a failed protoc run left untouched.
@@ -128,6 +134,7 @@
       Lines="@(_ProtocInputsCacheLine)"
       Overwrite="true"
       WriteOnlyWhenDifferent="true" />
+
     <ItemGroup>
       <!-- Inputs of every Proto file, in addition to those recorded in its dependency file. -->
       <_ProtocInput Include="$(IntermediateOutputPath)protoc.inputs.cache" />
