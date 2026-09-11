@@ -212,16 +212,14 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
         Assert.That(outcome.StatusDescription, Is.EqualTo("error message"));
-        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
-        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo(expectedStatusCode));
-        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
-        Assert.That(outcome.Tags["error.type"], Is.EqualTo(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedStatusCode));
     }
 
     /// <summary>Verifies that an exception thrown by the invocation marks the invocation activity as failed before it
     /// stops, and that the exception propagates unchanged.</summary>
     [TestCaseSource(nameof(InvocationExceptions))]
-    public async Task Invocation_activity_records_exception(Exception exception)
+    public void Invocation_activity_records_exception(Exception exception)
     {
         // Arrange
         var invoker = new InlineInvoker(async (request, cancellationToken) =>
@@ -243,24 +241,15 @@ public sealed class TelemetryInterceptorTests
         };
 
         // Act
-        Exception? thrownException = null;
-        try
-        {
-            await sut.InvokeAsync(request, default);
-        }
-        catch (Exception caughtException)
-        {
-            thrownException = caughtException;
-        }
+        Exception? thrownException = Assert.CatchAsync(async () => await sut.InvokeAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
         Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
-        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
-        Assert.That(outcome.Tags["error.type"], Is.EqualTo(exception.GetType().FullName));
-        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.False);
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(exception.GetType().FullName));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("rpc.status_code"));
     }
 
     /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the invocation
@@ -291,9 +280,8 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
         Assert.That(outcome.StatusDescription, Is.Null);
-        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
-        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo("Ok"));
-        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.False);
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue("Ok"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 
     private static IEnumerable<Exception> InvocationExceptions

@@ -205,11 +205,15 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that a response with a status code other than <see cref="StatusCode.Ok" /> marks the
-    /// dispatch activity as failed before it stops, and that the response is returned unchanged.</summary>
-    [TestCase(StatusCode.NotFound, "NotFound")]
+    /// <summary>Verifies that a response with a status code that reports a server failure marks the dispatch activity
+    /// as failed before it stops, and that the response is returned unchanged.</summary>
+    [TestCase(StatusCode.NotImplemented, "NotImplemented")]
+    [TestCase(StatusCode.Unavailable, "Unavailable")]
+    [TestCase(StatusCode.InternalError, "InternalError")]
+    [TestCase(StatusCode.DeadlineExceeded, "DeadlineExceeded")]
+    [TestCase(StatusCode.NotSupported, "NotSupported")]
     [TestCase((StatusCode)42, "42")]
-    public async Task Dispatch_activity_records_failure_response(StatusCode statusCode, string expectedStatusCode)
+    public async Task Dispatch_activity_records_server_error_response(StatusCode statusCode, string expectedStatusCode)
     {
         // Arrange
         OutgoingResponse? response = null;
@@ -240,16 +244,52 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
         Assert.That(outcome.StatusDescription, Is.EqualTo("error message"));
-        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
-        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo(expectedStatusCode));
-        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
-        Assert.That(outcome.Tags["error.type"], Is.EqualTo(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedStatusCode));
+    }
+
+    /// <summary>Verifies that a response with a status code that reports a problem with the request records the
+    /// status code but leaves the dispatch activity status unset.</summary>
+    [TestCase(StatusCode.ApplicationError, "ApplicationError")]
+    [TestCase(StatusCode.NotFound, "NotFound")]
+    [TestCase(StatusCode.InvalidData, "InvalidData")]
+    [TestCase(StatusCode.TruncatedPayload, "TruncatedPayload")]
+    [TestCase(StatusCode.Unauthorized, "Unauthorized")]
+    public async Task Dispatch_activity_records_request_error_response(StatusCode statusCode, string expectedStatusCode)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            new(new OutgoingResponse(request, statusCode, "error message")));
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 
     /// <summary>Verifies that an exception thrown by the dispatch marks the dispatch activity as failed before it
-    /// stops, and that the exception propagates unchanged.</summary>
+    /// stops, records the status code of the response the connection sends to the caller, and that the exception
+    /// propagates unchanged.</summary>
     [TestCaseSource(nameof(DispatchExceptions))]
-    public async Task Dispatch_activity_records_exception(Exception exception)
+    public void Dispatch_activity_records_exception(Exception exception, string? expectedStatusCode)
     {
         // Arrange
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
@@ -272,24 +312,23 @@ public sealed class TelemetryMiddlewareTests
         };
 
         // Act
-        Exception? thrownException = null;
-        try
-        {
-            await sut.DispatchAsync(request, default);
-        }
-        catch (Exception caughtException)
-        {
-            thrownException = caughtException;
-        }
+        Exception? thrownException =
+            Assert.CatchAsync(async () => await sut.DispatchAsync(request, CancellationToken.None));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
         Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
-        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.True);
-        Assert.That(outcome.Tags["error.type"], Is.EqualTo(exception.GetType().FullName));
-        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.False);
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(exception.GetType().FullName));
+        if (expectedStatusCode is null)
+        {
+            Assert.That(outcome.Tags, Does.Not.ContainKey("rpc.status_code"));
+        }
+        else
+        {
+            Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        }
     }
 
     /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the dispatch
@@ -320,17 +359,35 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
         Assert.That(outcome.StatusDescription, Is.Null);
-        Assert.That(outcome.Tags.ContainsKey("rpc.response.status_code"), Is.True);
-        Assert.That(outcome.Tags["rpc.response.status_code"], Is.EqualTo("Ok"));
-        Assert.That(outcome.Tags.ContainsKey("error.type"), Is.False);
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue("Ok"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 
-    private static IEnumerable<Exception> DispatchExceptions
+    /// <summary>The exceptions thrown by the dispatch, with the status code of the response the connection sends to
+    /// the caller. The dispatch is canceled by <see cref="CancellationToken.None" />, the token passed to the
+    /// middleware; a cancellation by another token is an internal error.</summary>
+    private static IEnumerable<TestCaseData> DispatchExceptions
     {
         get
         {
-            yield return new DispatchException(StatusCode.Unauthorized, "dispatch failed");
-            yield return new OperationCanceledException("dispatch canceled");
+            yield return new TestCaseData(
+                new DispatchException(StatusCode.Unauthorized, "dispatch failed"),
+                "Unauthorized");
+            yield return new TestCaseData(
+                new DispatchException(StatusCode.Unauthorized, "dispatch failed") { ConvertToInternalError = true },
+                "InternalError");
+            yield return new TestCaseData(new InvalidDataException("invalid data"), "InvalidData");
+            yield return new TestCaseData(new NotSupportedException("not supported"), "NotSupported");
+            yield return new TestCaseData(
+                new IceRpcException(IceRpcError.TruncatedData, "truncated data"),
+                "TruncatedPayload");
+            yield return new TestCaseData(new InvalidOperationException("dispatch failed"), "InternalError");
+            yield return new TestCaseData(
+                new OperationCanceledException("dispatch canceled", CancellationToken.None),
+                null);
+            yield return new TestCaseData(
+                new OperationCanceledException("dispatch canceled", new CancellationToken(canceled: true)),
+                "InternalError");
         }
     }
 

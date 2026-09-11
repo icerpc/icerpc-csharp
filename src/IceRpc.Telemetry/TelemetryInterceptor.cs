@@ -13,9 +13,9 @@ namespace IceRpc.Telemetry;
 /// request <see cref="RequestFieldKey.TraceContext" /> field and can be restored on the server-side by installing the
 /// <see cref="TelemetryMiddleware" />.</summary>
 /// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
-/// of the invocation: the <c>rpc.response.status_code</c> tag holds the status code of the response, and a failure (a
-/// response with a status code other than <see cref="StatusCode.Ok" />, or an exception) sets the activity status to
-/// <see cref="ActivityStatusCode.Error" /> together with the <c>error.type</c> tag.</remarks>
+/// of the invocation. When the invocation returns a response, the <c>rpc.status_code</c> tag holds its status code.
+/// When the status code is not <see cref="StatusCode.Ok" /> or the invocation throws an exception, the activity
+/// status is <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure.</remarks>
 /// <seealso cref="TelemetryPipelineExtensions"/>
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
@@ -54,12 +54,15 @@ public class TelemetryInterceptor : IInvoker
             try
             {
                 IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-                activity.RecordStatusCode(response.StatusCode, response.ErrorMessage);
+                activity.RecordStatusCode(
+                    response.StatusCode,
+                    response.ErrorMessage,
+                    isError: response.StatusCode != StatusCode.Ok);
                 return response;
             }
             catch (Exception exception)
             {
-                activity.RecordException(exception);
+                activity.RecordException(exception, statusCode: null);
                 throw;
             }
         }

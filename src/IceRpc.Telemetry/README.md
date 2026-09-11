@@ -10,10 +10,6 @@ middleware restores the activity context and uses it to set the parent activity 
 The telemetry interceptor and middleware create activities only for requests that use the `icerpc` protocol; they
 don't create activities for requests that use the `ice` protocol.
 
-Each activity records the outcome of the invocation or dispatch: the `rpc.response.status_code` tag holds the status
-code of the response, and a failure (a response with a status code other than `Ok`, or an exception) sets the activity
-status to `Error` together with the `error.type` tag.
-
 [Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
