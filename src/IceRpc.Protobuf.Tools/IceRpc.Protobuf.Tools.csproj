@@ -20,10 +20,9 @@
     <ProjectReference Include="../IceRpc.Protobuf.Generator/IceRpc.Protobuf.Generator.csproj"
                       ReferenceOutputAssembly="false" Private="false" Targets="Build" />
     <!--
-      IceRpc.Protobuf.BuildTelemetry imports this project's props/targets (to compile its
-      protobuf_build_telemetry.proto), so a ProjectReference from here back to it would create a cycle. Packaging
-      expects a prior `dotnet build` on the solution so its outputs exist in
-      ../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/; IncludeProtocPluginsInPackage fails the pack otherwise.
+      IceRpc.Protobuf.BuildTelemetry imports this project's props/targets to compile its .proto file, so a
+      ProjectReference to it would be a cycle. IncludeProtocPluginsInPackage expects its outputs to exist already: build
+      the solution before packing.
     -->
     <PackageReference Include="Microsoft.Build.Framework" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" />
@@ -111,16 +110,9 @@
   </Target>
 
   <!--
-    Pack everything from the protoc plug-in (IceRpc.Protobuf.Generator) and the build-telemetry plug-in
-    (IceRpc.Protobuf.BuildTelemetry) bin folders, excluding files in the BuildTelemetry bin that have the
-    same name as a file already coming from the Generator bin (e.g. Google.Protobuf.dll). The bins are
-    otherwise clean - neither contains transitive tooling outputs because we use Targets="Build" on the
-    generator ProjectReferences (see IceRpc.Protobuf.Tools.targets).
-
-    The globs run in a target rather than at evaluation time so that packing this project on its own picks up
-    the Generator outputs that its ProjectReference has just built. The build-telemetry plug-in can't be
-    referenced (see above), so the pack fails when a plug-in hasn't been built instead of silently producing a
-    package without it.
+    Collected after Build so the globs see the Generator ProjectReference's outputs. The bins contain no transitive
+    tooling outputs (build-only ProjectReferences, see IceRpc.Protobuf.Tools.targets); dependencies present in both
+    bins, such as Google.Protobuf.dll, are packed once.
   -->
   <Target Name="IncludeProtocPluginsInPackage" BeforeTargets="_GetPackageFiles">
     <Error

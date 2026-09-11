@@ -28,10 +28,9 @@
     <ProjectReference Include="../IceRpc.Slice.Generator/IceRpc.Slice.Generator.csproj"
                       ReferenceOutputAssembly="false" Private="false" Targets="Build" />
     <!--
-      IceRpc.Slice.BuildTelemetry imports this project's props/targets (to compile its BuildTelemetry.slice), so a
-      ProjectReference from here back to it would create a cycle. Packaging expects a prior `dotnet build` on the
-      solution so its outputs exist in ../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/;
-      IncludeSliceGeneratorsInPackage fails the pack otherwise.
+      IceRpc.Slice.BuildTelemetry imports this project's props/targets to compile its .slice file, so a ProjectReference
+      to it would be a cycle. IncludeSliceGeneratorsInPackage expects its outputs to exist already: build the solution
+      before packing.
     -->
     <PackageReference Include="Microsoft.Build.Framework" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" />
@@ -111,16 +110,9 @@
   </Target>
 
   <!--
-    Pack everything from the two slicec generator plug-ins (ZeroC.Slice.Generator and
-    IceRpc.Slice.Generator) and the build-telemetry plug-in (IceRpc.Slice.BuildTelemetry), excluding
-    files that have the same name as a file already coming from an earlier bin. The bins are otherwise
-    clean - none of them contain transitive tooling outputs because we use Targets="Build" on the
-    generator ProjectReferences (see IceRpc.Slice.Tools.targets).
-
-    The globs run in a target rather than at evaluation time so that packing this project on its own picks up
-    the generator outputs that its ProjectReferences have just built. The build-telemetry plug-in can't be
-    referenced (see above), so the pack fails when a plug-in hasn't been built instead of silently producing a
-    package without it.
+    Collected after Build so the globs see the generator ProjectReferences' outputs. The bins contain no transitive
+    tooling outputs (build-only ProjectReferences, see IceRpc.Slice.Tools.targets); dependencies present in several
+    bins are packed once.
   -->
   <Target Name="IncludeSliceGeneratorsInPackage" BeforeTargets="_GetPackageFiles">
     <Error
