@@ -102,10 +102,7 @@
       <Compile Remove="@(_StaleProtoOutput)" MatchOnMetadata="FullPath" MatchOnMetadataOptions="PathLike" />
     </ItemGroup>
     <Delete Files="@(_StaleProtoOutput)" />
-    <!--
-      With no ProtoFile left, _ProtoWriteOutputManifest doesn't run to replace the manifest; delete it here, or
-      every later build deletes whatever appears at the former output paths.
-    -->
+    <!-- With no ProtoFile left, _ProtoWriteOutputManifest doesn't run to replace the manifest. -->
     <Delete Files="$(IntermediateOutputPath)protoc.outputs.txt" Condition="@(ProtoFile) == ''" />
   </Target>
 
