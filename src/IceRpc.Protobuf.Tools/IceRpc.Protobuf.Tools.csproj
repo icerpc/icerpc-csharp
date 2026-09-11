@@ -117,10 +117,10 @@
   <Target Name="IncludeProtocPluginsInPackage" BeforeTargets="_GetPackageFiles">
     <Error
       Condition="!Exists('$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/IceRpc.Protobuf.Generator.dll')"
-      Text="IceRpc.Protobuf.Generator has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Protobuf.Tools." />
+      Text="IceRpc.Protobuf.Generator has not been built in the $(Configuration) configuration. Run 'dotnet build -c $(Configuration)' from the repository root before packing IceRpc.Protobuf.Tools." />
     <Error
       Condition="!Exists('$(MSBuildThisFileDirectory)../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Protobuf.BuildTelemetry.dll')"
-      Text="IceRpc.Protobuf.BuildTelemetry has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Protobuf.Tools." />
+      Text="IceRpc.Protobuf.BuildTelemetry has not been built in the $(Configuration) configuration. Run 'dotnet build -c $(Configuration)' from the repository root before packing IceRpc.Protobuf.Tools." />
     <ItemGroup>
       <_ProtobufGeneratorBinFile Include="../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/*" />
       <_ProtobufBuildTelemetryBinFile

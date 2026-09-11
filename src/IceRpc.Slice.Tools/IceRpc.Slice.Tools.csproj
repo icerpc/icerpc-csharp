@@ -117,13 +117,13 @@
   <Target Name="IncludeSliceGeneratorsInPackage" BeforeTargets="_GetPackageFiles">
     <Error
       Condition="!Exists('$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/ZeroC.Slice.Generator.dll')"
-      Text="ZeroC.Slice.Generator has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Slice.Tools." />
+      Text="ZeroC.Slice.Generator has not been built in the $(Configuration) configuration. Run 'dotnet build -c $(Configuration)' from the repository root before packing IceRpc.Slice.Tools." />
     <Error
       Condition="!Exists('$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/IceRpc.Slice.Generator.dll')"
-      Text="IceRpc.Slice.Generator has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Slice.Tools." />
+      Text="IceRpc.Slice.Generator has not been built in the $(Configuration) configuration. Run 'dotnet build -c $(Configuration)' from the repository root before packing IceRpc.Slice.Tools." />
     <Error
       Condition="!Exists('$(MSBuildThisFileDirectory)../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/IceRpc.Slice.BuildTelemetry.dll')"
-      Text="IceRpc.Slice.BuildTelemetry has not been built in the $(Configuration) configuration. Build the solution before packing IceRpc.Slice.Tools." />
+      Text="IceRpc.Slice.BuildTelemetry has not been built in the $(Configuration) configuration. Run 'dotnet build -c $(Configuration)' from the repository root before packing IceRpc.Slice.Tools." />
     <ItemGroup>
       <_ZeroCSliceGeneratorBinFile Include="../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/*" />
       <_IceRpcSliceGeneratorBinFile
