@@ -120,9 +120,7 @@ connection to the IceRPC build telemetry server during the compilation of Slice 
 
 This data includes:
 
-- The version of the slicec compiler and the names and versions of the code generators. Custom generators specified
-  through `SliceFile`'s `Generators` metadata are reported by executable name, with version `unknown`; their paths and
-  options are not collected.
+- The versions of the slicec compiler and code generators.
 - The system's operating system, version, and platform architecture.
 - The .NET SDK version used by the build.
 - Whether the build was executed in a continuous integration (CI) environment.

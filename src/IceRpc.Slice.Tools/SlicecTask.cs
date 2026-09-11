@@ -16,20 +16,10 @@ public class SlicecTask : ToolTask
     /// <summary>Additional options to pass to the <c>slicec</c> compiler.</summary>
     public string[] AdditionalOptions { get; set; } = [];
 
-    /// <summary>The build-telemetry generator script and its options, or an empty string to disable telemetry.
-    /// </summary>
-    public string BuildTelemetryGenerator { get; set; } = "";
-
-    /// <summary>The bundled generator scripts whose versions are known.</summary>
-    public string[] BundledGenerators { get; set; } = [];
-
     /// <summary>The code-generator plugins to run after parsing and validation. Each entry is the full path to a
     /// generator script.</summary>
     [Required]
     public string[] Generators { get; set; } = [];
-
-    /// <summary>The version reported for the bundled generators.</summary>
-    public string IceRpcSliceToolsVersion { get; set; } = "";
 
     /// <summary>The output directory for the generated code; corresponds to the <c>--output-dir</c> option of the
     /// <c>slicec</c> compiler.</summary>
@@ -64,25 +54,7 @@ public class SlicecTask : ToolTask
     {
         var builder = new CommandLineBuilder(false);
 
-        IEnumerable<string> generators = Generators;
-        if (BuildTelemetryGenerator.Length > 0)
-        {
-            string generatorOptions = string.Concat(Generators.Append(BuildTelemetryGenerator).Select(generator =>
-            {
-                // Report the executable name only; paths and plug-in options can contain private information.
-                string name = Path.GetFileName(generator.Split(',', 2)[0].Replace('\\', '/'));
-                if (Path.GetExtension(name) is ".sh" or ".bat" or ".exe")
-                {
-                    name = Path.GetFileNameWithoutExtension(name);
-                }
-                string version = generator == BuildTelemetryGenerator || BundledGenerators.Contains(generator) ?
-                    IceRpcSliceToolsVersion : "unknown";
-                return $",generator={name}:{version}";
-            }));
-            generators = generators.Append(BuildTelemetryGenerator + generatorOptions);
-        }
-
-        foreach (string generator in generators)
+        foreach (string generator in Generators)
         {
             builder.AppendSwitch("--generator");
             // TODO: remove this workaround once slicec correctly handles backslashes.

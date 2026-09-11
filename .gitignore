@@ -92,6 +92,3 @@ NuGet.config
 # CSharp Dev Kit
 .mono
 *.csproj.lscache
-
-# Formatting dependencies
-node_modules/
