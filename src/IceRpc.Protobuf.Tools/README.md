@@ -75,9 +75,15 @@ once per Proto file.
 | Pack              | `false`   | Specifies whether or not to include the items (Proto files) in the NuGet package.                                                                |
 | PackagePath       | protobuf  | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                        |
 
-> [!NOTE]
-> Changing `AdditionalOptions` does not mark previously generated code as out of date. Run `dotnet clean` and then
-> build again to regenerate the code with the new options.
+## Incremental builds
+
+The build runs `protoc` only for the Proto files whose generated code is missing or out of date. A Proto file is
+out of date when the Proto file itself, one of the files it imports, `protoc` or the `protoc-gen-icerpc-csharp`
+generator is newer than one of its generated files, or when its `AdditionalOptions` differ from those used to generate
+it. Changing `ProtoSearchPath` or upgrading this package regenerates the code of all Proto files.
+
+When you remove a Proto file from the project, rename it, or change its `OutputDir`, the next build deletes the code
+previously generated for it.
 
 ## Generated code and NuGet packages
 

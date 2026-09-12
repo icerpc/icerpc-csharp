@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using ZeroC.CodeBuilder;
 using ZeroC.Slice.Symbols;
 
 namespace ZeroC.Slice.Generator;
@@ -7,7 +8,6 @@ namespace ZeroC.Slice.Generator;
 /// <summary>C#-specific extension methods for <see cref="TypeRef"/>.</summary>
 internal static class TypeRefExtensions
 {
-
     /// <summary>Generates decode expression for a type reference. When the TypeRef has a cs::type attribute,
     /// it is passed through as the concrete type for dictionary/sequence factory construction.</summary>
     internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace)
@@ -45,11 +45,26 @@ internal static class TypeRefExtensions
         }
 
         string csType = typeRef.Type.ToTypeString(currentNamespace) + "?";
-        string param = typeRef.Type is CustomType
-            ? "(value ?? default!)"
-            : typeRef.IsValueType ? "value!.Value" : "value!";
-        string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, param);
+        string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional("value"));
         return $"(ref SliceEncoder encoder, {csType} value) => {encodeExpr}";
+    }
+
+    /// <summary>Returns an encode lambda for an optional type reference that writes a bool null marker before the
+    /// value, for use where the caller has no bit sequence.</summary>
+    internal static string GetEncodeLambdaWithNullMarker(this TypeRef typeRef, string currentNamespace)
+    {
+        string csType = typeRef.FieldTypeString(true, currentNamespace);
+        CodeBlock encodeBody = typeRef.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional("value"));
+        return $$"""
+            (ref SliceEncoder encoder, {{csType}} value) =>
+            {
+                encoder.EncodeBool(value is not null);
+                if (value is not null)
+                {
+                    {{encodeBody.Indent().Indent()}};
+                }
+            }
+            """;
     }
 
     /// <summary>Returns the C# type string for an incoming parameter (decode target). Sequences map to arrays,
@@ -108,6 +123,11 @@ internal static class TypeRefExtensions
 
         return (isOptional && !ignoreOptional) ? $"{baseType}?" : baseType;
     }
+
+    /// <summary>Returns the expression that unwraps a non-null optional value for encoding. A custom type can map to
+    /// either a C# value type or a reference type, so it uses <c>??</c> instead of <c>!</c>.</summary>
+    internal static string UnwrapNonNullOptional(this TypeRef typeRef, string param) =>
+        typeRef.Type is CustomType ? $"({param} ?? default!)" : typeRef.IsValueType ? $"{param}!.Value" : $"{param}!";
 
     extension(TypeRef value)
     {

@@ -54,7 +54,7 @@
       <Pack>true</Pack>
       <PackagePath />
     </None>
-    <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+    <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
     <!--
       Pack everything from the protoc plug-in (IceRpc.Protobuf.Generator) and the build-telemetry plug-in
       (IceRpc.Protobuf.BuildTelemetry) bin folders, excluding files in the BuildTelemetry bin that have the
@@ -94,7 +94,7 @@
     <ExtractTask
       SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')" />
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc')" />
 
     <!-- Make protoc compiler writeable, otherwise Copy task fails when running inside a container -->
     <Exec

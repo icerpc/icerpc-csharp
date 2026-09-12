@@ -53,6 +53,11 @@ interface MySessionManager {
     /// Retrieves the {@link UserList} containing the names of the active users.
     getActiveUsers() -> UserList
 
+    /// Subscribes the given user to an event.
+    /// @param user: The user.
+    /// @param event: The event name.
+    subscribe(user: string, [cs::identifier("@event")] event: string)
+
     /// Retrieves the log of the given user.
     /// @param user: The user.
     /// @returns: The log entries.

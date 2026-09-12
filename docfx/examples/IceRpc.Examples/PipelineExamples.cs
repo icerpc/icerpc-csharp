@@ -2,7 +2,9 @@
 
 using GreeterExample;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
+using static Program;
 
 namespace IceRpc.Examples;
 
@@ -17,8 +19,13 @@ public static class PipelineExamples
                 .AddSimpleConsole()
                 .AddFilter("IceRpc", LogLevel.Information));
 
-        // Create a client connection.
-        await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+        // The server uses a test certificate, so we trust its root CA. CreateClientAuthenticationOptions
+        // is a helper from examples/common/Program.Authentication.cs in the icerpc-csharp repo.
+        using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
+
+        await using var connection = new ClientConnection(
+            new Uri("icerpc://localhost"),
+            clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
         // Create an invocation pipeline and install the logger interceptor.
         Pipeline pipeline = new Pipeline()

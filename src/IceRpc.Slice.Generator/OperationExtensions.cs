@@ -125,7 +125,7 @@ internal static class OperationExtensions
                 bool useSegments;
                 if (streamField.DataTypeIsOptional)
                 {
-                    encodeLambda = GetStreamOfOptionalEncodeLambda(streamField, currentNamespace);
+                    encodeLambda = streamField.DataType.GetEncodeLambdaWithNullMarker(currentNamespace);
                     useSegments = true;
                 }
                 else
@@ -155,7 +155,8 @@ internal static class OperationExtensions
             }
 
             var items = op.ReturnType
-                .Select(r => (r.Name, Overview: DocCommentFormatter.FormatOverview(r.Comment, currentNamespace)))
+                .Select(r =>
+                    (Name: r.Name.TrimStart('@'), Overview: DocCommentFormatter.FormatOverview(r.Comment, currentNamespace)))
                 .Where(item => item.Overview is not null)
                 .Select(item => (item.Name, item.Overview!))
                 .ToList();
@@ -290,16 +291,16 @@ internal static class OperationExtensions
             foreach (Field field in sortedFields)
             {
                 string decodeExpr = field.GetFieldDecodeExpression(currentNamespace, useIncomingType: true);
-                body.WriteLine($"var sliceP_{field.ParameterName} = {decodeExpr};");
+                body.WriteLine($"var {field.DecodedVariableName} = {decodeExpr};");
             }
 
             if (fields.Count == 1)
             {
-                body.WriteLine($"return sliceP_{sortedFields[0].ParameterName};");
+                body.WriteLine($"return {sortedFields[0].DecodedVariableName};");
             }
             else
             {
-                body.WriteLine($"return ({string.Join(", ", fields.Select(f => $"sliceP_{f.ParameterName}"))});");
+                body.WriteLine($"return ({string.Join(", ", fields.Select(f => f.DecodedVariableName))});");
             }
 
             return $$"""
@@ -392,28 +393,6 @@ internal static class OperationExtensions
         }
 
         return count == 1 ? $"{taskType}<{parts[0]}>" : $"{taskType}<({string.Join(", ", parts)})>";
-    }
-
-    /// <summary>Returns an encode lambda for an optional stream element with a one bit bit-sequence.</summary>
-    internal static string GetStreamOfOptionalEncodeLambda(Field streamField, string currentNamespace)
-    {
-        IType elemType = streamField.DataType.Type;
-        string csType = streamField.DataType.FieldTypeString(true, currentNamespace);
-        // CustomType → (value ?? default!), value types → value!.Value, reference types → value!
-        string valueExpr = elemType is CustomType
-            ? "(value ?? default!)"
-            : streamField.DataType.IsValueType ? "value!.Value" : "value!";
-        string encodeExpr = elemType.EncodeExpression(currentNamespace, valueExpr);
-        return $$"""
-            (ref SliceEncoder encoder, {{csType}} value) =>
-            {
-                encoder.EncodeBool(value is not null);
-                if (value is not null)
-                {
-                    {{encodeExpr}};
-                }
-            }
-            """;
     }
 
     /// <summary>Returns a decode lambda for an optional stream element with a one bit bit-sequence.</summary>

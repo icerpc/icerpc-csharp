@@ -209,10 +209,10 @@ internal static class FieldExtensions
                 }
                 else
                 {
-                    string valueParam = field.DataType.Type is CustomType
-                        ? $"({param} ?? default!)"
-                        : field.DataType.IsValueType ? $"{param}.Value" : param;
-                    CodeBlock encodeExpr = field.DataType.EncodeExpression(currentNamespace, valueParam, encoderName);
+                    CodeBlock encodeExpr = field.DataType.EncodeExpression(
+                        currentNamespace,
+                        field.DataType.UnwrapNonNullOptional(param),
+                        encoderName);
                     body.WriteLine($$"""
                         bitSequenceWriter.Write({{param}} != null);
                         if ({{param}} != null)
@@ -246,6 +246,10 @@ internal static class FieldExtensions
 
     extension(Field value)
     {
+        /// <summary>Gets the name of the local variable that holds the decoded value of this parameter or return
+        /// field.</summary>
+        internal string DecodedVariableName => $"sliceP_{value.ParameterName.TrimStart('@')}";
+
         /// <summary>Returns true if the streamed field is a raw byte stream (non-optional uint8).</summary>
         internal bool IsByteStream =>
             value.DataType.Type is Builtin b && b.Kind == BuiltinKind.UInt8 && !value.DataTypeIsOptional;
