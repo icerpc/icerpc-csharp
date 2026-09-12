@@ -30,6 +30,13 @@ unchecked enum Shape {
     Triangle(side1: uint32, side2: uint32, side3: uint32)
 }
 
+/// A subscription change.
+unchecked enum SubscriptionChange {
+    /// A subscription was created.
+    /// @param event: The event name.
+    Created([cs::identifier("@event")] event: string)
+}
+
 unchecked enum RevisedShape {
     Circle(radius: uint32),
     Rectangle(width: uint32, height: uint32)
