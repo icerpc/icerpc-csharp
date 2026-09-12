@@ -89,7 +89,7 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
     {
         if (docComment is not null)
         {
-            AddComment("param", "name", paramName, docComment);
+            AddComment("param", "name", paramName.TrimStart('@'), docComment);
         }
         _parameters.Add($"{paramType} {paramName}");
         return this;

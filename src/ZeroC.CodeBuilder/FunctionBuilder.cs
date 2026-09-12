@@ -83,7 +83,7 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
 
         if (docComment is not null)
         {
-            AddComment("param", "name", paramName, docComment);
+            AddComment("param", "name", paramName.TrimStart('@'), docComment);
         }
 
         return this;

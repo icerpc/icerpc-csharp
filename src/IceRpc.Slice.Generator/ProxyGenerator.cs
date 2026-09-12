@@ -348,8 +348,8 @@ internal static class ProxyGenerator
                 {
                     string decodeLambda = nonStreamedReturns.GenerateDecodeLambda(currentNamespace);
                     string varName = nonStreamedReturns.Count == 1
-                        ? $"sliceP_{nonStreamedReturns[0].ParameterName}"
-                        : $"({string.Join(", ", nonStreamedReturns.Select(r => $"sliceP_{r.ParameterName}"))})";
+                        ? nonStreamedReturns[0].DecodedVariableName
+                        : $"({string.Join(", ", nonStreamedReturns.Select(r => r.DecodedVariableName))})";
                     body.WriteLine($$"""
                         var {{varName}} = await response.DecodeReturnValueAsync(
                             request,
@@ -401,7 +401,7 @@ internal static class ProxyGenerator
                 }
                 else
                 {
-                    var returnParts = nonStreamedReturns.Select(r => $"sliceP_{r.ParameterName}").ToList();
+                    var returnParts = nonStreamedReturns.Select(r => r.DecodedVariableName).ToList();
                     returnParts.Add("sliceP_returnValue");
                     body.WriteLine($"return ({string.Join(", ", returnParts)});");
                 }
