@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../../examples/common/Program.Authentication.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="IceRpc" />
     <PackageReference Include="IceRpc.Slice" />
