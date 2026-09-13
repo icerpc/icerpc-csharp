@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Internal;
+using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -11,7 +13,15 @@ namespace IceRpc.Telemetry;
 /// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The middleware restores the parent invocation
 /// activity from the request <see cref="RequestFieldKey.TraceContext" /> field before starting the dispatch activity.
 /// </summary>
-/// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
+/// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
+/// of the dispatch. The <c>rpc.status_code</c> tag holds the status code of the response returned by the dispatch, or
+/// the status code the icerpc connection derives from an exception thrown by the dispatch. This tag is not set when
+/// the dispatch is canceled by the middleware's cancellation token. A status code that reports a problem with the
+/// request (<see cref="StatusCode.ApplicationError" />, <see cref="StatusCode.NotFound" />,
+/// <see cref="StatusCode.InvalidData" />, <see cref="StatusCode.TruncatedPayload" /> and
+/// <see cref="StatusCode.Unauthorized" />) leaves the activity status unset. Any other failure status code, or an
+/// exception thrown by the dispatch, sets the activity status to <see cref="ActivityStatusCode.Error" /> and the
+/// <c>error.type</c> tag identifies the failure.</remarks>
 /// <seealso cref="TelemetryRouterExtensions" />
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryMiddleware : IDispatcher
@@ -43,7 +53,27 @@ public class TelemetryMiddleware : IDispatcher
                 RestoreActivityContext(buffer, activity);
             }
             activity.Start();
-            return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+                activity.RecordStatusCode(
+                    response.StatusCode,
+                    response.ErrorMessage,
+                    isError: IsServerError(response.StatusCode));
+                return response;
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                // No response is known for a canceled dispatch: the connection sends none, and a response created by
+                // an outer middleware is not visible here.
+                activity.RecordException(exception, statusCode: null);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                activity.RecordException(exception, exception.ToStatusCode());
+                throw;
+            }
         }
         else
         {
@@ -94,4 +124,18 @@ public class TelemetryMiddleware : IDispatcher
             activity.AddBaggage(key, value);
         }
     }
+
+    /// <summary>Checks whether a status code reports a failure of the server or the target service, as opposed to a
+    /// problem with the request.</summary>
+    private static bool IsServerError(StatusCode statusCode) =>
+        statusCode switch
+        {
+            StatusCode.Ok or
+            StatusCode.ApplicationError or
+            StatusCode.NotFound or
+            StatusCode.InvalidData or
+            StatusCode.TruncatedPayload or
+            StatusCode.Unauthorized => false,
+            _ => true
+        };
 }
