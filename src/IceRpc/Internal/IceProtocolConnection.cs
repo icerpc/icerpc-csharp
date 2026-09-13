@@ -1080,13 +1080,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            if (exception is not DispatchException dispatchException)
-            {
-                StatusCode statusCode = exception is InvalidDataException ?
-                    StatusCode.InvalidData : StatusCode.InternalError;
-                dispatchException = new DispatchException(statusCode, innerException: exception);
-            }
-            response = dispatchException.ToOutgoingResponse(request);
+            response = DispatchException.FromException(exception).ToOutgoingResponse(request);
         }
         finally
         {
