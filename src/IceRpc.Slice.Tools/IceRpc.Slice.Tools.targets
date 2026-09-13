@@ -13,8 +13,8 @@
     slicec compiler exist on disk before we invoke them. We don't want the referenced projects' assemblies or
     CopyToOutputDirectory items (e.g. the slicec-*-generator scripts, *.runtimeconfig.json) to flow into the
     consumer's bin. The metadata below switches each reference to "build-only" mode: ReferenceOutputAssembly=false
-    skips the assembly reference, Private=false suppresses Copy Local, and Targets=Build restricts the cross-project
-    call to the Build target so GetCopyToOutputDirectoryItems is never invoked on the referenced project.
+    skips the assembly reference and Private=false suppresses Copy Local, including the GetCopyToOutputDirectoryItems
+    call on the referenced project.
   -->
   <ItemGroup Condition="'$(_IceRpcSliceToolsSourceBuild)' == 'true'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj"
