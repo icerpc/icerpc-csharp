@@ -57,6 +57,17 @@ interface MySessionManager {
     /// @param user: The user.
     /// @param event: The event name.
     subscribe(user: string, [cs::identifier("@event")] event: string)
+
+    /// Retrieves the log of the given user.
+    /// @param user: The user.
+    /// @returns: The log entries.
+    [cs::encodedReturn] getLog(user: string) -> Sequence<string>
+
+    /// Streams the log of the given user.
+    /// @param user: The user.
+    /// @returns count: The number of entries.
+    /// @returns entries: The log entries.
+    [cs::encodedReturn] streamLog(user: string) -> (count: int32, entries: stream string)
 }
 
 /// This summary comment includes special XML characters like < > & ' ", which should be properly escaped by

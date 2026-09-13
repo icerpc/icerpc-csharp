@@ -314,8 +314,11 @@ internal static class ServiceGenerator
         {
             operationBuilder.AddComment("returns", "A value task that completes when this implementation completes.");
         }
-        else if (!op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn) &&
-            op.GetReturnsDocComment(currentNamespace) is string returns)
+        else if (op.Attributes.HasAttribute(CSAttributes.CSEncodedReturn))
+        {
+            operationBuilder.AddComment("returns", op.GetEncodedReturnsDocComment(currentNamespace));
+        }
+        else if (op.GetReturnsDocComment(currentNamespace) is string returns)
         {
             operationBuilder.AddComment("returns", returns);
         }
