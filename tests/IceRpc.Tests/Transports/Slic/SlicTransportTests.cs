@@ -2109,6 +2109,91 @@ public class SlicTransportTests
         Assert.That(totalRead, Is.EqualTo(payload.Length));
     }
 
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
+    /// bidirectional stream is still sent when the peer closes its reads before the StreamLast frame is written, so
+    /// that the peer's stream permit is released.</summary>
+    /// <param name="peerClosesReads">When the peer closes its reads: while the endStream write is parked on the
+    /// exhausted peer window, before the endStream write is attempted, or before the output is completed without an
+    /// endStream write.</param>
+    [Test]
+    public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_before_last_stream_frame(
+        [Values("during-write", "before-write", "without-write")] string peerClosesReads)
+    {
+        // Arrange: the peer allows a single bidirectional stream and has a small window so it's easy to exhaust.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(options => options.MaxBidirectionalStreams = 1);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.InitialStreamWindowSize = 4 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        // With the StreamLast frame sent by the output completion, the client stream closes its writes only once the
+        // server's StreamReadsClosed frame is received.
+        IMultiplexedStream clientStream = await sut.Client.CreateStreamAsync(bidirectional: true, default);
+        _ = await clientStream.Output.WriteAsync(new byte[1], default);
+        clientStream.Output.Complete();
+
+        // The server consumes the request: reads are gracefully closed and the StreamReadsClosed frame is deferred
+        // until the closure of writes.
+        IMultiplexedStream serverStream = await sut.Server.AcceptStreamAsync(default);
+        ReadResult readResult;
+        do
+        {
+            readResult = await serverStream.Input.ReadAsync(default);
+            serverStream.Input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+
+        // Exhaust the client's window without the client reading.
+        byte[] payload = new byte[4 * 1024];
+        _ = await serverStream.Output.WriteAsync(payload, default);
+
+        if (peerClosesReads == "during-write")
+        {
+            // The endStream write parks on AcquireSendCreditAsync because the peer window is exhausted; the client
+            // closes its reads while the write is parked, which cancels the write.
+            ValueTask<FlushResult> writeTask = ((ReadOnlySequencePipeWriter)serverStream.Output).WriteAsync(
+                new ReadOnlySequence<byte>(payload),
+                endStream: true,
+                default);
+            await Task.Delay(TimeSpan.FromMilliseconds(50));
+            Assert.That(writeTask.IsCompleted, Is.False);
+            clientStream.Input.Complete(new OperationCanceledException());
+            FlushResult flushResult = await writeTask;
+            Assert.That(flushResult.IsCompleted, Is.True);
+        }
+        else
+        {
+            clientStream.Input.Complete(new OperationCanceledException());
+            await serverStream.WritesClosed;
+
+            if (peerClosesReads == "before-write")
+            {
+                FlushResult flushResult = await ((ReadOnlySequencePipeWriter)serverStream.Output).WriteAsync(
+                    new ReadOnlySequence<byte>(payload),
+                    endStream: true,
+                    default);
+                Assert.That(flushResult.IsCompleted, Is.True);
+            }
+        }
+
+        // Act: complete the server output, like a dispatch does.
+        serverStream.Output.Complete();
+
+        // Assert: the client stream is released and a new stream can be created; if the deferred StreamReadsClosed
+        // frame was lost this would wait forever. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so
+        // that a hang is detected and dumped by the hang detection first; the timeout is only a fallback that fails
+        // this test instead of hanging the test run when hang detection is not enabled.
+        IMultiplexedStream nextStream = await sut.Client.CreateStreamAsync(bidirectional: true, default)
+            .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+
+        // Cleanup
+        serverStream.Input.Complete();
+        nextStream.Output.Complete();
+        nextStream.Input.Complete();
+    }
+
     /// <summary>Verifies that a write blocked on the connection-level pipe pause (PauseWriterThreshold reached)
     /// can be canceled.</summary>
     [Test]
