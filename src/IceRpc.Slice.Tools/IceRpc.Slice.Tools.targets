@@ -73,7 +73,7 @@
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <PropertyGroup>
       <!-- Build the per-generator options suffix for the build-telemetry generator. -->
-      <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion),generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">,debug$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(CI)' == 'true'">,ci$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
@@ -87,9 +87,10 @@
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
+        <BuildTelemetryGenerators>,generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion)</BuildTelemetryGenerators>
       </_SliceFile>
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
-        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions)</Generators>
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion)%(_SliceFile.BuildTelemetryGenerators),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</Generators>
       </_SliceFile>
       <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'">
