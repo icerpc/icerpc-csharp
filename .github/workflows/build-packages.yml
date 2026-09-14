@@ -46,10 +46,12 @@ jobs:
       - name: Collect Files to Sign
         if: inputs.authenticode_sign
         run: |
-            # For each project in src, we sign the main assembly named after the project.
+            # For each project in src, we sign the main assembly named after the project, in its own bin folder and in
+            # the bin folders of the projects that copy it: the Tools packages pack the bin folders of their generators
+            # and build telemetry plug-ins, copy-local dependencies such as IceRpc.dll included.
             $assemblies = Get-ChildItem -Path src -Directory | ForEach-Object {
               $name = $_.Name
-              Get-ChildItem -Path $_.FullName -Filter "$name.dll" -Recurse |
+              Get-ChildItem -Path src -Filter "$name.dll" -Recurse |
               Where-Object { $_.FullName -like "*\bin\Release\net*\$name.dll" } |
               ForEach-Object { Resolve-Path -Relative $_.FullName }
             }
