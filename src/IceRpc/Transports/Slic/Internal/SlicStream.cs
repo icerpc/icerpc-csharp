@@ -139,7 +139,8 @@ internal class SlicStream : IMultiplexedStream
                 // writes are closed, we don't send the StreamReadsClosed frame just yet. Instead, when writes are
                 // closed, CloseWrites will bundle the sending of the StreamReadsClosed with the sending of the
                 // StreamLast or StreamWritesClosed frame. This allows to send both frames with a single write on the
-                // duplex connection.
+                // duplex connection. If the peer closes its reads first, ReceivedReadsClosedFrame sends the frame on
+                // its own.
                 if (graceful &&
                     IsBidirectional &&
                     IsRemote &&
@@ -205,7 +206,10 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted && !_state.HasFlag(State.WritesClosed) && !_writesClosePending)
             {
+                // The frame written below can't be canceled, so it claims the deferred StreamReadsClosed frame. This
+                // also keeps ReceivedReadsClosedFrame from sending it before the stream is released.
                 writeReadsClosedFrame = _closeReadsOnWritesClosure;
+                _closeReadsOnWritesClosure = false;
                 _writesClosePending = true;
                 writeWritesClosedFrame = true;
             }
@@ -308,8 +312,32 @@ internal class SlicStream : IMultiplexedStream
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamReadsClosed" /> frame.</summary>
     internal void ReceivedReadsClosedFrame()
     {
+        // Writes are closed before the deferral is captured: a CloseReads that runs afterwards sees writes closed and
+        // sends the StreamReadsClosed frame itself.
         TrySetWritesClosed();
+
+        bool writeReadsClosedFrame;
+        lock (_mutex)
+        {
+            // A pending StreamLast write may no longer carry the deferred StreamReadsClosed frame, so it's sent on its
+            // own.
+            writeReadsClosedFrame = _closeReadsOnWritesClosure;
+            _closeReadsOnWritesClosure = false;
+        }
+
         _outputPipeWriter?.CompleteWrites(exception: null);
+
+        if (writeReadsClosedFrame)
+        {
+            try
+            {
+                WriteStreamFrame(FrameType.StreamReadsClosed, encode: null, writeReadsClosedFrame: false);
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures.
+            }
+        }
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamWindowUpdate" /> frame.</summary>
