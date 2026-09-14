@@ -26,9 +26,8 @@
     ProjectReference, IceRpc.Protobuf.Generator) to be built so the protoc plug-in scripts exist on disk before we
     invoke them. We don't want the Tools project's assemblies or CopyToOutputDirectory items (e.g. the
     protoc-gen-icerpc-csharp scripts, *.runtimeconfig.json) to flow into the consumer's bin. The metadata below
-    switches the reference to "build-only" mode: ReferenceOutputAssembly=false skips the assembly reference,
-    Private=false suppresses Copy Local, and Targets=Build restricts the cross-project call to the Build target so
-    GetCopyToOutputDirectoryItems is never invoked on the referenced project.
+    switches the reference to "build-only" mode: ReferenceOutputAssembly=false skips the assembly reference and
+    Private=false suppresses Copy Local, including the GetCopyToOutputDirectoryItems call on the referenced project.
   -->
   <ItemGroup Condition="'$(IceRpcProtobufToolsSourceBuild)' == 'true'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj"
