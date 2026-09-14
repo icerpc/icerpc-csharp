@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
-using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -15,7 +14,9 @@ namespace IceRpc.Telemetry;
 /// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
 /// of the invocation. When the invocation returns a response, the <c>rpc.status_code</c> tag holds its status code.
 /// When the status code is not <see cref="StatusCode.Ok" /> or the invocation throws an exception, the activity
-/// status is <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure.</remarks>
+/// status is <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure. A
+/// cancellation by the token passed to <see cref="InvokeAsync" /> is not a failure: the <c>icerpc.canceled</c> tag is
+/// set to <see langword="true" /> and the activity status stays unset.</remarks>
 /// <seealso cref="TelemetryPipelineExtensions"/>
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
@@ -54,15 +55,24 @@ public class TelemetryInterceptor : IInvoker
             try
             {
                 IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-                activity.RecordStatusCode(
-                    response.StatusCode,
-                    response.ErrorMessage,
-                    isError: response.StatusCode != StatusCode.Ok);
+                activity.SetTag("rpc.status_code", response.StatusCode.ToString());
+                if (response.StatusCode != StatusCode.Ok)
+                {
+                    activity.SetTag("error.type", GetErrorType(response.StatusCode));
+                    activity.SetStatus(ActivityStatusCode.Error, response.ErrorMessage);
+                }
                 return response;
+            }
+            catch (OperationCanceledException exception) when (
+                cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken)
+            {
+                activity.SetTag("icerpc.canceled", true);
+                throw;
             }
             catch (Exception exception)
             {
-                activity.RecordException(exception, statusCode: null);
+                activity.SetTag("error.type", exception.GetType().FullName);
+                activity.SetStatus(ActivityStatusCode.Error, exception.Message);
                 throw;
             }
         }
@@ -71,6 +81,11 @@ public class TelemetryInterceptor : IInvoker
             return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>Gets the <c>error.type</c> of a failure status code. <see cref="StatusCode" /> is an unchecked enum, so
+    /// an undefined value maps to <c>_OTHER</c> to keep the cardinality of <c>error.type</c> bounded.</summary>
+    internal static string GetErrorType(StatusCode statusCode) =>
+        Enum.IsDefined(statusCode) ? statusCode.ToString() : "_OTHER";
 
     internal static void WriteActivityContext(ref SliceEncoder encoder, Activity activity)
     {

@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
-using IceRpc.Internal;
-using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -14,14 +12,16 @@ namespace IceRpc.Telemetry;
 /// activity from the request <see cref="RequestFieldKey.TraceContext" /> field before starting the dispatch activity.
 /// </summary>
 /// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
-/// of the dispatch. The <c>rpc.status_code</c> tag holds the status code of the response returned by the dispatch, or
-/// the status code the icerpc connection derives from an exception thrown by the dispatch. This tag is not set when
-/// the dispatch is canceled by the middleware's cancellation token. A status code that reports a problem with the
-/// request (<see cref="StatusCode.ApplicationError" />, <see cref="StatusCode.NotFound" />,
+/// of the dispatch. The <c>rpc.status_code</c> tag holds the status code of the response returned by the dispatch.
+/// When the dispatch throws an exception, this tag holds the status code of the failure response the caller receives,
+/// given by <see cref="DispatchException.FromException" />. A status code that reports a problem with the request
+/// (<see cref="StatusCode.ApplicationError" />, <see cref="StatusCode.NotFound" />,
 /// <see cref="StatusCode.InvalidData" />, <see cref="StatusCode.TruncatedPayload" /> and
-/// <see cref="StatusCode.Unauthorized" />) leaves the activity status unset. Any other failure status code, or an
-/// exception thrown by the dispatch, sets the activity status to <see cref="ActivityStatusCode.Error" /> and the
-/// <c>error.type</c> tag identifies the failure.</remarks>
+/// <see cref="StatusCode.Unauthorized" />) leaves the activity status unset. Any other failure status code sets the
+/// activity status to <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure. A
+/// cancellation by the token passed to <see cref="DispatchAsync" /> is not a failure: the <c>icerpc.canceled</c> tag
+/// is set to <see langword="true" />, the activity status stays unset, and the <c>rpc.status_code</c> tag is not set
+/// since the caller receives no response.</remarks>
 /// <seealso cref="TelemetryRouterExtensions" />
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryMiddleware : IDispatcher
@@ -56,22 +56,35 @@ public class TelemetryMiddleware : IDispatcher
             try
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
-                activity.RecordStatusCode(
-                    response.StatusCode,
-                    response.ErrorMessage,
-                    isError: IsServerError(response.StatusCode));
+                activity.SetTag("rpc.status_code", response.StatusCode.ToString());
+                if (IsServerError(response.StatusCode))
+                {
+                    activity.SetTag("error.type", TelemetryInterceptor.GetErrorType(response.StatusCode));
+                    activity.SetStatus(ActivityStatusCode.Error, response.ErrorMessage);
+                }
                 return response;
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            catch (OperationCanceledException exception) when (
+                cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken)
             {
-                // No response is known for a canceled dispatch: the connection sends none, and a response created by
-                // an outer middleware is not visible here.
-                activity.RecordException(exception, statusCode: null);
+                activity.SetTag("icerpc.canceled", true);
                 throw;
             }
             catch (Exception exception)
             {
-                activity.RecordException(exception, exception.ToStatusCode());
+                DispatchException dispatchException = DispatchException.FromException(exception);
+                activity.SetTag("rpc.status_code", dispatchException.StatusCode.ToString());
+                if (IsServerError(dispatchException.StatusCode))
+                {
+                    // Like a returned response, a dispatch exception that FromException returns unchanged identifies
+                    // the failure by its status code. Any other exception is identified by its type.
+                    activity.SetTag(
+                        "error.type",
+                        ReferenceEquals(dispatchException, exception) ?
+                            TelemetryInterceptor.GetErrorType(dispatchException.StatusCode) :
+                            exception.GetType().FullName);
+                    activity.SetStatus(ActivityStatusCode.Error, exception.Message);
+                }
                 throw;
             }
         }

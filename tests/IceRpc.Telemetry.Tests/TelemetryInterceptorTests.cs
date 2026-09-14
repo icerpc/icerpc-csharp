@@ -179,10 +179,14 @@ public sealed class TelemetryInterceptorTests
     }
 
     /// <summary>Verifies that a response with a status code other than <see cref="StatusCode.Ok" /> marks the
-    /// invocation activity as failed before it stops, and that the response is returned unchanged.</summary>
-    [TestCase(StatusCode.NotFound, "NotFound")]
-    [TestCase((StatusCode)42, "42")]
-    public async Task Invocation_activity_records_failure_response(StatusCode statusCode, string expectedStatusCode)
+    /// invocation activity as failed before it stops, and that the response is returned unchanged. An undefined status
+    /// code is recorded as is, but its error type is <c>_OTHER</c>.</summary>
+    [TestCase(StatusCode.NotFound, "NotFound", "NotFound")]
+    [TestCase((StatusCode)42, "42", "_OTHER")]
+    public async Task Invocation_activity_records_failure_response(
+        StatusCode statusCode,
+        string expectedStatusCode,
+        string expectedErrorType)
     {
         // Arrange
         IncomingResponse? response = null;
@@ -213,11 +217,12 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
         Assert.That(outcome.StatusDescription, Is.EqualTo("error message"));
         Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
-        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedErrorType));
     }
 
     /// <summary>Verifies that an exception thrown by the invocation marks the invocation activity as failed before it
-    /// stops, and that the exception propagates unchanged.</summary>
+    /// stops, and that the exception propagates unchanged. This includes a cancellation by a token other than the
+    /// token passed to the interceptor.</summary>
     [TestCaseSource(nameof(InvocationExceptions))]
     public void Invocation_activity_records_exception(Exception exception)
     {
@@ -249,6 +254,46 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
         Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
         Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(exception.GetType().FullName));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("rpc.status_code"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("icerpc.canceled"));
+    }
+
+    /// <summary>Verifies that a cancellation by the token passed to the interceptor is not recorded as a failure: the
+    /// invocation activity status stays unset and the <c>icerpc.canceled</c> tag is set.</summary>
+    [Test]
+    public void Invocation_activity_records_cancellation()
+    {
+        // Arrange
+        var invoker = new InlineInvoker(async (request, cancellationToken) =>
+        {
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            return new IncomingResponse(request, FakeConnectionContext.Instance);
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+
+        var sut = new TelemetryInterceptor(invoker, activitySource);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.InvokeAsync(request, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags, Does.ContainKey("icerpc.canceled").WithValue(true));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
         Assert.That(outcome.Tags, Does.Not.ContainKey("rpc.status_code"));
     }
 
@@ -284,12 +329,15 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 
+    /// <summary>The exceptions thrown by the invocation. The interceptor is called with
+    /// <see cref="CancellationToken.None" />, which cannot be canceled, so both cancellations are failures.</summary>
     private static IEnumerable<Exception> InvocationExceptions
     {
         get
         {
             yield return new InvalidOperationException("invocation failed");
             yield return new OperationCanceledException("invocation canceled");
+            yield return new OperationCanceledException("invocation canceled", new CancellationToken(canceled: true));
         }
     }
 
@@ -335,12 +383,12 @@ public sealed class TelemetryInterceptorTests
     private sealed record class ActivityOutcome(
         ActivityStatusCode Status,
         string? StatusDescription,
-        IReadOnlyDictionary<string, string?> Tags)
+        IReadOnlyDictionary<string, object?> Tags)
     {
         internal static ActivityOutcome From(Activity activity) =>
             new(
                 activity.Status,
                 activity.StatusDescription,
-                activity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value));
+                activity.TagObjects.ToDictionary(entry => entry.Key, entry => entry.Value));
     }
 }
