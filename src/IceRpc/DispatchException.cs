@@ -38,15 +38,19 @@ public sealed class DispatchException : Exception
 
     /// <summary>Converts an exception thrown by a dispatch into a dispatch exception.</summary>
     /// <param name="exception">The exception thrown by the dispatch.</param>
-    /// <returns><paramref name="exception" /> when it is a <see cref="DispatchException" />; otherwise, a new dispatch
-    /// exception with <paramref name="exception" /> as its inner exception and a status code that depends on the type
-    /// of <paramref name="exception" />: <see cref="StatusCode.InvalidData" /> for an
-    /// <see cref="InvalidDataException" />, <see cref="StatusCode.NotSupported" /> for a
-    /// <see cref="NotSupportedException" />, <see cref="StatusCode.TruncatedPayload" /> for an
-    /// <see cref="IceRpcException" /> with error <see cref="IceRpcError.TruncatedData" />, and
-    /// <see cref="StatusCode.InternalError" /> for any other exception.</returns>
+    /// <returns><paramref name="exception" /> when it is a <see cref="DispatchException" /> with
+    /// <see cref="ConvertToInternalError" /> set to <see langword="false" />; otherwise, a new dispatch exception with
+    /// <paramref name="exception" /> as its inner exception and a status code that depends on the type of
+    /// <paramref name="exception" />: <see cref="StatusCode.InvalidData" /> for an <see cref="InvalidDataException" />,
+    /// <see cref="StatusCode.NotSupported" /> for a <see cref="NotSupportedException" />,
+    /// <see cref="StatusCode.TruncatedPayload" /> for an <see cref="IceRpcException" /> with error
+    /// <see cref="IceRpcError.TruncatedData" />, and <see cref="StatusCode.InternalError" /> for any other exception,
+    /// including a <see cref="DispatchException" /> with <see cref="ConvertToInternalError" /> set to
+    /// <see langword="true" />.</returns>
     public static DispatchException FromException(Exception exception) =>
-        exception as DispatchException ?? new DispatchException(
+        exception is DispatchException { ConvertToInternalError: false } dispatchException ?
+        dispatchException :
+        new DispatchException(
             exception switch
             {
                 InvalidDataException => StatusCode.InvalidData,

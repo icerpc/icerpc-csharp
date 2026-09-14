@@ -1215,7 +1215,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (Exception exception)
             {
-                response = DispatchException.FromException(exception).ToOutgoingResponse(request);
+                var dispatchException = DispatchException.FromException(exception);
+                Debug.Assert(!dispatchException.ConvertToInternalError);
+                response = new OutgoingResponse(
+                    request,
+                    dispatchException.StatusCode,
+                    dispatchException.Message,
+                    dispatchException.InnerException);
             }
 
             return response;
