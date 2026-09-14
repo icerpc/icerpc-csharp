@@ -30,6 +30,13 @@ public sealed class ProtocolConnectionTests
                 // an unexpected OCE
                 yield return new(protocol, new OperationCanceledException(), StatusCode.InternalError);
                 yield return new(protocol, new InvalidOperationException(), StatusCode.InternalError);
+                yield return new(protocol, new NotSupportedException("not supported"), StatusCode.NotSupported);
+
+                // NotFound has a dedicated reply status with ice, so InternalError can only come from the flag.
+                yield return new(
+                    protocol,
+                    new DispatchException(StatusCode.NotFound) { ConvertToInternalError = true },
+                    StatusCode.InternalError);
             }
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);

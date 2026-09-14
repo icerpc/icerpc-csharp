@@ -1215,19 +1215,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (Exception exception)
             {
-                if (exception is not DispatchException dispatchException)
-                {
-                    StatusCode statusCode = exception switch
-                    {
-                        InvalidDataException => StatusCode.InvalidData,
-                        NotSupportedException => StatusCode.NotSupported,
-                        IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
-                            StatusCode.TruncatedPayload,
-                        _ => StatusCode.InternalError
-                    };
-                    dispatchException = new DispatchException(statusCode, message: null, exception);
-                }
-                response = dispatchException.ToOutgoingResponse(request);
+                var dispatchException = DispatchException.FromException(exception);
+                Debug.Assert(!dispatchException.ConvertToInternalError);
+                response = new OutgoingResponse(
+                    request,
+                    dispatchException.StatusCode,
+                    dispatchException.Message,
+                    dispatchException.InnerException);
             }
 
             return response;
