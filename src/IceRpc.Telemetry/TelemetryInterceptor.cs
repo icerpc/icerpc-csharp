@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -58,7 +59,7 @@ public class TelemetryInterceptor : IInvoker
                 activity.SetTag("rpc.status_code", response.StatusCode.ToString());
                 if (response.StatusCode != StatusCode.Ok)
                 {
-                    activity.SetTag("error.type", GetErrorType(response.StatusCode));
+                    activity.SetTag("error.type", response.StatusCode.ToErrorType());
                     activity.SetStatus(ActivityStatusCode.Error, response.ErrorMessage);
                 }
                 return response;
@@ -81,11 +82,6 @@ public class TelemetryInterceptor : IInvoker
             return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
-
-    /// <summary>Gets the <c>error.type</c> of a failure status code. <see cref="StatusCode" /> is an unchecked enum, so
-    /// an undefined value maps to <c>_OTHER</c> to keep the cardinality of <c>error.type</c> bounded.</summary>
-    internal static string GetErrorType(StatusCode statusCode) =>
-        Enum.IsDefined(statusCode) ? statusCode.ToString() : "_OTHER";
 
     internal static void WriteActivityContext(ref SliceEncoder encoder, Activity activity)
     {

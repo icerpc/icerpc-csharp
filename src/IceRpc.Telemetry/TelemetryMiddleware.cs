@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -59,7 +60,7 @@ public class TelemetryMiddleware : IDispatcher
                 activity.SetTag("rpc.status_code", response.StatusCode.ToString());
                 if (IsServerError(response.StatusCode))
                 {
-                    activity.SetTag("error.type", TelemetryInterceptor.GetErrorType(response.StatusCode));
+                    activity.SetTag("error.type", response.StatusCode.ToErrorType());
                     activity.SetStatus(ActivityStatusCode.Error, response.ErrorMessage);
                 }
                 return response;
@@ -81,8 +82,7 @@ public class TelemetryMiddleware : IDispatcher
                     activity.SetTag(
                         "error.type",
                         ReferenceEquals(dispatchException, exception) ?
-                            TelemetryInterceptor.GetErrorType(dispatchException.StatusCode) :
-                            exception.GetType().FullName);
+                            dispatchException.StatusCode.ToErrorType() : exception.GetType().FullName);
                     activity.SetStatus(ActivityStatusCode.Error, exception.Message);
                 }
                 throw;
