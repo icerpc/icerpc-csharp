@@ -77,13 +77,8 @@ public class TelemetryMiddleware : IDispatcher
                 activity.SetTag("rpc.status_code", dispatchException.StatusCode.ToString());
                 if (IsServerError(dispatchException.StatusCode))
                 {
-                    // Like a returned response, a dispatch exception that FromException returns unchanged identifies
-                    // the failure by its status code. Any other exception is identified by its type.
-                    activity.SetTag(
-                        "error.type",
-                        ReferenceEquals(dispatchException, exception) ?
-                            dispatchException.StatusCode.ToErrorType() : exception.GetType().FullName);
-                    activity.SetStatus(ActivityStatusCode.Error, exception.Message);
+                    activity.SetTag("error.type", dispatchException.StatusCode.ToErrorType());
+                    activity.SetStatus(ActivityStatusCode.Error, dispatchException.ErrorMessage);
                 }
                 throw;
             }

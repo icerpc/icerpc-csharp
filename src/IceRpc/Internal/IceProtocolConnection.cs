@@ -1085,8 +1085,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             response = new OutgoingResponse(
                 request,
                 dispatchException.StatusCode,
-                dispatchException.Message,
-                dispatchException.InnerException);
+                dispatchException.ErrorMessage);
         }
         finally
         {

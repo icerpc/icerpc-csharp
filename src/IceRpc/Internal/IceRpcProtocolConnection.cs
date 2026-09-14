@@ -1220,8 +1220,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 response = new OutgoingResponse(
                     request,
                     dispatchException.StatusCode,
-                    dispatchException.Message,
-                    dispatchException.InnerException);
+                    dispatchException.ErrorMessage);
             }
 
             return response;

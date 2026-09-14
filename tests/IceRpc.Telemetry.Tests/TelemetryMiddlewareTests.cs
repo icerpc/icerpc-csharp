@@ -289,14 +289,15 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 
-    /// <summary>Verifies that an exception thrown by the dispatch records the status code of the failure response the
-    /// caller receives, marks the dispatch activity as failed before it stops when this status code reports a server
-    /// failure, and that the exception propagates unchanged.</summary>
+    /// <summary>Verifies that an exception thrown by the dispatch records the status code and the error message of the
+    /// failure response the caller receives, marks the dispatch activity as failed before it stops when this status
+    /// code reports a server failure, and that the exception propagates unchanged.</summary>
     [TestCaseSource(nameof(ServerErrorExceptions))]
     public void Dispatch_activity_records_server_error_exception(
         Exception exception,
         string expectedStatusCode,
-        string expectedErrorType)
+        string expectedErrorType,
+        string expectedErrorMessage)
     {
         // Arrange
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
@@ -325,7 +326,7 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(thrownException, Is.SameAs(exception));
         Assert.That(outcome, Is.Not.Null);
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
-        Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
+        Assert.That(outcome.StatusDescription, Is.EqualTo(expectedErrorMessage));
         Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
         Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedErrorType));
         Assert.That(outcome.Tags, Does.Not.ContainKey("icerpc.canceled"));
@@ -443,10 +444,10 @@ public sealed class TelemetryMiddlewareTests
     }
 
     /// <summary>The exceptions thrown by the dispatch that the caller receives as a status code that reports a server
-    /// failure, with this status code and the expected error type. A dispatch exception that reaches the caller
-    /// unchanged is identified by its status code, any other exception by its type. The middleware is called with
-    /// <see cref="CancellationToken.None" />, which cannot be canceled, so both cancellations are internal errors.
-    /// </summary>
+    /// failure, with this status code, the expected error type and the expected error message. Like a returned
+    /// response, an exception is identified by the status code of the failure response the caller receives. The
+    /// middleware is called with <see cref="CancellationToken.None" />, which cannot be canceled, so both
+    /// cancellations are internal errors.</summary>
     private static IEnumerable<TestCaseData> ServerErrorExceptions
     {
         get
@@ -454,31 +455,38 @@ public sealed class TelemetryMiddlewareTests
             yield return new TestCaseData(
                 new DispatchException(StatusCode.InternalError, "dispatch failed"),
                 "InternalError",
-                "InternalError");
+                "InternalError",
+                "dispatch failed");
             yield return new TestCaseData(
                 new DispatchException((StatusCode)42, "dispatch failed"),
                 "42",
-                "_OTHER");
+                "_OTHER",
+                "dispatch failed");
             yield return new TestCaseData(
                 new DispatchException(StatusCode.Unauthorized, "dispatch failed") { ConvertToInternalError = true },
                 "InternalError",
-                "IceRpc.DispatchException");
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'IceRpc.DispatchException' with message: dispatch failed");
             yield return new TestCaseData(
                 new NotSupportedException("not supported"),
                 "NotSupported",
-                "System.NotSupportedException");
+                "NotSupported",
+                "The dispatch failed with status code NotSupported. The failure was caused by an exception of type 'System.NotSupportedException' with message: not supported");
             yield return new TestCaseData(
                 new InvalidOperationException("dispatch failed"),
                 "InternalError",
-                "System.InvalidOperationException");
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'System.InvalidOperationException' with message: dispatch failed");
             yield return new TestCaseData(
                 new OperationCanceledException("dispatch canceled"),
                 "InternalError",
-                "System.OperationCanceledException");
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'System.OperationCanceledException' with message: dispatch canceled");
             yield return new TestCaseData(
                 new OperationCanceledException("dispatch canceled", new CancellationToken(canceled: true)),
                 "InternalError",
-                "System.OperationCanceledException");
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'System.OperationCanceledException' with message: dispatch canceled");
         }
     }
 
