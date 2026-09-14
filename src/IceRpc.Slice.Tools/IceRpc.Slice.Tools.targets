@@ -72,7 +72,7 @@
   -->
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
     <PropertyGroup>
-      <!-- Build the per-generator options suffix for the build-telemetry generator. -->
+      <!-- Options of the build-telemetry generator; the generator entries are added per Slice file below. -->
       <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">,debug$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
