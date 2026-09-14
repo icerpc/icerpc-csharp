@@ -147,10 +147,6 @@ internal class SlicStream : IMultiplexedStream
                     !_state.HasFlag(State.WritesClosed) &&
                     !_writesClosePending)
                 {
-                    // Reads are closed before the deferral is published, both under the mutex, so that the stream
-                    // count is decreased before the StreamReadsClosed frame can be sent and ReceivedReadsClosedFrame
-                    // can't close writes in between.
-                    TrySetReadsClosed();
                     _closeReadsOnWritesClosure = true;
                 }
                 else if (!graceful || IsRemote)
@@ -210,27 +206,27 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted && !_state.HasFlag(State.WritesClosed) && !_writesClosePending)
             {
-                // The frame sent below can't be canceled, so the deferred StreamReadsClosed frame is claimed here.
+                // The frame written below can't be canceled, so it claims the deferred StreamReadsClosed frame. This
+                // also keeps ReceivedReadsClosedFrame from sending it before the stream is released.
                 writeReadsClosedFrame = _closeReadsOnWritesClosure;
                 _closeReadsOnWritesClosure = false;
                 _writesClosePending = true;
                 writeWritesClosedFrame = true;
-
-                if (IsRemote)
-                {
-                    // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
-                    // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
-                    // is decreased before the peer receives the frame. This is necessary to prevent a race condition
-                    // where the peer could release the connection's bidirectional or unidirectional stream semaphore
-                    // before this connection's stream count is actually decreased. This is done under the mutex so
-                    // that ReceivedReadsClosedFrame can't send the deferred StreamReadsClosed frame in between.
-                    TrySetWritesClosed();
-                }
             }
         }
 
         if (writeWritesClosedFrame)
         {
+            if (IsRemote)
+            {
+                // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
+                // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
+                // is decreased before the peer receives the frame. This is necessary to prevent a race condition
+                // where the peer could release the connection's bidirectional or unidirectional stream semaphore
+                // before this connection's stream count is actually decreased.
+                TrySetWritesClosed();
+            }
+
             if (graceful)
             {
                 try
@@ -316,12 +312,13 @@ internal class SlicStream : IMultiplexedStream
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamReadsClosed" /> frame.</summary>
     internal void ReceivedReadsClosedFrame()
     {
+        // Writes are closed before the deferral is captured: a CloseReads that runs afterwards sees writes closed and
+        // sends the StreamReadsClosed frame itself.
+        TrySetWritesClosed();
+
         bool writeReadsClosedFrame;
         lock (_mutex)
         {
-            // Writes are closed under the mutex so that CloseReads can't defer the StreamReadsClosed frame afterwards.
-            TrySetWritesClosed();
-
             // A pending StreamLast write may no longer carry the deferred StreamReadsClosed frame, so it's sent on its
             // own.
             writeReadsClosedFrame = _closeReadsOnWritesClosure;
