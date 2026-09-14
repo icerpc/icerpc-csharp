@@ -1,11 +1,12 @@
 <!-- Describe the change and why it's needed. For a bug fix, describe the bug: when it occurs and what a user
-observes. -->
+observes.
+
+Set the milestone to the release that will include this PR, and add the labels of the issue it fixes. -->
 
 ## What's Changed entry
 
 <!-- This section feeds the "What's Changed" section of the GitHub release notes; it's collected from the milestone's
-merged PRs at release time. Every PR therefore needs a milestone: the release that will include this entry. The
-section should be in one of two forms:
+merged PRs at release time. The section should be in one of two forms:
 
 1) For a user-facing change, specify the area (usually an area label name, such as "Core", "Slic" or "Ice codec") and
 write one bullet per user-visible change:
