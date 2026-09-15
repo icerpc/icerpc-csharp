@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -11,7 +12,12 @@ namespace IceRpc.Telemetry;
 /// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The activity context is written in the
 /// request <see cref="RequestFieldKey.TraceContext" /> field and can be restored on the server-side by installing the
 /// <see cref="TelemetryMiddleware" />.</summary>
-/// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
+/// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
+/// of the invocation. When the invocation returns a response, the <c>rpc.status_code</c> tag holds its status code.
+/// When the status code is not <see cref="StatusCode.Ok" /> or the invocation throws an exception, the activity
+/// status is <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure. A
+/// cancellation by the token passed to <see cref="InvokeAsync" /> is not a failure: the <c>icerpc.canceled</c> tag is
+/// set to <see langword="true" /> and the activity status stays unset.</remarks>
 /// <seealso cref="TelemetryPipelineExtensions"/>
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
@@ -47,7 +53,29 @@ public class TelemetryInterceptor : IInvoker
             activity.AddTag("rpc.method", request.Operation);
             activity.Start();
             request.Fields = request.Fields.With(RequestFieldKey.TraceContext, activity, WriteActivityContext);
-            return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                activity.SetTag("rpc.status_code", response.StatusCode.ToString());
+                if (response.StatusCode != StatusCode.Ok)
+                {
+                    activity.SetTag("error.type", response.StatusCode.ToErrorType());
+                    activity.SetStatus(ActivityStatusCode.Error, response.ErrorMessage);
+                }
+                return response;
+            }
+            catch (OperationCanceledException exception) when (
+                cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken)
+            {
+                activity.SetTag("icerpc.canceled", true);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                activity.SetTag("error.type", exception.GetType().FullName);
+                activity.SetStatus(ActivityStatusCode.Error, exception.Message);
+                throw;
+            }
         }
         else
         {
