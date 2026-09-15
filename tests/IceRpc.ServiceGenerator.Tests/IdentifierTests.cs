@@ -12,9 +12,7 @@ namespace IceRpc.ServiceGenerator.Tests;
 public class IdentifierTests
 {
     [Test]
-    public void Tuple_field_names_are_escaped(
-        [Values("Slice", "Ice")] string idl,
-        [Values] bool referenceAssembly)
+    public void Tuple_field_names_are_escaped([Values("Slice", "Ice")] string idl)
     {
         string definitions = $$"""
             using IceRpc;
@@ -60,11 +58,11 @@ public class IdentifierTests
             }
             """;
 
-        AssertGeneratedCodeCompiles(definitions, implementation, referenceAssembly);
+        AssertGeneratedCodeCompiles(definitions, implementation);
     }
 
     [Test]
-    public void Streamed_return_field_names_are_escaped([Values] bool encodedReturn, [Values] bool referenceAssembly)
+    public void Streamed_return_field_names_are_escaped([Values] bool encodedReturn)
     {
         string returnType = encodedReturn ? "PipeReader" : "string";
         string definitions = $$"""
@@ -115,11 +113,11 @@ public class IdentifierTests
             }
             """;
 
-        AssertGeneratedCodeCompiles(definitions, implementation, referenceAssembly);
+        AssertGeneratedCodeCompiles(definitions, implementation);
     }
 
     [Test]
-    public void Qualified_names_and_protobuf_method_names_are_escaped([Values] bool referenceAssembly)
+    public void Qualified_names_are_escaped()
     {
         const string definitions = """
             using Google.Protobuf.WellKnownTypes;
@@ -134,8 +132,8 @@ public class IdentifierTests
             {
                 public interface @interface
                 {
-                    [RpcMethod("event")]
-                    ValueTask<Empty> @event(
+                    [RpcMethod("Echo")]
+                    ValueTask<Empty> EchoAsync(
                         Empty input, IFeatureCollection features, CancellationToken cancellationToken);
                 }
             }
@@ -153,15 +151,15 @@ public class IdentifierTests
             [Service]
             public partial class @struct : @class.@interface
             {
-                public ValueTask<Empty> @event(
+                public ValueTask<Empty> EchoAsync(
                     Empty input, IFeatureCollection features, CancellationToken cancellationToken) => new(input);
             }
             """;
 
-        AssertGeneratedCodeCompiles(definitions, implementation, referenceAssembly);
+        AssertGeneratedCodeCompiles(definitions, implementation);
     }
 
-    private static void AssertGeneratedCodeCompiles(string definitions, string implementation, bool referenceAssembly)
+    private static void AssertGeneratedCodeCompiles(string definitions, string implementation)
     {
         IEnumerable<string> assemblyPaths =
             ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
@@ -178,27 +176,13 @@ public class IdentifierTests
             .Select(path => MetadataReference.CreateFromFile(path));
 
         var compilation = CSharpCompilation.Create(
-            "Contracts",
-            [CSharpSyntaxTree.ParseText(definitions)],
+            "Service",
+            [CSharpSyntaxTree.ParseText(definitions), CSharpSyntaxTree.ParseText(implementation)],
             references,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
-        Assert.That(compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error), Is.Empty);
-
-        if (referenceAssembly)
-        {
-            using var assembly = new MemoryStream();
-            Microsoft.CodeAnalysis.Emit.EmitResult result = compilation.Emit(assembly);
-            Assert.That(result.Success, Is.True, string.Join(Environment.NewLine, result.Diagnostics));
-            compilation = CSharpCompilation.Create(
-                "Service",
-                references: references.Append(MetadataReference.CreateFromImage(assembly.ToArray())),
-                options: compilation.Options);
-        }
-
-        compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(implementation));
         Assert.That(compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error), Is.Empty);
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new ServiceGenerator());

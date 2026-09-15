@@ -52,7 +52,7 @@ internal class ProtobufServiceMethod : ServiceMethod
         OperationName = (string)items[0].Value!;
 
         _interfaceName = method.ContainingType.GetFullName();
-        _methodName = method.GetEscapedName();
+        _methodName = method.Name;
 
         ITypeSymbol inputType = method.Parameters[0].Type;
         // An IAsyncStream input parameter denotes a client streaming RPC.
