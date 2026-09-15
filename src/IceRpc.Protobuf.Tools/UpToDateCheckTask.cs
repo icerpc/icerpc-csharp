@@ -12,6 +12,11 @@ namespace IceRpc.Protobuf.Tools;
 /// <summary>A MSBuild task to compute what Protobuf files have to be rebuild by <c>protoc</c>.</summary>
 public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
 {
+    /// <summary>Gets or sets additional input files that every source depends on, typically the <c>protoc</c>
+    /// compiler and the code generator plug-in. A source is out of date when any of these files is missing or is
+    /// newer than one of the source's outputs.</summary>
+    public ITaskItem[] AdditionalInputs { get; set; } = [];
+
     /// <summary>Gets or sets the output directory for the generated code.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
@@ -31,42 +36,32 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
     /// item is up to date or needs to be rebuilt. The <c>OutputFileName</c> metadata contains the base file name for
     /// the generated outputs. This is the input item's file name without the extension, and converted to PascalCase.
     /// </summary>
+    /// <remarks>A source is up to date only when all of its outputs exist, every input recorded in its dependency
+    /// file, its options record and every <see cref="AdditionalInputs"/> entry exists, and the newest input is older
+    /// than the oldest output.</remarks>
     /// <returns>Returns <see langword="true"/> if the task was executed successfully, <see langword="false"/>
     /// otherwise.</returns>
     public override bool Execute()
     {
-        var computedSources = new List<ITaskItem>();
+        string[] additionalInputs = [.. AdditionalInputs.Select(item => item.GetMetadata("FullPath"))];
 
+        var computedSources = new List<ITaskItem>();
         foreach (ITaskItem source in Sources)
         {
-            bool upToDate = true;
             string fileName = source.GetMetadata("FileName").ToProtocPascalCase();
             string dependOutput = Path.Combine(OutputDir, $"{fileName}.d");
-            string csharpOutput = Path.Combine(OutputDir, $"{fileName}.cs");
-            string icerpcOutput = Path.Combine(OutputDir, $"{fileName}.IceRpc.cs");
+            string[] outputs =
+            [
+                dependOutput,
+                Path.Combine(OutputDir, $"{fileName}.cs"),
+                Path.Combine(OutputDir, $"{fileName}.IceRpc.cs"),
+            ];
 
-            if (File.Exists(dependOutput) && File.Exists(csharpOutput) && File.Exists(icerpcOutput))
-            {
-                long lastWriteTime = Math.Max(
-                    File.GetLastWriteTime(dependOutput).Ticks,
-                    File.GetLastWriteTime(csharpOutput).Ticks);
-                lastWriteTime = Math.Max(lastWriteTime, File.GetLastWriteTime(icerpcOutput).Ticks);
-                List<string> dependencies = ProcessDependencies(dependOutput);
-                foreach (string dependency in dependencies)
-                {
-                    if (File.GetLastWriteTime(dependency).Ticks >= lastWriteTime)
-                    {
-                        // If a dependency is newer than any of the outputs the source is not up to date.
-                        upToDate = false;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // If any of the outputs is missing the file is not up to date.
-                upToDate = false;
-            }
+            // The options record is the source's own inputs cache: the build rewrites it only when the source's
+            // AdditionalOptions change, so it is newer than the outputs exactly then.
+            string[] inputs = [.. additionalInputs, Path.Combine(OutputDir, $"{fileName}.options")];
+
+            bool upToDate = IsUpToDate(source.ItemSpec, outputs, dependOutput, inputs);
 
             var computedSource = new TaskItem(source.ItemSpec);
             source.CopyMetadataTo(computedSource);
@@ -78,36 +73,68 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
 
         ComputedSources = [.. computedSources];
         return true;
+    }
 
-        static List<string> ProcessDependencies(string dependOutput)
+    private bool IsUpToDate(string source, string[] outputs, string dependOutput, string[] additionalInputs)
+    {
+        string? missingOutput = outputs.FirstOrDefault(output => !File.Exists(output));
+        if (missingOutput is not null)
         {
-            var depends = new List<string>();
-            string dependContents = File.ReadAllText(dependOutput);
+            Log.LogMessage(MessageImportance.Low, $"'{source}' is out of date: output '{missingOutput}' is missing.");
+            return false;
+        }
 
-            // Strip everything before and including "Xxx.cs:" (the output target).
-            const string outputPrefix = ".cs:";
-            int i = dependContents.IndexOf(outputPrefix, StringComparison.CurrentCultureIgnoreCase);
-            if (i == -1 || i + outputPrefix.Length >= dependContents.Length)
+        // Every output must be newer than every input.
+        long oldestOutputTime = outputs.Min(output => File.GetLastWriteTime(output).Ticks);
+
+        foreach (string input in ProcessDependencies(dependOutput).Concat(additionalInputs))
+        {
+            if (!File.Exists(input))
             {
-                return depends;
+                Log.LogMessage(MessageImportance.Low, $"'{source}' is out of date: input '{input}' is missing.");
+                return false;
             }
 
-            dependContents = dependContents[(i + outputPrefix.Length)..];
-
-            // The Make depfile format uses '\' at end of line as a line continuation, and escapes
-            // spaces inside paths as '\ '. Windows directory separators are emitted as literal '\'
-            // (not escaped). We split on newlines, strip the trailing continuation '\' and whitespace,
-            // then unescape '\ ' -> ' ' so paths containing spaces resolve correctly.
-            foreach (string line in dependContents.Split('\n'))
+            if (File.GetLastWriteTime(input).Ticks >= oldestOutputTime)
             {
-                string filePath = line.TrimEnd().TrimEnd('\\').Trim().Replace("\\ ", " ", StringComparison.Ordinal);
-                if (!string.IsNullOrEmpty(filePath))
-                {
-                    depends.Add(Path.GetFullPath(filePath));
-                }
+                Log.LogMessage(
+                    MessageImportance.Low,
+                    $"'{source}' is out of date: input '{input}' is newer than one of its outputs.");
+                return false;
             }
+        }
 
+        return true;
+    }
+
+    private static List<string> ProcessDependencies(string dependOutput)
+    {
+        var depends = new List<string>();
+        string dependContents = File.ReadAllText(dependOutput);
+
+        // Strip everything before and including "Xxx.cs:" (the output target).
+        const string outputPrefix = ".cs:";
+        int i = dependContents.IndexOf(outputPrefix, StringComparison.CurrentCultureIgnoreCase);
+        if (i == -1 || i + outputPrefix.Length >= dependContents.Length)
+        {
             return depends;
         }
+
+        dependContents = dependContents[(i + outputPrefix.Length)..];
+
+        // The Make depfile format uses '\' at end of line as a line continuation, and escapes
+        // spaces inside paths as '\ '. Windows directory separators are emitted as literal '\'
+        // (not escaped). We split on newlines, strip the trailing continuation '\' and whitespace,
+        // then unescape '\ ' -> ' ' so paths containing spaces resolve correctly.
+        foreach (string line in dependContents.Split('\n'))
+        {
+            string filePath = line.TrimEnd().TrimEnd('\\').Trim().Replace("\\ ", " ", StringComparison.Ordinal);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                depends.Add(Path.GetFullPath(filePath));
+            }
+        }
+
+        return depends;
     }
 }

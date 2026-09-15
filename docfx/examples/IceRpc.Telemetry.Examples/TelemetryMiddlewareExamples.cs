@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
+using static Program;
 
 namespace IceRpc.Telemetry.Examples;
 
@@ -17,7 +19,16 @@ public static class TelemetryMiddlewareExamples
         Router router = new Router()
             .UseTelemetry(activitySource);
 
-        await using var server = new Server(router);
+        // The default transport (QUIC) requires a server certificate. CreateServerAuthenticationOptions
+        // is a helper from examples/common/Program.Authentication.cs in the icerpc-csharp repo.
+        using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+            "certs/server.p12",
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable);
+
+        await using var server = new Server(
+            router,
+            serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
         server.Listen();
         #endregion
     }

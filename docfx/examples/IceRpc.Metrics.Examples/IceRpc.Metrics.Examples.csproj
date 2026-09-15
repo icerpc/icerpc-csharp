@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Chatbot.cs" />
+    <Compile Include="../../../examples/common/Program.Authentication.cs" />
     <SliceFile Include="../Greeter.slice" />
     <PackageReference Include="IceRpc" />
     <PackageReference Include="IceRpc.Slice" />

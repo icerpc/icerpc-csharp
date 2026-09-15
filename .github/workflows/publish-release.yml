@@ -7,7 +7,7 @@ on:
         description: "The channel to publish to (e.g., stable, nightly)"
         required: true
       run_id:
-        description: "The run ID to use for downloading artifacts"
+        description: "The build run ID (must match the publishing tag's commit for stable releases)"
         required: true
   workflow_call:
     inputs:
@@ -24,6 +24,25 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Validate stable release tag
+        if: inputs.channel == 'stable'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            echo "::error::Stable releases must be published from a tag; selected ref is $GITHUB_REF."
+            exit 1
+          fi
+
+          build_sha=$(gh api "repos/icerpc/icerpc-csharp/actions/runs/$RUN_ID" --jq '.head_sha')
+          if [[ "$build_sha" != "$GITHUB_SHA" ]]; then
+            echo "::error::Build run $RUN_ID uses commit $build_sha, but tag $GITHUB_REF_NAME uses $GITHUB_SHA."
+            exit 1
+          fi
+
       - name: Download NuGet artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -46,6 +46,9 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 - Every PR description ends with a `## What's Changed entry` section. Read
   [.github/pull_request_template.md](.github/pull_request_template.md) for the format and the rules before writing
   it — the template is not injected automatically when a PR is created from the command line.
+- Set the PR's milestone to the release that will include its What's Changed entry, and give the PR the labels of the
+  issue it fixes. From the command line, pass `--milestone` and `--label` to `gh pr create`, or set them afterwards
+  with `gh pr edit`.
 
 ## Dismissed audit patterns
 

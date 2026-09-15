@@ -19,8 +19,7 @@ Router router = new Router()
 
 using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
     "certs/server.p12",
-    password: null,
-    keyStorageFlags: X509KeyStorageFlags.Exportable);
+    password: null);
 
 // Create a server that uses the ice protocol for compatibility with ZeroC Ice, and logs messages to a
 // logger with category `IceRpc.Server`. The default port for the ice protocol is 4061.

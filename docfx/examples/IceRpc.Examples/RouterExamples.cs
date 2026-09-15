@@ -2,6 +2,8 @@
 
 using GreeterExample;
 using IceRpc.Slice;
+using System.Security.Cryptography.X509Certificates;
+using static Program;
 
 namespace IceRpc.Examples;
 
@@ -16,8 +18,17 @@ public static class RouterExamples
             .UseCompressor(CompressionFormat.Brotli)
             .Map(new Chatbot());
 
+        // The default transport (QUIC) requires a server certificate. CreateServerAuthenticationOptions
+        // is a helper from examples/common/Program.Authentication.cs in the icerpc-csharp repo.
+        using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+            "certs/server.p12",
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable);
+
         // Create a server that uses the router as its dispatch pipeline.
-        await using var server = new Server(router);
+        await using var server = new Server(
+            router,
+            serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
         server.Listen();
         #endregion
     }
@@ -38,8 +49,17 @@ public static class RouterExamples
             }))
             .Map(new Chatbot());
 
+        // The default transport (QUIC) requires a server certificate. CreateServerAuthenticationOptions
+        // is a helper from examples/common/Program.Authentication.cs in the icerpc-csharp repo.
+        using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+            "certs/server.p12",
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable);
+
         // Create a server that uses the router as its dispatcher.
-        await using var server = new Server(router);
+        await using var server = new Server(
+            router,
+            serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
         server.Listen();
         #endregion
     }
