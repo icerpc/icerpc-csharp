@@ -53,9 +53,13 @@ module IceRpc::Ice::Generator::Tests
         int opDerivedWithSingleParameterAndReturnValue(int p);
     }
 
+    // The tagged parameters and return values are declared before the required ones, so their declaration order
+    // differs from their marshal order.
     interface MyTaggedOperations
     {
         void op(optional(1) int x, int y, optional(2) int z);
+
+        optional(1) string opWithTaggedReturnValue(out optional(2) int a, out bool b);
     }
 
     // A prior version of MyTaggedOperations which doesn't contain any of the tagged parameters.
