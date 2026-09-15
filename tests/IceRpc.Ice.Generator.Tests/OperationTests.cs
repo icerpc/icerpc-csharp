@@ -288,6 +288,37 @@ public partial class OperationTests
     }
 
     [Test]
+    public async Task Tagged_parameters_declared_before_required_parameter()
+    {
+        // Arrange
+        var service = new MyTaggedOperationsService();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyTaggedOperationsProxy(invoker);
+
+        // Act
+        await proxy.OpAsync(10, 1, 12);
+
+        // Assert
+        Assert.That(service.ReceivedArgs, Is.EqualTo((10, 1, 12)));
+    }
+
+    [Test]
+    public async Task Tagged_return_values_declared_before_required_out_parameter()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MyTaggedOperationsService());
+        var proxy = new MyTaggedOperationsProxy(invoker);
+
+        // Act
+        (string? returnValue, int? a, bool b) = await proxy.OpWithTaggedReturnValueAsync();
+
+        // Assert
+        Assert.That(returnValue, Is.EqualTo("hello"));
+        Assert.That(a, Is.EqualTo(7));
+        Assert.That(b, Is.True);
+    }
+
+    [Test]
     public async Task Proxy_decoded_from_incoming_response_has_the_invoker_of_the_proxy_that_sent_the_request()
     {
         // Arrange
@@ -419,6 +450,27 @@ public partial class OperationTests
             int p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
+    }
+
+    [Service]
+    private sealed partial class MyTaggedOperationsService : IMyTaggedOperationsService
+    {
+        public (int? X, int Y, int? Z) ReceivedArgs;
+
+        public ValueTask OpAsync(
+            int? x,
+            int y,
+            int? z,
+            IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            ReceivedArgs = (x, y, z);
+            return default;
+        }
+
+        public ValueTask<(string? ReturnValue, int? A, bool B)> OpWithTaggedReturnValueAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(("hello", 7, true));
     }
 
     [Service]
