@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
+
 namespace IceRpc;
 
 /// <summary>Represents an exception thrown while dispatching a request. It's encoded as a response with a status code
@@ -14,6 +16,11 @@ public sealed class DispatchException : Exception
     /// exception decoded from an <see cref="IncomingResponse" />, and <see langword="false" /> for an exception created
     /// by the application using a constructor of <see cref="DispatchException" />.</value>
     public bool ConvertToInternalError { get; set; }
+
+    /// <summary>Gets the error message of the failure response that carries this exception.</summary>
+    /// <value>The <see cref="Exception.Message" /> of this exception, followed by the type and the message of its
+    /// <see cref="Exception.InnerException" /> when there is one.</value>
+    public string ErrorMessage => DispatchErrorMessage.Compose(Message, InnerException);
 
     /// <summary>Gets the status code.</summary>
     /// <value>The <see cref="IceRpc.StatusCode" /> of this exception.</value>

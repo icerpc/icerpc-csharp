@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Telemetry.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
@@ -11,7 +12,17 @@ namespace IceRpc.Telemetry;
 /// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The middleware restores the parent invocation
 /// activity from the request <see cref="RequestFieldKey.TraceContext" /> field before starting the dispatch activity.
 /// </summary>
-/// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
+/// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
+/// of the dispatch. The <c>rpc.status_code</c> tag holds the status code of the response returned by the dispatch.
+/// When the dispatch throws an exception, this tag holds the status code of the failure response the caller receives,
+/// given by <see cref="DispatchException.FromException" />. A status code that reports a problem with the request
+/// (<see cref="StatusCode.ApplicationError" />, <see cref="StatusCode.NotFound" />,
+/// <see cref="StatusCode.InvalidData" />, <see cref="StatusCode.TruncatedPayload" /> and
+/// <see cref="StatusCode.Unauthorized" />) leaves the activity status unset. Any other failure status code sets the
+/// activity status to <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure. A
+/// cancellation by the token passed to <see cref="DispatchAsync" /> is not a failure: the <c>icerpc.canceled</c> tag
+/// is set to <see langword="true" />, the activity status stays unset, and the <c>rpc.status_code</c> tag is not set
+/// since the caller receives no response.</remarks>
 /// <seealso cref="TelemetryRouterExtensions" />
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryMiddleware : IDispatcher
@@ -43,7 +54,34 @@ public class TelemetryMiddleware : IDispatcher
                 RestoreActivityContext(buffer, activity);
             }
             activity.Start();
-            return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+                activity.SetTag("rpc.status_code", response.StatusCode.ToString());
+                if (IsServerError(response.StatusCode))
+                {
+                    activity.SetTag("error.type", response.StatusCode.ToErrorType());
+                    activity.SetStatus(ActivityStatusCode.Error, response.ErrorMessage);
+                }
+                return response;
+            }
+            catch (OperationCanceledException exception) when (
+                cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken)
+            {
+                activity.SetTag("icerpc.canceled", true);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                DispatchException dispatchException = DispatchException.FromException(exception);
+                activity.SetTag("rpc.status_code", dispatchException.StatusCode.ToString());
+                if (IsServerError(dispatchException.StatusCode))
+                {
+                    activity.SetTag("error.type", dispatchException.StatusCode.ToErrorType());
+                    activity.SetStatus(ActivityStatusCode.Error, dispatchException.ErrorMessage);
+                }
+                throw;
+            }
         }
         else
         {
@@ -94,4 +132,18 @@ public class TelemetryMiddleware : IDispatcher
             activity.AddBaggage(key, value);
         }
     }
+
+    /// <summary>Checks whether a status code reports a failure of the server or the target service, as opposed to a
+    /// problem with the request.</summary>
+    private static bool IsServerError(StatusCode statusCode) =>
+        statusCode switch
+        {
+            StatusCode.Ok or
+            StatusCode.ApplicationError or
+            StatusCode.NotFound or
+            StatusCode.InvalidData or
+            StatusCode.TruncatedPayload or
+            StatusCode.Unauthorized => false,
+            _ => true
+        };
 }

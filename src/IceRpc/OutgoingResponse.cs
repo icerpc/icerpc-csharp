@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using System.Collections.Immutable;
 
 namespace IceRpc;
@@ -56,11 +57,8 @@ public sealed class OutgoingResponse : OutgoingFrame
 
         request.Response = this;
 
-        string errorMessage = message ?? $"The dispatch failed with status code {statusCode}.";
-        if (exception is not null)
-        {
-            errorMessage += $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
-        }
-        ErrorMessage = errorMessage;
+        ErrorMessage = DispatchErrorMessage.Compose(
+            message ?? $"The dispatch failed with status code {statusCode}.",
+            exception);
     }
 }

@@ -205,6 +205,307 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(dispatchActivity!.Baggage.Count(), Is.EqualTo(expected));
     }
 
+    /// <summary>Verifies that a response with a status code that reports a server failure marks the dispatch activity
+    /// as failed before it stops, and that the response is returned unchanged. An undefined status code is recorded
+    /// as is, but its error type is <c>_OTHER</c>.</summary>
+    [TestCase(StatusCode.NotImplemented, "NotImplemented", "NotImplemented")]
+    [TestCase(StatusCode.Unavailable, "Unavailable", "Unavailable")]
+    [TestCase(StatusCode.InternalError, "InternalError", "InternalError")]
+    [TestCase(StatusCode.DeadlineExceeded, "DeadlineExceeded", "DeadlineExceeded")]
+    [TestCase(StatusCode.NotSupported, "NotSupported", "NotSupported")]
+    [TestCase((StatusCode)42, "42", "_OTHER")]
+    public async Task Dispatch_activity_records_server_error_response(
+        StatusCode statusCode,
+        string expectedStatusCode,
+        string expectedErrorType)
+    {
+        // Arrange
+        OutgoingResponse? response = null;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            response = new OutgoingResponse(request, statusCode, "error message");
+            return new(response);
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        OutgoingResponse returnedResponse = await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(returnedResponse, Is.SameAs(response));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
+        Assert.That(outcome.StatusDescription, Is.EqualTo("error message"));
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedErrorType));
+    }
+
+    /// <summary>Verifies that a response with a status code that reports a problem with the request records the
+    /// status code but leaves the dispatch activity status unset.</summary>
+    [TestCase(StatusCode.ApplicationError, "ApplicationError")]
+    [TestCase(StatusCode.NotFound, "NotFound")]
+    [TestCase(StatusCode.InvalidData, "InvalidData")]
+    [TestCase(StatusCode.TruncatedPayload, "TruncatedPayload")]
+    [TestCase(StatusCode.Unauthorized, "Unauthorized")]
+    public async Task Dispatch_activity_records_request_error_response(StatusCode statusCode, string expectedStatusCode)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            new(new OutgoingResponse(request, statusCode, "error message")));
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
+    }
+
+    /// <summary>Verifies that an exception thrown by the dispatch records the status code and the error message of the
+    /// failure response the caller receives, marks the dispatch activity as failed before it stops when this status
+    /// code reports a server failure, and that the exception propagates unchanged.</summary>
+    [TestCaseSource(nameof(ServerErrorExceptions))]
+    public void Dispatch_activity_records_server_error_exception(
+        Exception exception,
+        string expectedStatusCode,
+        string expectedErrorType,
+        string expectedErrorMessage)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            await Task.Yield();
+            throw exception;
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        Exception? thrownException = Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
+
+        // Assert
+        Assert.That(thrownException, Is.SameAs(exception));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Error));
+        Assert.That(outcome.StatusDescription, Is.EqualTo(expectedErrorMessage));
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(expectedErrorType));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("icerpc.canceled"));
+    }
+
+    /// <summary>Verifies that an exception thrown by the dispatch that the caller receives as a status code that
+    /// reports a problem with the request records this status code but leaves the dispatch activity status unset, like
+    /// the equivalent response.</summary>
+    [TestCaseSource(nameof(RequestErrorExceptions))]
+    public void Dispatch_activity_records_request_error_exception(Exception exception, string expectedStatusCode)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            await Task.Yield();
+            throw exception;
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        Exception? thrownException = Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
+
+        // Assert
+        Assert.That(thrownException, Is.SameAs(exception));
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue(expectedStatusCode));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
+    }
+
+    /// <summary>Verifies that a cancellation by the token passed to the middleware is not recorded as a failure: the
+    /// dispatch activity status stays unset, the <c>icerpc.canceled</c> tag is set, and no status code is recorded
+    /// since the caller receives no response.</summary>
+    [Test]
+    public void Dispatch_activity_records_cancellation()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            return new OutgoingResponse(request);
+        });
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.DispatchAsync(request, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags, Does.ContainKey("icerpc.canceled").WithValue(true));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("rpc.status_code"));
+    }
+
+    /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the dispatch
+    /// activity status unset and records the status code.</summary>
+    [Test]
+    public async Task Dispatch_activity_records_ok_response()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+
+        ActivityOutcome? outcome = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mockActivityListener = CreateMockActivityListener(
+            activitySource,
+            activity => outcome = ActivityOutcome.From(activity));
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(outcome, Is.Not.Null);
+        Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(outcome.StatusDescription, Is.Null);
+        Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue("Ok"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
+    }
+
+    /// <summary>The exceptions thrown by the dispatch that the caller receives as a status code that reports a server
+    /// failure, with this status code, the expected error type and the expected error message. Like a returned
+    /// response, an exception is identified by the status code of the failure response the caller receives. The
+    /// middleware is called with <see cref="CancellationToken.None" />, which cannot be canceled, so both
+    /// cancellations are internal errors.</summary>
+    private static IEnumerable<TestCaseData> ServerErrorExceptions
+    {
+        get
+        {
+            yield return new TestCaseData(
+                new DispatchException(StatusCode.InternalError, "dispatch failed"),
+                "InternalError",
+                "InternalError",
+                "dispatch failed");
+            yield return new TestCaseData(
+                new DispatchException((StatusCode)42, "dispatch failed"),
+                "42",
+                "_OTHER",
+                "dispatch failed");
+            yield return new TestCaseData(
+                new DispatchException(StatusCode.Unauthorized, "dispatch failed") { ConvertToInternalError = true },
+                "InternalError",
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'IceRpc.DispatchException' with message: dispatch failed");
+            yield return new TestCaseData(
+                new NotSupportedException("not supported"),
+                "NotSupported",
+                "NotSupported",
+                "The dispatch failed with status code NotSupported. The failure was caused by an exception of type 'System.NotSupportedException' with message: not supported");
+            yield return new TestCaseData(
+                new InvalidOperationException("dispatch failed"),
+                "InternalError",
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'System.InvalidOperationException' with message: dispatch failed");
+            yield return new TestCaseData(
+                new OperationCanceledException("dispatch canceled"),
+                "InternalError",
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'System.OperationCanceledException' with message: dispatch canceled");
+            yield return new TestCaseData(
+                new OperationCanceledException("dispatch canceled", new CancellationToken(canceled: true)),
+                "InternalError",
+                "InternalError",
+                "The dispatch failed with status code InternalError. The failure was caused by an exception of type 'System.OperationCanceledException' with message: dispatch canceled");
+        }
+    }
+
+    /// <summary>The exceptions thrown by the dispatch that the caller receives as a status code that reports a problem
+    /// with the request, with this status code.</summary>
+    private static IEnumerable<TestCaseData> RequestErrorExceptions
+    {
+        get
+        {
+            yield return new TestCaseData(
+                new DispatchException(StatusCode.Unauthorized, "dispatch failed"),
+                "Unauthorized");
+            yield return new TestCaseData(new InvalidDataException("invalid data"), "InvalidData");
+            yield return new TestCaseData(
+                new IceRpcException(IceRpcError.TruncatedData, "truncated data"),
+                "TruncatedPayload");
+        }
+    }
+
     // Mirrors TelemetryInterceptor.WriteActivityContext but writes the baggage sequence raw so tests can
     // simulate a peer that did not honor the 180-entry clip on its outgoing path.
     private static PipeReader EncodeTraceContextWithRawBaggage(int entryCount)
@@ -236,11 +537,13 @@ public sealed class TelemetryMiddlewareTests
         return pipe.Reader;
     }
 
-    private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
+    private static ActivityListener CreateMockActivityListener(
+        ActivitySource activitySource,
+        Action<Activity>? onActivityStopped = null)
     {
         var mockActivityListener = new ActivityListener();
         mockActivityListener.ActivityStarted = activity => { };
-        mockActivityListener.ActivityStopped = activity => { };
+        mockActivityListener.ActivityStopped = activity => onActivityStopped?.Invoke(activity);
         mockActivityListener.ShouldListenTo = source => ReferenceEquals(source, activitySource);
         mockActivityListener.Sample =
             (ref ActivityCreationOptions<ActivityContext> activityOptions) => ActivitySamplingResult.AllData;
@@ -248,5 +551,18 @@ public sealed class TelemetryMiddlewareTests
             (ref ActivityCreationOptions<string> activityOptions) => ActivitySamplingResult.AllData;
         ActivitySource.AddActivityListener(mockActivityListener);
         return mockActivityListener;
+    }
+
+    /// <summary>The status and tags of an activity, captured when the activity stops.</summary>
+    private sealed record class ActivityOutcome(
+        ActivityStatusCode Status,
+        string? StatusDescription,
+        IReadOnlyDictionary<string, object?> Tags)
+    {
+        internal static ActivityOutcome From(Activity activity) =>
+            new(
+                activity.Status,
+                activity.StatusDescription,
+                activity.TagObjects.ToDictionary(entry => entry.Key, entry => entry.Value));
     }
 }
