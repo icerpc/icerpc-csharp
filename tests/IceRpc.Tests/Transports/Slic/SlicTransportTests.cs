@@ -2186,6 +2186,27 @@ public class SlicTransportTests
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
     }
 
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
+    /// bidirectional stream is sent when the peer sent its StreamLast frame with an endStream write and closes its
+    /// reads before the remote stream closes its writes, so that the peer's stream is released.</summary>
+    [Test]
+    [CancelAfter(120_000)]
+    public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_after_its_end_stream_write(
+        CancellationToken cancellationToken)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateSingleBidirectionalStreamServiceProvider();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        (IMultiplexedStream clientStream, IMultiplexedStream serverStream) =
+            await CreateStreamWithDeferredReadsClosedFrameAsync(sut, cancellationToken, clientEndStreamWrite: true);
+
+        clientStream.Input.Complete(new OperationCanceledException());
+        await serverStream.WritesClosed.WaitAsync(cancellationToken);
+
+        // Act/Assert
+        await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
+    }
+
     /// <summary>Verifies that a write blocked on the connection-level pipe pause (PauseWriterThreshold reached)
     /// can be canceled.</summary>
     [Test]
@@ -2703,18 +2724,30 @@ public class SlicTransportTests
     }
 
     /// <summary>Connects the connection and creates a bidirectional stream whose request is consumed by the server,
-    /// which defers its StreamReadsClosed frame until the closure of writes, and whose client window is exhausted.
-    /// </summary>
+    /// which defers its StreamReadsClosed frame until the closure of writes, and whose client window is exhausted. The
+    /// client's StreamLast frame is sent by an endStream write when <paramref name="clientEndStreamWrite" /> is
+    /// <see langword="true" />, and by the output completion otherwise.</summary>
     private static async Task<(IMultiplexedStream ClientStream, IMultiplexedStream ServerStream)> CreateStreamWithDeferredReadsClosedFrameAsync(
         ClientServerMultiplexedConnection sut,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool clientEndStreamWrite = false)
     {
         await sut.AcceptAndConnectAsync(cancellationToken);
 
-        // With the StreamLast frame sent by the output completion, the client stream closes its writes only once the
-        // server's StreamReadsClosed frame is received.
+        // Whether the StreamLast frame is sent by an endStream write or by the output completion, the client stream
+        // closes its writes only once the server's StreamReadsClosed frame is received.
         IMultiplexedStream clientStream = await sut.Client.CreateStreamAsync(bidirectional: true, cancellationToken);
-        _ = await clientStream.Output.WriteAsync(new byte[1], cancellationToken);
+        if (clientEndStreamWrite)
+        {
+            _ = await ((ReadOnlySequencePipeWriter)clientStream.Output).WriteAsync(
+                new ReadOnlySequence<byte>(new byte[1]),
+                endStream: true,
+                cancellationToken);
+        }
+        else
+        {
+            _ = await clientStream.Output.WriteAsync(new byte[1], cancellationToken);
+        }
         clientStream.Output.Complete();
 
         // The server consumes the request: reads are gracefully closed and the StreamReadsClosed frame is deferred
