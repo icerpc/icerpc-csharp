@@ -100,15 +100,20 @@ jobs:
         shell: pwsh
         run: |
           $exceptions = @(
-            # Third-party binaries retain their upstream signatures (or lack of signatures).
+            # These upstream binaries are not Authenticode-signed.
             'tools/Dunet.dll'
             'tools/Google.Protobuf.dll'
-            'tools/Microsoft.Extensions.DependencyInjection.Abstractions.dll'
-            'tools/Microsoft.Extensions.Logging.Abstractions.dll'
             'tools/windows_x64/protoc.exe'
             # Remove when the bundled slicec includes https://github.com/icerpc/slicec/issues/825.
             'tools/windows-x64/slicec.exe'
           )
+          # Match publisher subjects so certificate rotation does not require updating thumbprints.
+          $zeroCSubject = 'CN=ZeroC, O=ZeroC, L=Jupiter, S=Florida, C=US'
+          $microsoftSubject = 'CN=.NET, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'
+          $thirdPartySubjects = @{
+            'tools/Microsoft.Extensions.DependencyInjection.Abstractions.dll' = $microsoftSubject
+            'tools/Microsoft.Extensions.Logging.Abstractions.dll' = $microsoftSubject
+          }
           $packages = @(Get-ChildItem -Path . -Filter '*.nupkg' -File)
           if ($packages.Count -eq 0) {
             throw 'No NuGet packages found for Authenticode verification.'
@@ -127,9 +132,17 @@ jobs:
                 if ($relativePath -in $exceptions) {
                   continue
                 }
+                $expectedSubject = $zeroCSubject
+                if ($thirdPartySubjects.ContainsKey($relativePath)) {
+                  $expectedSubject = $thirdPartySubjects[$relativePath]
+                }
                 $signature = Get-AuthenticodeSignature -LiteralPath $binary.FullName
                 if ($signature.Status -ne 'Valid') {
                   $failures.Add("$($package.Name): $relativePath ($($signature.Status))")
+                } elseif ($signature.SignerCertificate.Subject -ne $expectedSubject) {
+                  $failures.Add(
+                    "$($package.Name): $relativePath (unexpected signer '$($signature.SignerCertificate.Subject)'; " +
+                    "expected '$expectedSubject')")
                 } elseif (-not $signature.TimeStamperCertificate) {
                   $failures.Add("$($package.Name): $relativePath (missing timestamp)")
                 } else {
@@ -146,7 +159,7 @@ jobs:
             foreach ($failure in $failures) {
               Write-Host "::error::$failure"
             }
-            throw "Found $($failures.Count) packaged binaries without valid, timestamped Authenticode signatures."
+            throw "Found $($failures.Count) packaged binaries without valid, timestamped Authenticode signatures from the expected publisher."
           }
           Write-Host "Verified $verified Authenticode signatures in $($packages.Count) NuGet packages."
 
