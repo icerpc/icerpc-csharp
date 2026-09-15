@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Net.Quic;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
@@ -161,13 +160,9 @@ public static class ServerServiceCollectionExtensions
                 {
                     if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
                     {
-                        if (QuicListener.IsSupported)
-                        {
-                            return new QuicServerTransport(
-                                provider.GetRequiredService<IOptions<QuicServerTransportOptions>>().Value);
-                        }
-                        throw new NotSupportedException(
-                            "The default QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
+                        // This works even when QUIC is not available.
+                        return new QuicServerTransport(
+                            provider.GetRequiredService<IOptions<QuicServerTransportOptions>>().Value);
                     }
                     throw new PlatformNotSupportedException(
                         "The default QUIC server transport is not supported on this platform. You need to register an IMultiplexedServerTransport implementation in the service collection.");
