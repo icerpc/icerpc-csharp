@@ -9,4 +9,9 @@ interface OriginalInterface {
         [cs::identifier("renamedReturnOne")] myReturnOne: int32
         [cs::identifier("renamedReturnTwo")] myReturnTwo: int32
     )
+
+    subscribe(user: string, [cs::identifier("@event")] event: string) -> (
+        subscriber: string
+        [cs::identifier("@return")] eventName: string
+    )
 }

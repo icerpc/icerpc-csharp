@@ -249,7 +249,7 @@ internal class SliceServiceMethod : ServiceMethod
                 // It's a tuple - get the count and field names
                 ImmutableArray<IFieldSymbol> tupleElements = tupleType.TupleElements;
                 _parameterCount = tupleElements.Length;
-                _parameterFieldNames = tupleElements.Select(e => e.Name).ToArray();
+                _parameterFieldNames = tupleElements.Select(e => e.GetEscapedName()).ToArray();
             }
             else
             {
@@ -270,7 +270,7 @@ internal class SliceServiceMethod : ServiceMethod
             {
                 ImmutableArray<IFieldSymbol> returnElements = methodTupleType.TupleElements;
                 _returnCount = returnElements.Length;
-                _returnFieldNames = returnElements.Select(e => e.Name).ToArray();
+                _returnFieldNames = returnElements.Select(e => e.GetEscapedName()).ToArray();
 
                 lastFieldType = returnElements[returnElements.Length - 1].Type;
             }

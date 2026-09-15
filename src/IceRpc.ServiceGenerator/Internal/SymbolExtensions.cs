@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
 
 namespace IceRpc.ServiceGenerator.Internal;
@@ -21,6 +22,11 @@ internal static class SymbolExtensions
         return null;
     }
 
+    internal static string GetEscapedName(this ISymbol symbol) =>
+        SyntaxFacts.GetKeywordKind(symbol.Name) != SyntaxKind.None ||
+        SyntaxFacts.GetContextualKeywordKind(symbol.Name) != SyntaxKind.None ?
+            $"@{symbol.Name}" : symbol.Name;
+
     internal static string GetFullName(this ISymbol symbol)
     {
         if (symbol is INamespaceSymbol namespaceSymbol && namespaceSymbol.IsGlobalNamespace)
@@ -30,7 +36,8 @@ internal static class SymbolExtensions
         else
         {
             string containingSymbolName = symbol.ContainingSymbol.GetFullName();
-            return containingSymbolName.Length == 0 ? symbol.Name : $"{containingSymbolName}.{symbol.Name}";
+            string name = symbol.GetEscapedName();
+            return containingSymbolName.Length == 0 ? name : $"{containingSymbolName}.{name}";
         }
     }
 }

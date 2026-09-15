@@ -53,7 +53,8 @@ public class ServiceGenerator : IIncrementalGenerator
                 serviceClass.FullFileName :
                 $"{serviceClass.ContainingNamespace}.{serviceClass.FullFileName}";
 
-            context.AddSource($"{fullName}.g.cs", SourceText.From(result, Encoding.UTF8));
+            // Roslyn's source hint names cannot contain verbatim identifier prefixes.
+            context.AddSource($"{fullName.Replace("@", "")}.g.cs", SourceText.From(result, Encoding.UTF8));
         }
     }
 }
