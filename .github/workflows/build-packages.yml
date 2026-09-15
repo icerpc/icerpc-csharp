@@ -95,6 +95,59 @@ jobs:
         working-directory: src/IceRpc.Templates
         run: dotnet pack --configuration Release --output ../../
 
+      - name: Verify packaged Authenticode signatures
+        if: inputs.authenticode_sign
+        shell: pwsh
+        run: |
+          $exceptions = @(
+            # Third-party binaries retain their upstream signatures (or lack of signatures).
+            'tools/Dunet.dll'
+            'tools/Google.Protobuf.dll'
+            'tools/Microsoft.Extensions.DependencyInjection.Abstractions.dll'
+            'tools/Microsoft.Extensions.Logging.Abstractions.dll'
+            'tools/windows_x64/protoc.exe'
+            # Remove when the bundled slicec includes https://github.com/icerpc/slicec/issues/825.
+            'tools/windows-x64/slicec.exe'
+          )
+          $packages = @(Get-ChildItem -Path . -Filter '*.nupkg' -File)
+          if ($packages.Count -eq 0) {
+            throw 'No NuGet packages found for Authenticode verification.'
+          }
+
+          $failures = [System.Collections.Generic.List[string]]::new()
+          $verified = 0
+          foreach ($package in $packages) {
+            $extractPath = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+            try {
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($package.FullName, $extractPath)
+              $binaries = Get-ChildItem -LiteralPath $extractPath -Recurse -File -Force |
+                Where-Object { $_.Extension -in '.dll', '.exe' }
+              foreach ($binary in $binaries) {
+                $relativePath = [System.IO.Path]::GetRelativePath($extractPath, $binary.FullName).Replace('\', '/')
+                if ($relativePath -in $exceptions) {
+                  continue
+                }
+                $signature = Get-AuthenticodeSignature -LiteralPath $binary.FullName
+                if ($signature.Status -ne 'Valid') {
+                  $failures.Add("$($package.Name): $relativePath ($($signature.Status))")
+                } else {
+                  $verified++
+                }
+              }
+            } finally {
+              if (Test-Path -LiteralPath $extractPath) {
+                Remove-Item -LiteralPath $extractPath -Recurse -Force
+              }
+            }
+          }
+          if ($failures.Count -gt 0) {
+            foreach ($failure in $failures) {
+              Write-Host "::error::$failure"
+            }
+            throw "Found $($failures.Count) packaged binaries without valid Authenticode signatures."
+          }
+          Write-Host "Verified $verified Authenticode signatures in $($packages.Count) NuGet packages."
+
       - name: Upload NuGet packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
