@@ -1,0 +1,12 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Generator::Tests
+
+interface InjectedIdentifiers {
+    withFeatures([cs::identifier("@features")] value: int32) -> int32
+    withCancellationToken([cs::identifier("@cancellationToken")] value: int32) -> int32
+    withRequestEncodeOptions([cs::identifier("@encodeOptions")] value: int32) -> int32
+    withResponseEncodeOptions() -> (value: int32, [cs::identifier("@encodeOptions")] options: int32)
+    [cs::encodedReturn]
+    withPayloadStream() -> (value: int32, [cs::identifier("@Payload")] values: stream int32)
+}

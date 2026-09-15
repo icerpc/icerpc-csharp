@@ -36,27 +36,31 @@ internal static class OperationExtensions
         /// <summary>Gets the escaped name for the injected "features" parameter, appending "_" if any operation
         /// parameter uses the name "features".</summary>
         internal string FeaturesParamName =>
-            op.Parameters.Any(p => p.ParameterName == "features") ? "features_" : "features";
+            op.Parameters.Any(p => p.ParameterName.TrimStart('@') == "features") ? "features_" : "features";
 
         /// <summary>Gets the escaped name for the injected "cancellationToken" parameter, appending "_" if any
         /// operation parameter uses the name "cancellationToken".</summary>
         internal string CancellationTokenParamName =>
-            op.Parameters.Any(p => p.ParameterName == "cancellationToken") ? "cancellationToken_" : "cancellationToken";
+            op.Parameters.Any(p => p.ParameterName.TrimStart('@') == "cancellationToken") ?
+                "cancellationToken_" : "cancellationToken";
 
         /// <summary>Gets the escaped name for the injected "encodeOptions" parameter on Request.* helpers,
         /// appending "_" if any operation parameter uses the name "encodeOptions".</summary>
         internal string RequestEncodeOptionsParamName =>
-            op.Parameters.Any(p => p.ParameterName == "encodeOptions") ? "encodeOptions_" : "encodeOptions";
+            op.Parameters.Any(p => p.ParameterName.TrimStart('@') == "encodeOptions") ?
+                "encodeOptions_" : "encodeOptions";
 
         /// <summary>Gets the escaped name for the injected "encodeOptions" parameter on Response.* helpers,
         /// appending "_" if any operation return field uses the name "encodeOptions".</summary>
         internal string ResponseEncodeOptionsParamName =>
-            op.ReturnType.Any(f => f.ParameterName == "encodeOptions") ? "encodeOptions_" : "encodeOptions";
+            op.ReturnType.Any(f => f.ParameterName.TrimStart('@') == "encodeOptions") ?
+                "encodeOptions_" : "encodeOptions";
 
         /// <summary>Gets the escaped name for the synthetic "Payload" tuple element used by cs::encodedReturn
         /// operations with a streamed return, appending "_" if the streamed return field uses the name "Payload".
         /// </summary>
-        internal string EncodedReturnPayloadName => op.StreamedReturn?.Name == "Payload" ? "Payload_" : "Payload";
+        internal string EncodedReturnPayloadName =>
+            op.StreamedReturn?.Name.TrimStart('@') == "Payload" ? "Payload_" : "Payload";
 
         /// <summary>Returns the C# type string for an outgoing (sent) streamed field. Non-optional stream uint8
         /// maps to <c>PipeReader</c>, all others to <c>IAsyncEnumerable&lt;T&gt;</c>.</summary>
