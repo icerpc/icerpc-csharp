@@ -23,7 +23,7 @@ on:
         required: true
         default: "nightly"
       authenticode_sign:
-        description: "Sign the assemblies with authenticode"
+        description: "Sign the assemblies with Authenticode (upstream only)"
         required: false
         type: boolean
         default: false
@@ -44,7 +44,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Collect Files to Sign
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         run: |
             # For each project in src, we sign the main assembly named after the project.
             $assemblies = Get-ChildItem -Path src -Directory | ForEach-Object {
@@ -57,11 +57,11 @@ jobs:
 
       # Shutdown the build server before signing to ensure MSBuild tasks are not loaded in the build server process.
       - name: Shutdown build server
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         run: dotnet build-server shutdown
 
       - name: Sign .NET Assemblies
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -96,7 +96,7 @@ jobs:
         run: dotnet pack --configuration Release --output ../../
 
       - name: Verify packaged Authenticode signatures
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         shell: pwsh
         run: |
           $exceptions = @(
@@ -130,6 +130,8 @@ jobs:
                 $signature = Get-AuthenticodeSignature -LiteralPath $binary.FullName
                 if ($signature.Status -ne 'Valid') {
                   $failures.Add("$($package.Name): $relativePath ($($signature.Status))")
+                } elseif (-not $signature.TimeStamperCertificate) {
+                  $failures.Add("$($package.Name): $relativePath (missing timestamp)")
                 } else {
                   $verified++
                 }
@@ -144,7 +146,7 @@ jobs:
             foreach ($failure in $failures) {
               Write-Host "::error::$failure"
             }
-            throw "Found $($failures.Count) packaged binaries without valid Authenticode signatures."
+            throw "Found $($failures.Count) packaged binaries without valid, timestamped Authenticode signatures."
           }
           Write-Host "Verified $verified Authenticode signatures in $($packages.Count) NuGet packages."
 
