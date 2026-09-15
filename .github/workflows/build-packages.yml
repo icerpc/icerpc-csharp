@@ -46,15 +46,13 @@ jobs:
       - name: Collect Files to Sign
         if: inputs.authenticode_sign
         run: |
-            # For each project in src, we sign the main assembly named after the project, in its own bin folder and in
-            # the bin folders of the projects that copy it: the Tools packages pack the bin folders of their generators
-            # and build telemetry plug-ins, copy-local dependencies such as IceRpc.dll included.
-            $assemblies = Get-ChildItem -Path src -Directory | ForEach-Object {
-              $name = $_.Name
-              Get-ChildItem -Path src -Filter "$name.dll" -Recurse |
-              Where-Object { $_.FullName -like "*\bin\Release\net*\$name.dll" } |
+            # Sign each project's assembly in every bin folder where it's found, not just its own. This is needed
+            # because each Tools package ships the whole bin folder of its generator and build telemetry projects, and
+            # these folders contain copies of IceRpc.dll and other first-party assemblies.
+            $names = (Get-ChildItem -Path src -Directory).Name
+            $assemblies = Get-ChildItem -Path src -Filter *.dll -Recurse -File |
+              Where-Object { $names -contains $_.BaseName -and $_.DirectoryName -like "*\bin\Release\net*" } |
               ForEach-Object { Resolve-Path -Relative $_.FullName }
-            }
             $assemblies | Set-Content -Path "${{ github.workspace }}\catalog.txt" -Encoding UTF8
 
       # Shutdown the build server before signing to ensure MSBuild tasks are not loaded in the build server process.
