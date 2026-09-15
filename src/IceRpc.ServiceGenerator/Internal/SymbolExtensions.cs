@@ -22,6 +22,8 @@ internal static class SymbolExtensions
         return null;
     }
 
+    /// <summary>Gets the symbol name escaped for use as a C# identifier.</summary>
+    /// <remarks>Roslyn symbol names omit the <c>@</c> prefix used by verbatim identifiers.</remarks>
     internal static string GetEscapedName(this ISymbol symbol) =>
         SyntaxFacts.GetKeywordKind(symbol.Name) != SyntaxKind.None ||
         SyntaxFacts.GetContextualKeywordKind(symbol.Name) != SyntaxKind.None ?
