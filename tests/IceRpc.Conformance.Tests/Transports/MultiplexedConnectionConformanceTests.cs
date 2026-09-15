@@ -868,6 +868,49 @@ public abstract class MultiplexedConnectionConformanceTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
+    [Test]
+    public async Task Stream_creation_hangs_until_remote_data_is_consumed_after_end_stream_write(
+        [Values(true, false)] bool bidirectional)
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+            options =>
+            {
+                options.MaxBidirectionalStreams = 1;
+                options.MaxUnidirectionalStreams = 1;
+            });
+
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        IMultiplexedStream clientStream1 = await sut.Client.CreateStreamAsync(bidirectional, default);
+        await ((ReadOnlySequencePipeWriter)clientStream1.Output).WriteAsync(
+            new ReadOnlySequence<byte>(_oneBytePayload),
+            endStream: true,
+            default);
+        clientStream1.Output.Complete();
+
+        IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
+        if (bidirectional)
+        {
+            serverStream1.Output.Complete();
+        }
+
+        // At this point the server stream input is not completed. CreateStreamAsync should block because the data isn't
+        // consumed.
+
+        // Act/Assert
+        Assert.That(
+            async () =>
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+                _ = await sut.Client.CreateStreamAsync(bidirectional, cts.Token);
+            },
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 }
