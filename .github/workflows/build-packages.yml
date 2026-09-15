@@ -23,7 +23,7 @@ on:
         required: true
         default: "nightly"
       authenticode_sign:
-        description: "Sign the assemblies with authenticode"
+        description: "Sign the assemblies with Authenticode (upstream only)"
         required: false
         type: boolean
         default: false
@@ -44,7 +44,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Collect Files to Sign
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         run: |
             # Sign each project's assembly in every bin folder where it's found, not just its own. This is needed
             # because each Tools package ships the whole bin folder of its generator and build telemetry projects, and
@@ -57,11 +57,11 @@ jobs:
 
       # Shutdown the build server before signing to ensure MSBuild tasks are not loaded in the build server process.
       - name: Shutdown build server
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         run: dotnet build-server shutdown
 
       - name: Sign .NET Assemblies
-        if: inputs.authenticode_sign
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
         uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -94,6 +94,74 @@ jobs:
       - name: Pack IceRPC Templates
         working-directory: src/IceRpc.Templates
         run: dotnet pack --configuration Release --output ../../
+
+      - name: Verify packaged Authenticode signatures
+        if: github.repository == 'icerpc/icerpc-csharp' && inputs.authenticode_sign
+        shell: pwsh
+        run: |
+          $exceptions = @(
+            # These upstream binaries are not Authenticode-signed.
+            'tools/Dunet.dll'
+            'tools/Google.Protobuf.dll'
+            'tools/windows_x64/protoc.exe'
+            # Remove when the bundled slicec includes https://github.com/icerpc/slicec/issues/825.
+            'tools/windows-x64/slicec.exe'
+          )
+          # Match publisher subjects so certificate rotation does not require updating thumbprints.
+          $zeroCSubject = 'CN=ZeroC, O=ZeroC, L=Jupiter, S=Florida, C=US'
+          $microsoftSubject = 'CN=.NET, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'
+          $thirdPartySubjects = @{
+            'tools/Microsoft.Extensions.DependencyInjection.Abstractions.dll' = $microsoftSubject
+            'tools/Microsoft.Extensions.Logging.Abstractions.dll' = $microsoftSubject
+          }
+          $packages = @(Get-ChildItem -Path . -Filter '*.nupkg' -File)
+          if ($packages.Count -eq 0) {
+            throw 'No NuGet packages found for Authenticode verification.'
+          }
+
+          $failures = [System.Collections.Generic.List[string]]::new()
+          $verified = 0
+          foreach ($package in $packages) {
+            $extractPath = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+            try {
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($package.FullName, $extractPath)
+              $binaries = Get-ChildItem -LiteralPath $extractPath -Recurse -File -Force |
+                Where-Object { $_.Extension -in '.dll', '.exe' }
+              foreach ($binary in $binaries) {
+                $relativePath = [System.IO.Path]::GetRelativePath($extractPath, $binary.FullName).Replace('\', '/')
+                if ($relativePath -in $exceptions) {
+                  continue
+                }
+                $expectedSubject = $zeroCSubject
+                if ($thirdPartySubjects.ContainsKey($relativePath)) {
+                  $expectedSubject = $thirdPartySubjects[$relativePath]
+                }
+                $signature = Get-AuthenticodeSignature -LiteralPath $binary.FullName
+                if ($signature.Status -ne 'Valid') {
+                  $failures.Add("$($package.Name): $relativePath ($($signature.Status))")
+                } elseif ($signature.SignerCertificate.Subject -ne $expectedSubject) {
+                  $failures.Add(
+                    "$($package.Name): $relativePath (unexpected signer '$($signature.SignerCertificate.Subject)'; " +
+                    "expected '$expectedSubject')")
+                } elseif (-not $signature.TimeStamperCertificate) {
+                  $failures.Add("$($package.Name): $relativePath (missing timestamp)")
+                } else {
+                  $verified++
+                }
+              }
+            } finally {
+              if (Test-Path -LiteralPath $extractPath) {
+                Remove-Item -LiteralPath $extractPath -Recurse -Force
+              }
+            }
+          }
+          if ($failures.Count -gt 0) {
+            foreach ($failure in $failures) {
+              Write-Host "::error::$failure"
+            }
+            throw "Found $($failures.Count) packaged binaries without valid, timestamped Authenticode signatures from the expected publisher."
+          }
+          Write-Host "Verified $verified Authenticode signatures in $($packages.Count) NuGet packages."
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
