@@ -25,6 +25,21 @@ public partial class IdentifierAttributeTests
         _ = await proxy.REnamedOpAsync(renamedParam: 1);
     }
 
+    [Test]
+    public async Task Verbatim_parameter_and_return_identifiers()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new IdentifierOperationsService());
+        var proxy = new REnamedInterfaceProxy(invoker);
+
+        // Act
+        var result = await proxy.SubscribeAsync(user: "alice", @event: "created");
+
+        // Assert
+        Assert.That(result.Subscriber, Is.EqualTo("alice"));
+        Assert.That(result.@return, Is.EqualTo("created"));
+    }
+
     [Service]
     private sealed partial class IdentifierOperationsService : IREnamedInterfaceService
     {
@@ -32,5 +47,11 @@ public partial class IdentifierAttributeTests
             int renamedParam,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new((1, 2));
+
+        public ValueTask<(string, string)> SubscribeAsync(
+            string user,
+            string @event,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new((user, @event));
     }
 }
