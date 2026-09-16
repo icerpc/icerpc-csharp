@@ -13,9 +13,9 @@
       },
       "ZeroC.Ice.Slice.Tools": {
         "type": "Direct",
-        "requested": "[3.8.2, 3.9.0)",
-        "resolved": "3.8.2",
-        "contentHash": "narXB7tcv67/g0iO/lVnPmx2VwCtmG56qEJFaY287tRc04/d+u+lLVjrI/HsfCrocgF30HAmIw4+sOi46OCu8Q=="
+        "requested": "[3.8.3, 3.9.0)",
+        "resolved": "3.8.3",
+        "contentHash": "EHcssd+kFbsFQOgCWf10UGNZRbbeT2KNaYZKHhVnzXNC9kli1gH6WjfhjbuKog44e19stCOEdtr6dcmVzKU93A=="
       },
       "StyleCop.Analyzers.Unstable": {
         "type": "Transitive",
@@ -25,7 +25,7 @@
       "icerpc": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )",
           "ZeroC.Slice.Codec": "[0.6.0, )"
         }
       },
@@ -46,17 +46,17 @@
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[10.0.0, )",
-        "resolved": "10.0.0",
-        "contentHash": "L3AdmZ1WOK4XXT5YFPEwyt0ep6l8lGIPs7F5OOBZc77Zqeo01Of7XXICy47628sdVl0v/owxYJTe86DTgFwKCA=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "/a1aJz4m7ylhEDf25ugQChLQoN5XwoGjWw/BoR/ZWWKsO1v4DdJElS1uyngahz4B/eOzjFk1KNTkarRLE5wsIg=="
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[10.0.0, )",
-        "resolved": "10.0.0",
-        "contentHash": "FU/IfjDfwaMuKr414SSQNTIti/69bHEMb+QKrskRb26oVqpx3lNFXMjs/RC9ZUuhBhcwDM2BwOgoMw+PZ+beqQ==",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "Ljd0Uxoq5XpScD2Bg0nM/r3mwx7Ao5Uq24eo2ARxbGvqJ7Zht6rt2cJtwVRH4Cv+1ZVMdXz6TB43KbpmsxRrvQ==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.11"
         }
       }
     }
