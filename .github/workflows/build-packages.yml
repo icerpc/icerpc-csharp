@@ -104,8 +104,6 @@ jobs:
             'tools/Dunet.dll'
             'tools/Google.Protobuf.dll'
             'tools/windows_x64/protoc.exe'
-            # Remove when the bundled slicec includes https://github.com/icerpc/slicec/issues/825.
-            'tools/windows-x64/slicec.exe'
           )
           $packages = @(Get-ChildItem -Path . -Filter '*.nupkg' -File)
           if ($packages.Count -eq 0) {
