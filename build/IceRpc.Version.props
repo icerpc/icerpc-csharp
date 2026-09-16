@@ -3,7 +3,7 @@
     <!-- The version of all assembly files built in this repository -->
     <Version Condition="'$(Version)' == ''">0.6.1</Version>
     <!-- The slicec compiler version -->
-    <SlicecVersion Condition="'$(SlicecVersion)' == ''">0.4.0</SlicecVersion>
+    <SlicecVersion Condition="'$(SlicecVersion)' == ''">0.4.1</SlicecVersion>
     <SlicecBaseUrl Condition="'$(SlicecBaseUrl)' == ''">https://download.zeroc.com/icerpc/slicec/0.4</SlicecBaseUrl>
   </PropertyGroup>
 </Project>
