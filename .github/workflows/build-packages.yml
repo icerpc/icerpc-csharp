@@ -23,7 +23,7 @@ on:
         required: true
         default: "nightly"
       authenticode_sign:
-        description: "Sign the assemblies with Authenticode (upstream only)"
+        description: "Sign the assemblies with Authenticode (ignored on forks)"
         required: false
         type: boolean
         default: false
