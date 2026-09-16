@@ -218,13 +218,13 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )",
-          "ZeroC.Slice.Codec": "[0.6.0, )"
+          "ZeroC.Slice.Codec": "[0.6.1, )"
         }
       },
       "icerpc.extensions.dependencyinjection": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
+          "IceRpc": "[0.6.1, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.11, )",
           "Microsoft.Extensions.Options": "[10.0.11, )"
         }
@@ -232,23 +232,23 @@
       "icerpc.ice": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.ServiceGenerator": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.ServiceGenerator": "[0.6.1, )"
         }
       },
       "icerpc.logger": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
+          "IceRpc": "[0.6.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )"
         }
       },
       "icerpc.protobuf": {
         "type": "Project",
         "dependencies": {
-          "Google.Protobuf": "[3.36.0, )",
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.ServiceGenerator": "[0.6.0, )"
+          "Google.Protobuf": "[3.36.1, )",
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.ServiceGenerator": "[0.6.1, )"
         }
       },
       "icerpc.servicegenerator": {
@@ -257,28 +257,28 @@
       "icerpc.slice": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.ServiceGenerator": "[0.6.0, )",
-          "ZeroC.Slice.Codec": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.ServiceGenerator": "[0.6.1, )",
+          "ZeroC.Slice.Codec": "[0.6.1, )"
         }
       },
       "icerpc.tests.common": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.Extensions.DependencyInjection": "[0.6.0, )",
-          "IceRpc.Logger": "[0.6.0, )",
-          "IceRpc.Transports.Coloc": "[0.6.0, )",
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.Extensions.DependencyInjection": "[0.6.1, )",
+          "IceRpc.Logger": "[0.6.1, )",
+          "IceRpc.Transports.Coloc": "[0.6.1, )",
           "Microsoft.Extensions.Logging": "[10.0.11, )",
           "Microsoft.Extensions.Logging.Console": "[10.0.11, )",
           "NUnit": "[4.6.1, )",
-          "ZeroC.Tests.Common": "[0.6.0, )"
+          "ZeroC.Tests.Common": "[0.6.1, )"
         }
       },
       "icerpc.transports.coloc": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )"
         }
       },
       "zeroc.slice.codec": {
@@ -298,9 +298,9 @@
       },
       "Google.Protobuf": {
         "type": "CentralTransitive",
-        "requested": "[3.36.0, )",
-        "resolved": "3.36.0",
-        "contentHash": "wDPg8sKlmA8we1bqnC9DYKwLog4PNJ4GYTWV9FkzlGvfs3kNCSt2x0Qe31SBOeBPS2JGEZ/lNfil/Bkwx18Ufg=="
+        "requested": "[3.36.1, )",
+        "resolved": "3.36.1",
+        "contentHash": "77AqPEoaY1ODE+syYBHti0jXiwQq0J/fUr/fRyYhNlc9oKtH5dZZEr/OLKtdKNVG83PRnCYB2r8B80ZrObzOGQ=="
       },
       "Microsoft.CodeAnalysis.Analyzers": {
         "type": "CentralTransitive",

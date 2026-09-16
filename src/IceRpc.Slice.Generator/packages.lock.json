@@ -17,7 +17,7 @@
       "zeroc.slice.symbols": {
         "type": "Project",
         "dependencies": {
-          "ZeroC.Slice.Codec": "[0.6.0, )"
+          "ZeroC.Slice.Codec": "[0.6.1, )"
         }
       }
     }

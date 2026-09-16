@@ -194,13 +194,13 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )",
-          "ZeroC.Slice.Codec": "[0.6.0, )"
+          "ZeroC.Slice.Codec": "[0.6.1, )"
         }
       },
       "icerpc.extensions.dependencyinjection": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
+          "IceRpc": "[0.6.1, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.11, )",
           "Microsoft.Extensions.Options": "[10.0.11, )"
         }
@@ -208,21 +208,21 @@
       "icerpc.ice": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.ServiceGenerator": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.ServiceGenerator": "[0.6.1, )"
         }
       },
       "icerpc.locator": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.Ice": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.Ice": "[0.6.1, )"
         }
       },
       "icerpc.logger": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
+          "IceRpc": "[0.6.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )"
         }
       },
@@ -232,20 +232,20 @@
       "icerpc.tests.common": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.Extensions.DependencyInjection": "[0.6.0, )",
-          "IceRpc.Logger": "[0.6.0, )",
-          "IceRpc.Transports.Coloc": "[0.6.0, )",
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.Extensions.DependencyInjection": "[0.6.1, )",
+          "IceRpc.Logger": "[0.6.1, )",
+          "IceRpc.Transports.Coloc": "[0.6.1, )",
           "Microsoft.Extensions.Logging": "[10.0.11, )",
           "Microsoft.Extensions.Logging.Console": "[10.0.11, )",
           "NUnit": "[4.6.1, )",
-          "ZeroC.Tests.Common": "[0.6.0, )"
+          "ZeroC.Tests.Common": "[0.6.1, )"
         }
       },
       "icerpc.transports.coloc": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )"
         }
       },
       "zeroc.slice.codec": {

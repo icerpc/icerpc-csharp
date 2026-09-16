@@ -26,14 +26,14 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )",
-          "ZeroC.Slice.Codec": "[0.6.0, )"
+          "ZeroC.Slice.Codec": "[0.6.1, )"
         }
       },
       "icerpc.ice": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.0, )",
-          "IceRpc.ServiceGenerator": "[0.6.0, )"
+          "IceRpc": "[0.6.1, )",
+          "IceRpc.ServiceGenerator": "[0.6.1, )"
         }
       },
       "icerpc.servicegenerator": {
