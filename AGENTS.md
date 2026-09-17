@@ -65,9 +65,9 @@ The IceRPC documentation published at [docs.icerpc.dev](https://docs.icerpc.dev)
 - When preparing a PR, consider how the change affects the product documentation: a new feature that needs to be
   documented, or a change to the behavior, API, or configuration of a feature the documentation already describes.
   Internal changes (refactoring, tests, build, CI) usually need nothing.
-- A change that affects the documentation requires a follow-up companion PR in `icerpc/icerpc-docs`. Say so in the PR
-  description, with the pages or topics to add or update, and link the companion PR once it exists; the companion PR
-  links back to this one.
+- A change that affects the documentation requires a follow-up in `icerpc/icerpc-docs`: create the companion PR, or
+  file an issue there describing the pages or topics to add or update. Link the companion PR or issue in the PR
+  description, and link back to this PR from it.
 
 ## Design decisions
 
