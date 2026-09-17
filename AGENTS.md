@@ -57,6 +57,18 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
   issue it fixes. From the command line, pass `--milestone` and `--label` to `gh pr create`, or set them afterwards
   with `gh pr edit`.
 
+## Product documentation
+
+The IceRPC documentation published at [docs.icerpc.dev](https://docs.icerpc.dev) lives in a separate repository,
+`icerpc/icerpc-docs`. Only the API reference is generated from this repository (from the XML doc comments).
+
+- When preparing a PR, consider how the change affects the product documentation: a new feature that needs to be
+  documented, or a change to the behavior, API, or configuration of a feature the documentation already describes.
+  Internal changes (refactoring, tests, build, CI) usually need nothing.
+- A change that affects the documentation requires a follow-up companion PR in `icerpc/icerpc-docs`. Say so in the PR
+  description, with the pages or topics to add or update, and link the companion PR once it exists; the companion PR
+  links back to this one.
+
 ## Design decisions
 
 [DESIGN-DECISIONS.md](DESIGN-DECISIONS.md) records deliberate design decisions that can look like defects: trust
