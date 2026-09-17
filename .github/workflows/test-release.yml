@@ -46,7 +46,13 @@ jobs:
 
       - name: Set IceRPC version
         run: |
-          echo "IceRpcVersion=${{ inputs.icerpc_version }}" >> $env:GITHUB_ENV
+          # A stable build does not set icerpc_version: its packages carry the repository version. The examples
+          # must build against that version, not against their default version restored from a public feed.
+          $version = "${{ inputs.icerpc_version }}"
+          if (-not $version) {
+            $version = dotnet msbuild build/IceRpc.Version.props -getProperty:Version
+          }
+          echo "IceRpcVersion=$version" >> $env:GITHUB_ENV
         shell: pwsh
 
       - name: Download NuGet artifacts
@@ -80,3 +86,5 @@ jobs:
 
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
+        with:
+          packages-source: ${{ github.workspace }}/packages
