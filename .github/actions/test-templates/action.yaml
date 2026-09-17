@@ -1,6 +1,14 @@
 name: Test Templates
 description: "Tests the IceRPC project templates"
 
+inputs:
+  packages-source:
+    description: >-
+      A NuGet source holding the IceRPC packages referenced by the templates. When not set, these packages must
+      already be in the NuGet global packages folder.
+    required: false
+    default: ""
+
 runs:
   using: "composite"
   steps:
@@ -13,7 +21,13 @@ runs:
       $dir = "$env:RUNNER_TEMP/templates-test"
       New-Item -ItemType Directory -Force -Path $dir | Out-Null
       echo "TEMPLATES_TEST_DIR=$dir" >> $env:GITHUB_ENV
+      if ($env:PACKAGES_SOURCE) {
+        dotnet new nugetconfig -o $dir --force
+        dotnet nuget add source $env:PACKAGES_SOURCE -n local-packages --configfile $dir/nuget.config
+      }
     shell: pwsh
+    env:
+      PACKAGES_SOURCE: ${{ inputs.packages-source }}
 
   # Protobuf Client template
   - name: 🧪 Test IceRpc + Protobuf Client Template with TCP
