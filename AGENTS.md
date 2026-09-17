@@ -17,8 +17,9 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 
 - In PR descriptions, commit messages, and Markdown docs, prefer `#1234` over full GitHub URLs when referencing issues
   or PRs in this repo (`icerpc/icerpc-csharp`). Use full URLs only when linking to other repositories.
-- Don't reference GitHub issues or PRs in source code or code comments (no `#1234`, no URLs). A comment must stand
-  on its own; the issue belongs in the commit message and PR description.
+- Don't reference this repository's issues or PRs in source code or code comments (no `#1234`, no URLs). A comment
+  must stand on its own; the issue belongs in the commit message and PR description. A workaround for a bug in another
+  project may link that project's issue, which tells the reader when the workaround can be removed.
 - XML doc comments use `<summary>`, `<remarks>`, `<param>`, etc. — not Markdown.
 - A comment states what the code cannot show: a why, a constraint, a contract, a non-obvious rule. It never narrates
   the code below it; assume the reader reads the code.
@@ -59,15 +60,14 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 
 ## Product documentation
 
-The IceRPC documentation published at [docs.icerpc.dev](https://docs.icerpc.dev) lives in a separate repository,
-`icerpc/icerpc-docs`. Only the API reference is generated from this repository (from the XML doc comments).
+This repository generates only the API reference, from its XML doc comments. The rest of the IceRPC documentation,
+published at [docs.icerpc.dev](https://docs.icerpc.dev), lives in a separate repository, `icerpc/icerpc-docs`.
 
 - When preparing a PR, consider how the change affects the product documentation: a new feature that needs to be
   documented, or a change to the behavior, API, or configuration of a feature the documentation already describes.
   Internal changes (refactoring, tests, build, CI) usually need nothing.
-- A change that affects the documentation requires a follow-up in `icerpc/icerpc-docs`: create the companion PR, or
-  file an issue there describing the pages or topics to add or update. Link the companion PR or issue in the PR
-  description, and link back to this PR from it.
+- A change that affects the documentation needs a follow-up issue in `icerpc/icerpc-docs` describing the pages or
+  topics to add or update. The issue links to the PR, and the PR description links to the issue.
 
 ## Design decisions
 
