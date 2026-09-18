@@ -168,9 +168,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     throw;
                 }
 
-                // The peer's control stream is its first unidirectional stream: ID 2 when the peer is the client, ID 3
-                // when it's the server. With QUIC, a request stream sent by the peer can reach us before its control
-                // stream.
+                // The peer's control stream is the first unidirectional stream it opens, so its ID is 2 when we're the
+                // server and 3 when we're the client. Over QUIC, we can accept a peer's request stream before the
+                // control stream.
                 ulong remoteControlStreamId = IsServer ? 2ul : 3ul;
                 while (true)
                 {
