@@ -67,6 +67,7 @@ public sealed class TelemetryMiddlewareTests
 
         string? encodedActivityId;
         ActivitySpanId? parentSpanId;
+        ActivityTraceFlags? parentTraceFlags;
         PipeReader encodedTraceContext = EncodeTraceContext();
 
         PipeReader EncodeTraceContext()
@@ -78,6 +79,7 @@ public sealed class TelemetryMiddlewareTests
             encodedActivity.Start();
             encodedActivityId = encodedActivity.Id;
             parentSpanId = encodedActivity.SpanId;
+            parentTraceFlags = encodedActivity.ActivityTraceFlags;
 
             var pipe = new Pipe();
             var encoder = new SliceEncoder(pipe.Writer);
@@ -116,7 +118,7 @@ public sealed class TelemetryMiddlewareTests
         // The dispatch activity parent matches the activity context encoded in the TraceContext field
         Assert.That(dispatchActivity!.ParentId, Is.EqualTo(encodedActivityId));
         Assert.That(dispatchActivity.ParentSpanId, Is.EqualTo(parentSpanId));
-        Assert.That(dispatchActivity.ActivityTraceFlags, Is.EqualTo(ActivityTraceFlags.None));
+        Assert.That(dispatchActivity.ActivityTraceFlags, Is.EqualTo(parentTraceFlags));
         Assert.That(dispatchActivity.Baggage, Is.Not.Null);
         var baggage = dispatchActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);
