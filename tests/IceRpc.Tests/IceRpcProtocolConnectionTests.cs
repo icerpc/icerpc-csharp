@@ -366,6 +366,51 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
+    /// <summary>Verifies that the server connect succeeds and dispatches the request when the transport surfaces the
+    /// client's first request stream before its control stream.</summary>
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Connect_succeeds_when_request_stream_is_accepted_before_control_stream(bool oneway)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSlicTransport()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        using var dispatcher = new TestDispatcher();
+
+        await using var client = new IceRpcProtocolConnection(
+            clientServerConnection.Client,
+            transportConnectionInformation: null,
+            new ConnectionOptions(),
+            taskExceptionObserver: null);
+        Task clientConnectTask = client.ConnectAsync(default);
+
+        TransportConnectionInformation transportConnectionInformation = await clientServerConnection.AcceptAsync();
+        await using var serverTransportConnection =
+            new ControlStreamLastConnectionDecorator(clientServerConnection.Server);
+        await using var server = new IceRpcProtocolConnection(
+            serverTransportConnection,
+            transportConnectionInformation,
+            new ConnectionOptions { Dispatcher = dispatcher },
+            taskExceptionObserver: null);
+        Task serverConnectTask = server.ConnectAsync(default);
+        await clientConnectTask;
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { IsOneway = oneway };
+
+        // Act
+        Task<IncomingResponse> invokeTask = client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(async () => await serverConnectTask, Throws.Nothing);
+        Assert.That(async () => await dispatcher.DispatchStart, Throws.Nothing);
+        Assert.That(async () => (await invokeTask).StatusCode, Is.EqualTo(StatusCode.Ok));
+    }
+
     [Test]
     public async Task Dispatch_exception_handling_on_protocol_error()
     {
@@ -1922,6 +1967,50 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.ShutdownAsync(cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    /// <summary>A multiplexed connection decorator that returns the peer's control stream after the stream accepted
+    /// next, like a QUIC connection that receives a request stream before the control stream.</summary>
+    private sealed class ControlStreamLastConnectionDecorator : IMultiplexedConnection
+    {
+        private bool _controlStreamAccepted;
+        private readonly IMultiplexedConnection _decoratee;
+        private IMultiplexedStream? _heldControlStream;
+
+        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
+        {
+            if (_heldControlStream is IMultiplexedStream controlStream)
+            {
+                _heldControlStream = null;
+                return controlStream;
+            }
+
+            IMultiplexedStream stream = await _decoratee.AcceptStreamAsync(cancellationToken);
+            if (!_controlStreamAccepted)
+            {
+                // Over Slic, the first accepted stream is always the peer's control stream: the peer sends its
+                // Settings frame before any request, and Slic delivers frames in order.
+                _controlStreamAccepted = true;
+                _heldControlStream = stream;
+                stream = await _decoratee.AcceptStreamAsync(cancellationToken);
+            }
+            return stream;
+        }
+
+        public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
+            _decoratee.CloseAsync(closeError, cancellationToken);
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+            _decoratee.ConnectAsync(cancellationToken);
+
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(
+            bool bidirectional,
+            CancellationToken cancellationToken) =>
+            _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal ControlStreamLastConnectionDecorator(IMultiplexedConnection decoratee) => _decoratee = decoratee;
     }
 
     private sealed class HoldPipeReader : PipeReader
