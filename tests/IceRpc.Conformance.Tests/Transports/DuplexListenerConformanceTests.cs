@@ -142,13 +142,14 @@ public abstract class DuplexListenerConformanceTests
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
             connections.Add(connection);
             connectTask = connection.ConnectAsync(default);
-            Task completedConnectTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromMilliseconds(250)));
-            if (completedConnectTask != connectTask)
+            try
+            {
+                await connectTask.WaitAsync(TimeSpan.FromMilliseconds(250));
+            }
+            catch (TimeoutException)
             {
                 break;
             }
-            // Ensure the connect task completed successfully before creating a new one.
-            await connectTask;
         }
 
         // Act

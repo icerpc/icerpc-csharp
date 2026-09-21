@@ -44,8 +44,10 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
 
-        // The client will typically close the transport connection after receiving AuthenticationException
-        var exception = Assert.ThrowsAsync<IceRpcException>(
+        // The client typically closes the transport connection after receiving AuthenticationException, and the
+        // server then fails with an IceRpcException. Some TLS implementations instead report the client's alert as an
+        // AuthenticationException during the server handshake.
+        Exception? exception = Assert.CatchAsync(
             async () =>
             {
                 sut.Client.Dispose();
@@ -53,9 +55,11 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                 await sut.Server.ReadAsync(new byte[1], CancellationToken.None);
             });
         Assert.That(
-            exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError),
-            $"The test failed with an unexpected IceRpcError {exception}");
+            exception,
+            Is.TypeOf<AuthenticationException>()
+                .Or.TypeOf<IceRpcException>().And.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted)
+                .Or.TypeOf<IceRpcException>().And.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError),
+            $"The test failed with an unexpected exception {exception}");
     }
 
     [Test]
@@ -95,20 +99,21 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // connection establishment.
         var clientConnectTask = sut.Client.ConnectAsync(default);
         var serverConnectTask = sut.AcceptAsync();
-        await clientConnectTask;
 
         // Act/Assert
         Assert.That(async () => await serverConnectTask, Throws.TypeOf<AuthenticationException>());
 
-        // The client handshake terminates before the server, the client doesn't get an error until it
-        // reads or the peer close the connection.
+        // The client handshake typically completes before the server rejects the client certificate: the client only
+        // gets an error when it reads or the server closes the connection. Some TLS implementations instead report the
+        // server's alert as an AuthenticationException during the client handshake.
         Assert.That(
             async () =>
             {
+                await clientConnectTask;
                 sut.Server.Dispose();
                 await sut.Client.ReadAsync(new byte[1], CancellationToken.None);
             },
-            Throws.TypeOf<IceRpcException>());
+            Throws.TypeOf<IceRpcException>().Or.TypeOf<AuthenticationException>());
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
