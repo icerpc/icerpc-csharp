@@ -391,7 +391,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         TransportConnectionInformation transportConnectionInformation = await clientServerConnection.AcceptAsync();
         await using var serverTransportConnection =
-            new ControlStreamLastConnectionDecorator(clientServerConnection.Server);
+            new ControlStreamLastConnectionDecorator(clientServerConnection.Server, streamsBeforeControlStream: 1);
         await using var server = new IceRpcProtocolConnection(
             serverTransportConnection,
             transportConnectionInformation,
@@ -409,6 +409,62 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await serverConnectTask, Throws.Nothing);
         Assert.That(async () => await dispatcher.DispatchStart, Throws.Nothing);
         Assert.That(async () => (await invokeTask).StatusCode, Is.EqualTo(StatusCode.Ok));
+    }
+
+    /// <summary>Verifies that the server connect fails when the peer opens more streams than the stream limits allow
+    /// before its control stream is accepted.</summary>
+    [Test]
+    public async Task Connect_fails_when_too_many_streams_are_accepted_before_control_stream()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSlicTransport()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+
+        await using var client = new IceRpcProtocolConnection(
+            clientServerConnection.Client,
+            transportConnectionInformation: null,
+            new ConnectionOptions(),
+            taskExceptionObserver: null);
+        Task clientConnectTask = client.ConnectAsync(default);
+
+        TransportConnectionInformation transportConnectionInformation = await clientServerConnection.AcceptAsync();
+        await using var serverTransportConnection =
+            new ControlStreamLastConnectionDecorator(clientServerConnection.Server, streamsBeforeControlStream: 3);
+        await using var server = new IceRpcProtocolConnection(
+            serverTransportConnection,
+            transportConnectionInformation,
+            new ConnectionOptions { MaxIceRpcBidirectionalStreams = 1, MaxIceRpcUnidirectionalStreams = 1 },
+            taskExceptionObserver: null);
+        Task serverConnectTask = server.ConnectAsync(default);
+        await clientConnectTask;
+
+        // Act - open one more request stream than the server's stream limits allow, directly on the client transport
+        // connection.
+        var streams = new List<IMultiplexedStream>();
+        for (int i = 0; i < 3; i++)
+        {
+            IMultiplexedStream stream =
+                await clientServerConnection.Client.CreateStreamAsync(bidirectional: true, default);
+            await stream.Output.WriteAsync(new byte[] { 0 }, default);
+            streams.Add(stream);
+        }
+
+        // Assert
+        Assert.That(
+            async () => await serverConnectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
+
+        // Cleanup
+        foreach (IMultiplexedStream stream in streams)
+        {
+            stream.Output.Complete();
+            stream.Input.Complete();
+        }
     }
 
     [Test]
@@ -1969,32 +2025,34 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>A multiplexed connection decorator that returns the peer's control stream after the stream accepted
-    /// next, like a QUIC connection that receives a request stream before the control stream.</summary>
+    /// <summary>A multiplexed connection decorator that returns the peer's control stream after a number of streams
+    /// accepted next, like a QUIC connection that receives request streams before the control stream.</summary>
     private sealed class ControlStreamLastConnectionDecorator : IMultiplexedConnection
     {
-        private bool _controlStreamAccepted;
+        private bool _controlStreamReturned;
         private readonly IMultiplexedConnection _decoratee;
         private IMultiplexedStream? _heldControlStream;
+        private int _streamsBeforeControlStream;
 
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
         {
-            if (_heldControlStream is IMultiplexedStream controlStream)
+            if (_controlStreamReturned)
             {
-                _heldControlStream = null;
-                return controlStream;
+                return await _decoratee.AcceptStreamAsync(cancellationToken);
             }
 
-            IMultiplexedStream stream = await _decoratee.AcceptStreamAsync(cancellationToken);
-            if (!_controlStreamAccepted)
+            // Over Slic, the first accepted stream is always the peer's control stream: the peer sends its Settings
+            // frame before any request, and Slic delivers frames in order.
+            _heldControlStream ??= await _decoratee.AcceptStreamAsync(cancellationToken);
+
+            if (_streamsBeforeControlStream > 0)
             {
-                // Over Slic, the first accepted stream is always the peer's control stream: the peer sends its
-                // Settings frame before any request, and Slic delivers frames in order.
-                _controlStreamAccepted = true;
-                _heldControlStream = stream;
-                stream = await _decoratee.AcceptStreamAsync(cancellationToken);
+                _streamsBeforeControlStream--;
+                return await _decoratee.AcceptStreamAsync(cancellationToken);
             }
-            return stream;
+
+            _controlStreamReturned = true;
+            return _heldControlStream;
         }
 
         public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
@@ -2010,7 +2068,11 @@ public sealed class IceRpcProtocolConnectionTests
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal ControlStreamLastConnectionDecorator(IMultiplexedConnection decoratee) => _decoratee = decoratee;
+        internal ControlStreamLastConnectionDecorator(IMultiplexedConnection decoratee, int streamsBeforeControlStream)
+        {
+            _decoratee = decoratee;
+            _streamsBeforeControlStream = streamsBeforeControlStream;
+        }
     }
 
     private sealed class HoldPipeReader : PipeReader

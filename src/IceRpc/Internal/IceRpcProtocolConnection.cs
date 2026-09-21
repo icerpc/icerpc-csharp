@@ -66,6 +66,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly int _maxLocalHeaderSize;
     private int _maxPeerHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
+    // The maximum number of remote streams the peer can have open at once, without counting the control stream.
+    private readonly int _maxRemoteStreams;
+
     private readonly Lock _mutex = new();
 
     private Task? _readGoAwayTask;
@@ -183,8 +186,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         break;
                     }
 
-                    // The queue can't grow beyond the transport's stream limits: a queued stream remains open and
-                    // counts against these limits until it's dispatched.
+                    // A peer that exceeds this bound opened and closed streams before we accepted its control stream,
+                    // which we treat as misbehavior.
+                    if (streamsAcceptedBeforeRemoteControlStream.Count == _maxRemoteStreams)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.LimitExceeded,
+                            "Received too many streams from the peer before its control stream.");
+                    }
                     streamsAcceptedBeforeRemoteControlStream.Enqueue(stream);
                 }
 
@@ -778,6 +787,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+        _maxRemoteStreams = options.MaxIceRpcBidirectionalStreams + options.MaxIceRpcUnidirectionalStreams;
         _transportConnectionInformation = transportConnectionInformation;
 
         if (options.MaxDispatches > 0)
