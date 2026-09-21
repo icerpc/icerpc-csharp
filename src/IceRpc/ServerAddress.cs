@@ -37,7 +37,7 @@ public readonly record struct ServerAddress
             // A value that starts with '[' is necessarily a well-formed bracketed IPv6 address: for any other value
             // with brackets, including mismatched brackets, CheckHostName returns Unknown. We store the address
             // without the brackets, like the Uri constructor does.
-            _host = value.StartsWith('[') ? value[1..^1] : value;
+            _host = value.StartsWith('[', StringComparison.Ordinal) ? value[1..^1] : value;
             OriginalUri = null; // new host invalidates OriginalUri
         }
     }

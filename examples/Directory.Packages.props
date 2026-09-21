@@ -30,10 +30,10 @@
     <PackageVersion Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
     <PackageVersion Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" />
     <PackageVersion Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0-rc.1.26425.128" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="11.0.0-rc.1.26425.128" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="11.0.0-rc.1.26425.128" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="11.0.0-rc.1.26425.128" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <!-- The 1.2 beta version is required for supporting the latest language features.
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->

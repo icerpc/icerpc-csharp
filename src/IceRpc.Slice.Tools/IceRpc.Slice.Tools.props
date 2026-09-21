@@ -34,12 +34,12 @@
       <PropertyGroup>
         <_IceRpcSliceToolsSourceBuild>true</_IceRpcSliceToolsSourceBuild>
         <_SliceCPath>$(MSBuildThisFileDirectory)obj/tools/$(_IceRpcOSName)-$(_IceRpcOSArch)</_SliceCPath>
-        <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net10.0/</_ZeroCSliceGeneratorPath>
-        <_IceRpcSliceGeneratorPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net10.0/</_IceRpcSliceGeneratorPath>
-        <_IceRpcSliceBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net10.0/</_IceRpcSliceBuildTelemetryPath>
+        <_ZeroCSliceGeneratorPath>$(MSBuildThisFileDirectory)../ZeroC.Slice.Generator/bin/$(Configuration)/net11.0/</_ZeroCSliceGeneratorPath>
+        <_IceRpcSliceGeneratorPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.Generator/bin/$(Configuration)/net11.0/</_IceRpcSliceGeneratorPath>
+        <_IceRpcSliceBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.Slice.BuildTelemetry/bin/$(Configuration)/net11.0/</_IceRpcSliceBuildTelemetryPath>
 
         <!-- Use tools assembly built from source -->
-        <_IceRpcSliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</_IceRpcSliceToolsTaskAssembliesPath>
+        <_IceRpcSliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net11.0/</_IceRpcSliceToolsTaskAssembliesPath>
 
         <!-- Force task to run out of process to avoid issues with files in use -->
         <_IceRpcSliceToolsTaskFactory>TaskHostFactory</_IceRpcSliceToolsTaskFactory>

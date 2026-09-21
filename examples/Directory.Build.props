@@ -4,6 +4,8 @@
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>All</AnalysisMode>
+    <!-- Since .NET 11, AnalysisMode=All also turns on every IDE style rule. Keep the pre-11 style defaults. -->
+    <AnalysisModeStyle>Default</AnalysisModeStyle>
     <!-- Required by Roslyn to warn about unused using directives -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

@@ -6,9 +6,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarningLevel>4</WarningLevel>
     <Nullable>enable</Nullable>
-    <LangVersion>14.0</LangVersion>
+    <LangVersion>15.0</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>All</AnalysisMode>
+    <!-- Since .NET 11, AnalysisMode=All also turns on every IDE style rule. Keep the pre-11 style defaults. -->
+    <AnalysisModeStyle>Default</AnalysisModeStyle>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>

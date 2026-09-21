@@ -3,7 +3,7 @@
     <Description>IceRPC + Protobuf integration for C#</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>IceRPC;RPC;Protobuf</PackageTags>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />

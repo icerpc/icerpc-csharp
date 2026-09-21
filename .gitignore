@@ -62,8 +62,8 @@ bld/
 *.opendb
 .vs/
 *.d
-**/net10/*
-**/net10.0/*
+**/net11/*
+**/net11.0/*
 Resource.designer.cs
 *.apk
 *.apk.mSYM
