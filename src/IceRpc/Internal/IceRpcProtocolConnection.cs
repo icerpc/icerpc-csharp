@@ -78,6 +78,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private IMultiplexedStream? _remoteControlStream;
 
+    // The streams accepted from the transport connection but not handed to a dispatch yet.
+    private readonly Queue<IMultiplexedStream> _pendingStreams = new();
+
     private readonly CancellationTokenSource _shutdownOrGoAwayCts;
 
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
@@ -133,7 +136,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _disposedCts.Token);
 
             TransportConnectionInformation transportConnectionInformation;
-            var streamsAcceptedBeforeRemoteControlStream = new Queue<IMultiplexedStream>();
 
             try
             {
@@ -186,15 +188,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         break;
                     }
 
+                    _pendingStreams.Enqueue(stream);
+
                     // A peer that exceeds this bound opened and closed streams before we accepted its control stream,
                     // which we treat as misbehavior.
-                    if (streamsAcceptedBeforeRemoteControlStream.Count == _maxRemoteStreams)
+                    if (_pendingStreams.Count > _maxRemoteStreams)
                     {
                         throw new IceRpcException(
                             IceRpcError.LimitExceeded,
                             "Received too many streams from the peer before its control stream.");
                     }
-                    streamsAcceptedBeforeRemoteControlStream.Enqueue(stream);
                 }
 
                 await ReceiveControlFrameHeaderAsync(
@@ -252,9 +255,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _readGoAwayTask = ReadGoAwayAsync(_disposedCts.Token);
 
                 // Start a task that accepts requests (the "accept requests loop")
-                _acceptRequestsTask = AcceptRequestsAsync(
-                    streamsAcceptedBeforeRemoteControlStream,
-                    _shutdownOrGoAwayCts.Token);
+                _acceptRequestsTask = AcceptRequestsAsync(_shutdownOrGoAwayCts.Token);
             }
 
             // The _acceptRequestsTask waits for this PerformConnectAsync completion before reading anything. As soon as
@@ -330,6 +331,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // It's safe to complete the input since read operations have been completed by the transport connection
             // disposal.
             _remoteControlStream?.Input.Complete();
+
+            // _pendingStreams is only used by Connect and the accept requests loop (which have both completed at this
+            // point). And a stream still in _pendingStreams was never handed out.
+            foreach (IMultiplexedStream stream in _pendingStreams)
+            {
+                stream.Input.Complete();
+                if (stream.IsBidirectional)
+                {
+                    stream.Output.Complete();
+                }
+            }
 
             _dispatchSemaphore?.Dispose();
             _disposedCts.Dispose();
@@ -913,9 +925,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         return (fields, pipeReader);
     }
 
-    private async Task AcceptRequestsAsync(
-        Queue<IMultiplexedStream> streamsAcceptedBeforeRemoteControlStream,
-        CancellationToken cancellationToken)
+    private async Task AcceptRequestsAsync(CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
 
@@ -933,7 +943,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             while (!cancellationToken.IsCancellationRequested)
             {
                 IMultiplexedStream stream;
-                if (streamsAcceptedBeforeRemoteControlStream.TryDequeue(out IMultiplexedStream? earlyStream))
+                if (_pendingStreams.TryDequeue(out IMultiplexedStream? earlyStream))
                 {
                     stream = earlyStream;
                 }
@@ -953,6 +963,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     if (_shutdownTask is not null)
                     {
                         // Note that cancellationToken may not be canceled yet at this point.
+                        _pendingStreams.Enqueue(stream);
                         throw new OperationCanceledException();
                     }
 

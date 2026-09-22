@@ -392,6 +392,14 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     /// <inheritdoc/>
     public Task WritesClosed => _decoratee.WritesClosed;
 
+    /// <summary>Gets a task that completes when <see cref="Input" /> is completed.</summary>
+    public Task InputCompleted =>
+        _input?.Completed ?? throw new InvalidOperationException("No input for unidirectional stream.");
+
+    /// <summary>Gets a task that completes when <see cref="Output" /> is completed.</summary>
+    public Task OutputCompleted =>
+        _output?.Completed ?? throw new InvalidOperationException("No output for unidirectional stream.");
+
     private readonly IMultiplexedStream _decoratee;
     private readonly TestPipeReader? _input;
     private readonly TestPipeWriter? _output;
@@ -431,6 +439,9 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
 
     public override long UnflushedBytes => _decoratee.UnflushedBytes;
 
+    internal Task Completed => _completedTcs.Task;
+
+    private readonly TaskCompletionSource _completedTcs = new();
     private readonly ReadOnlySequencePipeWriter _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
@@ -442,6 +453,7 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
     {
         _operations.Hold &= ~MultiplexedTransportOperations.StreamWrite;
         _decoratee.Complete(exception);
+        _completedTcs.TrySetResult();
     }
 
     public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
@@ -488,6 +500,9 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
 
 internal sealed class TestPipeReader : PipeReader
 {
+    internal Task Completed => _completedTcs.Task;
+
+    private readonly TaskCompletionSource _completedTcs = new();
     private readonly PipeReader _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
     private readonly PipeReader? _streamInput;
@@ -504,6 +519,7 @@ internal sealed class TestPipeReader : PipeReader
         _operations.Hold &= ~MultiplexedTransportOperations.StreamRead;
         _decoratee.Complete(exception);
         _streamInput?.Complete(exception);
+        _completedTcs.TrySetResult();
     }
 
     public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken) =>

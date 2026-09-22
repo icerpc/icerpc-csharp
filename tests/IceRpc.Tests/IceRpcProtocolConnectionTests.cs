@@ -412,7 +412,8 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that the server connect fails when the peer opens more streams than the stream limits allow
-    /// before its control stream is accepted.</summary>
+    /// before its control stream is accepted, and that disposing the server connection completes these streams.
+    /// </summary>
     [Test]
     public async Task Connect_fails_when_too_many_streams_are_accepted_before_control_stream()
     {
@@ -421,6 +422,7 @@ public sealed class IceRpcProtocolConnectionTests
             .AddColocTransport()
             .AddSlicTransport()
             .AddMultiplexedTransportTest()
+            .AddTestMultiplexedTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -458,6 +460,12 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await serverConnectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
+
+        await server.DisposeAsync();
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        TestMultiplexedStreamDecorator serverStream = serverTransport.LastAcceptedConnection.LastAcceptedStream;
+        Assert.That(serverStream.InputCompleted.IsCompleted, Is.True);
+        Assert.That(serverStream.OutputCompleted.IsCompleted, Is.True);
 
         // Cleanup
         foreach (IMultiplexedStream stream in streams)

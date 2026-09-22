@@ -5,8 +5,15 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports;
 
 /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
-/// <remarks>The implementation of <see cref="IDuplexPipe.Output"/> must be a <see cref="ReadOnlySequencePipeWriter"/>
-/// and this pipe writer must support reporting its count of unflushed bytes.</remarks>
+/// <remarks><para>The implementation of <see cref="IDuplexPipe.Output"/> must be a
+/// <see cref="ReadOnlySequencePipeWriter"/> and this pipe writer must support reporting its count of unflushed bytes.
+/// </para>
+/// <para>The owner of this stream must always complete <see cref="IDuplexPipe.Input" /> and
+/// <see cref="IDuplexPipe.Output" />. Until then, the stream can hold onto transport resources and count against the
+/// connection's stream limits. Closing or disposing the connection fails the pending and future read and write
+/// operations of the stream and completes <see cref="WritesClosed" />; it does not complete the stream's input or
+/// output.</para>
+/// </remarks>
 public interface IMultiplexedStream : IDuplexPipe
 {
     /// <summary>Gets the stream ID.</summary>
