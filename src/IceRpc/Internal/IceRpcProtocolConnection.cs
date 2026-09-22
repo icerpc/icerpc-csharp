@@ -66,6 +66,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly int _maxLocalHeaderSize;
     private int _maxPeerHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
+    // The maximum number of remote streams the peer can have open at once, without counting the control stream.
+    private readonly int _maxRemoteStreams;
+
     private readonly Lock _mutex = new();
 
     private Task? _readGoAwayTask;
@@ -130,6 +133,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _disposedCts.Token);
 
             TransportConnectionInformation transportConnectionInformation;
+            var streamsAcceptedBeforeRemoteControlStream = new Queue<IMultiplexedStream>();
 
             try
             {
@@ -167,9 +171,31 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     throw;
                 }
 
-                // Wait for the remote control stream to be accepted and read the protocol Settings frame
-                _remoteControlStream = await _transportConnection.AcceptStreamAsync(
-                    connectCts.Token).ConfigureAwait(false);
+                // The peer's control stream is the first unidirectional stream it opens, so its ID is 2 when we're the
+                // server and 3 when we're the client. Over QUIC, we can accept a peer's request stream before the
+                // control stream.
+                ulong remoteControlStreamId = IsServer ? 2ul : 3ul;
+                while (true)
+                {
+                    IMultiplexedStream stream =
+                        await _transportConnection.AcceptStreamAsync(connectCts.Token).ConfigureAwait(false);
+
+                    if (stream.Id == remoteControlStreamId)
+                    {
+                        _remoteControlStream = stream;
+                        break;
+                    }
+
+                    // A peer that exceeds this bound opened and closed streams before we accepted its control stream,
+                    // which we treat as misbehavior.
+                    if (streamsAcceptedBeforeRemoteControlStream.Count == _maxRemoteStreams)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.LimitExceeded,
+                            "Received too many streams from the peer before its control stream.");
+                    }
+                    streamsAcceptedBeforeRemoteControlStream.Enqueue(stream);
+                }
 
                 await ReceiveControlFrameHeaderAsync(
                     IceRpcControlFrameType.Settings,
@@ -226,7 +252,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _readGoAwayTask = ReadGoAwayAsync(_disposedCts.Token);
 
                 // Start a task that accepts requests (the "accept requests loop")
-                _acceptRequestsTask = AcceptRequestsAsync(_shutdownOrGoAwayCts.Token);
+                _acceptRequestsTask = AcceptRequestsAsync(
+                    streamsAcceptedBeforeRemoteControlStream,
+                    _shutdownOrGoAwayCts.Token);
             }
 
             // The _acceptRequestsTask waits for this PerformConnectAsync completion before reading anything. As soon as
@@ -759,6 +787,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+        _maxRemoteStreams = options.MaxIceRpcBidirectionalStreams + options.MaxIceRpcUnidirectionalStreams;
         _transportConnectionInformation = transportConnectionInformation;
 
         if (options.MaxDispatches > 0)
@@ -884,7 +913,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         return (fields, pipeReader);
     }
 
-    private async Task AcceptRequestsAsync(CancellationToken cancellationToken)
+    private async Task AcceptRequestsAsync(
+        Queue<IMultiplexedStream> streamsAcceptedBeforeRemoteControlStream,
+        CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
 
@@ -901,12 +932,19 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // waiting.
             while (!cancellationToken.IsCancellationRequested)
             {
-                // When _dispatcher is null, the multiplexed connection MaxUnidirectionalStreams and
-                // MaxBidirectionalStreams options are configured to not accept any request-stream from the peer. As a
-                // result, when _dispatcher is null, this call will block indefinitely until the cancellation token is
-                // canceled by ShutdownAsync, GoAway or DisposeAsync.
-                IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                IMultiplexedStream stream;
+                if (streamsAcceptedBeforeRemoteControlStream.TryDequeue(out IMultiplexedStream? earlyStream))
+                {
+                    stream = earlyStream;
+                }
+                else
+                {
+                    // When _dispatcher is null, the multiplexed connection MaxUnidirectionalStreams and
+                    // MaxBidirectionalStreams options are configured to not accept any request-stream from the peer.
+                    // As a result, when _dispatcher is null, this call will block indefinitely until the cancellation
+                    // token is canceled by ShutdownAsync, GoAway or DisposeAsync.
+                    stream = await _transportConnection.AcceptStreamAsync(cancellationToken).ConfigureAwait(false);
+                }
 
                 lock (_mutex)
                 {
