@@ -278,7 +278,7 @@ public sealed record class ServiceAddress
             }
             else
             {
-                if (!_path.StartsWith('/'))
+                if (!_path.StartsWith('/', StringComparison.Ordinal))
                 {
                     throw new ArgumentException(
                         $"Invalid path in service address URI '{uri.OriginalString}'.",

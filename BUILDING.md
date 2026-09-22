@@ -12,7 +12,7 @@
 ## Prerequisites
 
 1. .NET SDK\
-Download the .NET 10.0 SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet).
+Download the .NET 11.0 SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet).
 
 2. docfx (optional)\
 Required only for generating the API reference. Install with:

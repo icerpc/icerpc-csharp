@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
@@ -19,8 +19,8 @@
     <PackageReference Include="IceRpc.Ice" Version="0.7.0-preview.1" />
     <PackageReference Include="IceRpc.Deadline" Version="0.7.0-preview.1" />
     <PackageReference Include="IceRpc.Logger" Version="0.7.0-preview.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0-rc.1.26425.128" />
     <!-- The 1.2 beta version is required for supporting the latest language features.
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">

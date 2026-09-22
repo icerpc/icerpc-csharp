@@ -16,7 +16,7 @@ is branch-specific:
 | 0.4.x                | 0.4.*                            | .NET 8.0, .NET 9.0 |
 | 0.5.x                | 0.5.*                            | .NET 10.0          |
 | 0.6.x                | 0.6.*                            | .NET 10.0          |
-| main                 | 0.7.0-nightly.*                  | .NET 10.0          |
+| main                 | 0.7.0-nightly.*                  | .NET 11.0          |
 
 If you want to build the examples for a released version (such as 0.5.x), please checkout the corresponding release
 branch. For example:

@@ -44,11 +44,11 @@
       <PropertyGroup>
         <IceRpcProtobufToolsSourceBuild>true</IceRpcProtobufToolsSourceBuild>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
-        <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
-        <IceRpcProtocBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net10.0/</IceRpcProtocBuildTelemetryPath>
+        <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.Protobuf.Generator/bin/$(Configuration)/net11.0/</IceRpcProtocGenPath>
+        <IceRpcProtocBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.Protobuf.BuildTelemetry/bin/$(Configuration)/net11.0/</IceRpcProtocBuildTelemetryPath>
 
         <!-- Use local build of IceRpc.Protobuf.Tools -->
-        <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</IceRpcProtobufToolsTaskAssembliesPath>
+        <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net11.0/</IceRpcProtobufToolsTaskAssembliesPath>
 
         <!-- Force task to run out of process to avoid issues with files in use -->
         <IceRpcProtobufToolsTaskFactory>TaskHostFactory</IceRpcProtobufToolsTaskFactory>

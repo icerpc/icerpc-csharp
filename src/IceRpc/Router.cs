@@ -194,7 +194,7 @@ public sealed class Router : IDispatcher
                         }
 
                         // Cut last segment
-                        int lastSlashPos = prefix.LastIndexOf('/');
+                        int lastSlashPos = prefix.LastIndexOf('/', StringComparison.Ordinal);
                         prefix = lastSlashPos > 0 ? NormalizePrefix(prefix[..lastSlashPos]) : "/";
                         // and try again with the new shorter prefix
                     }

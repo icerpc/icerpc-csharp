@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
-// Configure the host with the content root path set to the build directory (e.g.: Server/bin/Debug/net10.0).
+// Configure the host with the content root path set to the build directory (e.g.: Server/bin/Debug/net11.0).
 HostApplicationBuilder hostBuilder = Host.CreateApplicationBuilder(
     new HostApplicationBuilderSettings
     {

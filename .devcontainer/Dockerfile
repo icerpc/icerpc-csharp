@@ -12,11 +12,11 @@ RUN set -eux \
     && apt-get update \
     && apt-get install -y libmsquic libicu76 git build-essential
 
-# Install .NET 10.0
+# Install .NET 11.0
 RUN set -eux \
     && curl https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh -L \
     && chmod +x dotnet-install.sh \
-    && ./dotnet-install.sh -v latest -c 10.0
+    && ./dotnet-install.sh -v latest -c 11.0 -q preview
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y

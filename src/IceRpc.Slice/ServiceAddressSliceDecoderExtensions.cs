@@ -15,7 +15,7 @@ public static class ServiceAddressSliceDecoderExtensions
         string serviceAddressString = decoder.DecodeString();
         try
         {
-            if (serviceAddressString.StartsWith('/'))
+            if (serviceAddressString.StartsWith('/', StringComparison.Ordinal))
             {
                 // relative service address
                 return new ServiceAddress { Path = serviceAddressString };

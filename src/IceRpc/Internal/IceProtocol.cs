@@ -21,7 +21,7 @@ internal sealed class IceProtocol : Protocol
         int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
 
         // We can have at most one slash in the working path.
-        if (firstSlash != -1 && firstSlash != workingPath.LastIndexOf('/'))
+        if (firstSlash != -1 && firstSlash != workingPath.LastIndexOf('/', StringComparison.Ordinal))
         {
             throw new FormatException($"Too many slashes in path '{uriPath}'.");
         }

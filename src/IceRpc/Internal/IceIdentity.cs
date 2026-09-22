@@ -32,7 +32,7 @@ internal readonly partial record struct IceIdentity
         }
         else
         {
-            if (firstSlash != workingPath.LastIndexOf('/'))
+            if (firstSlash != workingPath.LastIndexOf('/', StringComparison.Ordinal))
             {
                 throw new FormatException($"Too many slashes in path '{path}'.");
             }
