@@ -441,7 +441,7 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
 
     internal Task Completed => _completedTcs.Task;
 
-    private readonly TaskCompletionSource _completedTcs = new();
+    private readonly TaskCompletionSource _completedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ReadOnlySequencePipeWriter _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
@@ -502,7 +502,7 @@ internal sealed class TestPipeReader : PipeReader
 {
     internal Task Completed => _completedTcs.Task;
 
-    private readonly TaskCompletionSource _completedTcs = new();
+    private readonly TaskCompletionSource _completedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly PipeReader _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
     private readonly PipeReader? _streamInput;

@@ -435,6 +435,10 @@ public sealed class IceRpcProtocolConnectionTests
         Task clientConnectTask = client.ConnectAsync(default);
 
         TransportConnectionInformation transportConnectionInformation = await clientServerConnection.AcceptAsync();
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        var acceptedStreams = new List<TestMultiplexedStreamDecorator>();
+        serverTransport.LastAcceptedConnection.OnAcceptStream(acceptedStreams.Add);
+
         await using var serverTransportConnection =
             new ControlStreamLastConnectionDecorator(clientServerConnection.Server, streamsBeforeControlStream: 3);
         await using var server = new IceRpcProtocolConnection(
@@ -462,10 +466,13 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
 
         await server.DisposeAsync();
-        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
-        TestMultiplexedStreamDecorator serverStream = serverTransport.LastAcceptedConnection.LastAcceptedStream;
-        Assert.That(serverStream.InputCompleted.IsCompleted, Is.True);
-        Assert.That(serverStream.OutputCompleted.IsCompleted, Is.True);
+        var requestStreams = acceptedStreams.Where(s => s.IsBidirectional).ToList();
+        Assert.That(requestStreams, Has.Count.EqualTo(3));
+        foreach (TestMultiplexedStreamDecorator requestStream in requestStreams)
+        {
+            Assert.That(requestStream.InputCompleted.IsCompleted, Is.True);
+            Assert.That(requestStream.OutputCompleted.IsCompleted, Is.True);
+        }
 
         // Cleanup
         foreach (IMultiplexedStream stream in streams)
