@@ -24,11 +24,11 @@ public sealed partial class ProtocolBridgingTests
 
         var forwarderProxy = new ProtocolBridgingTestProxy(
             InvalidInvoker.Instance,
-            new Uri($"{forwarderServerAddress}forward"));
+            new Uri($"{forwarderServerAddress}/forward"));
 
         var targetProxy = new ProtocolBridgingTestProxy(
             InvalidInvoker.Instance,
-            new Uri($"{targetServerAddress}target"));
+            new Uri($"{targetServerAddress}/target"));
 
         var targetService = new ProtocolBridgingTestService(targetServerAddress);
 

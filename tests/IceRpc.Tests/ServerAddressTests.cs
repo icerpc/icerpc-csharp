@@ -115,29 +115,6 @@ public class ServerAddressTests
         Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
     }
 
-    /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri" /> property is set for a server address created
-    /// from a URI.</summary>
-    [Test]
-    public void ServerAddress_original_URI()
-    {
-        var serverAddress = new ServerAddress(new Uri("icerpc://host:10000?transport=foobar"));
-
-        Assert.That(serverAddress.OriginalUri, Is.Not.Null);
-    }
-
-    /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri" /> property of a server address is set to null
-    /// after modifying the server address.</summary>
-    [Test]
-    public void ServerAddress_original_URI_is_null_after_updating_the_server_address()
-    {
-        var serverAddress = new ServerAddress(new Uri("icerpc://host:10000?transport=foobar"));
-
-        ServerAddress serverAddress2 = serverAddress with { Host = "localhost", Port = 10001 };
-
-        Assert.That(serverAddress.OriginalUri, Is.Not.Null);
-        Assert.That(serverAddress2.OriginalUri, Is.Null);
-    }
-
     /// <summary>Verifies that ServerAddress's constructor fails when a URI is not a valid server address.</summary>
     [TestCase("icerpc://host:10000/category/name")] // unexpected path
     [TestCase("icerpc://host:10000#fragment")] // unexpected fragment
@@ -213,7 +190,7 @@ public class ServerAddressTests
     }
 
     [Test]
-    public void To_Uri_returns_uri_from_ServerAddress_uri_constructor()
+    public void To_uri_round_trips_the_constructor_uri()
     {
         // Arrange
         var uri = new Uri("icerpc://bar:1234");
@@ -223,16 +200,15 @@ public class ServerAddressTests
         var result = serverAddress.ToUri();
 
         // Assert
-        Assert.That(serverAddress.OriginalUri, Is.EqualTo(uri));
         Assert.That(result, Is.EqualTo(uri));
     }
 
     [Test]
-    public void Original_uri_set_to_null_when_setting_property()
+    public void To_uri_reflects_an_updated_property()
     {
         // Arrange
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
-        serverAddress = serverAddress with { Host = "foo" }; // new host invalidates OriginalUri
+        serverAddress = serverAddress with { Host = "foo" };
 
         // Act
         var serverAddressUri = serverAddress.ToUri();
@@ -240,7 +216,6 @@ public class ServerAddressTests
         // Assert
         Assert.That(serverAddressUri.Scheme, Is.EqualTo("icerpc"));
         Assert.That(serverAddressUri.Host, Is.EqualTo("foo"));
-        Assert.That(serverAddress.OriginalUri, Is.Null);
     }
 
     /// <summary>Verifies that setting the server address parameters works.</summary>

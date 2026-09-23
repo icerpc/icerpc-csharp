@@ -50,7 +50,6 @@ public sealed record class ServiceAddress
                     $"Cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty.");
             }
             _serverAddress = value;
-            OriginalUri = null;
         }
     }
 
@@ -71,7 +70,6 @@ public sealed record class ServiceAddress
                 throw new ArgumentException("Invalid path.", nameof(value), exception);
             }
             _path = value;
-            OriginalUri = null;
         }
     }
 
@@ -102,7 +100,6 @@ public sealed record class ServiceAddress
             // else, no need to check anything, an empty list is always fine.
 
             _altServerAddresses = value;
-            OriginalUri = null;
         }
     }
 
@@ -131,7 +128,6 @@ public sealed record class ServiceAddress
             }
 
             _params = value;
-            OriginalUri = null;
         }
     }
 
@@ -157,15 +153,8 @@ public sealed record class ServiceAddress
             }
 
             _fragment = value;
-            OriginalUri = null;
         }
     }
-
-    /// <summary>Gets the URI used to create this service address.</summary>
-    /// <value>The <see cref="Uri" /> of this service address if it was constructed from a URI and if URI-derived
-    /// properties have not been updated. The setting of a URI-derived property such as <see cref="ServerAddress" />
-    /// sets <see cref="OriginalUri" /> to <see langword="null"/>.</value>
-    public Uri? OriginalUri { get; private set; }
 
     // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in path,
     // fragment, etc. in addition to the invalid characters in the _notValidInXXX search values.
@@ -285,8 +274,6 @@ public sealed record class ServiceAddress
 
             Params = queryParams;
         }
-
-        OriginalUri = uri;
     }
 
     /// <summary>Determines whether the specified <see cref="ServiceAddress"/> is equal to the current
@@ -332,13 +319,6 @@ public sealed record class ServiceAddress
     /// <returns>The string representation of this service address.</returns>
     public override string ToString()
     {
-        if (OriginalUri is Uri uri)
-        {
-            return uri.ToString();
-        }
-
-        // else, construct a string with a string builder.
-
         var sb = new StringBuilder();
         bool firstOption = true;
 
@@ -403,7 +383,7 @@ public sealed record class ServiceAddress
 
     /// <summary>Converts this service address into a Uri.</summary>
     /// <returns>An Uri representing this service address.</returns>
-    public Uri ToUri() => OriginalUri ?? new Uri(ToString(), UriKind.Absolute);
+    public Uri ToUri() => new(ToString(), UriKind.Absolute);
 
     /// <summary>Checks if <paramref name="params" /> contains properly escaped names and values.</summary>
     /// <param name="params">The dictionary to check.</param>
