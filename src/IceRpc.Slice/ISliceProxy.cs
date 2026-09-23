@@ -16,8 +16,8 @@ public interface ISliceProxy
     ServiceAddress ServiceAddress { get; }
 }
 
-/// <summary>Provides the factory method used by generic code to create proxies of type <typeparamref name="TSelf" />.
-/// </summary>
+/// <summary>Lets generic code construct a <typeparamref name="TSelf" /> proxy, since an interface cannot declare a
+/// constructor.</summary>
 /// <typeparam name="TSelf">The proxy struct that implements this interface.</typeparam>
 public interface ISliceProxy<TSelf> : ISliceProxy where TSelf : struct, ISliceProxy<TSelf>
 {
