@@ -71,15 +71,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private readonly Lock _mutex = new();
 
+    // The streams accepted from the transport connection but not handed to a dispatch yet.
+    private readonly Queue<IMultiplexedStream> _pendingStreams = new();
+
     private Task? _readGoAwayTask;
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
 
     private IMultiplexedStream? _remoteControlStream;
-
-    // The streams accepted from the transport connection but not handed to a dispatch yet.
-    private readonly Queue<IMultiplexedStream> _pendingStreams = new();
 
     private readonly CancellationTokenSource _shutdownOrGoAwayCts;
 
@@ -962,8 +962,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // is shutting down or being disposed.
                     if (_shutdownTask is not null)
                     {
-                        // Note that cancellationToken may not be canceled yet at this point.
+                        // Completing the stream here would let its closure reach the peer before the GoAway frame,
+                        // and the peer would fail the request instead of retrying it.
                         _pendingStreams.Enqueue(stream);
+
+                        // Note that cancellationToken may not be canceled yet at this point.
                         throw new OperationCanceledException();
                     }
 
