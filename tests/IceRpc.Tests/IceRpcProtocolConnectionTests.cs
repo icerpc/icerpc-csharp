@@ -412,7 +412,8 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that the server connect fails when the peer opens more streams than the stream limits allow
-    /// before its control stream is accepted.</summary>
+    /// before its control stream is accepted, and that disposing the server connection completes these streams.
+    /// </summary>
     [Test]
     public async Task Connect_fails_when_too_many_streams_are_accepted_before_control_stream()
     {
@@ -421,6 +422,7 @@ public sealed class IceRpcProtocolConnectionTests
             .AddColocTransport()
             .AddSlicTransport()
             .AddMultiplexedTransportTest()
+            .AddTestMultiplexedTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -433,6 +435,10 @@ public sealed class IceRpcProtocolConnectionTests
         Task clientConnectTask = client.ConnectAsync(default);
 
         TransportConnectionInformation transportConnectionInformation = await clientServerConnection.AcceptAsync();
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        var acceptedStreams = new List<TestMultiplexedStreamDecorator>();
+        serverTransport.LastAcceptedConnection.OnAcceptStream(acceptedStreams.Add);
+
         await using var serverTransportConnection =
             new ControlStreamLastConnectionDecorator(clientServerConnection.Server, streamsBeforeControlStream: 3);
         await using var server = new IceRpcProtocolConnection(
@@ -458,6 +464,15 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await serverConnectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
+
+        await server.DisposeAsync();
+        var requestStreams = acceptedStreams.Where(s => s.IsBidirectional).ToList();
+        Assert.That(requestStreams, Has.Count.EqualTo(3));
+        foreach (TestMultiplexedStreamDecorator requestStream in requestStreams)
+        {
+            Assert.That(requestStream.InputCompleted.IsCompleted, Is.True);
+            Assert.That(requestStream.OutputCompleted.IsCompleted, Is.True);
+        }
 
         // Cleanup
         foreach (IMultiplexedStream stream in streams)
