@@ -134,7 +134,7 @@ internal static class ProxyGenerator
                 $"The Slice compiler generated this record struct from the Slice interface <c>{scopedId}</c>.")
             .AddDeprecatedAttribute(interfaceDef.Attributes)
             .AddBase($"I{name}")
-            .AddBase("ISliceProxy")
+            .AddBase($"ISliceProxy<{proxyName}>")
             .AddBlock(BuildProxyRequestClass(interfaceDef, scopedId, accessModifier, currentNamespace))
             .AddBlock(BuildProxyResponseClass(interfaceDef, scopedId, accessModifier, currentNamespace))
             .AddBlock(BuildProxyProperties(scopedId, accessModifier, defaultServicePath));
@@ -155,8 +155,7 @@ internal static class ProxyGenerator
                         "summary",
                         $"""Provides an implicit conversion to <see cref="{baseProxyName}" />.""")
                     .AddParameter(proxyName, "proxy")
-                    .SetBody(
-                        "new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }")
+                    .SetBody($"new {baseProxyName}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)")
                     .Build());
         }
 
@@ -617,6 +616,14 @@ internal static class ProxyGenerator
             .SetBody("new(IceRpc.InvalidInvoker.Instance, new IceRpc.ServiceAddress { Path = path })")
             .Build();
 
+        var create = new CodeBlock($$"""
+            static {{proxyName}} ISliceProxy<{{proxyName}}>.Create(
+                IceRpc.IInvoker invoker,
+                IceRpc.ServiceAddress? serviceAddress,
+                SliceEncodeOptions? encodeOptions) =>
+                new(invoker, serviceAddress, encodeOptions);
+            """);
+
         CodeBlock mainCtor = new FunctionBuilder(accessModifier, "", proxyName, FunctionType.BlockBody)
             .AddComment("summary", "Constructs a proxy from an invoker, a service address and encode options.")
             .AddParameter("IceRpc.IInvoker", "invoker", docComment: "The invocation pipeline of the proxy.")
@@ -661,6 +668,6 @@ internal static class ProxyGenerator
                 @"Constructs a proxy with an icerpc service address with path <see cref=""DefaultServicePath"" />.")
             .Build();
 
-        return CodeBlock.FromBlocks([fromPath, mainCtor, uriCtor, parameterlessCtor]);
+        return CodeBlock.FromBlocks([fromPath, create, mainCtor, uriCtor, parameterlessCtor]);
     }
 }

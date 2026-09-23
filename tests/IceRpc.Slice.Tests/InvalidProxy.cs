@@ -4,23 +4,11 @@ namespace IceRpc.Slice.Tests;
 
 internal class InvalidProxy : ISliceProxy
 {
-    public SliceEncodeOptions? EncodeOptions
-    {
-        get => throw new NotImplementedException();
-        init { }
-    }
+    public SliceEncodeOptions? EncodeOptions => throw new NotImplementedException();
 
-    public IInvoker Invoker
-    {
-        get => throw new NotImplementedException();
-        init { }
-    }
+    public IInvoker Invoker => throw new NotImplementedException();
 
-    public ServiceAddress ServiceAddress
-    {
-        get => throw new NotImplementedException();
-        init { }
-    }
+    public ServiceAddress ServiceAddress => throw new NotImplementedException();
 
     internal static InvalidProxy Instance { get; } = new InvalidProxy();
 
