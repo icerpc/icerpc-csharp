@@ -7,6 +7,7 @@
     <WarningLevel>4</WarningLevel>
     <Nullable>enable</Nullable>
     <LangVersion>15.0</LangVersion>
+    <Features>$(Features);runtime-async=on</Features>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>All</AnalysisMode>
     <!-- Since .NET 11, AnalysisMode=All also turns on every IDE style rule. Keep the pre-11 style defaults. -->
