@@ -2,6 +2,9 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Allow floating versions in <PackageVersion>. NuGet rejects floating versions in central package lists by
+         default. -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     <!-- Pin transitive dependencies to the versions listed below (when listed). Lets us force-upgrade a vulnerable
          transitive package (e.g. a CVE in System.Text.Json) by adding one <PackageVersion> entry here, with no
          spurious direct <PackageReference> in any project. Recommended baseline for new CPM repos. -->
@@ -41,8 +44,9 @@
     <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)" />
     <PackageVersion Include="Google.Protobuf.Tools" Version="$(GoogleProtobufVersion)" />
 
-    <!-- Ice tooling -->
-    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="[3.8.3,3.9.0)" />
+    <!-- Ice tooling. The IceRPC 0.7 generated code needs the slice2cs of the next Ice release, so we build with the
+         Ice nightly packages (see nuget.config). -->
+    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.9.0-nightly.*" />
 
     <!-- Test SDK -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />

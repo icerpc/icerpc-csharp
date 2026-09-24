@@ -39,6 +39,8 @@
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0" />
-    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="[3.8.3,3.9.0)" />
+    <!-- The IceRPC 0.7 generated code needs the slice2cs of the next Ice release, so we build with the Ice nightly
+         packages (see nuget.config). -->
+    <PackageVersion Include="ZeroC.Ice.Slice.Tools" Version="3.9.0-nightly.*" />
   </ItemGroup>
 </Project>

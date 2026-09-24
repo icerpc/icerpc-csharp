@@ -87,4 +87,4 @@ jobs:
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
         with:
-          packages-source: ${{ github.workspace }}/packages
+          nuget-config: examples/nuget.config
