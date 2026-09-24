@@ -19,7 +19,7 @@ public static class ProtobufServiceProviderExtensions
     public static TClient CreateProtobufClient<TClient>(
         this IServiceProvider provider,
         ServiceAddress? serviceAddress = null)
-        where TClient : struct, IProtobufClient
+        where TClient : struct, IProtobufClient<TClient>
     {
         var invoker = (IInvoker?)provider.GetService(typeof(IInvoker));
         if (invoker is null)
@@ -27,19 +27,10 @@ public static class ProtobufServiceProviderExtensions
             throw new InvalidOperationException("Could not find service of type 'IInvoker' in the service container.");
         }
 
-        return serviceAddress is null ?
-            new TClient
-            {
-                EncodeOptions = (ProtobufEncodeOptions?)provider.GetService(typeof(ProtobufEncodeOptions)),
-                Invoker = invoker
-            }
-            :
-            new TClient
-            {
-                EncodeOptions = (ProtobufEncodeOptions?)provider.GetService(typeof(ProtobufEncodeOptions)),
-                Invoker = invoker,
-                ServiceAddress = serviceAddress
-            };
+        return TClient.Create(
+            invoker,
+            serviceAddress,
+            (ProtobufEncodeOptions?)provider.GetService(typeof(ProtobufEncodeOptions)));
     }
 
     /// <summary>Creates a Protobuf client with this service provider.</summary>
@@ -51,6 +42,6 @@ public static class ProtobufServiceProviderExtensions
     /// invocation pipeline, and the <see cref="ProtobufEncodeOptions" /> retrieved from <paramref name="provider" /> as
     /// its encode options.</remarks>
     public static TClient CreateProtobufClient<TClient>(this IServiceProvider provider, Uri serviceAddressUri)
-        where TClient : struct, IProtobufClient =>
+        where TClient : struct, IProtobufClient<TClient> =>
         provider.CreateProtobufClient<TClient>(new ServiceAddress(serviceAddressUri));
 }

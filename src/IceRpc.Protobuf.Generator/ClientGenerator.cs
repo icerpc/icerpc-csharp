@@ -15,7 +15,7 @@ internal class ClientGenerator
         ContainerBuilder clientBuilder =
             new ContainerBuilder(
                 "public readonly partial record struct",
-                $"{clientName} : I{service.Name.ToProtocPascalCase()}, IProtobufClient")
+                $"{clientName} : I{service.Name.ToProtocPascalCase()}, IProtobufClient<{clientName}>")
             .AddComment(
                 "summary",
                 @$"Makes invocations on a remote IceRPC service. This remote service must implement Protobuf service
@@ -75,7 +75,13 @@ public {clientName}(
 /// <summary>Constructs a client with an icerpc service address with path <see cref=""DefaultServicePath"" />.</summary>
 public {clientName}()
 {{
-}}");
+}}
+
+static {clientName} IProtobufClient<{clientName}>.Create(
+    IceRpc.IInvoker invoker,
+    IceRpc.ServiceAddress? serviceAddress,
+    ProtobufEncodeOptions? encodeOptions) =>
+    new(invoker, serviceAddress, encodeOptions);");
 
         clientBuilder.AddBlock(body);
 
