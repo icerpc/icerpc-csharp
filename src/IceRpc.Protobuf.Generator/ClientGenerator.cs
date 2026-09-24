@@ -41,7 +41,7 @@ public required IceRpc.IInvoker Invoker {{ get; init; }}
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = _defaultServiceAddress;
 
 private static IceRpc.ServiceAddress _defaultServiceAddress =
-    new(IceRpc.Protocol.IceRpc) {{ Path = DefaultServicePath }};
+    new IceRpc.ServiceAddress.IceRpc {{ Path = DefaultServicePath }};
 
 /// <summary>Constructs a client from an invoker and a service address.</summary>
 /// <param name=""invoker"">The invoker of this client.</param>
@@ -68,7 +68,7 @@ public {clientName}(
     IceRpc.IInvoker invoker,
     System.Uri serviceAddressUri,
     ProtobufEncodeOptions? encodeOptions = null)
-    : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
+    : this(invoker, IceRpc.ServiceAddress.FromUri(serviceAddressUri), encodeOptions)
 {{
 }}
 

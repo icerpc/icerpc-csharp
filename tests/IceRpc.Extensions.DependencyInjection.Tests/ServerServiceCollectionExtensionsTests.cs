@@ -14,8 +14,8 @@ public sealed class ServerServiceCollectionExtensionsTests
     [Test]
     public async Task Two_servers_with_distinct_named_options_dispatch_to_their_own_dispatcher()
     {
-        var firstServerAddress = new ServerAddress(new Uri("icerpc://first-host"));
-        var secondServerAddress = new ServerAddress(new Uri("icerpc://second-host"));
+        var firstServerAddress = ServerAddress.FromUri(new Uri("icerpc://first-host"));
+        var secondServerAddress = ServerAddress.FromUri(new Uri("icerpc://second-host"));
 
         int firstDispatchCount = 0;
         int secondDispatchCount = 0;
@@ -59,10 +59,10 @@ public sealed class ServerServiceCollectionExtensionsTests
                 new ClientConnectionOptions { ServerAddress = secondServerAddress },
                 multiplexedClientTransport: provider.GetRequiredService<IMultiplexedClientTransport>());
 
-            using var firstRequest = new OutgoingRequest(new ServiceAddress(firstServerAddress.Protocol));
+            using var firstRequest = new OutgoingRequest(firstServerAddress.Protocol.CreateServiceAddress());
             IncomingResponse firstResponse = await firstConnection.InvokeAsync(firstRequest);
 
-            using var secondRequest = new OutgoingRequest(new ServiceAddress(secondServerAddress.Protocol));
+            using var secondRequest = new OutgoingRequest(secondServerAddress.Protocol.CreateServiceAddress());
             IncomingResponse secondResponse = await secondConnection.InvokeAsync(secondRequest);
 
             Assert.That(firstResponse.StatusCode, Is.EqualTo(StatusCode.Ok));

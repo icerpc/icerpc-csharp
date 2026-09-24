@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 
@@ -40,10 +39,6 @@ public class Protocol
     /// <value>The protocol byte value. It's used as the "protocol major" with the Ice encoding.</value>
     internal byte ByteValue { get; }
 
-    /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
-    /// <value><see langword="true" /> if the protocol supports fragments; otherwise, <see langword="false" />.</value>
-    internal bool HasFragment { get; }
-
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
     /// <value><see langword="true" /> if the protocol supports payload continuations; otherwise,
     /// <see langword="false" />.</value>
@@ -78,31 +73,11 @@ public class Protocol
     /// <returns>The name of the protocol.</returns>
     public override string ToString() => Name;
 
-    /// <summary>Checks if a path is valid for this protocol.</summary>
-    /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.
-    /// </param>
-    /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
-    internal virtual void CheckPath(string uriPath)
-    {
-        // by default, any URI absolute path is ok
-    }
-
-    /// <summary>Checks if these service address parameters are valid for this protocol.</summary>
-    /// <param name="serviceAddressParams">The service address parameters to check.</param>
-    /// <exception cref="FormatException">Thrown when the service address parameters are not valid.</exception>
-    /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
-    /// it does not check for the invalid empty and alt-server parameter names either.</remarks>
-    internal virtual void CheckServiceAddressParams(ImmutableDictionary<string, string> serviceAddressParams)
-    {
-        // by default, any dictionary is ok
-    }
-
     /// <summary>Constructs a protocol.</summary>
     private protected Protocol(
         string name,
         ushort defaultPort,
         bool hasFields,
-        bool hasFragment,
         bool hasPayloadContinuation,
         bool supportsPayloadWriterInterceptors,
         byte byteValue)
@@ -111,7 +86,6 @@ public class Protocol
         AlpnProtocol = new SslApplicationProtocol(name);
         DefaultPort = defaultPort;
         HasFields = hasFields;
-        HasFragment = hasFragment;
         HasPayloadContinuation = hasPayloadContinuation;
         SupportsPayloadWriterInterceptors = supportsPayloadWriterInterceptors;
         ByteValue = byteValue;

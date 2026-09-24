@@ -43,5 +43,5 @@ public static class ProtobufServiceProviderExtensions
     /// its encode options.</remarks>
     public static TClient CreateProtobufClient<TClient>(this IServiceProvider provider, Uri serviceAddressUri)
         where TClient : struct, IProtobufClient<TClient> =>
-        provider.CreateProtobufClient<TClient>(new ServiceAddress(serviceAddressUri));
+        provider.CreateProtobufClient<TClient>(ServiceAddress.FromUri(serviceAddressUri));
 }

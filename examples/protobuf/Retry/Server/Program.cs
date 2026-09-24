@@ -23,11 +23,9 @@ using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
     password: null,
     keyStorageFlags: X509KeyStorageFlags.Exportable);
 
-var serverAddress = new ServerAddress(new Uri($"icerpc://[::0]:{10000 + number}/"));
-
 await using var server = new Server(
     new Chatbot(number),
-    serverAddress,
+    new Uri($"icerpc://[::0]:{10000 + number}/"),
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
 server.Listen();
 

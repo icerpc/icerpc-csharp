@@ -21,7 +21,7 @@ public partial class ProxyTests
     /// a proxy. </summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     // cSpell:disable
-    [TestCase("icerpc://host:1000/path?foo=bar")]
+    [TestCase("icerpc://host:1000/path?transport=tcp")]
     [TestCase("ice://host:10000/cat/name?transport=tcp")]
     [TestCase("ice://host:10000/cat/name?transport=foo")]
     [TestCase("ice://host:10000/cat/name?transport=ssl&t=30000&z")]
@@ -87,7 +87,7 @@ public partial class ProxyTests
     {
         // Arrange
         var pipeline = new Pipeline();
-        var baseProxy = new PingableProxy(pipeline, new Uri("icerpc://host:1000/base?foo=bar"));
+        var baseProxy = new PingableProxy(pipeline, new Uri("icerpc://host:1000/base?transport=tcp"));
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeString("/foo");
@@ -98,7 +98,7 @@ public partial class ProxyTests
 
         // Assert
         Assert.That(decoded.IsRelative, Is.False);
-        Assert.That(decoded.ServiceAddress, Is.EqualTo(baseProxy.ServiceAddress with { Path = "/foo" }));
+        Assert.That(decoded.ServiceAddress, Is.EqualTo(baseProxy.ServiceAddress.WithPath("/foo")));
         Assert.That(decoded.Invoker, Is.EqualTo(pipeline));
     }
 
@@ -134,7 +134,7 @@ public partial class ProxyTests
         PingableProxy proxy = PingableProxy.FromPath("/foo");
 
         Assert.That(
-            () => proxy with { ServiceAddress = new ServiceAddress(Protocol.Ice) },
+            () => proxy with { ServiceAddress = new ServiceAddress.Ice() },
             Throws.InvalidOperationException);
         Assert.That(() => proxy with { Invoker = new Pipeline() }, Throws.InvalidOperationException);
         Assert.That(() => proxy with { EncodeOptions = new SliceEncodeOptions() }, Throws.InvalidOperationException);

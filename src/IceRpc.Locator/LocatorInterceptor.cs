@@ -34,7 +34,7 @@ public class LocatorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Protocol == Protocol.Ice && request.ServiceAddress.ServerAddress is null)
+        if (request.ServiceAddress is ServiceAddress.Ice { ServerAddress: null } iceServiceAddress)
         {
             Location location = default;
             bool refreshCache = false;
@@ -57,9 +57,9 @@ public class LocatorInterceptor : IInvoker
             }
             else if (serverAddressFeature.ServerAddress is null)
             {
-                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId) ?
-                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) } :
-                    new Location { Value = request.ServiceAddress.Path };
+                location = iceServiceAddress.AdapterId.Length > 0 ?
+                    new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId } :
+                    new Location { Value = iceServiceAddress.Path };
             }
             // else it could be a retry where the first attempt provided non-cached server address(es)
 

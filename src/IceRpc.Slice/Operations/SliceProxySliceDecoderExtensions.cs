@@ -26,16 +26,21 @@ public static class SliceProxySliceDecoderExtensions
         {
             if (value.StartsWith('/', StringComparison.Ordinal))
             {
-                return baseProxy is null ?
-                    TProxy.FromPath(value) :
-                    TProxy.Create(
-                        baseProxy.Invoker,
-                        baseProxy.ServiceAddress with { Path = value },
-                        baseProxy.EncodeOptions);
+                if (baseProxy is null)
+                {
+                    return TProxy.FromPath(value);
+                }
+
+                ServiceAddress serviceAddress = baseProxy.ServiceAddress switch
+                {
+                    ServiceAddress.IceRpc icerpc => icerpc with { Path = value },
+                    ServiceAddress.Ice ice => ice with { Path = value },
+                };
+                return TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);
             }
             else
             {
-                var serviceAddress = new ServiceAddress(new Uri(value, UriKind.Absolute));
+                var serviceAddress = ServiceAddress.FromUri(new Uri(value, UriKind.Absolute));
                 return baseProxy is null ?
                     TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null) :
                     TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);

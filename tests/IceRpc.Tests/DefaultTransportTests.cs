@@ -44,7 +44,7 @@ public class DefaultTransportTests
         ServerAddress serverAddress = server.Listen(); // with the port resolved
 
         // Fix transport.
-        serverAddress = serverAddress with { Transport = clientTransportName };
+        serverAddress = serverAddress.WithTransport(clientTransportName);
 
         using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("cacert.der");
         await using var clientConnection = new ClientConnection(
@@ -75,7 +75,7 @@ public class DefaultTransportTests
         ServerAddress serverAddress = server.Listen(); // with the port resolved
 
         // Fix transport.
-        serverAddress = serverAddress with { Transport = clientTransportName };
+        serverAddress = serverAddress.WithTransport(clientTransportName);
 
         await using var clientConnection = new ClientConnection(serverAddress);
 

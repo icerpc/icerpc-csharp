@@ -32,7 +32,7 @@ public sealed class DeadlineInterceptorTests
             invoker,
             defaultTimeout: TimeSpan.FromMilliseconds(10),
             alwaysEnforceDeadline: false);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
 
         // Act
         Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, CancellationToken.None));
@@ -68,7 +68,7 @@ public sealed class DeadlineInterceptorTests
             defaultTimeout: TimeSpan.FromSeconds(120),
             alwaysEnforceDeadline: false);
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc())
         {
             Features = features
         };
@@ -97,7 +97,7 @@ public sealed class DeadlineInterceptorTests
         });
 
         var sut = new DeadlineInterceptor(invoker, timeout, alwaysEnforceDeadline: false);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         DateTime expectedDeadline = DateTime.UtcNow + timeout;
 
         // Act
@@ -120,7 +120,7 @@ public sealed class DeadlineInterceptorTests
 
         var timeProvider = new FakeTimeProvider();
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc())
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
                 new DeadlineFeature(timeProvider.GetUtcNow().UtcDateTime + TimeSpan.FromMilliseconds(100)))
@@ -148,7 +148,7 @@ public sealed class DeadlineInterceptorTests
         // Close to DateTime.MaxValue but not equal, so the interceptor's "== DateTime.MaxValue" short-circuit
         // does not kick in and the deadline-too-far-in-future path is exercised.
         DateTime extreme = DateTime.SpecifyKind(DateTime.MaxValue.AddDays(-1), DateTimeKind.Utc);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc())
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(new DeadlineFeature(extreme))
         };
@@ -175,7 +175,7 @@ public sealed class DeadlineInterceptorTests
             defaultTimeout: Timeout.InfiniteTimeSpan,
             alwaysEnforceDeadline: true,
             timeProvider);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc())
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
                 new DeadlineFeature(timeProvider.GetUtcNow().UtcDateTime + TimeSpan.FromMilliseconds(100)))
@@ -208,7 +208,7 @@ public sealed class DeadlineInterceptorTests
 
         IFeatureCollection features = new FeatureCollection();
         features.Set<IDeadlineFeature>(new DeadlineFeature(deadlineValue));
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { Features = features };
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc()) { Features = features };
 
         // Act
         await sut.InvokeAsync(request, default);

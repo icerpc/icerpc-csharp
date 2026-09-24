@@ -133,7 +133,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        using var request = new OutgoingRequest(new ServiceAddress.Ice { Path = "/foo" })
         {
             Operation = "op"
         };
@@ -169,7 +169,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        using var request = new OutgoingRequest(new ServiceAddress.Ice { Path = "/foo" })
         {
             Operation = "op"
         };
@@ -195,7 +195,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
         Task shutdownTask = sut.Server.ShutdownAsync();
@@ -358,7 +358,7 @@ public sealed class IceProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
         using var invocationCts = new CancellationTokenSource();
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
 
@@ -394,7 +394,7 @@ public sealed class IceProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
         using var invocationCts = new CancellationTokenSource();
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
         await responsePayload.ReadCalled;
@@ -433,7 +433,7 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         _ = await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
         using var invocationCts = new CancellationTokenSource();
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
 
@@ -497,7 +497,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
 
         // Act
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
@@ -531,7 +531,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         _ = await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
         clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperations.Write;
 
         // Act
@@ -567,7 +567,7 @@ public sealed class IceProtocolConnectionTests
         var clientConnection = provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
         Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice)) { IsOneway = oneway };
+        using var request = new OutgoingRequest(new ServiceAddress.Ice()) { IsOneway = oneway };
         using var cts = new CancellationTokenSource();
 
         Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
@@ -656,12 +656,12 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        using var request1 = new OutgoingRequest(new ServiceAddress.Ice())
         {
             Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
         };
 
-        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        using var request2 = new OutgoingRequest(new ServiceAddress.Ice())
         {
             Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
         };
@@ -712,14 +712,14 @@ public sealed class IceProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
-        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request1 = new OutgoingRequest(new ServiceAddress.Ice());
         var invokeTask1 = sut.Client.InvokeAsync(request1);
 
         // Act
         await dispatcher.DispatchStart;
         var shutdownTask = sut.Server.ShutdownAsync();
 
-        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request2 = new OutgoingRequest(new ServiceAddress.Ice());
         var invokeTask2 = sut.Client.InvokeAsync(request2);
         dispatcher.ReleaseDispatch();
 
@@ -749,7 +749,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
 
         // Act
         Assert.That(
@@ -784,7 +784,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
 
         // Act
         Task invokeTask = sut.Client.InvokeAsync(request);
@@ -813,7 +813,7 @@ public sealed class IceProtocolConnectionTests
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[1024]));
         pipe.Writer.Complete();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        using var request = new OutgoingRequest(new ServiceAddress.Ice())
         {
             Payload = pipe.Reader
         };
@@ -865,7 +865,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
 
         // Act
         invalidRead = true;
@@ -919,7 +919,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress.Ice());
 
         // Act
         Task invokeTask = sut.Client.InvokeAsync(request);
@@ -945,8 +945,8 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request1 = new OutgoingRequest(new ServiceAddress.Ice());
+        using var request2 = new OutgoingRequest(new ServiceAddress.Ice());
         using var cts = new CancellationTokenSource();
 
         // Act/Assert

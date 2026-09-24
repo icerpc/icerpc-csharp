@@ -22,7 +22,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server1Address = server1.Listen();
@@ -31,7 +31,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://bar")),
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://bar")),
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server2Address = server2.Listen();
@@ -50,10 +50,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
+        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://bar")));
 
         // Act
-        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
+        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -77,7 +77,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress serverAddress = server.Listen();
@@ -97,7 +97,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://bar/?alt-server=foo")));
+        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://bar/?alt-server=foo")));
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
@@ -116,8 +116,8 @@ public sealed class ConnectionCacheTests
         using var dispatcher = new TestDispatcher();
         var colocTransport = new ColocTransport();
         var protocol = Protocol.Parse(protocolString);
-        var primaryServerAddress = new ServerAddress(protocol) { Host = "primary" };
-        var altServerAddress = new ServerAddress(protocol) { Host = "alt" };
+        ServerAddress primaryServerAddress = protocol.CreateServerAddress("primary");
+        ServerAddress altServerAddress = protocol.CreateServerAddress("alt");
 
         await using var primaryServer = new Server(
             new ServerOptions
@@ -165,11 +165,7 @@ public sealed class ConnectionCacheTests
         // Act
         await SendEmptyRequestAsync(
             pipeline,
-            new ServiceAddress(protocol)
-            {
-                ServerAddress = primaryServerAddress,
-                AltServerAddresses = [altServerAddress]
-            });
+            primaryServerAddress.CreateServiceAddress(altServerAddresses: [altServerAddress]));
 
         // Assert
         Assert.That(selectedServerAddress, Is.EqualTo(altServerAddress));
@@ -192,7 +188,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server1Address = server1.Listen();
@@ -201,7 +197,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server2Address = server2.Listen();
@@ -221,7 +217,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
+        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -244,7 +240,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server1Address = server1.Listen();
@@ -253,7 +249,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions()
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server2Address = server2.Listen();
@@ -272,10 +268,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
+        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://bar")));
 
         // Act
-        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
+        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
@@ -302,7 +298,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: multiplexedServerTransport);
         server.Listen();
@@ -310,7 +306,7 @@ public sealed class ConnectionCacheTests
         await using var cache = new ConnectionCache(
             options: new(),
             multiplexedClientTransport: multiplexedClientTransport);
-        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
+        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://foo")));
 
         TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
         clientConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
@@ -346,7 +342,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
@@ -356,7 +352,7 @@ public sealed class ConnectionCacheTests
             multiplexedClientTransport: multiplexedClientTransport);
 
         // Act
-        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
+        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://foo")));
 
         // Assert
         Assert.That(multiplexedClientTransport.LastCreatedConnectionOptions, Is.Not.Null);

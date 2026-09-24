@@ -79,7 +79,7 @@ public partial class CustomTransportTests
         await using var server = new Server(
             new ServerOptions
             {
-                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom")),
+                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://127.0.0.1:0?transport=custom")),
                 ConnectionOptions = new()
                 {
                     Dispatcher = new PingableService()
@@ -108,7 +108,7 @@ public partial class CustomTransportTests
             await using var server = new Server(
                 new ServerOptions
                 {
-                    ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
+                    ServerAddress = ServerAddress.FromUri(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
                     ConnectionOptions = new ConnectionOptions()
                     {
                         Dispatcher = new PingableService()

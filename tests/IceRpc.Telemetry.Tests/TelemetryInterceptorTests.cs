@@ -29,7 +29,7 @@ public sealed class TelemetryInterceptorTests
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" })
         {
             Operation = "Op"
         };
@@ -77,7 +77,7 @@ public sealed class TelemetryInterceptorTests
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" })
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/" })
         {
             Operation = "op"
         };
@@ -158,7 +158,7 @@ public sealed class TelemetryInterceptorTests
             using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
             var sut = new TelemetryInterceptor(invoker, activitySource);
-            using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+            using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" })
             {
                 Operation = "Op"
             };
@@ -203,7 +203,7 @@ public sealed class TelemetryInterceptorTests
             activity => outcome = ActivityOutcome.From(activity));
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" })
         {
             Operation = "Op"
         };
@@ -240,7 +240,7 @@ public sealed class TelemetryInterceptorTests
             activity => outcome = ActivityOutcome.From(activity));
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" })
         {
             Operation = "Op"
         };
@@ -278,7 +278,7 @@ public sealed class TelemetryInterceptorTests
             activity => outcome = ActivityOutcome.From(activity));
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" })
         {
             Operation = "Op"
         };
@@ -313,7 +313,7 @@ public sealed class TelemetryInterceptorTests
             activity => outcome = ActivityOutcome.From(activity));
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" })
         {
             Operation = "Op"
         };

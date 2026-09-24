@@ -75,11 +75,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         if (_serverAddress.Transport is null)
         {
-            _serverAddress = _serverAddress with
-            {
-                Transport = _serverAddress.Protocol == Protocol.Ice ?
-                    duplexClientTransport.DefaultName : multiplexedClientTransport.DefaultName
-            };
+            _serverAddress = _serverAddress.WithTransport(
+                _serverAddress.Protocol == Protocol.Ice ?
+                    duplexClientTransport.DefaultName : multiplexedClientTransport.DefaultName);
         }
 
         _clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
@@ -138,7 +136,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         ILogger? logger = null)
         : this(
-            new ServerAddress(serverAddressUri),
+            ServerAddress.FromUri(serverAddressUri),
             clientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport,

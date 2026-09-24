@@ -60,10 +60,10 @@ ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 
 // Create a service address containing a server address for each of the servers. The address of the main server is
 // set as the main server address, and the remaining server addresses are added to the alt server addresses.
-var greeterServiceAddress = new ServiceAddress(new Uri("icerpc://localhost:10000/greeter"))
+var greeterServiceAddress = new ServiceAddress.IceRpc(new Uri("icerpc://localhost:10000/greeter"))
 {
     AltServerAddresses = Enumerable.Range(1, serverInstances - 1)
-        .Select(i => new ServerAddress { Host = "localhost", Port = (ushort)(i + 10000) })
+        .Select(ServerAddress (i) => new ServerAddress.IceRpc { Host = "localhost", Port = (ushort)(i + 10000) })
         .ToImmutableList()
 };
 

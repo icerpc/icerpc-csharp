@@ -58,7 +58,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
-                    return serviceAddress.Protocol == Protocol.Ice && serviceAddress.ServerAddress is not null ?
+                    return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } ?
                         serviceAddress :
                         throw new InvalidDataException(
                             $"The locator returned invalid proxy '{proxy}' when looking up an adapter by ID.");
@@ -85,8 +85,8 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
                     // findObjectById can return an indirect service address with an adapter ID
-                    return serviceAddress.Protocol == Protocol.Ice &&
-                        (serviceAddress.ServerAddress is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
+                    return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } or
+                        ServiceAddress.Ice { AdapterId: not "" } ?
                             serviceAddress :
                             throw new InvalidDataException(
                                 $"The locator returned invalid proxy '{proxy}' when looking up an object by ID.");

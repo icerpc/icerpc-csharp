@@ -17,7 +17,7 @@ public class IncomingResponseTests
     public void Decoded_dispatch_exception_from_incoming_void_response_has_convert_to_internal_error_set_to_true()
     {
         // Arrange
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(
             request,
             FakeConnectionContext.Instance,
@@ -35,7 +35,7 @@ public class IncomingResponseTests
     public void Decoded_dispatch_exception_from_incoming_response_has_convert_to_internal_error_set_to_true()
     {
         // Arrange
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(
             request,
             FakeConnectionContext.Instance,

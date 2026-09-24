@@ -249,7 +249,7 @@ public partial class OperationTests
         pipe.Writer.Complete();
 
         using var request = new OutgoingRequest(
-            new ServiceAddress(new Uri("icerpc:/icerpc.protobuf.tests.MyOperations")))
+            ServiceAddress.FromUri(new Uri("icerpc:/icerpc.protobuf.tests.MyOperations")))
         {
             Operation = "UnaryOp",
             Payload = pipe.Reader,

@@ -639,7 +639,7 @@ internal static class ProxyGenerator
         } = _defaultServiceAddress;
 
         private static IceRpc.ServiceAddress _defaultServiceAddress =
-            new(IceRpc.Protocol.IceRpc) { Path = DefaultServicePath };
+            new IceRpc.ServiceAddress.IceRpc { Path = DefaultServicePath };
 
         private readonly bool _isRelative;
         """;
@@ -650,7 +650,7 @@ internal static class ProxyGenerator
         private {{proxyName}}(string path)
             : this(
                 IceRpc.InvalidInvoker.Instance,
-                new IceRpc.ServiceAddress(IceRpc.Protocol.IceRpc) { Path = path }) =>
+                new IceRpc.ServiceAddress.IceRpc { Path = path }) =>
             _isRelative = true;
 
         private void ThrowIfRelative()
@@ -714,7 +714,7 @@ internal static class ProxyGenerator
                 "null",
                 "The encode options, used to customize the encoding of request payloads.")
             .AddSetsRequiredMembersAttribute()
-            .AddThisParameters(["invoker", "new IceRpc.ServiceAddress(serviceAddressUri)", "encodeOptions"])
+            .AddThisParameters(["invoker", "IceRpc.ServiceAddress.FromUri(serviceAddressUri)", "encodeOptions"])
             .Build();
 
         // The parameterless struct constructor must be public (CS8958).

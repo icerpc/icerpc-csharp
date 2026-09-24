@@ -20,7 +20,7 @@ public class DictionaryMappingTests
         var value = new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfInt(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -71,7 +71,7 @@ public class DictionaryMappingTests
         };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfString(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -127,7 +127,7 @@ public class DictionaryMappingTests
         };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfMyEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -183,7 +183,7 @@ public class DictionaryMappingTests
         };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfMyStruct(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -235,7 +235,7 @@ public class DictionaryMappingTests
         var value = new SortedList<int, int> { [1] = 1, [2] = 2, [3] = 3 };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnCustomDictionary(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -282,7 +282,7 @@ public class DictionaryMappingTests
         var value2 = new Dictionary<int, int> { [4] = 4, [5] = 5, [6] = 6 };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnAndOutDictionary(value1, value2);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -309,7 +309,7 @@ public class DictionaryMappingTests
         var value2 = new SortedList<int, int> { [4] = 4, [5] = 5, [6] = 6 };
         PipeReader responsePayload =
             IDictionaryMappingOperationsService.Response.EncodeReturnAndOutCustomDictionary(value1, value2);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload

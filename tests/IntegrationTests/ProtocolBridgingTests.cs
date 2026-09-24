@@ -19,8 +19,8 @@ public sealed partial class ProtocolBridgingTests
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)
     {
-        var forwarderServerAddress = new ServerAddress(new Uri($"{forwarderProtocol}://colochost1"));
-        var targetServerAddress = new ServerAddress(new Uri($"{targetProtocol}://colochost2"));
+        var forwarderServerAddress = ServerAddress.FromUri(new Uri($"{forwarderProtocol}://colochost1"));
+        var targetServerAddress = ServerAddress.FromUri(new Uri($"{targetProtocol}://colochost2"));
 
         var forwarderProxy = new ProtocolBridgingTestProxy(
             InvalidInvoker.Instance,
@@ -173,7 +173,7 @@ public sealed partial class ProtocolBridgingTests
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
-            var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
+            var serviceAddress = dispatchInformation.Protocol.CreateServiceAddress()
             {
                 Path = dispatchInformation.Path,
                 ServerAddress = _publishedServerAddress

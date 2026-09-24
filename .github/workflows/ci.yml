@@ -53,7 +53,8 @@ jobs:
           # Set IceRpcVersion to use the locally built packages
           IceRpcVersion: "0.7.0-preview.1"
         run: |
-          for solution in examples/*/*/*.slnx; do dotnet build "$solution"; done
+          # The Ice examples are excluded until slice2cs emits the IceRPC 0.7 proxies.
+          for solution in examples/{json,protobuf,slice}/*/*.slnx; do dotnet build "$solution"; done
         shell: bash
       - name: Build DocFX Examples
         run: dotnet build docfx/examples/Examples.slnx

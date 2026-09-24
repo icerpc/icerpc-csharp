@@ -25,7 +25,7 @@ public class CompressorInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, compressionFormat);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         request.Features = request.Features.With(CompressFeature.Compress);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
@@ -58,7 +58,7 @@ public class CompressorInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, compressionFormat);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         request.Features = request.Features.With(CompressFeature.Compress);
         await sut.InvokeAsync(request, default);
 
@@ -97,7 +97,7 @@ public class CompressorInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, compressionFormat);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         request.Features = request.Features.With(CompressFeature.Compress);
         await sut.InvokeAsync(request, default);
 
@@ -158,7 +158,7 @@ public class CompressorInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, CompressionFormat.Brotli);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
 
         await sut.InvokeAsync(request, default);
 
@@ -176,7 +176,7 @@ public class CompressorInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, CompressionFormat.Brotli);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         request.Features = request.Features.With(CompressFeature.Compress);
         request.Fields = request.Fields.With(
             RequestFieldKey.CompressionFormat,
@@ -203,7 +203,7 @@ public class CompressorInterceptorTests
             return Task.FromResult(response);
         });
         var sut = new CompressorInterceptor(invoker, CompressionFormat.Brotli);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
 
@@ -223,7 +223,7 @@ public class CompressorInterceptorTests
             return Task.FromResult(response);
         });
         var sut = new CompressorInterceptor(invoker, compressionFormat);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
 

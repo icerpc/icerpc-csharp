@@ -212,7 +212,7 @@ public partial class OperationTests
         PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemory(readOnlyMemory);
 
         // Assert
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
@@ -259,7 +259,7 @@ public partial class OperationTests
         PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryTagged(readOnlyMemory);
 
         // Assert
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload

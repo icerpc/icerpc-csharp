@@ -554,7 +554,7 @@ public partial class OperationTests
         PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemory(readOnlyMemory);
 
         // Assert
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
@@ -600,7 +600,7 @@ public partial class OperationTests
         PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryOptional(readOnlyMemory);
 
         // Assert
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
@@ -647,7 +647,7 @@ public partial class OperationTests
         PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryTagged(readOnlyMemory);
 
         // Assert
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
@@ -692,7 +692,7 @@ public partial class OperationTests
         // The service returns a relative proxy, resolved against the service address of the proxy that sent the
         // request.
         Assert.That(receivedProxy.IsRelative, Is.False);
-        Assert.That(receivedProxy.ServiceAddress, Is.EqualTo(proxy.ServiceAddress with { Path = "/hello" }));
+        Assert.That(receivedProxy.ServiceAddress, Is.EqualTo(proxy.ServiceAddress.WithPath("/hello")));
     }
 
     [Test]

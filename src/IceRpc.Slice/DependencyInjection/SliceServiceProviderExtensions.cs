@@ -41,5 +41,5 @@ public static class SliceServiceProviderExtensions
     /// its encode options.</remarks>
     public static TProxy CreateSliceProxy<TProxy>(this IServiceProvider provider, Uri serviceAddressUri)
         where TProxy : struct, ISliceProxy<TProxy> =>
-        provider.CreateSliceProxy<TProxy>(new ServiceAddress(serviceAddressUri));
+        provider.CreateSliceProxy<TProxy>(ServiceAddress.FromUri(serviceAddressUri));
 }

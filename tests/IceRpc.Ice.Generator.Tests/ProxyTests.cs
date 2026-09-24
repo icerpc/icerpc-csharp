@@ -30,7 +30,7 @@ public partial class ProxyTests
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     // cSpell:disable
-    [TestCase("icerpc://host:1000/path?foo=bar", null)]
+    [TestCase("icerpc://host:1000/path?transport=tcp", null)]
     [TestCase("ice://host:10000/cat/name?transport=tcp", null)]
     [TestCase("ice://host:10000/cat/name?transport=foo", null)]
     [TestCase("ice://host:10000/cat/name?transport=ssl&t=30000&z", null)]

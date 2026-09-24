@@ -11,7 +11,7 @@ public class ServerAddressCacheTests
     [Test]
     public void Get_known_location_from_server_address_cache()
     {
-        var expected = new ServiceAddress(new Uri("ice:/dummy"));
+        var expected = ServiceAddress.FromUri(new Uri("ice:/dummy"));
         var location = new Location { IsAdapterId = true, Value = "hello" };
         IServerAddressCache serverAddressCache = new ServerAddressCache(10);
         serverAddressCache.Set(location, expected);
@@ -39,7 +39,7 @@ public class ServerAddressCacheTests
     {
         // Arrange
         IServerAddressCache serverAddressCache = new ServerAddressCache(10);
-        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, ServiceAddress.FromUri(new Uri("ice:/dummy1")));
 
         // Act
         serverAddressCache.Remove(new Location { IsAdapterId = true, Value = "hello-1" });
@@ -57,7 +57,7 @@ public class ServerAddressCacheTests
     public void ServerAddress_cache_prunes_oldest_entries_when_cache_reaches_max_cache_size()
     {
         // Arrange
-        var expected = new ServiceAddress(new Uri("ice:/dummy"));
+        var expected = ServiceAddress.FromUri(new Uri("ice:/dummy"));
         IServerAddressCache serverAddressCache = new ServerAddressCache(2);
 
         serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
@@ -79,9 +79,9 @@ public class ServerAddressCacheTests
     public void Update_existing_location_entry()
     {
         // Arrange
-        var expected = new ServiceAddress(new Uri("ice:/expected"));
+        var expected = ServiceAddress.FromUri(new Uri("ice:/expected"));
         IServerAddressCache serverAddressCache = new ServerAddressCache(10);
-        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, ServiceAddress.FromUri(new Uri("ice:/dummy1")));
 
         // Act
         serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);

@@ -12,7 +12,7 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_adapter_by_id()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
@@ -27,7 +27,7 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_adapter_by_id_not_found()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "bad" };
@@ -55,7 +55,7 @@ public class LocatorServerAddressFinderTests
     public void Find_adapter_by_id_returning_a_proxy_without_server_address_fails()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
-            new FakeLocator(new ServiceAddress(new Uri("ice:/dummy")), adapterId: true));
+            new FakeLocator(ServiceAddress.FromUri(new Uri("ice:/dummy")), adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
         Assert.That(
@@ -67,7 +67,7 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_object_by_id()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
@@ -81,7 +81,7 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_object_by_id_not_found()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/bad" };
@@ -109,7 +109,7 @@ public class LocatorServerAddressFinderTests
     public void Find_object_by_id_returning_proxy_without_server_address_fails()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
-            new FakeLocator(new ServiceAddress(new Uri("ice:/dummy")), adapterId: false));
+            new FakeLocator(ServiceAddress.FromUri(new Uri("ice:/dummy")), adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
         Assert.That(
@@ -122,7 +122,7 @@ public class LocatorServerAddressFinderTests
     public void Find_object_by_id_returning_proxy_without_ice_protocol_fails()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
-            new FakeLocator(new ServiceAddress(new Uri("icerpc://localhost/dummy:10000")), adapterId: false));
+            new FakeLocator(ServiceAddress.FromUri(new Uri("icerpc://localhost/dummy:10000")), adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
         Assert.That(
@@ -137,7 +137,7 @@ public class LocatorServerAddressFinderTests
     {
         var serverAddressCache = new ServerAddressCache();
         var location = new Location { IsAdapterId = false, Value = "/good" };
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(
             new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: false)),
             serverAddressCache);
@@ -156,7 +156,7 @@ public class LocatorServerAddressFinderTests
     {
         var serverAddressCache = new ServerAddressCache();
         var location = new Location { IsAdapterId = false, Value = "/good" };
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000"));
         serverAddressCache.Cache[location] = expectedServiceAddress;
 
         IServerAddressFinder serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(
@@ -254,7 +254,7 @@ public class LocatorServerAddressFinderTests
             await _semaphore.WaitAsync(cancellationToken);
             Interlocked.Increment(ref Count);
 
-            return new ServiceAddress(new Uri("ice://localhost:10000/dummy?transport=unknown"));
+            return ServiceAddress.FromUri(new Uri("ice://localhost:10000/dummy?transport=unknown"));
         }
 
         internal void Release(int count) => _semaphore.Release(count);

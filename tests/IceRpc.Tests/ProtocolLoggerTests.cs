@@ -22,7 +22,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_connection_accepted_and_connection_connected(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
@@ -40,10 +40,7 @@ public sealed class ProtocolLoggerTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
-            new ServiceAddress(protocol)
-            {
-                ServerAddress = serverAddress
-            });
+            serverAddress.CreateServiceAddress());
 
         // Act
         var clientConnectionInformation = await clientConnection.ConnectAsync();
@@ -92,7 +89,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_connection_connected_failed(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
@@ -141,7 +138,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_connection_dispose_without_shutdown(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -160,10 +157,7 @@ public sealed class ProtocolLoggerTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
-            new ServiceAddress(protocol)
-            {
-                ServerAddress = serverAddress
-            });
+            serverAddress.CreateServiceAddress());
         // Act
         var clientConnectionInformation = await clientConnection.ConnectAsync();
         var invokeTask = clientConnection.InvokeAsync(request, default);
@@ -212,7 +206,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_start_stop_accept(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var loggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         var server = new Server(
@@ -244,7 +238,7 @@ public sealed class ProtocolLoggerTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
 
@@ -265,10 +259,7 @@ public sealed class ProtocolLoggerTests
         var clientConnectionInformation = await clientConnection.ConnectAsync(default);
         {
             using var request = new OutgoingRequest(
-                new ServiceAddress(protocol)
-                {
-                    ServerAddress = serverAddress
-                });
+                serverAddress.CreateServiceAddress());
 
             // Send a request to ensure the server side is connected before we shut down the connection
             _ = await clientConnection.InvokeAsync(request);

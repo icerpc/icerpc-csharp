@@ -30,7 +30,7 @@ async Task<string> GreetAsync(string name)
 
     // Construct an outgoing request to the icerpc:/greeter service.
     // The payload is the PipeReader of our pipe.
-    using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/greeter")))
+    using var request = new OutgoingRequest(ServiceAddress.FromUri(new Uri("icerpc:/greeter")))
     {
         Operation = "greet",
         Payload = pipe.Reader // request takes ownership of the PipeReader
