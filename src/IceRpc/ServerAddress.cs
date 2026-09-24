@@ -38,7 +38,6 @@ public readonly record struct ServerAddress
             // with brackets, including mismatched brackets, CheckHostName returns Unknown. We store the address
             // without the brackets, like the Uri constructor does.
             _host = value.StartsWith('[', StringComparison.Ordinal) ? value[1..^1] : value;
-            OriginalUri = null; // new host invalidates OriginalUri
         }
     }
 
@@ -48,11 +47,7 @@ public readonly record struct ServerAddress
     {
         get => _port;
 
-        init
-        {
-            _port = value;
-            OriginalUri = null; // new port invalidates OriginalUri
-        }
+        init => _port = value;
     }
 
     /// <summary>Gets or initializes the transport.</summary>
@@ -66,7 +61,6 @@ public readonly record struct ServerAddress
         {
             _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
                 throw new ArgumentException($"The value '{value}' is not valid transport name", nameof(value));
-            OriginalUri = null; // new transport invalidates OriginalUri
         }
     }
 
@@ -88,14 +82,8 @@ public readonly record struct ServerAddress
                 throw new ArgumentException("Invalid parameters.", nameof(value), exception);
             }
             _params = value;
-            OriginalUri = null; // new params invalidates OriginalUri
         }
     }
-
-    /// <summary>Gets the URI used to create this server address.</summary>
-    /// <value>The <see cref="Uri" /> of this server address if it was constructed from a URI; otherwise,
-    /// <see langword="null"/>.</value>
-    public Uri? OriginalUri { get; private init; }
 
     private readonly string _host = "::0";
     private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
@@ -115,7 +103,6 @@ public readonly record struct ServerAddress
         Protocol = protocol;
         _port = Protocol.DefaultPort;
         _transport = null;
-        OriginalUri = null;
     }
 
     /// <summary>Constructs a server address from a <see cref="Uri" />.</summary>
@@ -171,8 +158,6 @@ public readonly record struct ServerAddress
         {
             throw new ArgumentException("Cannot parse query of server address URI.", nameof(uri), exception);
         }
-
-        OriginalUri = uri;
     }
 
     /// <summary>Checks if this server address is equal to another server address.</summary>
@@ -192,12 +177,11 @@ public readonly record struct ServerAddress
 
     /// <summary>Converts this server address into a string.</summary>
     /// <returns>The string representation of this server address.</returns>
-    public override string ToString() =>
-        OriginalUri?.ToString() ?? new StringBuilder().AppendServerAddress(this).ToString();
+    public override string ToString() => new StringBuilder().AppendServerAddress(this).ToString();
 
     /// <summary>Converts this server address into a URI.</summary>
     /// <returns>The URI.</returns>
-    public Uri ToUri() => OriginalUri ?? new Uri(ToString(), UriKind.Absolute);
+    public Uri ToUri() => new(ToString(), UriKind.Absolute);
 
     /// <summary>Constructs a server address from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>
@@ -215,7 +199,6 @@ public readonly record struct ServerAddress
         _port = port;
         _transport = transport;
         _params = serverAddressParams;
-        OriginalUri = null;
     }
 }
 

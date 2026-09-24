@@ -178,7 +178,7 @@ public class ServiceAddressTests
             var serviceAddressWithoutServerAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
             return new (ServiceAddress, string)[]
             {
-                // OriginalUri set
+                // Constructed from a URI
                 (serviceAddress, new Uri("ice://localhost:8080/foo?abc=123#bar").ToString()),
                 // OriginalUri not set
                 (serviceAddressWithoutServerAddress, "icerpc:/foo"),
