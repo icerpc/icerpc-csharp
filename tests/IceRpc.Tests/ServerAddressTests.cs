@@ -263,6 +263,18 @@ public class ServerAddressTests
     [TestCase("icerpc://127.0.0.1?transport=foo", "icerpc://127.0.0.1:4062?transport=foo")]
     public void Server_address_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
 
+    [Test]
+    public void Optional_transport_comparer_handles_default_values()
+    {
+        ServerAddressComparer comparer = ServerAddressComparer.OptionalTransport;
+        var serverAddress = ServerAddress.FromUri(new Uri("icerpc://localhost"));
+
+        Assert.That(comparer.Equals(default, default), Is.True);
+        Assert.That(comparer.Equals(default, serverAddress), Is.False);
+        Assert.That(comparer.Equals(serverAddress, default), Is.False);
+        Assert.That(() => comparer.GetHashCode(default), Throws.Nothing);
+    }
+
     [TestCase("icerpc://127.0.0.1", "icerpc://localhost")]
     [TestCase("icerpc://127.0.0.1", "ice://127.0.0.1")]
     public void Server_address_not_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.Not.EqualTo(rhs));

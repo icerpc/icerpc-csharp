@@ -448,16 +448,21 @@ public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
 
     private class OptionalTransportServerAddressComparer : ServerAddressComparer
     {
-        public override bool Equals(ServerAddress lhs, ServerAddress rhs) =>
-            lhs.HasValue == rhs.HasValue &&
-            (!lhs.HasValue || lhs.Protocol == rhs.Protocol) &&
-            lhs.Host == rhs.Host &&
-            lhs.Port == rhs.Port &&
-            (lhs.Transport == rhs.Transport || lhs.Transport is null || rhs.Transport is null) &&
-            lhs.Params.DictionaryEqual(rhs.Params);
+        public override bool Equals(ServerAddress lhs, ServerAddress rhs)
+        {
+            if (!lhs.HasValue || !rhs.HasValue)
+            {
+                return lhs.HasValue == rhs.HasValue;
+            }
+
+            // An unspecified transport matches any transport.
+            return lhs.Transport is null || rhs.Transport is null ?
+                lhs.WithTransport(null) == rhs.WithTransport(null) :
+                lhs == rhs;
+        }
 
         public override int GetHashCode(ServerAddress serverAddress) =>
-            HashCode.Combine(serverAddress.Host, serverAddress.Port, serverAddress.Params.Count);
+            serverAddress.HasValue ? serverAddress.WithTransport(null).GetHashCode() : 0;
     }
 }
 
