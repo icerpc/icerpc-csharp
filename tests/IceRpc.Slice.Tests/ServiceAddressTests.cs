@@ -23,6 +23,25 @@ public class ServiceAddressTests
         Assert.That(decoder.DecodeServiceAddress(), Is.EqualTo(value));
     }
 
+    /// <summary>Verifies that a relative URI (the encoding of a relative proxy) is not a valid service address.
+    /// </summary>
+    [Test]
+    public void Decode_relative_service_address_throws_invalid_data()
+    {
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString("/hello");
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
+                _ = decoder.DecodeServiceAddress();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
     [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:")]
     public void Decode_service_address_with_unparsable_uri_throws_invalid_data(
         ServiceAddress value,

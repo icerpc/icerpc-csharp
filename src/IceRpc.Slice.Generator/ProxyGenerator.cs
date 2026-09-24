@@ -155,7 +155,12 @@ internal static class ProxyGenerator
                         "summary",
                         $"""Provides an implicit conversion to <see cref="{baseProxyName}" />.""")
                     .AddParameter(proxyName, "proxy")
-                    .SetBody($"new {baseProxyName}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)")
+                    .SetBody(
+                        $$"""
+                        proxy.IsRelative ?
+                            {{baseProxyName}}.FromPath(proxy.ServiceAddress.Path) :
+                            new {{baseProxyName}}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)
+                        """)
                     .Build());
         }
 
@@ -175,6 +180,8 @@ internal static class ProxyGenerator
         {
             builder.AddBlock(BuildProxyOperationCore(op, currentNamespace));
         }
+
+        builder.AddBlock(BuildProxyPrivateMembers(proxyName));
 
         return builder.Build();
     }
@@ -554,12 +561,10 @@ internal static class ProxyGenerator
                     $"{accessModifier} static",
                     "void", $"Encode{proxyName}",
                     FunctionType.ExpressionBody)
-                        .AddComment(
-                            "summary",
-                            $"""Encodes a <see cref="{proxyName}" /> as an <see cref="IceRpc.ServiceAddress" />.""")
+                        .AddComment("summary", $"""Encodes a <see cref="{proxyName}" />.""")
                         .AddParameter("this ref SliceEncoder", "encoder", docComment: "The Slice encoder.")
-                        .AddParameter(proxyName, "proxy", docComment: "The proxy to encode as a service address.")
-                        .SetBody("encoder.EncodeServiceAddress(proxy.ServiceAddress)")
+                        .AddParameter(proxyName, "proxy", docComment: "The proxy to encode.")
+                        .SetBody("encoder.EncodeProxy(proxy)")
                         .Build())
             .Build();
     }
@@ -578,11 +583,9 @@ internal static class ProxyGenerator
                     proxyName,
                     $"Decode{proxyName}",
                     FunctionType.ExpressionBody)
-                        .AddComment(
-                            "summary",
-                            $"""Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxyName}" />.""")
+                        .AddComment("summary", $"""Decodes a <see cref="{proxyName}" />.""")
                         .AddParameter("this ref SliceDecoder", "decoder", docComment: "The Slice decoder.")
-                        .AddComment("returns", "The proxy created from the decoded service address.")
+                        .AddComment("returns", "The decoded proxy.")
                         .SetBody($"decoder.DecodeProxy<{proxyName}>()")
                         .Build())
             .Build();
@@ -594,26 +597,79 @@ internal static class ProxyGenerator
         /// <c>{{scopedId}}</c>.</summary>
         {{accessModifier}} const string DefaultServicePath = "{{defaultServicePath}}";
 
-        /// <inheritdoc/>
-        public SliceEncodeOptions? EncodeOptions { get; init; }
+        /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from
+        /// this proxy.</summary>
+        public SliceEncodeOptions? EncodeOptions
+        {
+            get => field;
+            init
+            {
+                ThrowIfRelative();
+                field = value;
+            }
+        }
+
+        /// <summary>Gets or initializes the invocation pipeline of this proxy.</summary>
+        public required IceRpc.IInvoker Invoker
+        {
+            get => field;
+            init
+            {
+                ThrowIfRelative();
+                field = value;
+            }
+        }
 
         /// <inheritdoc/>
-        public required IceRpc.IInvoker Invoker { get; init; }
+        /// <remarks>A relative proxy is immutable: when this property is <see langword="true" />, initializing any
+        /// property of this proxy throws <see cref="global::System.InvalidOperationException" />.</remarks>
+        public bool IsRelative => _isRelative;
 
-        /// <inheritdoc/>
-        public IceRpc.ServiceAddress ServiceAddress { get; init; } = _defaultServiceAddress;
+        /// <summary>Gets or initializes the address of the remote service.</summary>
+        /// <value>The service address. For a relative proxy, only the path of this service address is meaningful.
+        /// </value>
+        public IceRpc.ServiceAddress ServiceAddress
+        {
+            get => field;
+            init
+            {
+                ThrowIfRelative();
+                field = value;
+            }
+        } = _defaultServiceAddress;
 
         private static IceRpc.ServiceAddress _defaultServiceAddress =
             new(IceRpc.Protocol.IceRpc) { Path = DefaultServicePath };
+
+        private readonly bool _isRelative;
+        """;
+
+    private static CodeBlock BuildProxyPrivateMembers(string proxyName) =>
+        $$"""
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private {{proxyName}}(string path)
+            : this(
+                IceRpc.InvalidInvoker.Instance,
+                new IceRpc.ServiceAddress(IceRpc.Protocol.IceRpc) { Path = path }) =>
+            _isRelative = true;
+
+        private void ThrowIfRelative()
+        {
+            if (_isRelative)
+            {
+                throw new global::System.InvalidOperationException("Cannot modify a relative proxy.");
+            }
+        }
         """;
 
     private static CodeBlock BuildProxyConstructors(string proxyName, string accessModifier)
     {
-        CodeBlock fromPath = new FunctionBuilder($"{accessModifier} static", proxyName, "FromPath", FunctionType.ExpressionBody)
+        // FromPath implements ISliceProxy<TSelf>.FromPath, so it must be public.
+        CodeBlock fromPath = new FunctionBuilder("public static", proxyName, "FromPath", FunctionType.ExpressionBody)
             .AddComment("summary", "Creates a relative proxy from a path.")
             .AddParameter("string", "path", docComment: "The path.")
             .AddComment("returns", "The new relative proxy.")
-            .SetBody("new(IceRpc.InvalidInvoker.Instance, new IceRpc.ServiceAddress { Path = path })")
+            .SetBody("new(path)")
             .Build();
 
         var create = new CodeBlock($$"""
@@ -668,6 +724,6 @@ internal static class ProxyGenerator
                 @"Constructs a proxy with an icerpc service address with path <see cref=""DefaultServicePath"" />.")
             .Build();
 
-        return CodeBlock.FromBlocks([fromPath, create, mainCtor, uriCtor, parameterlessCtor]);
+        return CodeBlock.FromBlocks([fromPath, create, parameterlessCtor, mainCtor, uriCtor]);
     }
 }

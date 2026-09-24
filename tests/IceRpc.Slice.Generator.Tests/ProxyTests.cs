@@ -5,6 +5,7 @@ using IceRpc.Slice.Operations;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Slice.Codec;
@@ -43,22 +44,105 @@ public partial class ProxyTests
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that a relative proxy gets the invalid invoker by default.</summary>
+    /// <summary>Verifies that a relative proxy is encoded as its path.</summary>
     [Test]
-    public void Decode_relative_proxy()
+    public void Encode_relative_proxy()
     {
+        // Arrange
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+
+        // Act
+        encoder.EncodePingableProxy(PingableProxy.FromPath("/foo"));
+
+        // Assert
+        var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
+        Assert.That(decoder.DecodeString(), Is.EqualTo("/foo"));
+    }
+
+    /// <summary>Verifies that a relative proxy decoded without a base proxy remains relative and gets the invalid
+    /// invoker.</summary>
+    [Test]
+    public void Decode_relative_proxy_without_base_proxy()
+    {
+        // Arrange
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString("/foo");
+        var sut = new SliceDecoder(bufferWriter.WrittenMemory);
+
+        // Act
+        PingableProxy decoded = sut.DecodePingableProxy();
+
+        // Assert
+        Assert.That(decoded.IsRelative, Is.True);
+        Assert.That(decoded.ServiceAddress.Path, Is.EqualTo("/foo"));
+        Assert.That(decoded.Invoker, Is.EqualTo(InvalidInvoker.Instance));
+    }
+
+    /// <summary>Verifies that a relative proxy decoded with a base proxy is resolved against the service address of
+    /// this base proxy.</summary>
+    [Test]
+    public void Decode_relative_proxy_with_base_proxy()
+    {
+        // Arrange
+        var pipeline = new Pipeline();
+        var baseProxy = new PingableProxy(pipeline, new Uri("icerpc://host:1000/base?foo=bar"));
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString("/foo");
+        var sut = new SliceDecoder(bufferWriter.WrittenMemory, decodingContext: baseProxy);
+
+        // Act
+        PingableProxy decoded = sut.DecodePingableProxy();
+
+        // Assert
+        Assert.That(decoded.IsRelative, Is.False);
+        Assert.That(decoded.ServiceAddress, Is.EqualTo(baseProxy.ServiceAddress with { Path = "/foo" }));
+        Assert.That(decoded.Invoker, Is.EqualTo(pipeline));
+    }
+
+    [Test]
+    public void Slice_feature_rejects_relative_base_proxy() =>
+        Assert.That(() => new SliceFeature(baseProxy: PingableProxy.FromPath("/base")), Throws.ArgumentException);
+
+    /// <summary>Verifies that decoding a relative proxy whose path is invalid for the base proxy's protocol throws
+    /// <see cref="InvalidDataException" />.</summary>
+    [Test]
+    public void Decode_relative_proxy_with_invalid_path_for_base_proxy_fails()
+    {
+        // Arrange
+        var baseProxy = new PingableProxy(InvalidInvoker.Instance, new Uri("ice://host:1000/base"));
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString("/a/b/c"); // too many slashes for an ice path
+
         // Act/Assert
         Assert.That(
             () =>
             {
-                var bufferWriter = new MemoryBufferWriter(new byte[256]);
-                var encoder = new SliceEncoder(bufferWriter);
-                encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
-                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
-                return decoder.DecodePingableProxy().Invoker;
+                var decoder = new SliceDecoder(bufferWriter.WrittenMemory, decodingContext: baseProxy);
+                return decoder.DecodePingableProxy();
             },
-            Is.EqualTo(InvalidInvoker.Instance));
+            Throws.InstanceOf<InvalidDataException>());
     }
+
+    /// <summary>Verifies that a relative proxy is immutable.</summary>
+    [Test]
+    public void Relative_proxy_cannot_be_modified()
+    {
+        PingableProxy proxy = PingableProxy.FromPath("/foo");
+
+        Assert.That(
+            () => proxy with { ServiceAddress = new ServiceAddress(Protocol.Ice) },
+            Throws.InvalidOperationException);
+        Assert.That(() => proxy with { Invoker = new Pipeline() }, Throws.InvalidOperationException);
+        Assert.That(() => proxy with { EncodeOptions = new SliceEncodeOptions() }, Throws.InvalidOperationException);
+    }
+
+    [Test]
+    public void Invoke_with_relative_proxy_fails() =>
+        Assert.That(() => PingableProxy.FromPath("/foo").PingAsync(), Throws.InvalidOperationException);
 
     /// <summary>Verifies that a proxy decoded from an incoming request has the invalid invoker by default.</summary>
     [Test]

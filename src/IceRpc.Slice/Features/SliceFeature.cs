@@ -30,13 +30,14 @@ public sealed class SliceFeature : ISliceFeature
     /// 8 times <paramref name="maxSegmentSize" /> if set, otherwise the value provided by <paramref
     /// name="defaultFeature" />.</param>
     /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
-    /// <param name="baseProxy">The base proxy, used when decoding service addresses into proxies.</param>
+    /// <param name="baseProxy">The base proxy used when decoding proxies.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
     /// is equivalent to <see cref="Default" />.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxCollectionAllocation" /> is a
     /// negative value other than <c>-1</c>, when <paramref name="maxSegmentSize" /> is <c>0</c> or a negative value
     /// other than <c>-1</c>, or when <paramref name="maxSegmentSize" /> is greater than <c>int.MaxValue / 8</c>
     /// (256 MB) while <paramref name="maxCollectionAllocation" /> is <c>-1</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="baseProxy" /> is a relative proxy.</exception>
     public SliceFeature(
         SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
@@ -61,6 +62,10 @@ public sealed class SliceFeature : ISliceFeature
             throw new ArgumentOutOfRangeException(
                 nameof(maxSegmentSize),
                 $"The value of {nameof(maxSegmentSize)} must be less than or equal to int.MaxValue / 8 when {nameof(maxCollectionAllocation)} is -1.");
+        }
+        if (baseProxy is { IsRelative: true })
+        {
+            throw new ArgumentException("The base proxy cannot be a relative proxy.", nameof(baseProxy));
         }
 
         defaultFeature ??= Default;

@@ -688,6 +688,11 @@ public partial class OperationTests
 
         // Assert
         Assert.That(receivedProxy.Invoker, Is.EqualTo(((ISliceProxy)proxy).Invoker));
+
+        // The service returns a relative proxy, resolved against the service address of the proxy that sent the
+        // request.
+        Assert.That(receivedProxy.IsRelative, Is.False);
+        Assert.That(receivedProxy.ServiceAddress, Is.EqualTo(proxy.ServiceAddress with { Path = "/hello" }));
     }
 
     [Test]

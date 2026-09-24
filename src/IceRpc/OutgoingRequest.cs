@@ -54,11 +54,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     /// <summary>Constructs an outgoing request.</summary>
     /// <param name="serviceAddress">The address of the target service.</param>
     public OutgoingRequest(ServiceAddress serviceAddress)
-        : base(serviceAddress.Protocol ??
-            throw new ArgumentException(
-                "An outgoing request requires a service address with a protocol such as icerpc or ice.",
-                nameof(serviceAddress))) =>
-        ServiceAddress = serviceAddress;
+        : base(serviceAddress.Protocol) => ServiceAddress = serviceAddress;
 
     /// <summary>Disposes this outgoing request. This completes the payload and payload continuation of this request,
     /// and the response associated with this request (if already received).</summary>

@@ -16,7 +16,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, string _, string _) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute)));
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)));
             }
         }
     }
@@ -29,7 +29,7 @@ public class ServiceAddressTests
         {
             foreach (string str in _invalidServiceAddressUris)
             {
-                yield return new TestCaseData(new Uri(str, UriKind.RelativeOrAbsolute));
+                yield return new TestCaseData(new Uri(str));
             }
         }
     }
@@ -42,7 +42,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, string path, string fragment) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(new Uri(str, UriKind.RelativeOrAbsolute), path, fragment);
+                yield return new TestCaseData(new Uri(str), path, fragment);
             }
         }
     }
@@ -55,7 +55,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, string _, string _) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute)));
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)));
             }
         }
     }
@@ -117,12 +117,6 @@ public class ServiceAddressTests
                 (serviceAddress, null, false),
                 (serviceAddress, new ServiceAddress(Protocol.IceRpc), false), // Different protocol.
 
-                // Relative service addresses
-                (
-                    new ServiceAddress() with { Path = "/foo" },
-                    new ServiceAddress() with { Path = "/bar" },
-                    false),
-
                 // Params (Order does not matter)
                 (
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123&def=456")),
@@ -181,16 +175,13 @@ public class ServiceAddressTests
         get
         {
             var serviceAddress = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
-            ServiceAddress relativeServiceAddress = new ServiceAddress() with { Path = "/foo" };
-            ServiceAddress protocolRelativeServiceAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
+            var serviceAddressWithoutServerAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
             return new (ServiceAddress, string)[]
             {
                 // OriginalUri set
                 (serviceAddress, new Uri("ice://localhost:8080/foo?abc=123#bar").ToString()),
-                // Relative service address with no protocol
-                (relativeServiceAddress, new Uri("/foo", UriKind.Relative).ToString()),
-                // Protocol relative service address
-                (protocolRelativeServiceAddress, "icerpc:/foo"),
+                // OriginalUri not set
+                (serviceAddressWithoutServerAddress, "icerpc:/foo"),
             };
         }
     }
@@ -268,10 +259,6 @@ public class ServiceAddressTests
             // IDN
             ("icerpc://München-Ost:10000/path", "/path", ""),
             ("icerpc://xn--mnchen-ost-9db.com/path", "/path", ""),
-            // relative proxies
-            ("/foo/bar", "/foo/bar", ""),
-            ("//foo/bar", "//foo/bar", ""),
-            ("/foo:bar", "/foo:bar", ""),
             /* spellchecker:enable */
         };
 
@@ -306,18 +293,6 @@ public class ServiceAddressTests
         Assert.That(() => serviceAddress with { Params = myParams }, Throws.ArgumentException);
     }
 
-    [Test]
-    public void Cannot_set_server_address_on_relative_proxy()
-    {
-        // Arrange
-        var serviceAddress = new ServiceAddress(new Uri("/foo", UriKind.Relative));
-
-        var serverAddress = new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar"));
-
-        // Act/Assert
-        Assert.That(() => serviceAddress with { ServerAddress = serverAddress }, Throws.InvalidOperationException);
-    }
-
     /// <summary>Verifies that the service address server address cannot be set when the service address contains any
     /// params.</summary>
     [Test]
@@ -333,7 +308,7 @@ public class ServiceAddressTests
         Assert.That(
             () => serviceAddress with
             {
-                ServerAddress = new ServerAddress(serviceAddress.Protocol!) { Host = "localhost" }
+                ServerAddress = new ServerAddress(serviceAddress.Protocol) { Host = "localhost" }
             },
             Throws.InvalidOperationException);
     }
@@ -370,20 +345,14 @@ public class ServiceAddressTests
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
     }
 
-    /// <summary>Verifies that the "fragment" cannot be set when the protocol is null or has no fragment.</summary>
-    [TestCase("icerpc")]
-    [TestCase("")]
-    public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
+    /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
+    [Test]
+    public void Cannot_set_fragment_if_protocol_has_no_fragment()
     {
-        Protocol? protocol = protocolName.Length > 0 ? Protocol.Parse(protocolName) : null;
-        var serviceAddress = new ServiceAddress(protocol);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         Assert.That(() => serviceAddress with { Fragment = "bar" }, Throws.InvalidOperationException);
-
-        if (protocol is not null)
-        {
-            Assert.That(protocol.HasFragment, Is.False);
-        }
+        Assert.That(Protocol.IceRpc.HasFragment, Is.False);
     }
 
     /// <summary>Verifies that the service address params cannot be set when the service address has a server address.
@@ -405,7 +374,7 @@ public class ServiceAddressTests
     {
         string str2 = serviceAddress.ToString();
 
-        Assert.That(new ServiceAddress(new Uri(str2, UriKind.RelativeOrAbsolute)), Is.EqualTo(serviceAddress));
+        Assert.That(new ServiceAddress(new Uri(str2)), Is.EqualTo(serviceAddress));
     }
 
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
@@ -414,7 +383,7 @@ public class ServiceAddressTests
     [TestCaseSource(nameof(ServiceAddressHashCodeSource))]
     public void Equal_service_addresses_produce_the_same_hash_code(ServiceAddress serviceAddress1)
     {
-        var serviceAddress2 = new ServiceAddress(new Uri(serviceAddress1.ToString(), UriKind.RelativeOrAbsolute));
+        var serviceAddress2 = new ServiceAddress(new Uri(serviceAddress1.ToString()));
 
         int hashCode1 = serviceAddress1.GetHashCode();
 
@@ -423,15 +392,15 @@ public class ServiceAddressTests
         Assert.That(hashCode1, Is.EqualTo(serviceAddress2.GetHashCode()));
     }
 
-    /// <summary>Verifies that a service address created from a path has the expected protocol, path and serverAddress
-    /// properties.</summary>
+    /// <summary>Verifies that a service address created from a protocol and a path has the expected protocol, path
+    /// and serverAddress properties.</summary>
     [TestCase("/")]
     [TestCase("/foo/bar/")]
-    public void From_path(string path)
+    public void From_protocol_and_path(string path)
     {
-        var serviceAddress = new ServiceAddress { Path = path };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = path };
 
-        Assert.That(serviceAddress.Protocol, Is.Null);
+        Assert.That(serviceAddress.Protocol, Is.EqualTo(Protocol.IceRpc));
         Assert.That(serviceAddress.Path, Is.EqualTo(path));
         Assert.That(serviceAddress.ServerAddress, Is.Null);
     }
@@ -487,7 +456,7 @@ public class ServiceAddressTests
 
     [Test]
     [TestCaseSource(nameof(ServiceAddressToUriSource))]
-    public void Relative_service_address_to_uri(ServiceAddress serviceAddress, string expected)
+    public void Service_address_to_uri(ServiceAddress serviceAddress, string expected)
     {
         // Act
         var result = serviceAddress.ToUri();
@@ -557,21 +526,7 @@ public class ServiceAddressTests
         serviceAddress = serviceAddress with { Fragment = "bar" };
 
         Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
-        Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
-    }
-
-    [Test]
-    public void Uri_constructor_with_relative_uri_produces_relative_service_address()
-    {
-        // Arrange
-        var uri = new Uri("/foo", UriKind.Relative);
-
-        // Act
-        var serviceAddress = new ServiceAddress(uri);
-
-        // Assert
-        Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
-        Assert.That(serviceAddress.Protocol, Is.Null);
+        Assert.That(serviceAddress.Protocol.HasFragment, Is.True);
     }
 
     [TestCase("icerpc://127.0.0.1/path?transport=foo&p=v&p1=v1", "icerpc://127.0.0.1:4062/path?p1=v1&transport=foo&p=v")]

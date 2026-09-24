@@ -12,7 +12,12 @@ public interface ISliceProxy
     /// <summary>Gets the invocation pipeline of this proxy.</summary>
     IInvoker Invoker { get; }
 
+    /// <summary>Gets a value indicating whether this proxy is a relative proxy.</summary>
+    /// <value><see langword="true" /> when this proxy is a relative proxy; otherwise, <see langword="false" />.</value>
+    bool IsRelative { get; }
+
     /// <summary>Gets the address of the remote service.</summary>
+    /// <value>The service address. For a relative proxy, only the path of this service address is meaningful.</value>
     ServiceAddress ServiceAddress { get; }
 }
 
@@ -28,4 +33,9 @@ public interface ISliceProxy<TSelf> : ISliceProxy where TSelf : struct, ISlicePr
     /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
     /// <returns>The new proxy.</returns>
     static abstract TSelf Create(IInvoker invoker, ServiceAddress? serviceAddress, SliceEncodeOptions? encodeOptions);
+
+    /// <summary>Creates a relative proxy from a path.</summary>
+    /// <param name="path">The path.</param>
+    /// <returns>The new relative proxy.</returns>
+    static abstract TSelf FromPath(string path);
 }
