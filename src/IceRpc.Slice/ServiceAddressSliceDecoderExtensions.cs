@@ -10,20 +10,14 @@ public static class ServiceAddressSliceDecoderExtensions
     /// <summary>Decodes a service address.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded service address.</returns>
+    /// <exception cref="InvalidDataException">Thrown when the decoded string is not a valid service address URI. A
+    /// relative URI (the encoding of a relative proxy) is not a valid service address.</exception>
     public static ServiceAddress DecodeServiceAddress(this ref SliceDecoder decoder)
     {
         string serviceAddressString = decoder.DecodeString();
         try
         {
-            if (serviceAddressString.StartsWith('/', StringComparison.Ordinal))
-            {
-                // relative service address
-                return new ServiceAddress { Path = serviceAddressString };
-            }
-            else
-            {
-                return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
-            }
+            return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
         }
         catch (Exception exception)
         {

@@ -70,6 +70,13 @@ public static class SliceProxyExtensions
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
+        if (proxy.IsRelative)
+        {
+            payload.Complete();
+            payloadContinuation?.Complete();
+            throw new InvalidOperationException("Cannot send requests using a relative proxy.");
+        }
+
         var request = new OutgoingRequest(proxy.ServiceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
@@ -140,6 +147,13 @@ public static class SliceProxyExtensions
             payload.Complete();
             payloadContinuation?.Complete();
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
+        }
+
+        if (proxy.IsRelative)
+        {
+            payload.Complete();
+            payloadContinuation?.Complete();
+            throw new InvalidOperationException("Cannot send requests using a relative proxy.");
         }
 
         var request = new OutgoingRequest(proxy.ServiceAddress)

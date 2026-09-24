@@ -16,30 +16,6 @@ namespace IceRpc.Ice.Generator.Tests;
 public partial class ProxyTests
 {
     [Test]
-    public void Create_proxy_with_null_protocol_fails()
-    {
-        // Arrange
-        var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
-
-        // Act & Assert
-        Assert.That(
-            () => new PingableProxy(InvalidInvoker.Instance, serviceAddress),
-            Throws.TypeOf<ArgumentException>());
-    }
-
-    [Test]
-    public void Initialize_proxy_with_null_protocol_fails()
-    {
-        // Arrange
-        var serviceAddress = new ServiceAddress(protocol: null) { Path = "/foo" };
-
-        // Act & Assert
-        Assert.That(
-            () => new PingableProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress },
-            Throws.TypeOf<ArgumentException>());
-    }
-
-    [Test]
     public void Proxy_has_default_service_path_with_ice_protocol()
     {
         // Arrange

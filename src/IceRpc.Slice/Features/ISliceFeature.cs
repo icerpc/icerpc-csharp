@@ -8,12 +8,15 @@ namespace IceRpc.Features;
 /// </summary>
 public interface ISliceFeature
 {
-    /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
-    /// <value>The base proxy. A decoded proxy inherits the invoker and encode options of the base proxy, and a decoded
-    /// relative service address is resolved against the service address of the base proxy. When
-    /// <see langword="null" />, the proxy that sent the request serves as the base proxy for a proxy decoded from an
-    /// incoming response, while a proxy decoded from an incoming request receives
-    /// <see cref="InvalidInvoker.Instance" /> as its invoker and keeps its relative service address as is.</value>
+    /// <summary>Gets the base proxy used when decoding proxies.</summary>
+    /// <value>The base proxy, or <see langword="null" /> when this feature does not configure a base proxy. A base
+    /// proxy is never a relative proxy.</value>
+    /// <remarks>A decoded proxy inherits the invoker and encode options of the base proxy. When the proxy was encoded
+    /// as a path (the encoding of a relative proxy), the service address of the decoded proxy is the service address
+    /// of the base proxy with this path. When this property is <see langword="null" />, the base proxy for a proxy
+    /// decoded from an incoming response is the proxy that sent the request, while a proxy decoded from an incoming
+    /// request has no base proxy: it receives <see cref="InvalidInvoker.Instance" /> as its invoker, and it is a
+    /// relative proxy when it was encoded as a path.</remarks>
     ISliceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>

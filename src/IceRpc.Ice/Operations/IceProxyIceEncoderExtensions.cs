@@ -40,11 +40,6 @@ public static class IceProxyIceEncoderExtensions
     /// <param name="value">The value to encode.</param>
     private static void EncodeServiceAddress(this ref IceEncoder encoder, ServiceAddress value)
     {
-        if (value.Protocol is not Protocol protocol)
-        {
-            throw new NotSupportedException("Cannot encode a relative service address with the Ice encoding.");
-        }
-
         // With the Ice encoding, a non-null proxy/service address is encoded as:
         // - identity, fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
         // - a sequence of server addresses (can be empty)
@@ -61,11 +56,11 @@ public static class IceProxyIceEncoderExtensions
 
         encoder.EncodeFragmentAsFacet(value.Fragment);
         encoder.EncodeInvocationMode(InvocationMode.Twoway);
-        encoder.EncodeBool(false);              // Secure
-        encoder.EncodeByte(protocol.ByteValue); // Protocol Major
-        encoder.EncodeByte(0);                  // Protocol Minor
-        encoder.EncodeByte(1);                  // Encoding Major
-        encoder.EncodeByte(1);                  // Encoding Minor
+        encoder.EncodeBool(false);                    // Secure
+        encoder.EncodeByte(value.Protocol.ByteValue); // Protocol Major
+        encoder.EncodeByte(0);                        // Protocol Minor
+        encoder.EncodeByte(1);                        // Encoding Major
+        encoder.EncodeByte(1);                        // Encoding Minor
 
         if (value.ServerAddress is ServerAddress serverAddress)
         {

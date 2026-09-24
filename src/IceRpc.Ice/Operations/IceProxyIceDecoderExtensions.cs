@@ -6,7 +6,6 @@ using IceRpc.Ice.Operations.Internal;
 using IceRpc.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -36,8 +35,6 @@ public static class IceProxyIceDecoderExtensions
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
         where TProxy : struct, IIceProxy
     {
-        Debug.Assert(serviceAddress.Protocol is not null, "The Ice encoding does not support relative proxies.");
-
         if (decodingContext is null)
         {
             return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };

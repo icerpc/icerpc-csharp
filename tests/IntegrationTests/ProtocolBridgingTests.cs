@@ -68,7 +68,7 @@ public sealed partial class ProtocolBridgingTests
         }
 
         ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderProxy, direct: false);
-        Assert.That((object)newProxy.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));
+        Assert.That((object)newProxy.ServiceAddress.Protocol.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newProxy, direct: true);
 
         await serviceProvider.GetRequiredService<ConnectionCache>().ShutdownAsync();
