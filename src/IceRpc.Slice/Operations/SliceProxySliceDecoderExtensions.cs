@@ -11,15 +11,16 @@ public static class SliceProxySliceDecoderExtensions
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded proxy struct.</returns>
-    public static TProxy DecodeProxy<TProxy>(this ref SliceDecoder decoder) where TProxy : struct, ISliceProxy =>
+    public static TProxy DecodeProxy<TProxy>(this ref SliceDecoder decoder)
+        where TProxy : struct, ISliceProxy<TProxy> =>
         CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.DecodingContext);
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
-        where TProxy : struct, ISliceProxy
+        where TProxy : struct, ISliceProxy<TProxy>
     {
         if (decodingContext is null)
         {
-            return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };
+            return TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null);
         }
         else
         {
@@ -30,12 +31,7 @@ public static class SliceProxySliceDecoderExtensions
                 serviceAddress = baseProxy.ServiceAddress with { Path = serviceAddress.Path };
             }
 
-            return new TProxy
-            {
-                EncodeOptions = baseProxy.EncodeOptions,
-                Invoker = baseProxy.Invoker,
-                ServiceAddress = serviceAddress
-            };
+            return TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);
         }
     }
 }
