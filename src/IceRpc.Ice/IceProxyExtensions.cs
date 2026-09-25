@@ -13,8 +13,8 @@ public static class IceProxyExtensions
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source proxy.</param>
     /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    public static TProxy ToProxy<TProxy>(this IIceProxy proxy) where TProxy : struct, IIceProxy =>
-        new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
+    public static TProxy ToProxy<TProxy>(this IIceProxy proxy) where TProxy : struct, IIceProxy<TProxy> =>
+        TProxy.Create(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions);
 
     /// <summary>Tests whether the target service implements the Ice interface associated with
     /// <typeparamref name="TProxy" />. This method is a wrapper for <see cref="IIceObject.IceIsAAsync" />.
@@ -30,7 +30,7 @@ public static class IceProxyExtensions
     public static async Task<TProxy?> AsAsync<TProxy>(
         this IIceProxy proxy,
         IFeatureCollection? features = null,
-        CancellationToken cancellationToken = default) where TProxy : struct, IIceProxy =>
+        CancellationToken cancellationToken = default) where TProxy : struct, IIceProxy<TProxy> =>
         await proxy.ToProxy<IceObjectProxy>().IceIsAAsync(typeof(TProxy).GetIceTypeId()!, features, cancellationToken)
             .ConfigureAwait(false) ?
             proxy.ToProxy<TProxy>() : null;
