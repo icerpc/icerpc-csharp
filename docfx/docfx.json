@@ -5,8 +5,6 @@
         {
           "files": ["src/*/*.csproj"],
           "exclude": [
-            "src/IceRpc.Ice/**",
-            "src/IceRpc.Locator/**",
             "src/IceRpc.Templates/**",
             "src/IceRpc.ServiceGenerator/**",
             "src/IceRpc.Protobuf.BuildTelemetry/**",

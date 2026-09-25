@@ -80,9 +80,7 @@ jobs:
 
       - name: 🔨 Build Examples
         run: |
-          # The Ice examples are excluded until slice2cs emits the IceRPC 0.7 proxies.
-          $examples = Get-ChildItem -Path examples -Recurse -Include *.slnx |
-            Where-Object { $_.FullName -notmatch 'examples[\\/]ice[\\/]' }
+          $examples = Get-ChildItem -Path examples -Recurse -Include *.slnx
           foreach ($example in $examples) { dotnet build $example.FullName }
         shell: pwsh
 

@@ -648,7 +648,7 @@ public class StreamTests
                 request.PayloadContinuation = null;
                 return Task.FromResult(response);
             }),
-            new ServiceAddress.IceRpc(),
+            new ServiceAddress(Protocol.IceRpc),
             "Op",
             GetDataAsync(),
             Empty.Parser,
@@ -713,7 +713,7 @@ public class StreamTests
                 request.PayloadContinuation = null;
                 return Task.FromResult(response);
             }),
-            new ServiceAddress.IceRpc(),
+            new ServiceAddress(Protocol.IceRpc),
             "Op",
             new Empty(),
             OutputMessage.Parser,
@@ -774,7 +774,7 @@ public class StreamTests
                 request.PayloadContinuation = null;
                 return Task.FromResult(response);
             }),
-            new ServiceAddress.IceRpc(),
+            new ServiceAddress(Protocol.IceRpc),
             "Op",
             GetInputDataAsync(),
             OutputMessage.Parser,

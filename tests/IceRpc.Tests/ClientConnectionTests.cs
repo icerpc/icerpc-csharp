@@ -180,7 +180,7 @@ public class ClientConnectionTests
         {
             // Create a separate scope to ensure the call to DisposeAsync runs after
             // request is disposed by the using directive.
-            using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+            using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
             // Act/Assert
             Assert.That(async () => await connection.InvokeAsync(request), Throws.Nothing);
@@ -195,7 +195,7 @@ public class ClientConnectionTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        ServerAddress serverAddress = protocol.CreateServerAddress("colochost");
+        var serverAddress = new ServerAddress(protocol) { Host = "colochost" };
         await using var server = new Server(
             NotFoundDispatcher.Instance,
             serverAddress,
@@ -230,7 +230,7 @@ public class ClientConnectionTests
                 new InlineDispatcher(
                     async (incomingRequest, cancellationToken) =>
                     {
-                        using var outgoingRequest = new OutgoingRequest(protocol.CreateServiceAddress());
+                        using var outgoingRequest = new OutgoingRequest(new ServiceAddress(protocol));
                         await incomingRequest.ConnectionContext.Invoker.InvokeAsync(outgoingRequest, cancellationToken);
                         return new OutgoingResponse(incomingRequest);
                     }))
@@ -238,7 +238,7 @@ public class ClientConnectionTests
 
         provider.GetRequiredService<Server>().Listen();
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);

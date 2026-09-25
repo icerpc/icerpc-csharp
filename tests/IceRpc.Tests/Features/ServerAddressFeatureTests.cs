@@ -40,7 +40,7 @@ public class ServerAddressFeatureTests
     public void Remove_addresses_when_server_address_feature_has_a_null_server_address()
     {
         var removedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc()
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc)
         {
             Path = "/hello"
         };

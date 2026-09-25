@@ -639,7 +639,7 @@ internal static class ProxyGenerator
         } = _defaultServiceAddress;
 
         private static IceRpc.ServiceAddress _defaultServiceAddress =
-            new IceRpc.ServiceAddress.IceRpc { Path = DefaultServicePath };
+            new(IceRpc.Protocol.IceRpc) { Path = DefaultServicePath };
 
         private readonly bool _isRelative;
         """;
@@ -650,7 +650,7 @@ internal static class ProxyGenerator
         private {{proxyName}}(string path)
             : this(
                 IceRpc.InvalidInvoker.Instance,
-                new IceRpc.ServiceAddress.IceRpc { Path = path }) =>
+                new IceRpc.ServiceAddress(IceRpc.Protocol.IceRpc) { Path = path }) =>
             _isRelative = true;
 
         private void ThrowIfRelative()

@@ -18,7 +18,7 @@ public class SequenceMappingTests
         // Arrange
         var value = new int[] { 1, 2, 3 };
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfInt32(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -63,7 +63,7 @@ public class SequenceMappingTests
         var value = new string[] { "one", "two", "three" };
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfString(
             value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -113,7 +113,7 @@ public class SequenceMappingTests
         };
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfMyFixedSizeEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -163,7 +163,7 @@ public class SequenceMappingTests
         // Arrange
         MyStruct[] value = [new MyStruct(0, 0), new MyStruct(1, 1), new MyStruct(2, 2)];
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfMyStruct(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -209,7 +209,7 @@ public class SequenceMappingTests
         DateTime[] value = [DateTime.UnixEpoch, DateTime.UnixEpoch, DateTime.UnixEpoch];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfCustomValueType(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -255,7 +255,7 @@ public class SequenceMappingTests
         Uri[] value = [new Uri("icerpc://localhost"), new Uri("ice://localhost")];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfCustomReferenceType(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -302,7 +302,7 @@ public class SequenceMappingTests
         var value = new int?[] { 1, null, 3 };
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalInt32(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -347,7 +347,7 @@ public class SequenceMappingTests
         var value = new string?[] { "one", null, "three" };
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalString(
             value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -392,7 +392,7 @@ public class SequenceMappingTests
         var value = new MyFixedSizeEnum?[] { MyFixedSizeEnum.SEnum1, null, MyFixedSizeEnum.SEnum3 };
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalMyFixedSizeEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -439,7 +439,7 @@ public class SequenceMappingTests
         MyStruct?[] value = [new MyStruct(0, 0), null, new MyStruct(2, 2)];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalMyStruct(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -487,7 +487,7 @@ public class SequenceMappingTests
         DateTime?[] value = [DateTime.UnixEpoch, null, DateTime.UnixEpoch];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalCustomValueType(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -534,7 +534,7 @@ public class SequenceMappingTests
         Uri?[] value = [new Uri("icerpc://localhost"), null, new Uri("ice://localhost")];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalCustomReferenceType(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -580,7 +580,7 @@ public class SequenceMappingTests
         // Arrange
         var value = new int[] { 1, 2, 3 };
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnCustomSequenceOfInt32(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -624,7 +624,7 @@ public class SequenceMappingTests
         // Arrange
         var value = new string[] { "one", "two", "three" };
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnCustomSequenceOfString(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -673,7 +673,7 @@ public class SequenceMappingTests
         };
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnCustomSequenceOfMyFixedSizeEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -725,7 +725,7 @@ public class SequenceMappingTests
         var value = new MyVarSizeEnum[] { MyVarSizeEnum.Enum1, MyVarSizeEnum.Enum2, MyVarSizeEnum.Enum3 };
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnCustomSequenceOfMyVarSizeEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -777,7 +777,7 @@ public class SequenceMappingTests
         var value = new MyUncheckedEnum[] { MyUncheckedEnum.E1, MyUncheckedEnum.E2, MyUncheckedEnum.E3 };
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnCustomSequenceOfMyUncheckedEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -828,7 +828,7 @@ public class SequenceMappingTests
         // Arrange
         var value = new HashSet<int> { 1, 2, 3 };
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnHashSetOfInt32(value);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
@@ -882,7 +882,7 @@ public class SequenceMappingTests
                 },
             },
         };
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = SequenceMappingOperationsProxy.Request.EncodeOpStructNestedSequence(data)
@@ -908,7 +908,7 @@ public class SequenceMappingTests
                 new List<byte>() { 1, 2, 3 },
             },
         };
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = SequenceMappingOperationsProxy.Request.EncodeOpNumericTypeNestedSequence(data)
@@ -930,7 +930,7 @@ public class SequenceMappingTests
         PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeOpReturnTuple(
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload

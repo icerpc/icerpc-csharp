@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Tests;
@@ -77,7 +78,7 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc();
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         using var loggerFactory = new TestLoggerFactory();
 
         invoker = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
@@ -118,7 +119,7 @@ public sealed class RetryInterceptorTests
             throw exception;
         });
 
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc();
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
@@ -145,7 +146,7 @@ public sealed class RetryInterceptorTests
                     ""));
         });
 
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc();
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
@@ -171,7 +172,7 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttempts }, NullLogger.Instance);
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc();
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(serviceAddress)
         {
             Operation = "Op"
@@ -205,7 +206,7 @@ public sealed class RetryInterceptorTests
         await pipe.Writer.WriteAsync(new byte[10]);
 
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc();
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(serviceAddress)
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
@@ -239,9 +240,16 @@ public sealed class RetryInterceptorTests
         await using var connection2 = new ClientConnection(serverAddress2);
         await using var connection3 = new ClientConnection(serverAddress3);
 
-        ServiceAddress serviceAddress = serverAddress1.CreateServiceAddress(
-            "/path",
-            altServerAddresses: [serverAddress2, serverAddress3]);
+        var serviceAddress = new ServiceAddress(serverAddress1.Protocol)
+        {
+            Path = "/path",
+            ServerAddress = serverAddress1,
+            AltServerAddresses = new List<ServerAddress>
+            {
+                serverAddress2,
+                serverAddress3
+            }.ToImmutableList()
+        };
 
         var serverAddresses = new List<ServerAddress>();
         var invoker = new InlineInvoker(async (request, cancellationToken) =>

@@ -59,10 +59,10 @@ public sealed class ServerServiceCollectionExtensionsTests
                 new ClientConnectionOptions { ServerAddress = secondServerAddress },
                 multiplexedClientTransport: provider.GetRequiredService<IMultiplexedClientTransport>());
 
-            using var firstRequest = new OutgoingRequest(firstServerAddress.Protocol.CreateServiceAddress());
+            using var firstRequest = new OutgoingRequest(new ServiceAddress(firstServerAddress.Protocol));
             IncomingResponse firstResponse = await firstConnection.InvokeAsync(firstRequest);
 
-            using var secondRequest = new OutgoingRequest(secondServerAddress.Protocol.CreateServiceAddress());
+            using var secondRequest = new OutgoingRequest(new ServiceAddress(secondServerAddress.Protocol));
             IncomingResponse secondResponse = await secondConnection.InvokeAsync(secondRequest);
 
             Assert.That(firstResponse.StatusCode, Is.EqualTo(StatusCode.Ok));

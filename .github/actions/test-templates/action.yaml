@@ -113,9 +113,7 @@ runs:
 
   # Ice Client template
 
-  # The Ice templates are excluded until slice2cs emits the IceRPC 0.7 proxies.
   - name: 🧪 Test IceRpc + Ice Client Template
-    if: false
     run: |
       dotnet new icerpc-ice-client -o $env:TEMPLATES_TEST_DIR/IceClient
       dotnet build $env:TEMPLATES_TEST_DIR/IceClient/ /p:TreatWarningsAsErrors=true
@@ -124,7 +122,6 @@ runs:
   # Ice Server template
 
   - name: 🧪 Test IceRpc + Ice Server Template
-    if: false
     run: |
       dotnet new icerpc-ice-server -o $env:TEMPLATES_TEST_DIR/IceServer
       dotnet build $env:TEMPLATES_TEST_DIR/IceServer/ /p:TreatWarningsAsErrors=true
@@ -133,7 +130,6 @@ runs:
   # Ice DI Client template
 
   - name: 🧪 Test IceRpc + Ice DI Client Template
-    if: false
     run: |
       dotnet new icerpc-ice-di-client -o $env:TEMPLATES_TEST_DIR/IceDIClient
       dotnet build $env:TEMPLATES_TEST_DIR/IceDIClient/ /p:TreatWarningsAsErrors=true
@@ -142,7 +138,6 @@ runs:
   # Ice DI Server template
 
   - name: 🧪 Test IceRpc + Ice DI Server Template
-    if: false
     run: |
       dotnet new icerpc-ice-di-server -o $env:TEMPLATES_TEST_DIR/IceDIServer
       dotnet build $env:TEMPLATES_TEST_DIR/IceDIServer/ /p:TreatWarningsAsErrors=true

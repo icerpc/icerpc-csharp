@@ -11,7 +11,7 @@ public class CacheLessLocationResolverTests
     [Test]
     public async Task Resolving_a_known_location_returns_a_proxy([Values] bool isAdapterId, [Values] bool refreshCache)
     {
-        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost:10000/greeter"));
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
         ILocationResolver locationResolver =
             new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
 
@@ -28,10 +28,10 @@ public class CacheLessLocationResolverTests
     [Test]
     public async Task Resolving_a_known_location_returns_a_proxy_indirectly([Values] bool refreshCache)
     {
-        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost:10000/greeter"));
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
 
         // The identity of the intermediary indirect proxy is ignored.
-        var intermediary = ServiceAddress.FromUri(new Uri("ice:/dummy?adapter-id=GoodAdapter"));
+        var intermediary = new ServiceAddress(new Uri("ice:/dummy?adapter-id=GoodAdapter"));
 
         ILocationResolver locationResolver =
             new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress, intermediary));
@@ -49,7 +49,7 @@ public class CacheLessLocationResolverTests
     [Test]
     public async Task Resolving_an_unknown_location_returns_null([Values] bool isAdapterId, [Values] bool refreshCache)
     {
-        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost:10000/greeter"));
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
         ILocationResolver locationResolver =
             new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
 
@@ -66,8 +66,8 @@ public class CacheLessLocationResolverTests
     [Test]
     public async Task Resolving_an_unknown_location_returns_null_indirectly([Values] bool refreshCache)
     {
-        var expectedServiceAddress = ServiceAddress.FromUri(new Uri("ice://localhost:10000/greeter"));
-        var intermediary = ServiceAddress.FromUri(new Uri("ice:/xxx?adapter-id=BadAdapter"));
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
+        var intermediary = new ServiceAddress(new Uri("ice:/xxx?adapter-id=BadAdapter"));
         ILocationResolver locationResolver =
             new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress, intermediary));
 
@@ -84,7 +84,7 @@ public class CacheLessLocationResolverTests
     private sealed class FakeServerAddressFinder : IServerAddressFinder
     {
         private readonly ServiceAddress? _intermediary;
-        private readonly ServiceAddress _target;
+        private readonly ServiceAddress? _target;
 
         public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
         {

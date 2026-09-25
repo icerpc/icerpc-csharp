@@ -4,14 +4,12 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <!-- The projects that depend on IceRpc.Ice are excluded until slice2cs emits the IceRPC 0.7 proxies:
-       src/IceRpc.Ice, src/IceRpc.Locator, tests/IceRpc.Ice.Tests, tests/IceRpc.Locator.Tests,
-       tests/IceRpc.ServiceGenerator.Tests, tests/IceRpc.Ice.Generator.Tests and tests/IntegrationTests. -->
   <Folder Name="/src/">
     <Project Path="src/IceRpc/IceRpc.csproj" />
     <Project Path="src/IceRpc.Compressor/IceRpc.Compressor.csproj" />
     <Project Path="src/IceRpc.Deadline/IceRpc.Deadline.csproj" />
     <Project Path="src/IceRpc.Extensions.DependencyInjection/IceRpc.Extensions.DependencyInjection.csproj" />
+    <Project Path="src/IceRpc.Locator/IceRpc.Locator.csproj" />
     <Project Path="src/IceRpc.Logger/IceRpc.Logger.csproj" />
     <Project Path="src/IceRpc.Metrics/IceRpc.Metrics.csproj" />
     <Project Path="src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
@@ -20,6 +18,7 @@
     <Project Path="src/IceRpc.Protobuf.BuildTelemetry/IceRpc.Protobuf.BuildTelemetry.csproj" />
     <Project Path="src/IceRpc.RequestContext/IceRpc.RequestContext.csproj" />
     <Project Path="src/IceRpc.Retry/IceRpc.Retry.csproj" />
+    <Project Path="src/IceRpc.Ice/IceRpc.Ice.csproj" />
     <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
     <Project Path="src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" />
     <Project Path="src/IceRpc.Slice.BuildTelemetry/IceRpc.Slice.BuildTelemetry.csproj" />
@@ -36,17 +35,22 @@
     <Project Path="tests/IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
     <Project Path="tests/IceRpc.Deadline.Tests/IceRpc.Deadline.Tests.csproj" />
     <Project Path="tests/IceRpc.Extensions.DependencyInjection.Tests/IceRpc.Extensions.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.Tests/IceRpc.Ice.Tests.csproj" />
+    <Project Path="tests/IceRpc.Locator.Tests/IceRpc.Locator.Tests.csproj" />
     <Project Path="tests/IceRpc.Logger.Tests/IceRpc.Logger.Tests.csproj" />
     <Project Path="tests/IceRpc.Metrics.Tests/IceRpc.Metrics.Tests.csproj" />
     <Project Path="tests/IceRpc.Protobuf.Tests/IceRpc.Protobuf.Tests.csproj" />
     <Project Path="tests/IceRpc.Quic.Tests/IceRpc.Quic.Tests.csproj" />
     <Project Path="tests/IceRpc.RequestContext.Tests/IceRpc.RequestContext.Tests.csproj" />
     <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
+    <Project Path="tests/IceRpc.ServiceGenerator.Tests/IceRpc.ServiceGenerator.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.Generator.Tests/IceRpc.Ice.Generator.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Generator.Tests/IceRpc.Slice.Generator.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
     <Project Path="tests/IceRpc.Telemetry.Tests/IceRpc.Telemetry.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
+    <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
     <Project Path="tests/IceRpc.Ice.Codec.Tests/IceRpc.Ice.Codec.Tests.csproj" />
     <Project Path="tests/ZeroC.Slice.Codec.Tests/ZeroC.Slice.Codec.Tests.csproj" />
     <Project Path="tests/IceRpc.Ice.Generator.Base.Tests/IceRpc.Ice.Generator.Base.Tests.csproj" />

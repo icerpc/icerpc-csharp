@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -391,10 +390,10 @@ public class ServiceAddressTests
     public void Invalid_path_throws_exception(string protocol, string path)
     {
         // Arrange
-        ServiceAddress serviceAddress = Protocol.Parse(protocol).CreateServiceAddress();
+        var serviceAddress = new ServiceAddress(Protocol.Parse(protocol));
 
         // Act/Assert
-        Assert.That(() => serviceAddress.WithPath(path), Throws.ArgumentException);
+        Assert.That(() => serviceAddress with { Path = path }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that a service address can be created from a URI.</summary>

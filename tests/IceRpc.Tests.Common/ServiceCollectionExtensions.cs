@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions
         protocol ??= Protocol.IceRpc;
         host ??= "colochost";
 
-        ServerAddress serverAddress = new ServerAddress(protocol) { Host = host };
+        var serverAddress = new ServerAddress(protocol) { Host = host };
 
         services
             .AddColocTransport()
@@ -73,7 +73,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Uri? serverAddressUri = null)
     {
-        ServerAddress serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
+        var serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
         var transportAddress = new TransportAddress { Host = serverAddress.Host, Port = serverAddress.Port };
         var alpn = new SslApplicationProtocol(serverAddress.Protocol.Name);
 
@@ -112,7 +112,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Uri? serverAddressUri = null)
     {
-        ServerAddress serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
+        var serverAddress = new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost"));
         var transportAddress = new TransportAddress { Host = serverAddress.Host, Port = serverAddress.Port };
         var alpn = new SslApplicationProtocol(serverAddress.Protocol.Name);
 

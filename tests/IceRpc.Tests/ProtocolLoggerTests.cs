@@ -40,7 +40,10 @@ public sealed class ProtocolLoggerTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
-            serverAddress.CreateServiceAddress());
+            new ServiceAddress(protocol)
+            {
+                ServerAddress = serverAddress
+            });
 
         // Act
         var clientConnectionInformation = await clientConnection.ConnectAsync();
@@ -157,7 +160,10 @@ public sealed class ProtocolLoggerTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
-            serverAddress.CreateServiceAddress());
+            new ServiceAddress(protocol)
+            {
+                ServerAddress = serverAddress
+            });
         // Act
         var clientConnectionInformation = await clientConnection.ConnectAsync();
         var invokeTask = clientConnection.InvokeAsync(request, default);
@@ -259,7 +265,10 @@ public sealed class ProtocolLoggerTests
         var clientConnectionInformation = await clientConnection.ConnectAsync(default);
         {
             using var request = new OutgoingRequest(
-                serverAddress.CreateServiceAddress());
+                new ServiceAddress(protocol)
+                {
+                    ServerAddress = serverAddress
+                });
 
             // Send a request to ensure the server side is connected before we shut down the connection
             _ = await clientConnection.InvokeAsync(request);

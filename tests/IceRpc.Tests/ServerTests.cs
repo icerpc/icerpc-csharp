@@ -273,7 +273,7 @@ public class ServerTests
         await using var clientConnection = new ClientConnection(
             server.Listen(),
             multiplexedClientTransport: multiplexedClientTransport);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         IncomingResponse response = await clientConnection.InvokeAsync(request);
         response.Payload.Complete();
 
@@ -387,7 +387,7 @@ public class ServerTests
     {
         // Arrange
         var connectTimeout = TimeSpan.FromSeconds(42);
-        ServerAddress serverAddress = new ServerAddress(Protocol.IceRpc) { Host = "colochost" };
+        var serverAddress = new ServerAddress(Protocol.IceRpc) { Host = "colochost" };
 
         var colocTransport = new ColocTransport();
         var testServerTransport = new TestMultiplexedServerTransportDecorator(

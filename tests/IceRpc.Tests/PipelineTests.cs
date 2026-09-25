@@ -18,7 +18,7 @@ public class PipelineTests
             .Use(next => new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance))))
             .Into(VoidInvoker.Instance);
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         pipeline.InvokeAsync(request);
 
         // Assert/Act
@@ -61,7 +61,7 @@ public class PipelineTests
                 }))
              .Into(VoidInvoker.Instance);
 
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         pipeline.InvokeAsync(request);
 
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -85,7 +85,7 @@ public class PipelineTests
             feature = request.Features.Get<string>();
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         }));
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         pipeline.InvokeAsync(request);
         Assert.That(feature, Is.EqualTo(expected));
     }

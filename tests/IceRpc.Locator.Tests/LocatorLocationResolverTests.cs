@@ -12,7 +12,7 @@ public class LocatorLocationResolverTests
     public async Task Location_resolver_cache(int maxCacheSize, int resolvedCount)
     {
         // Arrange
-        var locator = new FakeLocator(ServiceAddress.FromUri(new Uri("ice://localhost/dummy:10000")), false);
+        var locator = new FakeLocator(new ServiceAddress(new Uri("ice://localhost/dummy:10000")), false);
         var locatorLocationResolver = new LocatorLocationResolver(
             locator,
             new LocatorOptions
@@ -42,7 +42,7 @@ public class LocatorLocationResolverTests
     public void Ttl_cannot_be_smaller_than_the_refresh_timeout() =>
         Assert.That(
             () => new LocatorLocationResolver(
-                new FakeLocator(new ServiceAddress.Ice(), false),
+                new FakeLocator(new ServiceAddress(Protocol.Ice), false),
                 new LocatorOptions
                 {
                     Ttl = TimeSpan.FromSeconds(1),

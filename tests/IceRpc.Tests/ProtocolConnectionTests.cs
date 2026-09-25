@@ -95,7 +95,7 @@ public sealed class ProtocolConnectionTests
                     protocol,
                     async (IProtocolConnection connection) =>
                         {
-                            using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+                            using var request = new OutgoingRequest(new ServiceAddress(protocol));
                             await connection.InvokeAsync(request);
                         },
                     true).SetName($"InvokeAsync {protocol} {{m}}");
@@ -180,7 +180,7 @@ public sealed class ProtocolConnectionTests
         // Act
         for (int i = 0; i < maxDispatches + 1; ++i)
         {
-            var request = new OutgoingRequest(protocol.CreateServiceAddress());
+            var request = new OutgoingRequest(new ServiceAddress(protocol));
             requestList.Add(request);
             responseTasks.Add(sut.Client.InvokeAsync(request));
         }
@@ -233,7 +233,7 @@ public sealed class ProtocolConnectionTests
         // Act
         for (int i = 0; i < 1000; ++i)
         {
-            var request = new OutgoingRequest(protocol.CreateServiceAddress())
+            var request = new OutgoingRequest(new ServiceAddress(protocol))
             {
                 IsOneway = true,
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(payload))
@@ -296,13 +296,13 @@ public sealed class ProtocolConnectionTests
         // connection's internal dispatch semaphore which is canceled on dispose.
 
         // Wait for the first invocation to be dispatched.
-        using var request1 = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request1 = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart;
 
         // Wait to make sure the second request is received and blocked on the protocol connection's internal dispatch
         // semaphore.
-        using var request2 = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request2 = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request2);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
 
@@ -341,7 +341,7 @@ public sealed class ProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act
         var response = await sut.Client.InvokeAsync(request);
@@ -429,7 +429,7 @@ public sealed class ProtocolConnectionTests
 
         long startTime = Environment.TickCount64;
         {
-            using var request = new OutgoingRequest(protocol.CreateServiceAddress())
+            using var request = new OutgoingRequest(new ServiceAddress(protocol))
             {
                 IsOneway = isOneway,
                 Payload = new DelayPipeReader(TimeSpan.FromMilliseconds(550))
@@ -486,7 +486,7 @@ public sealed class ProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
         var pipe = new Pipe();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress())
+        using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
             Payload = pipe.Reader,
             IsOneway = isOneway
@@ -558,7 +558,7 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress()) { IsOneway = isOneway };
+        using var request = new OutgoingRequest(new ServiceAddress(protocol)) { IsOneway = isOneway };
         _ = await sut.Client.InvokeAsync(request);
         bool tokenCanceled = await tcs.Task;
 
@@ -588,7 +588,7 @@ public sealed class ProtocolConnectionTests
             return sut.Client.InvokeAsync(request, cancellationToken);
         });
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress()); // IsOneway defaults to false
+        using var request = new OutgoingRequest(new ServiceAddress(protocol)); // IsOneway defaults to false
 
         // Act
         _ = await invoker.InvokeAsync(request);
@@ -617,7 +617,7 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         IncomingResponse response = await sut.Client.InvokeAsync(request);
 
         // Assert
@@ -640,7 +640,7 @@ public sealed class ProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
 
         await dispatcher.DispatchStart; // Wait for the dispatch to start
@@ -676,7 +676,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
@@ -702,7 +702,7 @@ public sealed class ProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         Task shutdownTask = sut.Client.ShutdownAsync();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act/Assert
         Assert.That(
@@ -747,7 +747,7 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress())
+        using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
             IsOneway = isOneway,
             Payload = payloadDecorator
@@ -781,7 +781,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
@@ -816,7 +816,7 @@ public sealed class ProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress())
+        using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
             Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
         };
@@ -853,7 +853,7 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress())
+        using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(1).With(
                 RequestFieldKey.Context,
@@ -928,7 +928,7 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress())
+        using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
             Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
         };
@@ -1006,7 +1006,7 @@ public sealed class ProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         Task serverShutdownTask = ShutdownWhenRequestedAsync(sut.Server, serverShutdownRequested);
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
@@ -1086,7 +1086,7 @@ public sealed class ProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
@@ -1129,7 +1129,7 @@ public sealed class ProtocolConnectionTests
             _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
         }
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
@@ -1166,7 +1166,7 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
 
-        using var request = new OutgoingRequest(protocol.CreateServiceAddress());
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
         using var cts = new CancellationTokenSource();
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, cts.Token);
         await dispatcher.DispatchStart; // Wait for the dispatch to start

@@ -45,7 +45,7 @@ public sealed class MetricsInterceptorTests
         using var cts = new CancellationTokenSource();
         var invoker = new InlineInvoker((request, cancellationToken) =>
             throw new OperationCanceledException(cancellationToken));
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
         cts.Cancel();
 
@@ -106,7 +106,7 @@ public sealed class MetricsInterceptorTests
         unrelatedCts.Cancel();
         var invoker = new InlineInvoker((request, cancellationToken) =>
             throw new OperationCanceledException(unrelatedCts.Token));
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         Assert.ThrowsAsync<OperationCanceledException>(
@@ -151,7 +151,7 @@ public sealed class MetricsInterceptorTests
 
         using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         try
@@ -203,7 +203,7 @@ public sealed class MetricsInterceptorTests
         using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker((request, cancellationToken) => Task.FromResult(
             new IncomingResponse(request, FakeConnectionContext.Instance, StatusCode.NotFound, errorMessage: "not found")));
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
@@ -242,7 +242,7 @@ public sealed class MetricsInterceptorTests
         using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker(
             (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = "/path" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         await sut.InvokeAsync(request, default);

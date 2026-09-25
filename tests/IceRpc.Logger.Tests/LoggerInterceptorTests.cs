@@ -16,7 +16,7 @@ public sealed class LoggerInterceptorTests
             (request, cancellationToken) => Task.FromResult(
                 new IncomingResponse(request, FakeConnectionContext.Instance)));
         using var loggerFactory = new TestLoggerFactory();
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc { Path = "/path" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
@@ -48,7 +48,7 @@ public sealed class LoggerInterceptorTests
                     StatusCode.ApplicationError,
                     "some error")));
         using var loggerFactory = new TestLoggerFactory();
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc { Path = "/path" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
@@ -76,7 +76,7 @@ public sealed class LoggerInterceptorTests
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc { Path = "/path" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 

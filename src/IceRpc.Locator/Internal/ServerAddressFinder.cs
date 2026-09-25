@@ -120,7 +120,7 @@ internal class LogServerAddressFinderDecorator : IServerAddressFinder
         ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
         if (serviceAddress is not null)
         {
-            _logger.LogFound(location.Kind, location, serviceAddress);
+            _logger.LogFound(location.Kind, location, serviceAddress.Value);
         }
         else
         {
@@ -149,7 +149,7 @@ internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
 
         if (serviceAddress is not null)
         {
-            _serverAddressCache.Set(location, serviceAddress);
+            _serverAddressCache.Set(location, serviceAddress.Value);
         }
         else
         {

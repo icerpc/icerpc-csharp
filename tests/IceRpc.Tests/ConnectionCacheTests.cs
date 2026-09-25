@@ -116,8 +116,8 @@ public sealed class ConnectionCacheTests
         using var dispatcher = new TestDispatcher();
         var colocTransport = new ColocTransport();
         var protocol = Protocol.Parse(protocolString);
-        ServerAddress primaryServerAddress = protocol.CreateServerAddress("primary");
-        ServerAddress altServerAddress = protocol.CreateServerAddress("alt");
+        var primaryServerAddress = new ServerAddress(protocol) { Host = "primary" };
+        var altServerAddress = new ServerAddress(protocol) { Host = "alt" };
 
         await using var primaryServer = new Server(
             new ServerOptions
@@ -165,7 +165,11 @@ public sealed class ConnectionCacheTests
         // Act
         await SendEmptyRequestAsync(
             pipeline,
-            primaryServerAddress.CreateServiceAddress(altServerAddresses: [altServerAddress]));
+            new ServiceAddress(protocol)
+            {
+                ServerAddress = primaryServerAddress,
+                AltServerAddresses = [altServerAddress]
+            });
 
         // Assert
         Assert.That(selectedServerAddress, Is.EqualTo(altServerAddress));

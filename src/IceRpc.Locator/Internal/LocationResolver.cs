@@ -200,7 +200,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
                 await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
             if (serviceAddress is not null)
             {
-                _logger.LogResolved(location.Kind, location, serviceAddress);
+                _logger.LogResolved(location.Kind, location, serviceAddress.Value);
             }
             else
             {

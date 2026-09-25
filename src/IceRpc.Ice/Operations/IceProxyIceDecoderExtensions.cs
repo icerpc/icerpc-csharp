@@ -124,7 +124,8 @@ public static class IceProxyIceDecoderExtensions
                             decoder.IncreaseCollectionAllocation(value.Length, Unsafe.SizeOf<char>());
                         }
 
-                        serverAddress = new ServerAddress.Ice(
+                        serverAddress = new ServerAddress(
+                            Protocol.Ice,
                             host: "opaque", // not a real host obviously
                             port: Protocol.Ice.DefaultPort,
                             transport: IceProxyIceEncoderExtensions.OpaqueName,
@@ -166,7 +167,7 @@ public static class IceProxyIceDecoderExtensions
         {
             try
             {
-                return ServerAddress.FromUri(new Uri(uriString));
+                return new ServerAddress(new Uri(uriString));
             }
             catch (Exception exception) when (exception is UriFormatException or ArgumentException)
             {
@@ -283,7 +284,7 @@ public static class IceProxyIceDecoderExtensions
 
         try
         {
-            return new ServerAddress.Ice(body.Host, checked((ushort)body.Port), transport, parameters);
+            return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
         }
         catch (OverflowException exception)
         {

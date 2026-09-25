@@ -75,7 +75,7 @@ public class OperationEncodingTests
     [Test]
     public async Task Slice_operation_decode_with_single_return()
     {
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = Encode(10)
@@ -161,7 +161,7 @@ public class OperationEncodingTests
     [Test]
     public async Task Slice_operation_decode_with_multiple_return()
     {
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = Encode(10, "hello world!")
@@ -331,7 +331,7 @@ public class OperationEncodingTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = Encode(p1, p2, p3, p4)
@@ -511,7 +511,7 @@ public class OperationEncodingTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        using var request = new OutgoingRequest(new ServiceAddress.IceRpc());
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = Encode(p1, p2, p3, p4)

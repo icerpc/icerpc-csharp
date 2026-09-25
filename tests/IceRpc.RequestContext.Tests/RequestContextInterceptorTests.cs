@@ -15,7 +15,7 @@ public sealed class RequestContextInterceptorTests
     public async Task Context_feature_encoded_in_context_field()
     {
         var context = new Dictionary<string, string> { ["Foo"] = "Bar" };
-        ServiceAddress proxy = new ServiceAddress.IceRpc();
+        var proxy = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(proxy)
         {
             Features = new FeatureCollection().With<IRequestContextFeature>(new RequestContextFeature(context))
@@ -54,7 +54,7 @@ public sealed class RequestContextInterceptorTests
     public async Task Empty_context_not_encoded_in_context_field()
     {
         var context = new Dictionary<string, string>();
-        ServiceAddress proxy = new ServiceAddress.IceRpc();
+        var proxy = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(proxy)
         {
             Features = new FeatureCollection().With<IRequestContextFeature>(new RequestContextFeature(context))

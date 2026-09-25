@@ -98,7 +98,7 @@ public partial class ProxyTests
 
         // Assert
         Assert.That(decoded.IsRelative, Is.False);
-        Assert.That(decoded.ServiceAddress, Is.EqualTo(baseProxy.ServiceAddress.WithPath("/foo")));
+        Assert.That(decoded.ServiceAddress, Is.EqualTo(baseProxy.ServiceAddress with { Path = "/foo" }));
         Assert.That(decoded.Invoker, Is.EqualTo(pipeline));
     }
 
@@ -134,7 +134,7 @@ public partial class ProxyTests
         PingableProxy proxy = PingableProxy.FromPath("/foo");
 
         Assert.That(
-            () => proxy with { ServiceAddress = new ServiceAddress.Ice() },
+            () => proxy with { ServiceAddress = new ServiceAddress(Protocol.Ice) },
             Throws.InvalidOperationException);
         Assert.That(() => proxy with { Invoker = new Pipeline() }, Throws.InvalidOperationException);
         Assert.That(() => proxy with { EncodeOptions = new SliceEncodeOptions() }, Throws.InvalidOperationException);

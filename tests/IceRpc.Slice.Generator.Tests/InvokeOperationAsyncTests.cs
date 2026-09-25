@@ -19,7 +19,7 @@ public class InvokeOperationAsyncTests
 
         var sut = new PingableProxy
         {
-            ServiceAddress = new ServiceAddress.IceRpc(),
+            ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(
                     new IncomingResponse(request, FakeConnectionContext.Instance) { Payload = responsePayload }))
@@ -50,7 +50,7 @@ public class InvokeOperationAsyncTests
     {
         var sut = new PingableProxy
         {
-            ServiceAddress = new ServiceAddress.IceRpc(),
+            ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidDataException("error"))
         };
 

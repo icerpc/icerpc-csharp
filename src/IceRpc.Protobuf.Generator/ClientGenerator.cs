@@ -41,7 +41,7 @@ public required IceRpc.IInvoker Invoker {{ get; init; }}
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = _defaultServiceAddress;
 
 private static IceRpc.ServiceAddress _defaultServiceAddress =
-    new IceRpc.ServiceAddress.IceRpc {{ Path = DefaultServicePath }};
+    new(IceRpc.Protocol.IceRpc) {{ Path = DefaultServicePath }};
 
 /// <summary>Constructs a client from an invoker and a service address.</summary>
 /// <param name=""invoker"">The invoker of this client.</param>

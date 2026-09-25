@@ -19,7 +19,7 @@ public class LocatorInterceptorTests
 
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var serviceAddress = ServiceAddress.FromUri(new Uri("ice://localhost:10000/path"));
+        var serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/path"));
         using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
@@ -34,13 +34,10 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        var expected = ServiceAddress.FromUri(new Uri("ice://localhost:10000/foo"));
+        var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        ServiceAddress serviceAddress = new ServiceAddress.Ice()
-        {
-            Params = new Dictionary<string, string> { ["adapter-id"] = "foo" }.ToImmutableDictionary()
-        };
+        ServiceAddress serviceAddress = new ServiceAddress.Ice { AdapterId = "foo" };
         using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
@@ -57,7 +54,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        var expected = ServiceAddress.FromUri(new Uri("ice://localhost:10000/foo"));
+        var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         ServiceAddress serviceAddress = new ServiceAddress.Ice { Path = "/foo" };
@@ -101,7 +98,7 @@ public class LocatorInterceptorTests
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        var resolved = ServiceAddress.FromUri(new Uri("ice://localhost:10000/foo"));
+        var resolved = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(resolved, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         ServiceAddress serviceAddress = new ServiceAddress.Ice { Path = "/foo" };
@@ -109,7 +106,7 @@ public class LocatorInterceptorTests
         var serverAddressFeature = new ServerAddressFeature(serviceAddress)
         {
             RemovedServerAddresses = ImmutableList.Create(
-                ServerAddress.FromUri(new Uri("ice://localhost:10000?transport=tcp")))
+                new ServerAddress(new Uri("ice://localhost:10000?transport=tcp")))
         };
         request.Features = request.Features.With<IServerAddressFeature>(serverAddressFeature);
 
@@ -161,7 +158,7 @@ public class LocatorInterceptorTests
     // A mock location resolver that remember if it was called
     private sealed class MockLocationResolver : ILocationResolver
     {
-        private readonly ServiceAddress _serviceAddress;
+        private readonly ServiceAddress? _serviceAddress;
         private readonly bool _adapterId;
 
         public MockLocationResolver(ServiceAddress serviceAddress, bool adapterId)
