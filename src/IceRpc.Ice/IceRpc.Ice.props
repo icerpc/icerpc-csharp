@@ -4,6 +4,8 @@
   <ItemDefinitionGroup>
     <SliceCompile>
       <IncludeDirectories>%(IncludeDirectories);$(MSBuildThisFileDirectory)../slice</IncludeDirectories>
+      <!-- Configure slice2cs to generate code for this version of IceRPC C#. -->
+      <IceRpcVersion>0.7</IceRpcVersion>
     </SliceCompile>
   </ItemDefinitionGroup>
 </Project>

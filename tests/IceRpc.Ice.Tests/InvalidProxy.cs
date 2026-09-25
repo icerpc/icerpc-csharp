@@ -4,23 +4,11 @@ namespace IceRpc.Ice.Tests;
 
 internal class InvalidProxy : IIceProxy
 {
-    public IceEncodeOptions? EncodeOptions
-    {
-        get => throw new NotImplementedException();
-        init { }
-    }
+    public IceEncodeOptions? EncodeOptions => throw new NotImplementedException();
 
-    public IInvoker Invoker
-    {
-        get => throw new NotImplementedException();
-        init { }
-    }
+    public IInvoker Invoker => throw new NotImplementedException();
 
-    public ServiceAddress ServiceAddress
-    {
-        get => throw new NotImplementedException();
-        init { }
-    }
+    public ServiceAddress ServiceAddress => throw new NotImplementedException();
 
     internal static InvalidProxy Instance { get; } = new InvalidProxy();
 
