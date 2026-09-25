@@ -14,7 +14,7 @@ internal class GeoClient
     private readonly RpcClient _rpcClient;
 
     internal GeoClient(IInvoker invoker) =>
-        _rpcClient = new RpcClient(invoker, ServiceAddress.FromUri(new Uri("icerpc:/v1/search")));
+        _rpcClient = new RpcClient(invoker, new ServiceAddress(new Uri("icerpc:/v1/search")));
 
     /// <summary>Searches for locations that match the specified name.</summary>
     /// <param name="location">The name of the location to search for.</param>
@@ -50,7 +50,7 @@ internal class ForecastClient
     private readonly RpcClient _rpcClient;
 
     internal ForecastClient(IInvoker invoker) =>
-        _rpcClient = new RpcClient(invoker, ServiceAddress.FromUri(new Uri("icerpc:/v1/forecast")));
+        _rpcClient = new RpcClient(invoker, new ServiceAddress(new Uri("icerpc:/v1/forecast")));
 
     /// <summary>Retrieves the current weather conditions for the specified latitude and longitude.</summary>
     /// <param name="latitude">The latitude of the location.</param>

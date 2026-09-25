@@ -26,8 +26,7 @@ jobs:
             set -e
             dotnet tool install --global docfx
             cd docfx
-            # The Roslyn bundled with docfx accepts union declarations only with the preview language version.
-            docfx metadata --property "Configuration=Debug;DocFxBuild=true;LangVersion=preview" --warningsAsErrors
+            docfx metadata --property "Configuration=Debug;DocFxBuild=true" --warningsAsErrors
             docfx build
 
       - name: Sync to S3

@@ -5,7 +5,9 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace IceRpc;
@@ -15,7 +17,8 @@ namespace IceRpc;
 /// service address of each protocol.</summary>
 // The properties of this struct are sorted in URI order.
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
-public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquatable<ServiceAddress>
+[Union]
+public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IEquatable<ServiceAddress>
 {
     /// <summary>The address of a service reachable with the ice protocol.</summary>
     // The properties of this class are sorted in URI order.
@@ -423,6 +426,43 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
         }
     }
 
+    /// <summary>Provides the union members of <see cref="ServiceAddress" />: the factory methods that create a
+    /// service address from a variant, and the accessors to the variant it holds.</summary>
+    public interface IUnionMembers
+    {
+        /// <summary>Gets the variant held by the service address.</summary>
+        /// <value>The <see cref="Ice" /> or <see cref="IceRpc" /> variant, or <see langword="null" /> when the
+        /// service address holds no variant.</value>
+        object? Value { get; }
+
+        /// <summary>Gets a value indicating whether the service address holds a variant.</summary>
+        /// <value><see langword="true" /> when the service address holds a variant; otherwise,
+        /// <see langword="false" />.</value>
+        bool HasValue { get; }
+
+        /// <summary>Creates a service address that holds an <see cref="IceRpc" /> variant.</summary>
+        /// <param name="value">The variant.</param>
+        /// <returns>The new service address.</returns>
+        static abstract ServiceAddress Create(IceRpc value);
+
+        /// <summary>Creates a service address that holds an <see cref="Ice" /> variant.</summary>
+        /// <param name="value">The variant.</param>
+        /// <returns>The new service address.</returns>
+        static abstract ServiceAddress Create(Ice value);
+
+        /// <summary>Gets the <see cref="IceRpc" /> variant held by the service address.</summary>
+        /// <param name="value">The variant, when this method returns <see langword="true" />.</param>
+        /// <returns><see langword="true" /> when the service address holds an <see cref="IceRpc" /> variant;
+        /// otherwise, <see langword="false" />.</returns>
+        bool TryGetValue([MaybeNullWhen(false)] out IceRpc value);
+
+        /// <summary>Gets the <see cref="Ice" /> variant held by the service address.</summary>
+        /// <param name="value">The variant, when this method returns <see langword="true" />.</param>
+        /// <returns><see langword="true" /> when the service address holds an <see cref="Ice" /> variant;
+        /// otherwise, <see langword="false" />.</returns>
+        bool TryGetValue([MaybeNullWhen(false)] out Ice value);
+    }
+
     /// <summary>Gets the protocol of this service address.</summary>
     /// <value><see cref="Protocol.Ice" /> for an <see cref="Ice" /> service address and
     /// <see cref="Protocol.IceRpc" /> for an <see cref="IceRpc" /> service address.</value>
@@ -432,30 +472,57 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
         Ice => Protocol.Ice,
     };
 
-    /// <summary>Gets the main server address of this service address.</summary>
+    /// <summary>Gets or initializes the main server address of this service address.</summary>
     /// <value>The main server address of the variant, or <see langword="null" /> if the variant has no server
     /// address.</value>
-    public ServerAddress? ServerAddress => this switch
+    public ServerAddress? ServerAddress
     {
-        IceRpc icerpc => icerpc.ServerAddress,
-        Ice ice => ice.ServerAddress,
-    };
+        get => this switch
+        {
+            IceRpc icerpc => icerpc.ServerAddress,
+            Ice ice => ice.ServerAddress,
+        };
 
-    /// <summary>Gets the path of this service address.</summary>
+        init => _value = this switch
+        {
+            IceRpc icerpc => icerpc with { ServerAddress = value },
+            Ice ice => ice with { ServerAddress = value },
+        };
+    }
+
+    /// <summary>Gets or initializes the path of this service address.</summary>
     /// <value>The path of the variant.</value>
-    public string Path => this switch
+    public string Path
     {
-        IceRpc icerpc => icerpc.Path,
-        Ice ice => ice.Path,
-    };
+        get => this switch
+        {
+            IceRpc icerpc => icerpc.Path,
+            Ice ice => ice.Path,
+        };
 
-    /// <summary>Gets the secondary server addresses of this service address.</summary>
+        init => _value = this switch
+        {
+            IceRpc icerpc => icerpc with { Path = value },
+            Ice ice => ice with { Path = value },
+        };
+    }
+
+    /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
     /// <value>The secondary server addresses of the variant.</value>
-    public ImmutableList<ServerAddress> AltServerAddresses => this switch
+    public ImmutableList<ServerAddress> AltServerAddresses
     {
-        IceRpc icerpc => icerpc.AltServerAddresses,
-        Ice ice => ice.AltServerAddresses,
-    };
+        get => this switch
+        {
+            IceRpc icerpc => icerpc.AltServerAddresses,
+            Ice ice => ice.AltServerAddresses,
+        };
+
+        init => _value = this switch
+        {
+            IceRpc icerpc => icerpc with { AltServerAddresses = value },
+            Ice ice => ice with { AltServerAddresses = value },
+        };
+    }
 
     // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in path,
     // fragment, etc. in addition to the invalid characters in the _notValidInXXX search values.
@@ -467,14 +534,21 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
     private static readonly SearchValues<char> _notValidInFragment = SearchValues.Create("\"<>\\^`{|}");
     private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?\\^`{|}");
 
-    /// <summary>Creates a service address from a URI.</summary>
+    private readonly object? _value;
+
+    /// <summary>Constructs a service address with default values for a protocol.</summary>
+    /// <param name="protocol">The protocol of the new service address.</param>
+    public ServiceAddress(Protocol protocol) =>
+        _value = protocol == Protocol.Ice ? new Ice() : new IceRpc();
+
+    /// <summary>Constructs a service address from a URI.</summary>
     /// <param name="uri">An absolute URI whose scheme is a supported protocol.</param>
-    /// <returns>An <see cref="Ice" /> or <see cref="IceRpc" /> service address, depending on the scheme of
-    /// <paramref name="uri" />.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not a valid service address URI.
     /// </exception>
-    public static ServiceAddress FromUri(Uri uri) =>
-        uri.IsAbsoluteUri && Protocol.TryParse(uri.Scheme, out Protocol? protocol) ?
+    /// <remarks>The new service address holds an <see cref="Ice" /> or <see cref="IceRpc" /> variant, depending on
+    /// the scheme of <paramref name="uri" />.</remarks>
+    public ServiceAddress(Uri uri) =>
+        _value = uri.IsAbsoluteUri && Protocol.TryParse(uri.Scheme, out Protocol? protocol) ?
             (protocol == Protocol.Ice ? new Ice(uri) : new IceRpc(uri)) :
             throw new ArgumentException($"Cannot create a service address from URI '{uri}'.", nameof(uri));
 
@@ -482,18 +556,18 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
     /// <param name="other">The service address to compare with this service address.</param>
     /// <returns><see langword="true" /> if the two service addresses hold equal variants, or both hold no variant;
     /// otherwise, <see langword="false" />.</returns>
-    public bool Equals(ServiceAddress other) => Equals(Value, other.Value);
+    public bool Equals(ServiceAddress other) => Equals(_value, other._value);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is ServiceAddress other && Equals(other);
 
     /// <summary>Serves as the default hash function.</summary>
     /// <returns>A hash code for this service address.</returns>
-    public override int GetHashCode() => Value?.GetHashCode() ?? 0;
+    public override int GetHashCode() => _value?.GetHashCode() ?? 0;
 
     /// <summary>Converts this service address into a string.</summary>
     /// <returns>The URI of the variant, or an empty string when this service address holds no variant.</returns>
-    public override string ToString() => Value?.ToString() ?? "";
+    public override string ToString() => _value?.ToString() ?? "";
 
     /// <summary>Converts this service address into a URI.</summary>
     /// <returns>The URI of the variant.</returns>
@@ -512,6 +586,35 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
     /// <returns><see langword="true" /> if the service addresses are not equal; otherwise, <see langword="false" />.
     /// </returns>
     public static bool operator !=(ServiceAddress left, ServiceAddress right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    static ServiceAddress IUnionMembers.Create(IceRpc value) => new(value);
+
+    /// <inheritdoc/>
+    static ServiceAddress IUnionMembers.Create(Ice value) => new(value);
+
+    /// <inheritdoc/>
+    object? IUnion.Value => _value;
+
+    /// <inheritdoc/>
+    object? IUnionMembers.Value => _value;
+
+    /// <inheritdoc/>
+    bool IUnionMembers.HasValue => _value is not null;
+
+    /// <inheritdoc/>
+    bool IUnionMembers.TryGetValue([MaybeNullWhen(false)] out IceRpc value)
+    {
+        value = _value as IceRpc;
+        return value is not null;
+    }
+
+    /// <inheritdoc/>
+    bool IUnionMembers.TryGetValue([MaybeNullWhen(false)] out Ice value)
+    {
+        value = _value as Ice;
+        return value is not null;
+    }
 
     /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts
     /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, and reserved characters other than
@@ -677,6 +780,8 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
 
         return (path, serverAddress, altServerAddresses, queryParams, fragment);
     }
+
+    private ServiceAddress(object value) => _value = value;
 }
 
 /// <summary>The service address type converter specifies how to convert a string to a service address. It's used by
@@ -701,5 +806,5 @@ public class ServiceAddressTypeConverter : TypeConverter
     /// <remarks><see cref="TypeConverter"/>.</remarks>
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
         value is string valueStr ?
-            ServiceAddress.FromUri(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
+            new ServiceAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
 }

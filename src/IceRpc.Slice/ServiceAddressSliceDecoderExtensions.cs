@@ -17,7 +17,7 @@ public static class ServiceAddressSliceDecoderExtensions
         string serviceAddressString = decoder.DecodeString();
         try
         {
-            return ServiceAddress.FromUri(new Uri(serviceAddressString, UriKind.Absolute));
+            return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
         }
         catch (Exception exception)
         {

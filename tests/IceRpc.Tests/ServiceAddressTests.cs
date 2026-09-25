@@ -3,6 +3,7 @@
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace IceRpc.Tests;
 
@@ -17,7 +18,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, string _, string _) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(ServiceAddress.FromUri(new Uri(str)));
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)));
             }
         }
     }
@@ -56,7 +57,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, string _, string _) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(ServiceAddress.FromUri(new Uri(str)));
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)));
             }
         }
     }
@@ -80,7 +81,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, ServerAddress[] altServerAddresses) in _altServerAddresses)
             {
-                yield return new TestCaseData(ServiceAddress.FromUri(new Uri(str)), altServerAddresses);
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)), altServerAddresses);
             }
         }
     }
@@ -120,14 +121,14 @@ public class ServiceAddressTests
 
                 // Server address params (Order does not matter)
                 (
-                    ServiceAddress.FromUri(new Uri("ice://localhost:8080/foo?abc=123&def=456")),
-                    ServiceAddress.FromUri(new Uri("ice://localhost:8080/foo?def=456&abc=123")),
+                    new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123&def=456")),
+                    new ServiceAddress(new Uri("ice://localhost:8080/foo?def=456&abc=123")),
                     true),
 
                 // AltServerAddresses (Order matters)
                 (
-                    ServiceAddress.FromUri(new Uri("ice://localhost:8080/foo?alt-server=localhost:10000,localhost:10101")),
-                    ServiceAddress.FromUri(new Uri("ice://localhost:8080/foo?alt-server=localhost:10101,localhost:10000")),
+                    new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-server=localhost:10000,localhost:10101")),
+                    new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-server=localhost:10101,localhost:10000")),
                     false),
             };
         }
@@ -170,7 +171,7 @@ public class ServiceAddressTests
     {
         get
         {
-            var serviceAddress = ServiceAddress.FromUri(new Uri("ice://localhost:8080/foo?abc=123#bar"));
+            var serviceAddress = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
             var serviceAddressWithoutServerAddress = new ServiceAddress.IceRpc { Path = "/foo" };
             return new (ServiceAddress, string)[]
             {
@@ -344,7 +345,7 @@ public class ServiceAddressTests
     {
         string str2 = serviceAddress.ToString();
 
-        Assert.That(ServiceAddress.FromUri(new Uri(str2)), Is.EqualTo(serviceAddress));
+        Assert.That(new ServiceAddress(new Uri(str2)), Is.EqualTo(serviceAddress));
     }
 
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
@@ -353,7 +354,7 @@ public class ServiceAddressTests
     [TestCaseSource(nameof(ServiceAddressHashCodeSource))]
     public void Equal_service_addresses_produce_the_same_hash_code(ServiceAddress serviceAddress1)
     {
-        var serviceAddress2 = ServiceAddress.FromUri(new Uri(serviceAddress1.ToString()));
+        var serviceAddress2 = new ServiceAddress(new Uri(serviceAddress1.ToString()));
 
         int hashCode1 = serviceAddress1.GetHashCode();
 
@@ -404,7 +405,7 @@ public class ServiceAddressTests
     [TestCaseSource(nameof(ServiceAddressUriSource))]
     public void Create_service_address_from_uri(Uri uri, string path, string fragment)
     {
-        var serviceAddress = ServiceAddress.FromUri(uri);
+        var serviceAddress = new ServiceAddress(uri);
 
         Assert.That(serviceAddress.Path, Is.EqualTo(path));
         Assert.That(serviceAddress is ServiceAddress.Ice ice ? ice.Fragment : "", Is.EqualTo(fragment));
@@ -415,7 +416,7 @@ public class ServiceAddressTests
     [Test]
     [TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
     public void Create_service_address_from_invalid_uri(Uri uri) =>
-        Assert.That(() => ServiceAddress.FromUri(uri), Throws.ArgumentException);
+        Assert.That(() => new ServiceAddress(uri), Throws.ArgumentException);
 
     [Test]
     [TestCaseSource(nameof(AltServerAddressesSource))]
@@ -501,7 +502,7 @@ public class ServiceAddressTests
     [TestCase("icerpc://host/path", false)]
     public void Service_address_variant_matches_uri_scheme(Uri uri, bool isIce)
     {
-        var serviceAddress = ServiceAddress.FromUri(uri);
+        var serviceAddress = new ServiceAddress(uri);
 
         Assert.That(serviceAddress is ServiceAddress.Ice, Is.EqualTo(isIce));
         Assert.That(serviceAddress is ServiceAddress.IceRpc, Is.EqualTo(!isIce));
@@ -526,4 +527,32 @@ public class ServiceAddressTests
     [TestCase("ice:/path?adapter-id=foo", "ice:/path?adapter-id=bar")]
     public void Service_address_not_equal(ServiceAddress lhs, ServiceAddress rhs) =>
         Assert.That(lhs, Is.Not.EqualTo(rhs));
+
+    /// <summary>Verifies that the protocol constructor creates the default service address of the protocol.</summary>
+    [Test]
+    public void Protocol_constructor_creates_the_default_variant()
+    {
+        Assert.That(new ServiceAddress(Protocol.Ice), Is.EqualTo((ServiceAddress)new ServiceAddress.Ice()));
+        Assert.That(new ServiceAddress(Protocol.IceRpc), Is.EqualTo((ServiceAddress)new ServiceAddress.IceRpc()));
+    }
+
+    /// <summary>Verifies that a with expression on a service address keeps its variant.</summary>
+    [TestCase("ice:/foo", "/bar")]
+    [TestCase("icerpc://host/foo", "/bar")]
+    public void With_expression_keeps_the_variant(Uri uri, string path)
+    {
+        var serviceAddress = new ServiceAddress(uri);
+
+        ServiceAddress result = serviceAddress with { Path = path };
+
+        Assert.That(result.Protocol, Is.EqualTo(serviceAddress.Protocol));
+        Assert.That(result.Path, Is.EqualTo(path));
+        Assert.That(result.ServerAddress, Is.EqualTo(serviceAddress.ServerAddress));
+    }
+
+    /// <summary>Verifies that a property of a service address that holds no variant cannot be initialized.
+    /// </summary>
+    [Test]
+    public void Initializing_a_property_of_an_empty_service_address_fails() =>
+        Assert.That(() => default(ServiceAddress) with { Path = "/foo" }, Throws.TypeOf<SwitchExpressionException>());
 }

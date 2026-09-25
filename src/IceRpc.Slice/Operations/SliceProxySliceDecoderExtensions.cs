@@ -40,7 +40,7 @@ public static class SliceProxySliceDecoderExtensions
             }
             else
             {
-                var serviceAddress = ServiceAddress.FromUri(new Uri(value, UriKind.Absolute));
+                var serviceAddress = new ServiceAddress(new Uri(value, UriKind.Absolute));
                 return baseProxy is null ?
                     TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null) :
                     TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);

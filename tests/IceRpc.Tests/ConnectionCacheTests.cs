@@ -50,10 +50,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://bar")));
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
 
         // Act
-        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://foo/?alt-server=bar")));
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -97,7 +97,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://bar/?alt-server=foo")));
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://bar/?alt-server=foo")));
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
@@ -217,7 +217,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://foo/?alt-server=bar")));
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -268,10 +268,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://bar")));
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
 
         // Act
-        await SendEmptyRequestAsync(pipeline, ServiceAddress.FromUri(new Uri("icerpc://foo/?alt-server=bar")));
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
@@ -306,7 +306,7 @@ public sealed class ConnectionCacheTests
         await using var cache = new ConnectionCache(
             options: new(),
             multiplexedClientTransport: multiplexedClientTransport);
-        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://foo")));
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
 
         TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
         clientConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
@@ -352,7 +352,7 @@ public sealed class ConnectionCacheTests
             multiplexedClientTransport: multiplexedClientTransport);
 
         // Act
-        await SendEmptyRequestAsync(cache, ServiceAddress.FromUri(new Uri("icerpc://foo")));
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
 
         // Assert
         Assert.That(multiplexedClientTransport.LastCreatedConnectionOptions, Is.Not.Null);

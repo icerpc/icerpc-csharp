@@ -68,7 +68,7 @@ public {clientName}(
     IceRpc.IInvoker invoker,
     System.Uri serviceAddressUri,
     ProtobufEncodeOptions? encodeOptions = null)
-    : this(invoker, IceRpc.ServiceAddress.FromUri(serviceAddressUri), encodeOptions)
+    : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
 {{
 }}
 

@@ -23,10 +23,10 @@ public class InvocationTests
 
         provider.GetRequiredService<Server>().Listen();
 
-        using var request = new OutgoingRequest(ServiceAddress.FromUri(new Uri("ice:/test")));
+        using var request = new OutgoingRequest(new ServiceAddress(new Uri("ice:/test")));
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
 
-        using var callback = new OutgoingRequest(ServiceAddress.FromUri(new Uri("ice:/callback")));
+        using var callback = new OutgoingRequest(new ServiceAddress(new Uri("ice:/callback")));
 
         // Act
         var incomingRequest = await dispatcher.DispatchStart;
@@ -49,10 +49,10 @@ public class InvocationTests
 
         provider.GetRequiredService<Server>().Listen();
 
-        using var request = new OutgoingRequest(ServiceAddress.FromUri(new Uri("icerpc:/test")));
+        using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
 
-        using var callback = new OutgoingRequest(ServiceAddress.FromUri(new Uri("icerpc:/callback")));
+        using var callback = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/callback")));
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
         // Act/Assert
@@ -82,7 +82,7 @@ public class InvocationTests
         provider.GetRequiredService<Server>().Listen();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
-        using var request = new OutgoingRequest(ServiceAddress.FromUri(new Uri("icerpc:/test")));
+        using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));
         request.Payload = pipe.Reader;
         var invokeTask = connection.InvokeAsync(request);
         await dispatchStartTcs.Task;

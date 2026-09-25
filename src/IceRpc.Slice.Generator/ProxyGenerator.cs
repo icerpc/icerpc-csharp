@@ -714,7 +714,7 @@ internal static class ProxyGenerator
                 "null",
                 "The encode options, used to customize the encoding of request payloads.")
             .AddSetsRequiredMembersAttribute()
-            .AddThisParameters(["invoker", "IceRpc.ServiceAddress.FromUri(serviceAddressUri)", "encodeOptions"])
+            .AddThisParameters(["invoker", "new IceRpc.ServiceAddress(serviceAddressUri)", "encodeOptions"])
             .Build();
 
         // The parameterless struct constructor must be public (CS8958).
