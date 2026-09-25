@@ -33,10 +33,13 @@ public static class IceProxyIceDecoderExtensions
             CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
-        where TProxy : struct, IIceProxy<TProxy> =>
-        decodingContext is IIceProxy baseProxy ?
-            TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions) :
-            TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null);
+        where TProxy : struct, IIceProxy<TProxy>
+    {
+        var baseProxy = (IIceProxy?)decodingContext;
+        return baseProxy is null ?
+            TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null) :
+            TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);
+    }
 
     /// <summary>Decodes a service address.</summary>
     /// <param name="decoder">The Ice decoder.</param>
