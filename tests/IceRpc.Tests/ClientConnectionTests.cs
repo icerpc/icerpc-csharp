@@ -30,7 +30,7 @@ public class ClientConnectionTests
                 {
                     Dispatcher = NotFoundDispatcher.Instance,
                 },
-                ServerAddress = ServerAddress.FromUri(new Uri($"{protocol}://127.0.0.1:0"))
+                ServerAddress = new ServerAddress(new Uri($"{protocol}://127.0.0.1:0"))
             },
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
             duplexServerTransport: new TcpServerTransport());

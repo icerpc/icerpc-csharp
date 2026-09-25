@@ -21,7 +21,7 @@ public static class AddIceRpcClientConnectionExamples
                 .AddOptions<ClientConnectionOptions>()
                 // We need to set at least ServerAddress in the options.
                 .Configure(options =>
-                    options.ServerAddress = ServerAddress.FromUri(new Uri("icerpc://localhost")));
+                    options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
                 // options.ClientAuthenticationOptions remains null: this client connection uses
                 // the system Trusted Root CAs to validate the server certificate when establishing
                 // the underlying secure QUIC connection.
@@ -41,7 +41,7 @@ public static class AddIceRpcClientConnectionExamples
                 .AddOptions<ClientConnectionOptions>()
                 // Since options.ClientAuthenticationOptions is null, we use plain TCP (no TLS).
                 .Configure(options =>
-                    options.ServerAddress = ServerAddress.FromUri(new Uri("icerpc://localhost")));
+                    options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
             services
                 // The IMultiplexedClientTransport singleton is implemented by Slic.
                 .AddSingleton<IMultiplexedClientTransport>(

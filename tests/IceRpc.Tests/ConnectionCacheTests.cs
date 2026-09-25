@@ -22,7 +22,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server1Address = server1.Listen();
@@ -31,7 +31,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://bar")),
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar")),
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server2Address = server2.Listen();
@@ -77,7 +77,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress serverAddress = server.Listen();
@@ -188,7 +188,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server1Address = server1.Listen();
@@ -197,7 +197,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://bar"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server2Address = server2.Listen();
@@ -240,7 +240,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server1Address = server1.Listen();
@@ -249,7 +249,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions()
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://bar"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         ServerAddress server2Address = server2.Listen();
@@ -298,7 +298,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: multiplexedServerTransport);
         server.Listen();
@@ -342,7 +342,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();

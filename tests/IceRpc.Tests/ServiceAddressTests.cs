@@ -140,16 +140,16 @@ public class ServiceAddressTests
             // Service address with alt servers
             var serviceAddressWithTransport = new ServiceAddress.IceRpc
             {
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://host1?transport=tcp")),
-                AltServerAddresses = [ServerAddress.FromUri(new Uri("icerpc://host2"))]
+                ServerAddress = new ServerAddress(new Uri("icerpc://host1?transport=tcp")),
+                AltServerAddresses = [new ServerAddress(new Uri("icerpc://host2"))]
             };
 
             var serviceAddressWithAltServerAddresses =
                 new ServiceAddress.Ice(new Uri("ice://localhost:8080/foo?abc=123#bar")) with
                 {
                     AltServerAddresses = ImmutableList.Create(
-                        ServerAddress.FromUri(new Uri("ice://localhost:10000?transport=fizz")),
-                        ServerAddress.FromUri(new Uri("ice://localhost:10101?transport=buzz")))
+                        new ServerAddress(new Uri("ice://localhost:10000?transport=fizz")),
+                        new ServerAddress(new Uri("ice://localhost:10101?transport=buzz")))
                 };
 
             // Service address with an adapter ID that needs escaping
@@ -254,18 +254,18 @@ public class ServiceAddressTests
     {
         ["icerpc://localhost/path?alt-server=host1,host2"] = new ServerAddress[]
         {
-            new ServerAddress.IceRpc { Host = "host1" },
-            new ServerAddress.IceRpc { Host = "host2" },
+            new ServerAddress(Protocol.IceRpc) { Host = "host1" },
+            new ServerAddress(Protocol.IceRpc) { Host = "host2" },
         },
         ["icerpc://localhost/path?alt-server=host1:10001,host2:10002"] = new ServerAddress[]
         {
-            new ServerAddress.IceRpc { Host = "host1", Port = 10001 },
-            new ServerAddress.IceRpc { Host = "host2", Port = 10002 },
+            new ServerAddress(Protocol.IceRpc) { Host = "host1", Port = 10001 },
+            new ServerAddress(Protocol.IceRpc) { Host = "host2", Port = 10002 },
         },
         ["icerpc://localhost/path?alt-server=host1:10001&alt-server=host2:10002"] = new ServerAddress[]
         {
-            new ServerAddress.IceRpc { Host = "host1", Port = 10001 },
-            new ServerAddress.IceRpc { Host = "host2", Port = 10002 },
+            new ServerAddress(Protocol.IceRpc) { Host = "host1", Port = 10001 },
+            new ServerAddress(Protocol.IceRpc) { Host = "host2", Port = 10002 },
         },
     };
 
@@ -290,7 +290,7 @@ public class ServiceAddressTests
 
         // Act/Assert
         Assert.That(
-            () => serviceAddress with { ServerAddress = new ServerAddress.Ice { Host = "localhost" } },
+            () => serviceAddress with { ServerAddress = new ServerAddress(Protocol.Ice) { Host = "localhost" } },
             Throws.InvalidOperationException);
     }
 
@@ -304,7 +304,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress.IceRpc();
 
         // Constructing alternate server addresses.
-        var altServerAddresses = ImmutableList.Create(ServerAddress.FromUri(
+        var altServerAddresses = ImmutableList.Create(new ServerAddress(
             new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
@@ -466,8 +466,8 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress.Ice(new Uri("ice://host.zeroc.com:10000/hello"));
         var altServerAddresses = new ServerAddress[]
         {
-            new ServerAddress.Ice(),
-            new ServerAddress.IceRpc()
+            new ServerAddress(Protocol.Ice),
+            new ServerAddress(Protocol.IceRpc)
         }.ToImmutableList();
 
         // Act/Assert
@@ -480,7 +480,7 @@ public class ServiceAddressTests
     public void Setting_server_address_with_a_different_protocol_fails()
     {
         var serviceAddress = new ServiceAddress.Ice(new Uri("ice://host.zeroc.com/hello"));
-        ServerAddress newServerAddress = new ServerAddress.IceRpc { Host = "host.zeroc.com" };
+        ServerAddress newServerAddress = new ServerAddress(Protocol.IceRpc) { Host = "host.zeroc.com" };
 
         Assert.That(() => serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
     }

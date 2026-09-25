@@ -24,7 +24,7 @@ await using var connection = new ClientConnection(
     new ClientConnectionOptions
     {
         Dispatcher = router,
-        ServerAddress = ServerAddress.FromUri(new Uri("icerpc://localhost:10000")),
+        ServerAddress = new ServerAddress(new Uri("icerpc://localhost:10000")),
         ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA)
     },
     logger: loggerFactory.CreateLogger<ClientConnection>());

@@ -42,7 +42,7 @@ public static class ClientConnectionServiceCollectionExtensions
     /// instead.</remarks>
     /// <seealso cref="AddIceRpcClientConnection(IServiceCollection, ServerAddress)" />
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services, Uri serverAddressUri) =>
-        services.AddIceRpcClientConnection(ServerAddress.FromUri(serverAddressUri));
+        services.AddIceRpcClientConnection(new ServerAddress(serverAddressUri));
 
     /// <summary>Adds a <see cref="ClientConnection" /> singleton to this service collection; this singleton is also
     /// registered as the <see cref="IInvoker" /> singleton.</summary>

@@ -14,7 +14,7 @@ using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile(".
 
 // Use our own factory method (see below) to create a client connection using QUIC with a fallback to TCP.
 await using ClientConnection connection = await CreateClientConnectionAsync(
-    ServerAddress.FromUri(new Uri("icerpc://localhost")),
+    new ServerAddress(new Uri("icerpc://localhost")),
     rootCA,
     loggerFactory.CreateLogger<ClientConnection>());
 
@@ -43,7 +43,7 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
     // This client connection is either returned to the caller after a successful ConnectAsync, or disposed if the
     // ConnectAsync fails.
     var quicConnection = new ClientConnection(
-        serverAddress.WithTransport("quic"),
+        serverAddress with { Transport = "quic" },
         clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
         logger: logger);
 #pragma warning restore CA2000
@@ -61,7 +61,7 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
     return new ClientConnection(
-        serverAddress.WithTransport("tcp"),
+        serverAddress with { Transport = "tcp" },
         clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
         logger: logger);
 #pragma warning restore CA2000

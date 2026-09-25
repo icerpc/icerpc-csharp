@@ -22,8 +22,8 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
     public sealed record class Ice
     {
         /// <summary>Gets or initializes the main server address of this service address.</summary>
-        /// <value>The main server address, an <see cref="ServerAddress.Ice" /> variant, or <see langword="null" />
-        /// if this service address has no server address.</value>
+        /// <value>The main server address, an ice server address, or <see langword="null" /> if this service
+        /// address has no server address.</value>
         public ServerAddress? ServerAddress
         {
             get => _serverAddress;
@@ -75,8 +75,8 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
         }
 
         /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
-        /// <value>The secondary server addresses of this service address, all <see cref="ServerAddress.Ice" />
-        /// variants. Defaults to <see cref="ImmutableList{T}.Empty" />.</value>
+        /// <value>The secondary server addresses of this service address, all ice server addresses. Defaults to
+        /// <see cref="ImmutableList{T}.Empty" />.</value>
         public ImmutableList<ServerAddress> AltServerAddresses
         {
             get => _altServerAddresses;
@@ -293,8 +293,8 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
     public sealed record class IceRpc
     {
         /// <summary>Gets or initializes the main server address of this service address.</summary>
-        /// <value>The main server address, an <see cref="ServerAddress.IceRpc" /> variant, or
-        /// <see langword="null" /> if this service address has no server address.</value>
+        /// <value>The main server address, an icerpc server address, or <see langword="null" /> if this service
+        /// address has no server address.</value>
         public ServerAddress? ServerAddress
         {
             get => _serverAddress;
@@ -340,8 +340,8 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
         }
 
         /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
-        /// <value>The secondary server addresses of this service address, all <see cref="ServerAddress.IceRpc" />
-        /// variants. Defaults to <see cref="ImmutableList{T}.Empty" />.</value>
+        /// <value>The secondary server addresses of this service address, all icerpc server addresses. Defaults to
+        /// <see cref="ImmutableList{T}.Empty" />.</value>
         public ImmutableList<ServerAddress> AltServerAddresses
         {
             get => _altServerAddresses;
@@ -584,7 +584,7 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
                     $"Cannot set {nameof(AltServerAddresses)} when {nameof(ServerAddress)} is empty.");
             }
 
-            if (altServerAddresses.Any(e => !e.HasValue || e.Protocol != protocol))
+            if (altServerAddresses.Any(e => e.Protocol != protocol))
             {
                 throw new ArgumentException(
                     $"The {nameof(AltServerAddresses)} server addresses must be {protocol} server addresses.",
@@ -648,9 +648,7 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
             Debug.Assert(host.Length > 0); // the IdnHost provided by Uri is never empty
             ushort port = uri.Port == -1 ? protocol.DefaultPort : checked((ushort)uri.Port);
 
-            serverAddress = protocol == Protocol.Ice ?
-                new ServerAddress.Ice(host, port, transport, queryParams) :
-                new ServerAddress.IceRpc(host, port, transport);
+            serverAddress = new ServerAddress(protocol, host, port, transport, queryParams);
 
             if (altServerValue is not null)
             {
@@ -660,8 +658,7 @@ public union ServiceAddress(ServiceAddress.IceRpc, ServiceAddress.Ice) : IEquata
                     // The separator for server address parameters in alt-server is $, so we replace these '$' by '&'
                     // before sending the string (Uri) to the server address constructor which uses '&' as separator.
                     var altUri = new Uri($"{uri.Scheme}://{serverAddressStr}".Replace('$', '&'));
-                    altServerAddresses = altServerAddresses.Add(
-                        protocol == Protocol.Ice ? new ServerAddress.Ice(altUri) : new ServerAddress.IceRpc(altUri));
+                    altServerAddresses = altServerAddresses.Add(new ServerAddress(altUri));
                 }
             }
         }

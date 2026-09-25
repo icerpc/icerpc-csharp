@@ -56,10 +56,36 @@ public class ServerAddressTests
              4061,
              null,
              new Dictionary<string, string>() { ["foo"] = "bar", ["xyz"] = "true" }),
+            (new Uri("ice://[::0]?xyz=false&xyz=true&foo=&b="),
+             "::",
+             4061,
+             null,
+             new Dictionary<string, string>() { ["xyz"] = "false,true", ["foo"] = "", ["b"] = "" }),
+            (new Uri("ice://host:10000?xyz=foo"),
+             "host",
+             10000,
+             null,
+             new Dictionary<string, string> { ["xyz"] = "foo" }),
             (new Uri("icerpc://host:10000?transport=coloc"), "host", 10000, "coloc", null),
             (new Uri("ice://localhost?transport=tcp"), "localhost", 4061, "tcp", null),
             (new Uri("ice://host:10000"), "host", 10000, null, null),
+            (new Uri("ice://host:10000?xyz"),
+             "host",
+             10000,
+             null,
+             new Dictionary<string, string> { ["xyz"] = "" }),
+            (new Uri("ice://host:10000?xyz&adapter-id=ok"),
+             "host",
+             10000,
+             null,
+             new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
             (new Uri("IceRpc://host:10000"), "host", 10000, null, null),
+            // parses ok even though not a valid name
+            (new Uri("ice://host:10000? =bar"),
+             "host",
+             10000,
+             null,
+             new Dictionary<string, string>() { ["%20"] = "bar" })
         };
 
     /// <summary>Verifies that a server address can be correctly converted into a string.</summary>
@@ -68,11 +94,11 @@ public class ServerAddressTests
     [TestCaseSource(nameof(ServerAddressToStringSource))]
     public void Convert_an_server_address_into_a_string(Uri uri1)
     {
-        var serverAddress1 = ServerAddress.FromUri(uri1);
+        var serverAddress1 = new ServerAddress(uri1);
 
         string str2 = serverAddress1.ToString();
 
-        Assert.That(serverAddress1, Is.EqualTo(ServerAddress.FromUri(new Uri(str2))));
+        Assert.That(serverAddress1, Is.EqualTo(new ServerAddress(new Uri(str2))));
     }
 
     /// <summary>Verifies that the properties of a default constructed server address have the expected default values.
@@ -103,7 +129,7 @@ public class ServerAddressTests
     [TestCase("foo://host:10000")] // protocol not supported
     [TestCase("icerpc://user:password@host:10000")] // bad user-info
     public void Cannot_create_server_address_from_non_server_address_uri(Uri uri) =>
-        Assert.Catch<ArgumentException>(() => ServerAddress.FromUri(uri));
+        Assert.Catch<ArgumentException>(() => new ServerAddress(uri));
 
     /// <summary>Verifies that a server address can be created from a URI.</summary>
     /// <param name="uri">The server address URI.</param>
@@ -120,32 +146,12 @@ public class ServerAddressTests
         string? transport,
         IDictionary<string, string> parameters)
     {
-        var serverAddress = ServerAddress.FromUri(uri);
+        var serverAddress = new ServerAddress(uri);
 
         Assert.That(serverAddress.Host, Is.EqualTo(host));
         Assert.That(serverAddress.Port, Is.EqualTo(port));
         Assert.That(serverAddress.Transport, Is.EqualTo(transport));
         Assert.That(serverAddress.Params, Is.EquivalentTo(parameters));
-    }
-
-    /// <summary>Verifies that the variant of a server address created from a URI matches the URI scheme.</summary>
-    [TestCase("ice://host", true)]
-    [TestCase("icerpc://host", false)]
-    public void Server_address_variant_matches_uri_scheme(Uri uri, bool isIce)
-    {
-        var serverAddress = ServerAddress.FromUri(uri);
-
-        Assert.That(serverAddress is ServerAddress.Ice, Is.EqualTo(isIce));
-        Assert.That(serverAddress is ServerAddress.IceRpc, Is.EqualTo(!isIce));
-    }
-
-    /// <summary>Verifies that the constructor of a variant rejects a URI with the scheme of the other variant.
-    /// </summary>
-    [Test]
-    public void Variant_constructor_rejects_uri_with_other_scheme()
-    {
-        Assert.That(() => new ServerAddress.Ice(new Uri("icerpc://host")), Throws.ArgumentException);
-        Assert.That(() => new ServerAddress.IceRpc(new Uri("ice://host")), Throws.ArgumentException);
     }
 
     /// <summary>Verifies that setting the host works with a supported host name, and that an IPv6 address specified
@@ -157,7 +163,7 @@ public class ServerAddressTests
     [TestCase("::1", "::1")]
     public void Setting_the_server_address_host(string host, string expectedHost)
     {
-        var serverAddress = new ServerAddress.IceRpc(new Uri("icerpc://localhost"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
         serverAddress = serverAddress with { Host = host };
 
@@ -171,7 +177,7 @@ public class ServerAddressTests
         var uri = new Uri("http://foo");
 
         // Act / Assert
-        Assert.Throws<ArgumentException>(() => ServerAddress.FromUri(uri));
+        Assert.Throws<ArgumentException>(() => new ServerAddress(uri));
     }
 
     [Test]
@@ -181,7 +187,7 @@ public class ServerAddressTests
         var relativeUri = new Uri("foo", UriKind.Relative);
 
         // Act / Assert
-        Assert.Throws<ArgumentException>(() => ServerAddress.FromUri(relativeUri));
+        Assert.Throws<ArgumentException>(() => new ServerAddress(relativeUri));
     }
 
     [Test]
@@ -189,7 +195,7 @@ public class ServerAddressTests
     {
         // Arrange
         var uri = new Uri("icerpc://bar:1234");
-        var serverAddress = ServerAddress.FromUri(uri);
+        var serverAddress = new ServerAddress(uri);
 
         // Act
         var result = serverAddress.ToUri();
@@ -202,7 +208,7 @@ public class ServerAddressTests
     public void To_uri_reflects_an_updated_property()
     {
         // Arrange
-        var serverAddress = new ServerAddress.IceRpc(new Uri("icerpc://localhost"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
         serverAddress = serverAddress with { Host = "foo" };
 
         // Act
@@ -220,7 +226,7 @@ public class ServerAddressTests
     [TestCase("name%23[]", "value%25[]@!")]
     public void Setting_the_server_address_params(string name, string value)
     {
-        var serverAddress = new ServerAddress.Ice(new Uri("ice://localhost"));
+        var serverAddress = new ServerAddress(new Uri("ice://localhost"));
 
         serverAddress = serverAddress with { Params = serverAddress.Params.Add(name, value) };
 
@@ -235,7 +241,7 @@ public class ServerAddressTests
     [TestCase("::1.2")]
     public void Setting_invalid_server_address_host_fails(string host)
     {
-        var serverAddress = new ServerAddress.IceRpc(new Uri("icerpc://localhost"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
         Assert.Throws<ArgumentException>(() => _ = serverAddress with { Host = host });
 
@@ -253,29 +259,30 @@ public class ServerAddressTests
     [TestCase("name", "valu&e")] // cSpell:disable-line
     public void Setting_invalid_server_address_params_fails(string name, string value)
     {
-        var serverAddress = new ServerAddress.Ice(new Uri("ice://localhost"));
+        var serverAddress = new ServerAddress(new Uri("ice://localhost"));
 
         Assert.Throws<ArgumentException>(() => _ = serverAddress with { Params = serverAddress.Params.Add(name, value) });
 
         Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
     }
 
-    [TestCase("icerpc://127.0.0.1?transport=foo", "icerpc://127.0.0.1:4062?transport=foo")]
-    public void Server_address_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
-
+    /// <summary>Verifies that an icerpc server address cannot have parameters.</summary>
     [Test]
-    public void Optional_transport_comparer_handles_default_values()
+    public void Setting_params_on_an_icerpc_server_address_fails()
     {
-        ServerAddressComparer comparer = ServerAddressComparer.OptionalTransport;
-        var serverAddress = ServerAddress.FromUri(new Uri("icerpc://localhost"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
-        Assert.That(comparer.Equals(default, default), Is.True);
-        Assert.That(comparer.Equals(default, serverAddress), Is.False);
-        Assert.That(comparer.Equals(serverAddress, default), Is.False);
-        Assert.That(() => comparer.GetHashCode(default), Throws.Nothing);
+        Assert.Throws<ArgumentException>(() => _ = serverAddress with { Params = serverAddress.Params.Add("name", "value") });
+
+        Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
     }
 
+    [TestCase("ice://127.0.0.1?transport=foo&p=v&p1=v1", "ice://127.0.0.1:4061?p1=v1&transport=foo&p=v")]
+    [TestCase("ice://127.0.0.1?transport=foo&p=v1&p=v2&p=v3", "ice://127.0.0.1:4061?p=v1,v2,v3&transport=foo")]
+    public void Server_address_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
+
     [TestCase("icerpc://127.0.0.1", "icerpc://localhost")]
-    [TestCase("icerpc://127.0.0.1", "ice://127.0.0.1")]
+    [TestCase("ice://127.0.0.1?transport=foo&p=v", "ice://127.0.0.1?transport=foo&p=v1")]
+    [TestCase("ice://127.0.0.1?p=v1&p=v2", "ice://127.0.0.1?p=v2&p=v1")]
     public void Server_address_not_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.Not.EqualTo(rhs));
 }

@@ -63,7 +63,7 @@ public class ServerTests
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 MaxConnections = 1,
-                ServerAddress = ServerAddress.FromUri(serverAddressUri),
+                ServerAddress = new ServerAddress(serverAddressUri),
             },
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
 
@@ -111,7 +111,7 @@ public class ServerTests
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 ConnectTimeout = TimeSpan.FromMilliseconds(300),
                 MaxConnections = 1,
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://server")),
+                ServerAddress = new ServerAddress(new Uri("icerpc://server")),
             },
             multiplexedServerTransport: multiplexedServerTransport);
 
@@ -162,7 +162,7 @@ public class ServerTests
            {
                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                MaxPendingConnections = 1,
-               ServerAddress = ServerAddress.FromUri(new Uri("icerpc://server"))
+               ServerAddress = new ServerAddress(new Uri("icerpc://server"))
            },
            multiplexedServerTransport: serverTransport);
 
@@ -215,7 +215,7 @@ public class ServerTests
            {
                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                MaxConnections = 1,
-               ServerAddress = ServerAddress.FromUri(new Uri("icerpc://server"))
+               ServerAddress = new ServerAddress(new Uri("icerpc://server"))
            },
            multiplexedServerTransport: serverTransport);
 
@@ -266,7 +266,7 @@ public class ServerTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = ServerAddress.FromUri(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: multiplexedServerTransport);
 
@@ -308,7 +308,7 @@ public class ServerTests
 
         await using var server = new Server(
             dispatcher: NotFoundDispatcher.Instance,
-            serverAddress: ServerAddress.FromUri(new Uri("icerpc://foo")),
+            serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
         // Wait for accept to be called to configure the failure in order to trigger the failure after the connection
@@ -349,7 +349,7 @@ public class ServerTests
 
         await using var server = new Server(
             dispatcher: NotFoundDispatcher.Instance,
-            serverAddress: ServerAddress.FromUri(new Uri("icerpc://foo")),
+            serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
         // Wait for accept to be called to configure the failure in order to trigger the failure after the connection
@@ -387,7 +387,7 @@ public class ServerTests
     {
         // Arrange
         var connectTimeout = TimeSpan.FromSeconds(42);
-        ServerAddress serverAddress = new ServerAddress.IceRpc { Host = "colochost" };
+        ServerAddress serverAddress = new ServerAddress(Protocol.IceRpc) { Host = "colochost" };
 
         var colocTransport = new ColocTransport();
         var testServerTransport = new TestMultiplexedServerTransportDecorator(

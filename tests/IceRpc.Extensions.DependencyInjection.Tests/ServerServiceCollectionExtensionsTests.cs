@@ -14,8 +14,8 @@ public sealed class ServerServiceCollectionExtensionsTests
     [Test]
     public async Task Two_servers_with_distinct_named_options_dispatch_to_their_own_dispatcher()
     {
-        var firstServerAddress = ServerAddress.FromUri(new Uri("icerpc://first-host"));
-        var secondServerAddress = ServerAddress.FromUri(new Uri("icerpc://second-host"));
+        var firstServerAddress = new ServerAddress(new Uri("icerpc://first-host"));
+        var secondServerAddress = new ServerAddress(new Uri("icerpc://second-host"));
 
         int firstDispatchCount = 0;
         int secondDispatchCount = 0;

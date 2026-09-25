@@ -22,7 +22,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_connection_accepted_and_connection_connected(Protocol protocol)
     {
         // Arrange
-        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
@@ -89,7 +89,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_connection_connected_failed(Protocol protocol)
     {
         // Arrange
-        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
@@ -138,7 +138,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_connection_dispose_without_shutdown(Protocol protocol)
     {
         // Arrange
-        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -206,7 +206,7 @@ public sealed class ProtocolLoggerTests
     public async Task Log_start_stop_accept(Protocol protocol)
     {
         // Arrange
-        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var loggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         var server = new Server(
@@ -238,7 +238,7 @@ public sealed class ProtocolLoggerTests
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = ServerAddress.FromUri(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
 

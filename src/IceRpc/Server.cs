@@ -87,9 +87,11 @@ public sealed class Server : IAsyncDisposable
         _serverAddress = options.ServerAddress;
         if (_serverAddress.Transport is null)
         {
-            _serverAddress = _serverAddress.WithTransport(
-                _serverAddress.Protocol == Protocol.Ice ?
-                    duplexServerTransport.DefaultName : multiplexedServerTransport.DefaultName);
+            _serverAddress = _serverAddress with
+            {
+                Transport = _serverAddress.Protocol == Protocol.Ice ?
+                    duplexServerTransport.DefaultName : multiplexedServerTransport.DefaultName
+            };
         }
 
         if (options.ServerAuthenticationOptions?.ApplicationProtocols is not null)
@@ -251,7 +253,7 @@ public sealed class Server : IAsyncDisposable
         ILogger? logger = null)
         : this(
             dispatcher,
-            ServerAddress.FromUri(serverAddressUri),
+            new ServerAddress(serverAddressUri),
             serverAuthenticationOptions,
             duplexServerTransport,
             multiplexedServerTransport,
@@ -901,7 +903,7 @@ public sealed class Server : IAsyncDisposable
             ConnectionOptions options)
         {
             _listener = listener;
-            ServerAddress = serverAddress.WithPort(listener.TransportAddress.Port);
+            ServerAddress = serverAddress with { Port = listener.TransportAddress.Port };
             _options = options;
         }
     }
@@ -970,7 +972,7 @@ public sealed class Server : IAsyncDisposable
             ITaskExceptionObserver? taskExceptionObserver)
         {
             _listener = listener;
-            ServerAddress = serverAddress.WithPort(listener.TransportAddress.Port);
+            ServerAddress = serverAddress with { Port = listener.TransportAddress.Port };
             _options = options;
             _taskExceptionObserver = taskExceptionObserver;
         }

@@ -63,7 +63,7 @@ ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 var greeterServiceAddress = new ServiceAddress.IceRpc(new Uri("icerpc://localhost:10000/greeter"))
 {
     AltServerAddresses = Enumerable.Range(1, serverInstances - 1)
-        .Select(ServerAddress (i) => new ServerAddress.IceRpc { Host = "localhost", Port = (ushort)(i + 10000) })
+        .Select(i => new ServerAddress { Host = "localhost", Port = (ushort)(i + 10000) })
         .ToImmutableList()
 };
 

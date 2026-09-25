@@ -13,9 +13,7 @@ public static class ProtocolExtensions
     /// <param name="host">The host.</param>
     /// <returns>A new server address.</returns>
     public static ServerAddress CreateServerAddress(this Protocol protocol, string host = "::0") =>
-        protocol == Protocol.Ice ?
-            new ServerAddress.Ice { Host = host } :
-            new ServerAddress.IceRpc { Host = host };
+        new ServerAddress(protocol) { Host = host };
 
     /// <summary>Creates a service address with this protocol.</summary>
     /// <param name="protocol">The protocol.</param>

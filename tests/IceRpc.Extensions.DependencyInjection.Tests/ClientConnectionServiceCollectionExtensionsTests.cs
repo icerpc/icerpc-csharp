@@ -23,6 +23,6 @@ public sealed class ClientConnectionServiceCollectionExtensionsTests
         Assert.That(() => provider.GetRequiredService<ClientConnection>(), Throws.Nothing);
         Assert.That(
             provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value.ServerAddress,
-            Is.EqualTo(ServerAddress.FromUri(new Uri("icerpc://localhost"))));
+            Is.EqualTo(new ServerAddress(new Uri("icerpc://localhost"))));
     }
 }

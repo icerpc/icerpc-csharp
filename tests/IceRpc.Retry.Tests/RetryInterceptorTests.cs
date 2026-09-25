@@ -231,9 +231,9 @@ public sealed class RetryInterceptorTests
     public async Task Retry_with_other_replica(Protocol protocol, IInvoker next)
     {
         // Arrange
-        var serverAddress1 = ServerAddress.FromUri(new Uri($"{protocol.Name}://host1"));
-        var serverAddress2 = ServerAddress.FromUri(new Uri($"{protocol.Name}://host2"));
-        var serverAddress3 = ServerAddress.FromUri(new Uri($"{protocol.Name}://host3"));
+        var serverAddress1 = new ServerAddress(new Uri($"{protocol.Name}://host1"));
+        var serverAddress2 = new ServerAddress(new Uri($"{protocol.Name}://host2"));
+        var serverAddress3 = new ServerAddress(new Uri($"{protocol.Name}://host3"));
 
         await using var connection1 = new ClientConnection(serverAddress1);
         await using var connection2 = new ClientConnection(serverAddress2);

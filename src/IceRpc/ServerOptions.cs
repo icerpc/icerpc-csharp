@@ -50,8 +50,8 @@ public sealed record class ServerOptions
 
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>
-    /// <value>The <see cref="ServerAddress" /> of this <see cref="Server" />. Defaults to an
-    /// <see cref="ServerAddress.IceRpc" /> server address with default values.</value>
+    /// <value>The <see cref="ServerAddress" /> of this <see cref="Server" />. Defaults to an icerpc server address
+    /// with default values.</value>
     public ServerAddress ServerAddress { get; set; } = new();
 
     /// <summary>Gets or sets the SSL server authentication options.</summary>
