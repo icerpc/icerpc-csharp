@@ -84,17 +84,18 @@ public class CacheLessLocationResolverTests
     private sealed class FakeServerAddressFinder : IServerAddressFinder
     {
         private readonly ServiceAddress? _intermediary;
-        private readonly ServiceAddress? _target;
+        private readonly ServiceAddress _target;
 
         public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
         {
             if (_intermediary is null)
             {
-                return Task.FromResult(location.Value == "good" || location.Value == "/good" ? _target : null);
+                return Task.FromResult(
+                    location.Value == "good" || location.Value == "/good" ? _target : (ServiceAddress?)null);
             }
             else if (location.IsAdapterId)
             {
-                return Task.FromResult(location.Value == "GoodAdapter" ? _target : null);
+                return Task.FromResult(location.Value == "GoodAdapter" ? _target : (ServiceAddress?)null);
             }
             else
             {

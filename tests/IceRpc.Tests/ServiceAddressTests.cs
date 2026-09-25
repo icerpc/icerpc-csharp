@@ -111,14 +111,14 @@ public class ServiceAddressTests
     {
         get
         {
-            ServiceAddress serviceAddress = new ServiceAddress.Ice { Path = "/foo" };
+            ServiceAddress serviceAddress = new ServiceAddress(Protocol.Ice) with { Path = "/foo" };
             return new (ServiceAddress, ServiceAddress?, bool)[]
             {
                 (serviceAddress, serviceAddress, true),
                 (serviceAddress, null, false),
-                (serviceAddress, new ServiceAddress.IceRpc(), false), // Different protocol.
+                (serviceAddress, new ServiceAddress(Protocol.IceRpc), false), // Different protocol.
 
-                // Server address params (Order does not matter)
+                // Params (Order does not matter)
                 (
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123&def=456")),
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?def=456&abc=123")),
@@ -138,19 +138,20 @@ public class ServiceAddressTests
         get
         {
             // Service address with alt servers
-            var serviceAddressWithTransport = new ServiceAddress.IceRpc
+            var serviceAddressWithTransport = new ServiceAddress(Protocol.IceRpc)
             {
                 ServerAddress = new ServerAddress(new Uri("icerpc://host1?transport=tcp")),
                 AltServerAddresses = [new ServerAddress(new Uri("icerpc://host2"))]
             };
 
-            var serviceAddressWithAltServerAddresses =
-                new ServiceAddress.Ice(new Uri("ice://localhost:8080/foo?abc=123#bar")) with
-                {
-                    AltServerAddresses = ImmutableList.Create(
-                        new ServerAddress(new Uri("ice://localhost:10000?transport=fizz")),
-                        new ServerAddress(new Uri("ice://localhost:10101?transport=buzz")))
-                };
+            var serviceAddressWithAltServerAddresses = new ServiceAddress(
+                new Uri("ice://localhost:8080/foo?abc=123#bar"));
+            serviceAddressWithAltServerAddresses = serviceAddressWithAltServerAddresses with
+            {
+                AltServerAddresses = ImmutableList.Create(
+                    new ServerAddress(new Uri("ice://localhost:10000?transport=fizz")),
+                    new ServerAddress(new Uri("ice://localhost:10101?transport=buzz")))
+            };
 
             // Service address with an adapter ID that needs escaping
             var serviceAddressWithAdapterId = new ServiceAddress.Ice { Path = "/foo", AdapterId = "my adapter" };
@@ -171,7 +172,7 @@ public class ServiceAddressTests
         get
         {
             var serviceAddress = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
-            var serviceAddressWithoutServerAddress = new ServiceAddress.IceRpc { Path = "/foo" };
+            var serviceAddressWithoutServerAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
             return new (ServiceAddress, string)[]
             {
                 (serviceAddress, new Uri("ice://localhost:8080/foo?abc=123#bar").ToString()),
@@ -254,18 +255,18 @@ public class ServiceAddressTests
     {
         ["icerpc://localhost/path?alt-server=host1,host2"] = new ServerAddress[]
         {
-            new ServerAddress(Protocol.IceRpc) { Host = "host1" },
-            new ServerAddress(Protocol.IceRpc) { Host = "host2" },
+            new ServerAddress { Host = "host1" },
+            new ServerAddress { Host = "host2" },
         },
         ["icerpc://localhost/path?alt-server=host1:10001,host2:10002"] = new ServerAddress[]
         {
-            new ServerAddress(Protocol.IceRpc) { Host = "host1", Port = 10001 },
-            new ServerAddress(Protocol.IceRpc) { Host = "host2", Port = 10002 },
+            new ServerAddress { Host = "host1", Port = 10001 },
+            new ServerAddress { Host = "host2", Port = 10002 },
         },
         ["icerpc://localhost/path?alt-server=host1:10001&alt-server=host2:10002"] = new ServerAddress[]
         {
-            new ServerAddress(Protocol.IceRpc) { Host = "host1", Port = 10001 },
-            new ServerAddress(Protocol.IceRpc) { Host = "host2", Port = 10002 },
+            new ServerAddress { Host = "host1", Port = 10001 },
+            new ServerAddress { Host = "host2", Port = 10002 },
         },
     };
 
@@ -301,7 +302,7 @@ public class ServiceAddressTests
     {
         // Arrange
         // Construct a serviceAddress from a protocol since it will have an empty serverAddress.
-        var serviceAddress = new ServiceAddress.IceRpc();
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Constructing alternate server addresses.
         var altServerAddresses = ImmutableList.Create(new ServerAddress(
@@ -320,8 +321,7 @@ public class ServiceAddressTests
     {
         // Arrange
         // Creating a proxy with an alternate serverAddress.
-        var serviceAddress =
-            new ServiceAddress.IceRpc(new Uri("icerpc://localhost:8080/foo?alt-server=localhost:10000"));
+        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost:8080/foo?alt-server=localhost:10000"));
 
         // Act/Assert
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
@@ -368,7 +368,7 @@ public class ServiceAddressTests
     [TestCase("/foo/bar/")]
     public void From_protocol_and_path(string path)
     {
-        ServiceAddress serviceAddress = new ServiceAddress.IceRpc { Path = path };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = path };
 
         Assert.That(serviceAddress.Protocol, Is.EqualTo(Protocol.IceRpc));
         Assert.That(serviceAddress.Path, Is.EqualTo(path));
@@ -463,7 +463,7 @@ public class ServiceAddressTests
     public void Setting_alt_server_with_a_different_protocol_fails()
     {
         // Arrange
-        var serviceAddress = new ServiceAddress.Ice(new Uri("ice://host.zeroc.com:10000/hello"));
+        var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com:10000/hello"));
         var altServerAddresses = new ServerAddress[]
         {
             new ServerAddress(Protocol.Ice),
@@ -479,8 +479,10 @@ public class ServiceAddressTests
     [Test]
     public void Setting_server_address_with_a_different_protocol_fails()
     {
-        var serviceAddress = new ServiceAddress.Ice(new Uri("ice://host.zeroc.com/hello"));
-        ServerAddress newServerAddress = new ServerAddress(Protocol.IceRpc) { Host = "host.zeroc.com" };
+        var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com/hello"));
+        ServerAddress? serverAddress = serviceAddress.ServerAddress;
+        ServerAddress newServerAddress = new ServiceAddress(
+            new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
 
         Assert.That(() => serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
     }
