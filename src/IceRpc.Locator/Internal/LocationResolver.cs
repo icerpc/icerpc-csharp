@@ -63,10 +63,10 @@ internal class CacheLessLocationResolver : ILocationResolver
             .ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
-        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId))
+        if (serviceAddress is ServiceAddress.Ice { AdapterId: not "" } iceServiceAddress)
         {
             (serviceAddress, _) = await ResolveAsync(
-                new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) },
+                new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId },
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -138,14 +138,14 @@ internal class LocationResolver : ILocationResolver
         bool adapterIdFromCache = false;
 
         // A well-known service address resolution can return a service address with an adapter-id.
-        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId))
+        if (serviceAddress is ServiceAddress.Ice { AdapterId: not "" } iceServiceAddress)
         {
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                 // service address, we request a cache refresh for the adapter ID.
                 (serviceAddress, adapterIdFromCache) = await PerformResolveAsync(
-                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) },
+                    new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId },
                     refreshCache || resolved,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -200,7 +200,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
                 await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
             if (serviceAddress is not null)
             {
-                _logger.LogResolved(location.Kind, location, serviceAddress);
+                _logger.LogResolved(location.Kind, location, serviceAddress.Value);
             }
             else
             {

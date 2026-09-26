@@ -34,7 +34,7 @@ public class LocatorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Protocol == Protocol.Ice && request.ServiceAddress.ServerAddress is null)
+        if (request.ServiceAddress is ServiceAddress.Ice { ServerAddress: null } iceServiceAddress)
         {
             Location location = default;
             bool refreshCache = false;
@@ -57,9 +57,9 @@ public class LocatorInterceptor : IInvoker
             }
             else if (serverAddressFeature.ServerAddress is null)
             {
-                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? escapedAdapterId) ?
-                    new Location { IsAdapterId = true, Value = Uri.UnescapeDataString(escapedAdapterId) } :
-                    new Location { Value = request.ServiceAddress.Path };
+                location = iceServiceAddress.AdapterId.Length > 0 ?
+                    new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId } :
+                    new Location { Value = iceServiceAddress.Path };
             }
             // else it could be a retry where the first attempt provided non-cached server address(es)
 
@@ -89,13 +89,13 @@ public class LocatorInterceptor : IInvoker
                 {
                     // A well behaved location resolver should never return a non-null service address with a null
                     // serverAddress.
-                    Debug.Assert(serviceAddress.ServerAddress is not null);
+                    Debug.Assert(serviceAddress.Value.ServerAddress is not null);
 
                     // Before assigning the new resolved server addresses to the server address feature we have to
                     // remove any server addresses that are included in the list of removed server addresses, to
                     // avoid retrying with a server address that has been already excluded for the invocation.
                     (ServerAddress? serverAddress, ImmutableList<ServerAddress> altServerAddresses) =
-                        ComputeServerAddresses(serviceAddress, serverAddressFeature.RemovedServerAddresses);
+                        ComputeServerAddresses(serviceAddress.Value, serverAddressFeature.RemovedServerAddresses);
                     serverAddressFeature.ServerAddress = serverAddress;
                     serverAddressFeature.AltServerAddresses = altServerAddresses;
                 }

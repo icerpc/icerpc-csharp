@@ -223,7 +223,7 @@ public class LocationResolverTests
             else
             {
                 value = (TimeSpan.FromMilliseconds(Environment.TickCount64) - _insertionTime,
-                         location.IsAdapterId ? _adapterIdServiceAddress! : _wellKnownServiceAddress!);
+                         location.IsAdapterId ? _adapterIdServiceAddress!.Value : _wellKnownServiceAddress!.Value);
                 return true;
             }
         }

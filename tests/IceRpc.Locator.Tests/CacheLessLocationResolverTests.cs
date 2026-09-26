@@ -90,11 +90,12 @@ public class CacheLessLocationResolverTests
         {
             if (_intermediary is null)
             {
-                return Task.FromResult(location.Value == "good" || location.Value == "/good" ? _target : null);
+                return Task.FromResult(
+                    location.Value == "good" || location.Value == "/good" ? _target : (ServiceAddress?)null);
             }
             else if (location.IsAdapterId)
             {
-                return Task.FromResult(location.Value == "GoodAdapter" ? _target : null);
+                return Task.FromResult(location.Value == "GoodAdapter" ? _target : (ServiceAddress?)null);
             }
             else
             {

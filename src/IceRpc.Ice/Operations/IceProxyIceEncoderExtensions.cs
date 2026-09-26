@@ -54,7 +54,15 @@ public static class IceProxyIceEncoderExtensions
         }
         identity.Encode(ref encoder);
 
-        encoder.EncodeFragmentAsFacet(value.Fragment);
+        string fragment = "";
+        string adapterId = "";
+        if (value is ServiceAddress.Ice ice)
+        {
+            fragment = ice.Fragment;
+            adapterId = ice.AdapterId;
+        }
+
+        encoder.EncodeFragmentAsFacet(fragment);
         encoder.EncodeInvocationMode(InvocationMode.Twoway);
         encoder.EncodeBool(false);                    // Secure
         encoder.EncodeByte(value.Protocol.ByteValue); // Protocol Major
@@ -74,14 +82,7 @@ public static class IceProxyIceEncoderExtensions
         else
         {
             encoder.EncodeSize(0); // 0 server addresses
-            int maxCount = value.Params.TryGetValue("adapter-id", out string? escapedAdapterId) ? 1 : 0;
-
-            if (value.Params.Count > maxCount)
-            {
-                throw new NotSupportedException(
-                    "Cannot encode a service address with a parameter other than adapter-id using the Ice encoding.");
-            }
-            encoder.EncodeString(escapedAdapterId is null ? "" : Uri.UnescapeDataString(escapedAdapterId));
+            encoder.EncodeString(adapterId);
         }
     }
 

@@ -21,7 +21,7 @@ public partial class ProxyTests
     /// a proxy. </summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     // cSpell:disable
-    [TestCase("icerpc://host:1000/path?foo=bar")]
+    [TestCase("icerpc://host:1000/path?transport=tcp")]
     [TestCase("ice://host:10000/cat/name?transport=tcp")]
     [TestCase("ice://host:10000/cat/name?transport=foo")]
     [TestCase("ice://host:10000/cat/name?transport=ssl&t=30000&z")]
@@ -87,7 +87,7 @@ public partial class ProxyTests
     {
         // Arrange
         var pipeline = new Pipeline();
-        var baseProxy = new PingableProxy(pipeline, new Uri("icerpc://host:1000/base?foo=bar"));
+        var baseProxy = new PingableProxy(pipeline, new Uri("icerpc://host:1000/base?transport=tcp"));
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter);
         encoder.EncodeString("/foo");
