@@ -12,8 +12,16 @@ namespace IceRpc.Tests.Transports;
 
 public static class QuicTransportServiceCollectionExtensions
 {
+    /// <summary>The loopback server address used by the QUIC tests.</summary>
+    /// <remarks>On macOS, the kernel can give the dual-mode listener socket of MsQuic an ephemeral port that an
+    /// IPv4-only socket of another process already holds. IPv4 datagrams sent to that port are then delivered to the
+    /// other process and the handshake times out. Connecting over IPv6 avoids this misdelivery. See
+    /// https://github.com/icerpc/icerpc-csharp/issues/4714.</remarks>
+    public static Uri LoopbackServerAddressUri { get; } =
+        new(OperatingSystem.IsMacOS() ? "icerpc://[::1]:0/" : "icerpc://127.0.0.1:0/");
+
     public static IServiceCollection AddQuicTest(this IServiceCollection services) =>
-        services.AddMultiplexedTransportTest(new Uri("icerpc://127.0.0.1:0/")).AddQuicTransport();
+        services.AddMultiplexedTransportTest(LoopbackServerAddressUri).AddQuicTransport();
 
     public static IServiceCollection AddQuicTransport(this IServiceCollection services)
     {

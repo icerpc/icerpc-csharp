@@ -112,6 +112,6 @@ public class QuicTransportSslAuthenticationTests
 
     private static IServiceCollection CreateServiceCollection() =>
         new ServiceCollection()
-            .AddMultiplexedTransportTest(new Uri("icerpc://127.0.0.1:0/"))
+            .AddMultiplexedTransportTest(QuicTransportServiceCollectionExtensions.LoopbackServerAddressUri)
             .AddQuicTransport();
 }
