@@ -14,6 +14,7 @@ This folder contains example applications that showcase the IceRPC + Slice integ
 | [Logger](./Logger/)                        | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)                      | Shows how to use the metrics interceptor and middleware.                                                                            |
 | [MultipleInterfaces](./MultipleInterfaces) | Shows how a service can implement multiple interfaces.                                                                              |
+| [Ordered](./Ordered/)                      | Shows how the server dispatches oneway requests, and how to use a stream to process a series of log entries in order.               |
 | [RequestContext](./RequestContext/)        | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
 | [Retry](./Retry/)                          | Shows how to use the retry interceptor to retry failed requests.                                                                    |
 | [Stream](./Stream/)                        | Shows how to stream data from a server to a client.                                                                                 |

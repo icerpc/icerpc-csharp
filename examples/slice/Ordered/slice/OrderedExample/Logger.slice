@@ -1,0 +1,28 @@
+// Copyright (c) ZeroC, Inc.
+
+module OrderedExample
+
+/// Represents a logger that receives each log entry in a separate oneway request.
+interface SimpleLogger {
+    /// Logs a message.
+    /// @param serial: The serial number of the log entry.
+    /// @param timeStamp: The time when the client created the log entry.
+    /// @param message: The message to log.
+    [oneway] log(serial: uint32, timeStamp: WellKnownTypes::TimeStamp, message: string)
+}
+
+/// Represents a log entry.
+struct LogEntry {
+    /// The time when the client created this log entry.
+    timeStamp: WellKnownTypes::TimeStamp
+
+    /// The message to log.
+    message: string
+}
+
+/// Represents a logger that receives all its log entries in a single oneway request.
+interface StreamLogger {
+    /// Logs a stream of log entries.
+    /// @param logEntries: The log entries, in order.
+    [oneway] log(logEntries: stream LogEntry)
+}

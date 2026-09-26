@@ -70,6 +70,9 @@
       "paths": ["examples/slice/MultipleInterfaces/slice"]
     },
     {
+      "paths": ["examples/slice/Ordered/slice"]
+    },
+    {
       "paths": ["examples/slice/RequestContext/slice"]
     },
     {
