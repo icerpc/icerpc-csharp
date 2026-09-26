@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Tcp;
 using IceRpc.Transports.Tcp.Internal;
@@ -175,13 +176,7 @@ public class TcpTransportTests
     [Test]
     public async Task Configure_server_connection_listen_backlog()
     {
-        // The listen backlog does not work on macos 26.0, so we skip this test. Works on macos 26.1.
-        if (OperatingSystem.IsMacOS() &&
-            Environment.OSVersion.Version.Major == 26 &&
-            Environment.OSVersion.Version.Minor == 0)
-        {
-            Assert.Ignore("Skipping listen backlog test on macOS 26.0 due to listen backlog bug.");
-        }
+        ListenBacklogSupport.IgnoreTestIfNotHonored();
 
         // Arrange
         const int backlog = 18;
