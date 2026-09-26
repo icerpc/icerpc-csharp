@@ -67,20 +67,16 @@ public readonly record struct ServerAddress
 
     /// <summary>Gets or initializes transport-specific parameters.</summary>
     /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
-    /// Always empty for an icerpc server address.</value>
+    /// An icerpc server address has no parameters.</value>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
 
         init
         {
-            if (Protocol == Protocol.IceRpc && value.Count > 0)
-            {
-                throw new ArgumentException("An icerpc server address cannot have parameters.", nameof(value));
-            }
-
             try
             {
+                Protocol.CheckServerAddressParams(value);
                 CheckParams(value);
             }
             catch (FormatException exception)
@@ -122,8 +118,8 @@ public readonly record struct ServerAddress
     /// <param name="uri">An absolute URI.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not an absolute URI, or when its
     /// scheme is not a supported protocol, or when it has a non-empty path or fragment, or when it has an empty host,
-    /// or when its query can't be parsed or has an alt-server query parameter, or when its scheme is icerpc and its
-    /// query has a parameter other than transport.</exception>
+    /// or when its query can't be parsed or has an alt-server query parameter, or when its query has a parameter that
+    /// is not valid for its protocol.</exception>
     public ServerAddress(Uri uri)
     {
         if (!uri.IsAbsoluteUri)
@@ -168,12 +164,7 @@ public readonly record struct ServerAddress
                     nameof(uri));
             }
 
-            if (Protocol == Protocol.IceRpc && _params.Count > 0)
-            {
-                throw new ArgumentException(
-                    "Cannot create an icerpc server address with a query parameter other than transport.",
-                    nameof(uri));
-            }
+            Protocol.CheckServerAddressParams(_params);
         }
         catch (FormatException exception)
         {

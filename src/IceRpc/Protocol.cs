@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 
@@ -72,6 +73,16 @@ public class Protocol
     /// <summary>Converts this protocol into a string.</summary>
     /// <returns>The name of the protocol.</returns>
     public override string ToString() => Name;
+
+    /// <summary>Checks if these server address parameters are valid for this protocol.</summary>
+    /// <param name="serverAddressParams">The server address parameters to check.</param>
+    /// <exception cref="FormatException">Thrown when the server address parameters are not valid.</exception>
+    /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
+    /// it does not check for the invalid empty, alt-server and transport parameter names either.</remarks>
+    internal virtual void CheckServerAddressParams(ImmutableDictionary<string, string> serverAddressParams)
+    {
+        // by default, any dictionary is ok
+    }
 
     /// <summary>Constructs a protocol.</summary>
     private protected Protocol(
