@@ -113,13 +113,9 @@ public abstract class DuplexListenerConformanceTests
     [NonParallelizable]
     public async Task Connect_fails_if_listener_is_disposed()
     {
-        // The listen backlog does not work on macos 26.0 with TCP, so we skip this test. Works on macos 26.1.
-        if (UsesListenBacklog &&
-            OperatingSystem.IsMacOS() &&
-            Environment.OSVersion.Version.Major == 26 &&
-            Environment.OSVersion.Version.Minor == 0)
+        if (UsesListenBacklog)
         {
-            Assert.Ignore("Skipping test on macOS 26.0 due to listen backlog bug.");
+            ListenBacklogSupport.IgnoreTestIfNotHonored();
         }
 
         // Arrange
