@@ -54,13 +54,11 @@ public static class IceProxyIceEncoderExtensions
         }
         identity.Encode(ref encoder);
 
-        string fragment = "";
-        string adapterId = "";
-        if (value is ServiceAddress.Ice ice)
+        (string fragment, string adapterId) = value switch
         {
-            fragment = ice.Fragment;
-            adapterId = ice.AdapterId;
-        }
+            ServiceAddress.Ice ice => (ice.Fragment, ice.AdapterId),
+            _ => ("", "")
+        };
 
         encoder.EncodeFragmentAsFacet(fragment);
         encoder.EncodeInvocationMode(InvocationMode.Twoway);
