@@ -12,8 +12,8 @@ using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromF
 
 // Create a router that dispatches requests to the two logger services, each mounted at its default path.
 Router router = new Router()
-    .Map(new SimpleLogger())
-    .Map(new StreamLogger());
+    .Map(new Scribe())
+    .Map(new Chronicler());
 
 // Create a server that uses the test server certificate.
 await using var server = new Server(
