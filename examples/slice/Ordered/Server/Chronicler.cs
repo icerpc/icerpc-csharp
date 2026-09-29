@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 namespace OrderedServer;
 
-/// <summary>Implements Slice interface `StreamLogger` by printing each streamed message to the console.</summary>
+/// <summary>Implements Slice interface <c>StreamLogger</c> by printing each streamed message to the console.</summary>
 [Service]
 internal partial class Chronicler : IStreamLoggerService
 {
@@ -16,7 +16,7 @@ internal partial class Chronicler : IStreamLoggerService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        // This method owns messages and its underlying transport stream.
+        // This method owns messages and its underlying transport stream, so it disposes messages when done.
         using IAsyncStream<string> _ = messages;
 
         // The messages arrive in the order the client wrote them. The same random delay as in Scribe doesn't change

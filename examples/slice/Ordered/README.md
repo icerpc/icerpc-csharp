@@ -1,7 +1,8 @@
 # Ordered
 
 This example application illustrates that separate oneway requests can be delivered and dispatched in any order, and
-how to use a stream to guarantee that the server receives and processes a series of elements in order.
+how to use a stream to guarantee that the server receives and processes a series of elements in the order the client
+writes them.
 
 The client sends the same ten log entries to the server twice:
 
