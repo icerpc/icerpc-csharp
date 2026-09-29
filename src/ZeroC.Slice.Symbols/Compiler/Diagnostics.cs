@@ -176,7 +176,7 @@ internal abstract partial record class DiagnosticKind
 
     /// <summary>
     /// An attribute was applied to a Slice element for which it&apos;s invalid.
-    /// For example: applying <c>[oneway]</c> to a struct (&apos;oneway&apos; is only allowed on operations).
+    /// For example: applying `[oneway]` to a struct (&apos;oneway&apos; is only allowed on operations).
     /// </summary>
     partial record class InvalidAttribute(string Directive) : DiagnosticKind
     {
@@ -197,7 +197,7 @@ internal abstract partial record class DiagnosticKind
 
     /// <summary>
     /// An unknown attribute was encountered, which uses a known prefix.
-    /// For example: if a C# code-generator encountered the following attribute: <c>[cs::foobar]</c>.
+    /// For example: if a C# code-generator encountered the following attribute: `[cs::foobar]`.
     /// </summary>
     partial record class UnknownAttribute(string Directive) : DiagnosticKind
     {
@@ -218,7 +218,7 @@ internal abstract partial record class DiagnosticKind
 
     /// <summary>
     /// An element requires a specific attribute to be applied to it, which is not present.
-    /// For example: custom types must have their mapped type specified with a <c>[xxx:type(...)]</c> attribute.
+    /// For example: custom types must have their mapped type specified with a `[xxx:type(...)]` attribute.
     /// </summary>
     partial record class MissingRequiredAttribute(string ExpectedAttribute) : DiagnosticKind
     {
@@ -239,7 +239,7 @@ internal abstract partial record class DiagnosticKind
 
     /// <summary>
     /// A non-repeatable attribute was applied to the same element multiple times.
-    /// For example: <c>[compress(Args)] [compress(Return)] myOperation()</c>; &apos;compress&apos; is not repeatable.
+    /// For example: `[compress(Args)] [compress(Return)] myOperation()`; &apos;compress&apos; is not repeatable.
     /// </summary>
     partial record class AttributeIsNotRepeatable(string Directive) : DiagnosticKind
     {
@@ -260,8 +260,7 @@ internal abstract partial record class DiagnosticKind
 
     /// <summary>
     /// An invalid argument was provided to an attribute which otherwise accepts arguments.
-    /// For example: <c>[compress(FooBar)] myOperation()</c>;
-    /// &apos;compress&apos; accepts arguments but &apos;FooBar&apos; is not a valid one.
+    /// For example: `[compress(FooBar)] myOperation()`; &apos;compress&apos; accepts arguments but &apos;FooBar&apos; is not a valid one.
     /// </summary>
     partial record class InvalidAttributeArgument(string Directive, string Argument) : DiagnosticKind
     {
@@ -283,8 +282,7 @@ internal abstract partial record class DiagnosticKind
 
     /// <summary>
     /// Too few or too many arguments were supplied to an otherwise valid attribute.
-    /// For example: <c>[oneway(FooBar)]</c> (&apos;oneway&apos; takes no arguments) or
-    /// <c>[compress]</c> (&apos;compress&apos; requires arguments).
+    /// For example: `[oneway(FooBar)]` (&apos;oneway&apos; takes no arguments) or `[compress]` (&apos;compress&apos; requires arguments).
     /// </summary>
     partial record class IncorrectAttributeArgumentCount(string Directive, byte MinExpected, byte MaxExpected, byte ActualCount) : DiagnosticKind
     {
