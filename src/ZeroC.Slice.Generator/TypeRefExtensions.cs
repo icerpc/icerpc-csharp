@@ -154,6 +154,7 @@ internal static class TypeRefExtensions
             Builtin b => b.Kind != BuiltinKind.String,
             Struct => true,
             BasicEnum => true,
+            VariantEnum => true,
             _ => false,
         };
     }

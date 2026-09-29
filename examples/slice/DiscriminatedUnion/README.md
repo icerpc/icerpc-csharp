@@ -6,9 +6,9 @@ generated for the Slice type.
 You define a discriminated union in Slice by defining an enum without an underlying type. Each enumerator of such an
 enum can then define 0 or more fields.
 
-Since C# does not provide native support for discriminated unions, the Slice code generator for C# maps such a Slice
-enum to several C# record classes and relies on the [Dunet] source generator to provide various methods for these record
-classes.
+The Slice code generator for C# maps such a Slice enum to a C# [union] with a nested record class for each enumerator.
+You process a union value with a switch expression, and the compiler checks that this switch expression handles every
+enumerator.
 
 This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
 steps; see .NET's [QUIC platform dependencies][quic-platform].
@@ -33,5 +33,5 @@ cd Client
 dotnet run
 ```
 
-[Dunet]: https://github.com/domn1995/dunet
 [quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
+[union]: https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/union

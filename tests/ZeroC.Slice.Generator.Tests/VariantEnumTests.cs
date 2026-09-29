@@ -28,7 +28,7 @@ public class VariantEnumTests
         var decoded = decoder.DecodeColor();
 
         // Assert
-        Assert.That(decoded, Is.InstanceOf<Color.Blue>());
+        Assert.That(decoded.Value, Is.InstanceOf<Color.Blue>());
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
 
         // 1 for the discriminant, 1 for the tag, 1 for the tagged value size, 2 for code, 1 for the tag end marker
@@ -42,7 +42,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var paintColor = new PaintColor.Yellow(shade, code);
+        PaintColor paintColor = new PaintColor.Yellow(shade, code);
         encoder.EncodePaintColor(paintColor);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -70,9 +70,9 @@ public class VariantEnumTests
         var decoded = decoder.DecodeShape();
 
         // Assert
-        Assert.That(decoded, Is.InstanceOf<Shape.Unknown>());
+        Assert.That(decoded.Value, Is.InstanceOf<Shape.Unknown>());
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
-        Assert.That(((Shape.Unknown)decoded).Discriminant, Is.EqualTo(RevisedShape.Square.Discriminant));
+        Assert.That(((Shape.Unknown)decoded.Value!).Discriminant, Is.EqualTo(RevisedShape.Square.Discriminant));
     }
 
     [Test]
@@ -81,7 +81,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder1 = new SliceEncoder(buffer);
-        var revisedShape = new RevisedShape.Square(10, new Color.White());
+        RevisedShape revisedShape = new RevisedShape.Square(10, new Color.White());
         encoder1.EncodeRevisedShape(revisedShape);
 
         var decoder1 = new SliceDecoder(buffer.WrittenMemory);
@@ -99,7 +99,7 @@ public class VariantEnumTests
         // Assert
         Assert.That(decoded, Is.EqualTo(revisedShape)); // we didn't loose any information
         Assert.That(decoder2.Consumed, Is.EqualTo(encoder2.EncodedByteCount));
-        Assert.That(shape, Is.InstanceOf<Shape.Unknown>());
+        Assert.That(shape.Value, Is.InstanceOf<Shape.Unknown>());
     }
 
     [TestCase("foo", 8u, 4u)]
@@ -109,7 +109,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var shape = new RevisedShape.Oval(name, major, minor);
+        RevisedShape shape = new RevisedShape.Oval(name, major, minor);
         encoder.EncodeRevisedShape(shape);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -128,7 +128,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var shape = new CompactShape.Rectangle(10, 20);
+        CompactShape shape = new CompactShape.Rectangle(10, 20);
         encoder.EncodeCompactShape(shape);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -148,7 +148,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var shape = new CompactShape.Oval(name, major, minor);
+        CompactShape shape = new CompactShape.Oval(name, major, minor);
         encoder.EncodeCompactShape(shape);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -178,7 +178,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var value = new VariantFieldKinds.PlainStruct(new MyStruct(1, 2));
+        VariantFieldKinds value = new VariantFieldKinds.PlainStruct(new MyStruct(1, 2));
         encoder.EncodeVariantFieldKinds(value);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -198,7 +198,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var value = new VariantFieldKinds.OptionalStruct(setField ? new MyStruct(3, 4) : null);
+        VariantFieldKinds value = new VariantFieldKinds.OptionalStruct(setField ? new MyStruct(3, 4) : null);
         encoder.EncodeVariantFieldKinds(value);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -218,7 +218,7 @@ public class VariantEnumTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        var value = new VariantFieldKinds.TaggedStruct(setField ? new MyStruct(5, 6) : null);
+        VariantFieldKinds value = new VariantFieldKinds.TaggedStruct(setField ? new MyStruct(5, 6) : null);
         encoder.EncodeVariantFieldKinds(value);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory);
@@ -248,8 +248,8 @@ public class VariantEnumTests
         // Assert
         // The record equality of IntSequence compares the Values properties by reference, so we compare the decoded
         // property instead.
-        Assert.That(decoded, Is.InstanceOf<VariantFieldKinds.IntSequence>());
-        Assert.That(((VariantFieldKinds.IntSequence)decoded).Values, Is.EqualTo(value.Values));
+        Assert.That(decoded.Value, Is.InstanceOf<VariantFieldKinds.IntSequence>());
+        Assert.That(((VariantFieldKinds.IntSequence)decoded.Value!).Values, Is.EqualTo(value.Values));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
 
@@ -271,9 +271,66 @@ public class VariantEnumTests
         // Assert
         // The record equality of StringDictionary compares the Entries properties by reference, so we compare the
         // decoded property instead.
-        Assert.That(decoded, Is.InstanceOf<VariantFieldKinds.StringDictionary>());
-        Assert.That(((VariantFieldKinds.StringDictionary)decoded).Entries, Is.EqualTo(value.Entries));
+        Assert.That(decoded.Value, Is.InstanceOf<VariantFieldKinds.StringDictionary>());
+        Assert.That(((VariantFieldKinds.StringDictionary)decoded.Value!).Entries, Is.EqualTo(value.Entries));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Decode_struct_with_variant_enum_fields(bool setFields)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        var value = new VariantEnumHolder(
+            new Shape.Circle(1),
+            setFields ? new Shape.Rectangle(2, 3) : (Shape?)null,
+            [new Color.Red(), null, new Color.Blue()],
+            setFields ? new Shape.Triangle(4, 5, 6) : (Shape?)null);
+        value.Encode(ref encoder);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var decoded = new VariantEnumHolder(ref decoder);
+
+        // Assert
+        Assert.That(decoded.Shape, Is.EqualTo(value.Shape));
+        Assert.That(decoded.OptionalShape, Is.EqualTo(value.OptionalShape));
+        Assert.That(decoded.Colors, Is.EqualTo(value.Colors));
+        Assert.That(decoded.TaggedShape, Is.EqualTo(value.TaggedShape));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
+    public void Encode_default_variant_enum_fails()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var encoder = new SliceEncoder(buffer);
+                encoder.EncodeShape(default);
+            },
+            Throws.InvalidOperationException);
+    }
+
+    [Test]
+    public void Variant_enum_equality_and_to_string_use_the_variant()
+    {
+        // Arrange
+        Shape shape = new Shape.Rectangle(3, 4);
+
+        // Act/Assert
+        Assert.That(shape == new Shape.Rectangle(3, 4), Is.True);
+        Assert.That(shape != new Shape.Rectangle(4, 3), Is.True);
+        Assert.That(shape.GetHashCode(), Is.EqualTo(new Shape.Rectangle(3, 4).GetHashCode()));
+        Assert.That(shape.ToString(), Is.EqualTo("Rectangle { Width = 3, Height = 4 }"));
+        Assert.That(default(Shape).ToString(), Is.Empty);
     }
 
     [Test]

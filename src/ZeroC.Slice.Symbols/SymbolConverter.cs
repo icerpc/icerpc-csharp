@@ -304,7 +304,6 @@ internal sealed class SymbolConverter
                 SuccessTypeIsOptional = r.V.SuccessType.IsOptional,
                 FailureTypeIsOptional = r.V.FailureType.IsOptional,
             },
-            _ => throw new InvalidOperationException($"Unknown symbol type: {symbol.GetType().Name}"),
         };
 
     private Struct ConvertStruct(Compiler.Struct raw, Compiler.SliceFile file, Module module)
@@ -523,7 +522,6 @@ internal sealed class SymbolConverter
         {
             Compiler.MessageComponent.Text t => new CommentText(t.V),
             Compiler.MessageComponent.Link l => new CommentInlineLink(new UnresolvedCommentLink(l.V)),
-            _ => throw new InvalidOperationException($"Unknown MessageComponent kind: {c.GetType().FullName}")
         }).ToImmutableList();
 
         var seeTags = raw.Value.SeeTags

@@ -266,7 +266,9 @@ internal static class FieldExtensions
             && seq.ElementType.FixedSize is not null;
 
         /// <summary>Gets a value indicating whether this field should have the C# 'required' keyword
-        /// (non-optional reference type).</summary>
-        internal bool IsRequired => !value.DataTypeIsOptional && !value.DataType.IsValueType;
+        /// (non-optional reference type or variant enum). The default value of a variant enum is not a valid
+        /// value.</summary>
+        internal bool IsRequired =>
+            !value.DataTypeIsOptional && (!value.DataType.IsValueType || value.DataType.Type is VariantEnum);
     }
 }

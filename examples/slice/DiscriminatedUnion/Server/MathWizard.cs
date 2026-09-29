@@ -17,13 +17,14 @@ internal partial class MathWizard : IAreaCalculatorService
     {
         Console.WriteLine($"Computing area for shape {shape}");
 
-        // The Dunet-generated Match method accepts functions in declaration order.
-        // See https://github.com/domn1995/dunet
-        double area = shape.Match<double>(
-            square => square.Side * square.Side,
-            circle => Math.PI * circle.Radius * circle.Radius,
-            rectangle => rectangle.Width * rectangle.Height,
-            ellipse => Math.PI * ellipse.MajorAxis * ellipse.MinorAxis / 4);
+        // The compiler checks that this switch expression handles every shape.
+        double area = shape switch
+        {
+            Shape.Square(var side) => side * side,
+            Shape.Circle(var radius) => Math.PI * radius * radius,
+            Shape.Rectangle(var width, var height) => width * height,
+            Shape.Ellipse(var majorAxis, var minorAxis) => Math.PI * majorAxis * minorAxis / 4,
+        };
 
         return new(area);
     }
