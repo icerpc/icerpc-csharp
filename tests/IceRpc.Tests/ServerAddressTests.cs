@@ -56,12 +56,12 @@ public class ServerAddressTests
              4061,
              null,
              new Dictionary<string, string>() { ["foo"] = "bar", ["xyz"] = "true" }),
-            (new Uri("icerpc://[::0]?xyz=false&xyz=true&foo=&b="),
+            (new Uri("ice://[::0]?xyz=false&xyz=true&foo=&b="),
              "::",
-             4062,
+             4061,
              null,
              new Dictionary<string, string>() { ["xyz"] = "false,true", ["foo"] = "", ["b"] = "" }),
-            (new Uri("icerpc://host:10000?xyz=foo"),
+            (new Uri("ice://host:10000?xyz=foo"),
              "host",
              10000,
              null,
@@ -69,19 +69,19 @@ public class ServerAddressTests
             (new Uri("icerpc://host:10000?transport=coloc"), "host", 10000, "coloc", null),
             (new Uri("ice://localhost?transport=tcp"), "localhost", 4061, "tcp", null),
             (new Uri("ice://host:10000"), "host", 10000, null, null),
-            (new Uri("icerpc://host:10000?xyz"),
+            (new Uri("ice://host:10000?xyz"),
              "host",
              10000,
              null,
              new Dictionary<string, string> { ["xyz"] = "" }),
-            (new Uri("icerpc://host:10000?xyz&adapter-id=ok"),
+            (new Uri("ice://host:10000?xyz&adapter-id=ok"),
              "host",
              10000,
              null,
              new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
             (new Uri("IceRpc://host:10000"), "host", 10000, null, null),
             // parses ok even though not a valid name
-            (new Uri("icerpc://host:10000? =bar"),
+            (new Uri("ice://host:10000? =bar"),
              "host",
              10000,
              null,
@@ -120,6 +120,7 @@ public class ServerAddressTests
     [TestCase("icerpc://host:10000#fragment")] // unexpected fragment
     [TestCase("icerpc://host:10000?alt-server=host2")] // alt-server is service address only
     [TestCase("icerpc://host:10000?=bar")] // empty param name
+    [TestCase("icerpc://host:10000?foo=bar")] // icerpc server address parameter
     [TestCase("icerpc:///foo")] // path, empty authority
     [TestCase("icerpc:///")] // empty authority
     [TestCase("icerpc://")] // empty authority
@@ -225,7 +226,7 @@ public class ServerAddressTests
     [TestCase("name%23[]", "value%25[]@!")]
     public void Setting_the_server_address_params(string name, string value)
     {
-        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
+        var serverAddress = new ServerAddress(new Uri("ice://localhost"));
 
         serverAddress = serverAddress with { Params = serverAddress.Params.Add(name, value) };
 
@@ -258,19 +259,30 @@ public class ServerAddressTests
     [TestCase("name", "valu&e")] // cSpell:disable-line
     public void Setting_invalid_server_address_params_fails(string name, string value)
     {
-        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
+        var serverAddress = new ServerAddress(new Uri("ice://localhost"));
 
         Assert.Throws<ArgumentException>(() => _ = serverAddress with { Params = serverAddress.Params.Add(name, value) });
 
         Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
     }
 
-    [TestCase("icerpc://127.0.0.1?transport=foo&p=v&p1=v1", "icerpc://127.0.0.1:4062?p1=v1&transport=foo&p=v")]
-    [TestCase("icerpc://127.0.0.1?transport=foo&p=v1&p=v2&p=v3", "icerpc://127.0.0.1:4062?p=v1,v2,v3&transport=foo")]
+    /// <summary>Verifies that an icerpc server address cannot have parameters.</summary>
+    [Test]
+    public void Setting_params_on_an_icerpc_server_address_fails()
+    {
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
+
+        Assert.Throws<ArgumentException>(() => _ = serverAddress with { Params = serverAddress.Params.Add("name", "value") });
+
+        Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
+    }
+
+    [TestCase("ice://127.0.0.1?transport=foo&p=v&p1=v1", "ice://127.0.0.1:4061?p1=v1&transport=foo&p=v")]
+    [TestCase("ice://127.0.0.1?transport=foo&p=v1&p=v2&p=v3", "ice://127.0.0.1:4061?p=v1,v2,v3&transport=foo")]
     public void Server_address_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
 
     [TestCase("icerpc://127.0.0.1", "icerpc://localhost")]
-    [TestCase("icerpc://127.0.0.1?transport=foo&p=v", "icerpc://127.0.0.1?transport=foo&p=v1")]
-    [TestCase("icerpc://127.0.0.1?p=v1&p=v2", "icerpc://127.0.0.1?p=v2&p=v1")]
+    [TestCase("ice://127.0.0.1?transport=foo&p=v", "ice://127.0.0.1?transport=foo&p=v1")]
+    [TestCase("ice://127.0.0.1?p=v1&p=v2", "ice://127.0.0.1?p=v2&p=v1")]
     public void Server_address_not_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.Not.EqualTo(rhs));
 }

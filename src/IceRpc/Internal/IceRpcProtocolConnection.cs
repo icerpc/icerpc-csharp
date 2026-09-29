@@ -379,11 +379,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             // It's possible but rare to invoke on a server connection that is still connecting.
 
-            if (request.ServiceAddress.Fragment.Length > 0)
-            {
-                throw new NotSupportedException("The icerpc protocol does not support fragments.");
-            }
-
             IncrementDispatchInvocationCount();
         }
 

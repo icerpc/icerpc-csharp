@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
@@ -59,14 +60,14 @@ public readonly record struct ServerAddress
 
         init
         {
-            _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
+            _transport = value is null || (IsValidParamValue(value) && value.Length > 0) ? value :
                 throw new ArgumentException($"The value '{value}' is not valid transport name", nameof(value));
         }
     }
 
     /// <summary>Gets or initializes transport-specific parameters.</summary>
     /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
-    /// </value>
+    /// An icerpc server address has no parameters.</value>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -75,7 +76,8 @@ public readonly record struct ServerAddress
         {
             try
             {
-                ServiceAddress.CheckParams(value);
+                Protocol.CheckServerAddressParams(value);
+                CheckParams(value);
             }
             catch (FormatException exception)
             {
@@ -84,6 +86,13 @@ public readonly record struct ServerAddress
             _params = value;
         }
     }
+
+    // The printable ASCII range. Characters outside this range must be percent-escaped in a parameter name or value.
+    private const char FirstValidChar = '\x21';
+    private const char LastValidChar = '\x7E';
+
+    private static readonly SearchValues<char> _notValidInParamName = SearchValues.Create("\"<>#&=\\^`{|}");
+    private static readonly SearchValues<char> _notValidInParamValue = SearchValues.Create("\"<>#&\\^`{|}");
 
     private readonly string _host = "::0";
     private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
@@ -109,7 +118,8 @@ public readonly record struct ServerAddress
     /// <param name="uri">An absolute URI.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not an absolute URI, or when its
     /// scheme is not a supported protocol, or when it has a non-empty path or fragment, or when it has an empty host,
-    /// or when its query can't be parsed or has an alt-server query parameter.</exception>
+    /// or when its query can't be parsed or has an alt-server query parameter, or when its query has a parameter that
+    /// is not valid for its protocol.</exception>
     public ServerAddress(Uri uri)
     {
         if (!uri.IsAbsoluteUri)
@@ -153,6 +163,8 @@ public readonly record struct ServerAddress
                     "Cannot create a server address with an alt-server query parameter.",
                     nameof(uri));
             }
+
+            Protocol.CheckServerAddressParams(_params);
         }
         catch (FormatException exception)
         {
@@ -182,6 +194,35 @@ public readonly record struct ServerAddress
     /// <summary>Converts this server address into a URI.</summary>
     /// <returns>The URI.</returns>
     public Uri ToUri() => new(ToString(), UriKind.Absolute);
+
+    /// <summary>Checks that the parameter names and values contain only unreserved characters, <c>%</c>, and reserved
+    /// characters other than <c>#</c>, <c>&#38;</c> and, for names, <c>=</c>.</summary>
+    /// <exception cref="FormatException">Thrown when a parameter name or value is invalid.</exception>
+    private static void CheckParams(ImmutableDictionary<string, string> @params)
+    {
+        foreach ((string name, string value) in @params)
+        {
+            if (!IsValidParamName(name))
+            {
+                throw new FormatException($"Invalid parameter name '{name}'.");
+            }
+            if (!IsValidParamValue(value))
+            {
+                throw new FormatException($"Invalid parameter value '{value}'.");
+            }
+        }
+    }
+
+    private static bool IsValid(string s, SearchValues<char> invalidChars)
+    {
+        ReadOnlySpan<char> span = s.AsSpan();
+        return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
+    }
+
+    private static bool IsValidParamName(string name) =>
+        name.Length > 0 && name != "alt-server" && name != "transport" && IsValid(name, _notValidInParamName);
+
+    private static bool IsValidParamValue(string value) => IsValid(value, _notValidInParamValue);
 
     /// <summary>Constructs a server address from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>

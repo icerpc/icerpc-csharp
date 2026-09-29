@@ -843,10 +843,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         byte encodingMajor = 1;
         byte encodingMinor = 1;
 
+        (IceIdentity identity, IList<string> facet) = request.ServiceAddress switch
+        {
+            ServiceAddress.Ice ice => (IceIdentity.Parse(ice.Path), ice.Fragment.ToFacet()),
+            _ => throw new InvalidOperationException("InvokeAsync only accepts ice requests.")
+        };
+
         // Request header.
         var requestHeader = new IceRequestHeader(
-            IceIdentity.Parse(request.ServiceAddress.Path),
-            request.ServiceAddress.Fragment.ToFacet(),
+            identity,
+            facet,
             request.Operation,
             request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent : OperationMode.Normal);
         requestHeader.Encode(ref encoder);

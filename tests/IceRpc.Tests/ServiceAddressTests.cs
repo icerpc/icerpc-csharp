@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace IceRpc.Tests;
 
@@ -111,7 +112,7 @@ public class ServiceAddressTests
         get
         {
             ServiceAddress serviceAddress = new ServiceAddress(Protocol.Ice) with { Path = "/foo" };
-            return new[]
+            return new (ServiceAddress, ServiceAddress?, bool)[]
             {
                 (serviceAddress, serviceAddress, true),
                 (serviceAddress, null, false),
@@ -152,10 +153,8 @@ public class ServiceAddressTests
                     new ServerAddress(new Uri("ice://localhost:10101?transport=buzz")))
             };
 
-            // Service address with Params
-            var serviceAddressWithParams = new ServiceAddress(Protocol.IceRpc);
-            var myParams = new Dictionary<string, string> { ["foo"] = "bar" }.ToImmutableDictionary();
-            serviceAddressWithParams = serviceAddressWithParams with { Params = myParams };
+            // Service address with an adapter ID that needs escaping
+            var serviceAddressWithAdapterId = new ServiceAddress.Ice { Path = "/foo", AdapterId = "my adapter" };
 
             return
             [
@@ -163,9 +162,7 @@ public class ServiceAddressTests
                 (
                     serviceAddressWithAltServerAddresses,
                     "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"),
-                (
-                    serviceAddressWithParams,
-                    "icerpc:/?foo=bar")
+                (serviceAddressWithAdapterId, "ice:/foo?adapter-id=my%20adapter")
             ];
         }
     }
@@ -178,9 +175,7 @@ public class ServiceAddressTests
             var serviceAddressWithoutServerAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
             return new (ServiceAddress, string)[]
             {
-                // Constructed from a URI
                 (serviceAddress, new Uri("ice://localhost:8080/foo?abc=123#bar").ToString()),
-                // OriginalUri not set
                 (serviceAddressWithoutServerAddress, "icerpc:/foo"),
             };
         }
@@ -196,6 +191,8 @@ public class ServiceAddressTests
             "icerpc:/host/path#fragment",   // bad fragment
             "icerpc:/path#fragment",        // bad fragment
             "icerpc://user@host/path",      // bad user info
+            "icerpc:/path?foo=bar",         // icerpc service address parameter
+            "icerpc://host/path?foo=bar",   // icerpc server address parameter
             "ice://host/s1/s2/s3",          // too many slashes in path
             "ice:/path?alt-server=foo",     // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
@@ -209,7 +206,6 @@ public class ServiceAddressTests
         new (string, string, string)[]
         {
             /* spellchecker:disable */
-            ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
             ("ice://host.zeroc.com/identity#facet", "/identity", "facet"),
             ("ice://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x"),
             ("ice://host.zeroc.com/identity#", "/identity", ""),
@@ -220,7 +216,6 @@ public class ServiceAddressTests
             ("ice://host/", "/", ""),
             ("ice://host//", "//", ""),
             ("ice:/path?adapter-id=foo", "/path", ""),
-            ("icerpc:?foo=bar", "/", ""),
             ("icerpc://host.zeroc.com", "/", ""),
             ("icerpc://host.zeroc.com:1000/category/name", "/category/name", ""),
             ("icerpc://host.zeroc.com:1000/loc0/loc1/category/name", "/loc0/loc1/category/name", ""),
@@ -233,9 +228,6 @@ public class ServiceAddressTests
             ("icerpc://[::1]:10000/identity?alt-server=host1:10000&alt-server=host2,host3&alt-server=[::2]",
              "/identity",
              ""),
-            ("icerpc://[::1]/path?alt-server=host1?adapter-id=foo=bar$name=value&alt-server=host2?foo=bar$123=456",
-             "/path",
-             ""),
             ("ice:/location/identity#facet", "/location/identity", "facet"),
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
@@ -244,16 +236,13 @@ public class ServiceAddressTests
             ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!$'()*+,:;=@[]%20%2F"),
             (@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!", ""), // \ becomes / another syntax for empty port
             ("icerpc://host.zeroc.com:/identity", "/identity", ""),
-            ("icerpc://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d", "/identity", ""),
             ("icerpc://host.zeroc.com/identity?transport=100", "/identity", ""),
             // leading :: to make the address IPv6-like
             ("icerpc://[::ab:cd:ef:00]/identity?transport=bt", "/identity", ""),
             ("icerpc://host.zeroc.com:10000/identity?transport=tcp", "/identity", ""),
-            ("icerpc://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar", "/identity", ""),
             ("icerpc://mylocation.domain.com/foo/bar?transport=loc", "/foo/bar", ""),
             ("icerpc://host:10000?transport=coloc", "/", ""),
             ("icerpc:/tcp -p 10000", "/tcp%20-p%2010000", ""), // not recommended
-            ("icerpc://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar", "/identity", ""),
             ("ice://0.0.0.0/identity#facet", "/identity", "facet"), // Any IPv4 in service address server address (unusable but parses ok)
             ("ice://[::0]/identity#facet", "/identity", "facet"), // Any IPv6 in service address (unusable but parses ok)
             // IDN
@@ -281,35 +270,28 @@ public class ServiceAddressTests
         },
     };
 
-    /// <summary>Verifies that adapter-id param cannot be set to an empty value.</summary>
+    /// <summary>Verifies that the adapter ID of a service address is unescaped, and escaped again in its URI.
+    /// </summary>
     [Test]
-    public void Adapter_id_cannot_be_empty()
+    public void Adapter_id_is_unescaped()
     {
-        // Arrange
-        var serviceAddress = new ServiceAddress(new Uri("ice://localhost/hello"));
-        var myParams = new Dictionary<string, string> { ["adapter-id"] = "" }.ToImmutableDictionary();
+        var serviceAddress = new ServiceAddress.Ice(new Uri("ice:/hello?adapter-id=my%20adapter%25"));
 
-        // Act/Assert
-        Assert.That(() => serviceAddress with { Params = myParams }, Throws.ArgumentException);
+        Assert.That(serviceAddress.AdapterId, Is.EqualTo("my adapter%"));
+        Assert.That(serviceAddress.ToString(), Is.EqualTo("ice:/hello?adapter-id=my%20adapter%25"));
     }
 
-    /// <summary>Verifies that the service address server address cannot be set when the service address contains any
-    /// params.</summary>
+    /// <summary>Verifies that the service address server address cannot be set when the service address has an
+    /// adapter ID.</summary>
     [Test]
-    public void Cannot_set_server_address_on_a_service_address_with_parameters()
+    public void Cannot_set_server_address_on_a_service_address_with_an_adapter_id()
     {
         // Arrange
-        var serviceAddress = new ServiceAddress(Protocol.Ice)
-        {
-            Params = new Dictionary<string, string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
-        };
+        var serviceAddress = new ServiceAddress.Ice { AdapterId = "value" };
 
         // Act/Assert
         Assert.That(
-            () => serviceAddress with
-            {
-                ServerAddress = new ServerAddress(serviceAddress.Protocol) { Host = "localhost" }
-            },
+            () => serviceAddress with { ServerAddress = new ServerAddress(Protocol.Ice) { Host = "localhost" } },
             Throws.InvalidOperationException);
     }
 
@@ -345,25 +327,13 @@ public class ServiceAddressTests
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
     }
 
-    /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
+    /// <summary>Verifies that the adapter ID cannot be set when the service address has a server address.</summary>
     [Test]
-    public void Cannot_set_fragment_if_protocol_has_no_fragment()
+    public void Cannot_set_adapter_id_on_a_service_address_with_a_server_address()
     {
-        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/hello"));
 
-        Assert.That(() => serviceAddress with { Fragment = "bar" }, Throws.InvalidOperationException);
-        Assert.That(Protocol.IceRpc.HasFragment, Is.False);
-    }
-
-    /// <summary>Verifies that the service address params cannot be set when the service address has a server address.
-    /// </summary>
-    [Test]
-    public void Cannot_set_params_on_a_service_address_with_a_server_address()
-    {
-        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost/hello"));
-        var myParams = new Dictionary<string, string> { ["name"] = "value" }.ToImmutableDictionary();
-
-        Assert.That(() => serviceAddress with { Params = myParams }, Throws.InvalidOperationException);
+        Assert.That(() => serviceAddress with { AdapterId = "value" }, Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that a service address can be converted into a string.</summary>
@@ -409,7 +379,7 @@ public class ServiceAddressTests
     public void Invalid_fragment_throws_exception()
     {
         // Arrange
-        var serviceAddress = new ServiceAddress(Protocol.Ice);
+        var serviceAddress = new ServiceAddress.Ice();
 
         // Act/Assert
         Assert.That(() => serviceAddress with { Fragment = "foo<" }, Throws.ArgumentException);
@@ -437,7 +407,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(uri);
 
         Assert.That(serviceAddress.Path, Is.EqualTo(path));
-        Assert.That(serviceAddress.Fragment, Is.EqualTo(fragment));
+        Assert.That(serviceAddress is ServiceAddress.Ice ice ? ice.Fragment : "", Is.EqualTo(fragment));
     }
 
     /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException" />.</summary>
@@ -521,22 +491,69 @@ public class ServiceAddressTests
     [Test]
     public void Set_fragment_on_an_ice_service_address()
     {
-        var serviceAddress = new ServiceAddress(Protocol.Ice);
+        var serviceAddress = new ServiceAddress.Ice();
 
         serviceAddress = serviceAddress with { Fragment = "bar" };
 
         Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
-        Assert.That(serviceAddress.Protocol.HasFragment, Is.True);
     }
 
-    [TestCase("icerpc://127.0.0.1/path?transport=foo&p=v&p1=v1", "icerpc://127.0.0.1:4062/path?p1=v1&transport=foo&p=v")]
-    [TestCase("icerpc:/path?p=v&p1=v1", "icerpc:/path?p1=v1&p=v")]
-    [TestCase("icerpc:/path?p=v1,v2,v3&foo=bar", "icerpc:/path?foo=bar&p=v1&p=v2&p=v3")]
+    /// <summary>Verifies that the variant of a service address created from a URI matches the URI scheme.</summary>
+    [TestCase("ice://host/path", true)]
+    [TestCase("icerpc://host/path", false)]
+    public void Service_address_variant_matches_uri_scheme(Uri uri, bool isIce)
+    {
+        var serviceAddress = new ServiceAddress(uri);
+
+        Assert.That(serviceAddress is ServiceAddress.Ice, Is.EqualTo(isIce));
+        Assert.That(serviceAddress is ServiceAddress.IceRpc, Is.EqualTo(!isIce));
+    }
+
+    /// <summary>Verifies that the constructor of a variant rejects a URI with the scheme of the other variant.
+    /// </summary>
+    [Test]
+    public void Variant_constructor_rejects_uri_with_other_scheme()
+    {
+        Assert.That(() => new ServiceAddress.Ice(new Uri("icerpc://host/path")), Throws.ArgumentException);
+        Assert.That(() => new ServiceAddress.IceRpc(new Uri("ice://host/path")), Throws.ArgumentException);
+    }
+
+    [TestCase("icerpc://127.0.0.1/path?transport=foo", "icerpc://127.0.0.1:4062/path?transport=foo")]
+    [TestCase("ice:/path?adapter-id=a%20b", "ice:/path?adapter-id=a b")]
     public void Service_address_equal(ServiceAddress lhs, ServiceAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
 
     [TestCase("icerpc://127.0.0.1/path", "icerpc://localhost/path")]
+    [TestCase("icerpc://127.0.0.1/path", "ice://127.0.0.1/path")]
     [TestCase("ice://127.0.0.1/path#foo", "ice://127.0.0.1/path#bar")]
-    [TestCase("icerpc://127.0.0.1/path?transport=foo&p=v", "icerpc://127.0.0.1/path?transport=foo&p=v1")]
+    [TestCase("ice:/path?adapter-id=foo", "ice:/path?adapter-id=bar")]
     public void Service_address_not_equal(ServiceAddress lhs, ServiceAddress rhs) =>
         Assert.That(lhs, Is.Not.EqualTo(rhs));
+
+    /// <summary>Verifies that the protocol constructor creates the default service address of the protocol.</summary>
+    [Test]
+    public void Protocol_constructor_creates_the_default_variant()
+    {
+        Assert.That(new ServiceAddress(Protocol.Ice), Is.EqualTo((ServiceAddress)new ServiceAddress.Ice()));
+        Assert.That(new ServiceAddress(Protocol.IceRpc), Is.EqualTo((ServiceAddress)new ServiceAddress.IceRpc()));
+    }
+
+    /// <summary>Verifies that a with expression on a service address keeps its variant.</summary>
+    [TestCase("ice:/foo", "/bar")]
+    [TestCase("icerpc://host/foo", "/bar")]
+    public void With_expression_keeps_the_variant(Uri uri, string path)
+    {
+        var serviceAddress = new ServiceAddress(uri);
+
+        ServiceAddress result = serviceAddress with { Path = path };
+
+        Assert.That(result.Protocol, Is.EqualTo(serviceAddress.Protocol));
+        Assert.That(result.Path, Is.EqualTo(path));
+        Assert.That(result.ServerAddress, Is.EqualTo(serviceAddress.ServerAddress));
+    }
+
+    /// <summary>Verifies that a property of a service address that holds no variant cannot be initialized.
+    /// </summary>
+    [Test]
+    public void Initializing_a_property_of_an_empty_service_address_fails() =>
+        Assert.That(() => default(ServiceAddress) with { Path = "/foo" }, Throws.TypeOf<SwitchExpressionException>());
 }
