@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace ThermostatServer;
 
-/// <summary>Implements Protobuf service `ThermoHome`.</summary>
+/// <summary>Implements Protobuf service <c>ThermoHome</c>.</summary>
 [Service]
 internal partial class ThermoBridge : IThermoHomeService
 {

@@ -91,8 +91,8 @@ public class SpanEnumeratorTests
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    /// <param name="moves">The number of times to call `MoveNext`.</param>
-    /// <param name="expected">The expected byte array in `Current`.</param>
+    /// <param name="moves">The number of times to call <c>MoveNext</c>.</param>
+    /// <param name="expected">The expected byte array in <c>Current</c>.</param>
     [Test]
     [TestCaseSource(nameof(EnumeratorCurrentUpdatesSuccessfullySource))]
     public void Move_to_next_span(
@@ -119,7 +119,7 @@ public class SpanEnumeratorTests
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    /// <param name="moves">The number of times to call `MoveNext`.</param>
+    /// <param name="moves">The number of times to call <c>MoveNext</c>.</param>
     [Test]
     [TestCaseSource(nameof(EnumeratorNextFailsSource))]
     public void Move_past_the_end_fails(

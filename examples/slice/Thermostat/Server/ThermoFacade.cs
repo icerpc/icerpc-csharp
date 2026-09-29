@@ -8,8 +8,8 @@ using System.Threading.Channels;
 
 namespace ThermostatServer;
 
-/// <summary>Implements Slice interface `Thermostat` by forwarding calls to the device or by returning data reported
-/// by the device.</summary>
+/// <summary>Implements Slice interface <c>Thermostat</c> by forwarding calls to the device or by returning data
+/// reported by the device.</summary>
 /// <remarks>Most of the server-side logic is implemented in this class.</remarks>
 [Service]
 internal sealed partial class ThermoFacade : IThermostatService
