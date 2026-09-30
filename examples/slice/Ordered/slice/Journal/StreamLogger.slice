@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module Journal
+
+/// Represents a logger that receives all its messages in a single request.
+interface StreamLogger {
+    /// Logs a stream of messages.
+    /// @param messages: The messages to log, in order.
+    log(messages: stream string)
+}
