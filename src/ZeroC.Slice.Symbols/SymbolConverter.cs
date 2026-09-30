@@ -204,7 +204,7 @@ internal sealed class SymbolConverter
                 Compiler.Symbol.SequenceType sequenceTypeSymbol => SequenceTypeDeps(sequenceTypeSymbol.V),
                 Compiler.Symbol.DictionaryType dictionaryTypeSymbol => DictionaryTypeDeps(dictionaryTypeSymbol.V),
                 Compiler.Symbol.ResultType resultTypeSymbol => ResultTypeDeps(resultTypeSymbol.V),
-                _ => [],
+                Compiler.Symbol.CustomType => [],
             };
 
             foreach (string typeId in typeIds)

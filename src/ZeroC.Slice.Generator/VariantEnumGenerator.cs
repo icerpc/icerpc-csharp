@@ -109,14 +109,15 @@ internal static class VariantEnumGenerator
 
         string cases = string.Join(", ", CaseNames(enumDef).Select(caseName => $"{identifier}.{caseName}"));
 
-        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} partial union", $"{identifier}({cases})")
-            .AddBase($"global::System.IEquatable<{identifier}>")
-            .AddDocCommentSummary(enumDef.Comment, currentNamespace)
-            .AddComment(
-                "remarks",
-                @$"The Slice compiler generated this union from the Slice enum <c>{scopedId}</c>.")
-            .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
-            .AddDeprecatedAttribute(enumDef.Attributes);
+        ContainerBuilder builder =
+            new ContainerBuilder($"{accessModifier} readonly partial union", $"{identifier}({cases})")
+                .AddBase($"global::System.IEquatable<{identifier}>")
+                .AddDocCommentSummary(enumDef.Comment, currentNamespace)
+                .AddComment(
+                    "remarks",
+                    @$"The Slice compiler generated this union from the Slice enum <c>{scopedId}</c>.")
+                .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
+                .AddDeprecatedAttribute(enumDef.Attributes);
 
         foreach (VariantEnum.Variant variant in enumDef.Variants)
         {
@@ -161,9 +162,8 @@ internal static class VariantEnumGenerator
 
     /// <summary>Returns the names of the nested case types of the union generated for a variant enum.</summary>
     private static IEnumerable<string> CaseNames(VariantEnum enumDef) =>
-        enumDef.IsUnchecked ?
-            enumDef.Variants.Select(variant => variant.Name).Append("Unknown") :
-            enumDef.Variants.Select(variant => variant.Name);
+        enumDef.Variants.Select(variant => variant.Name)
+            .Concat(enumDef.IsUnchecked ? ["Unknown"] : []);
 
     private static CodeBlock GenerateVariantRecord(
         VariantEnum.Variant variant,

@@ -320,6 +320,23 @@ public class VariantEnumTests
     }
 
     [Test]
+    public void Encode_default_optional_variant_enum_in_result_fails()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var holder = new OptionalColorResultHolder(new Result<string, Color?>.Failure(default(Color)));
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var encoder = new SliceEncoder(buffer);
+                holder.Encode(ref encoder);
+            },
+            Throws.ArgumentException);
+    }
+
+    [Test]
     public void Variant_enum_equality_and_to_string_use_the_variant()
     {
         // Arrange

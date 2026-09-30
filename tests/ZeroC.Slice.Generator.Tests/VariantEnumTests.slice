@@ -73,10 +73,14 @@ enum VariantFieldKinds {
     StringDictionary(entries: Dictionary<int32, string>)
 }
 
-// Variant enums map to C# value types; exercises them as optional field and sequence element types.
+// Exercises variant enums as field types: plain, optional, tagged, and as optional sequence elements.
 struct VariantEnumHolder {
     shape: Shape
     optionalShape: Shape?
     colors: Sequence<Color?>
     tag(1) taggedShape: Shape?
+}
+
+struct OptionalColorResultHolder {
+    value: Result<string, Color?>
 }

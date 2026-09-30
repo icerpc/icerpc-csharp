@@ -27,7 +27,7 @@ foreach (string name in names)
         failure => failure.Value switch
         {
             GreeterError.Away away => $"Away until {away.Until.ToLocalTime()}",
-            GreeterError error => $"{error}",
+            _ => $"{failure.Value}",
         });
 
     Console.WriteLine($"The greeting for '{name}' is '{message}'");
