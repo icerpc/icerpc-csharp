@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace ThermostatServer;
 
-/// <summary>Implements Slice interface `ThermoHome`.</summary>
+/// <summary>Implements Slice interface <c>ThermoHome</c>.</summary>
 [Service]
 internal partial class ThermoBridge : IThermoHomeService
 {
