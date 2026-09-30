@@ -32,9 +32,9 @@ internal static partial class ServerAddressFinderLoggerExtensions
 }
 
 /// <summary>A server address finder finds the server address(es) of a location. These server address(es) are carried by
-/// a dummy service address. When this dummy service address is not null, its ServerAddress property is guaranteed to be
-/// not <see langword="null" />. Unlike <see cref="ILocationResolver" />, a server address finder does not provide
-/// cache-related parameters and typically does not maintain a cache.</summary>
+/// a dummy ice service address. When not null, this dummy service address holds a server address or, for a well-known
+/// service address location, possibly an adapter ID instead. Unlike <see cref="ILocationResolver" />, a server address
+/// finder does not provide cache-related parameters and typically does not maintain a cache.</summary>
 internal interface IServerAddressFinder
 {
     Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken);

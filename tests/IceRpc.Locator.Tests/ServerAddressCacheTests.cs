@@ -28,9 +28,8 @@ public class ServerAddressCacheTests
         var location = new Location { IsAdapterId = true, Value = "hello" };
         IServerAddressCache serverAddressCache = new ServerAddressCache(10);
 
-        bool cached = serverAddressCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) resolved);
+        bool cached = serverAddressCache.TryGetValue(location, out _);
 
-        Assert.That(resolved.ServiceAddress, Is.Null);
         Assert.That(cached, Is.False);
     }
 
@@ -45,11 +44,8 @@ public class ServerAddressCacheTests
         serverAddressCache.Remove(new Location { IsAdapterId = true, Value = "hello-1" });
 
         // Assert
-        bool cached = serverAddressCache.TryGetValue(
-            new Location { IsAdapterId = true, Value = "hello-1" },
-            out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) resolved);
+        bool cached = serverAddressCache.TryGetValue(new Location { IsAdapterId = true, Value = "hello-1" }, out _);
 
-        Assert.That(resolved.ServiceAddress, Is.Null);
         Assert.That(cached, Is.False);
     }
 
@@ -67,11 +63,8 @@ public class ServerAddressCacheTests
         serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-3" }, expected);
 
         // Assert
-        bool cached = serverAddressCache.TryGetValue(
-            new Location { IsAdapterId = true, Value = "hello-1" },
-            out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) resolved);
+        bool cached = serverAddressCache.TryGetValue(new Location { IsAdapterId = true, Value = "hello-1" }, out _);
 
-        Assert.That(resolved.ServiceAddress, Is.Null);
         Assert.That(cached, Is.False);
     }
 
