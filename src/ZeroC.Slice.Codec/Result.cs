@@ -6,9 +6,9 @@ namespace ZeroC.Slice;
 /// operations.</summary>
 /// <typeparam name="TSuccess">The success type.</typeparam>
 /// <typeparam name="TFailure">The failure type.</typeparam>
-/// <remarks>The Slice Result type (a built-in generic type) maps to this generic union in C#. When the two Slice type
-/// arguments map to the same C# type or when one of them is optional, the Slice compiler wraps them in
-/// <see cref="Success{T}" /> and <see cref="Failure{T}" />.</remarks>
+/// <remarks>The Slice Result type (a built-in generic type) maps to this generic union in C#. The Slice compiler wraps
+/// the type arguments in <see cref="Success{T}" /> and <see cref="Failure{T}" /> when one of them is optional or when
+/// both are the same type.</remarks>
 public readonly union Result<TSuccess, TFailure>(TSuccess, TFailure) : IEquatable<Result<TSuccess, TFailure>>
 {
     /// <inheritdoc/>

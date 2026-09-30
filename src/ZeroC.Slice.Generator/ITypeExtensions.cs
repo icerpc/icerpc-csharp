@@ -123,17 +123,10 @@ internal static class ITypeExtensions
         static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace, string? wrapper)
         {
             IType type = typeRef.Type;
-
-            if (!isOptional && wrapper is null)
-            {
-                return type.GetDecodeLambda(isOptional: false, currentNamespace, withCast: true);
-            }
-
             string csType = type.ToTypeString(currentNamespace);
-            string decodeExpr = type.DecodeExpression(currentNamespace);
             string valueExpr = isOptional ?
-                $"decoder.DecodeBool() ? ({csType}?){decodeExpr} : null" :
-                type is DictionaryType or SequenceType ? $"({csType}){decodeExpr}" : decodeExpr;
+                $"decoder.DecodeBool() ? ({csType}?){type.DecodeExpression(currentNamespace)} : null" :
+                type.GetDecodeExpression(isOptional: false, currentNamespace, withCast: true);
 
             if (wrapper is not null)
             {
@@ -250,6 +243,15 @@ internal static class ITypeExtensions
         this IType type,
         bool isOptional,
         string currentNamespace,
+        bool withCast = false) =>
+        $"(ref SliceDecoder decoder) => {type.GetDecodeExpression(isOptional, currentNamespace, withCast)}";
+
+    /// <summary>Returns the expression that decodes a value of a type from <c>decoder</c>, with the casts described
+    /// in <see cref="GetDecodeLambda"/>.</summary>
+    internal static string GetDecodeExpression(
+        this IType type,
+        bool isOptional,
+        string currentNamespace,
         bool withCast = false)
     {
         string decodeExpr = type.DecodeExpression(currentNamespace);
@@ -260,17 +262,17 @@ internal static class ITypeExtensions
         {
             string csType = type.ToTypeString(currentNamespace);
             string cast = isOptional ? $"({csType}?)" : $"({csType})";
-            return $"(ref SliceDecoder decoder) => {cast}{decodeExpr}";
+            return $"{cast}{decodeExpr}";
         }
 
         // For non-dict/non-seq optional types, add the nullable cast.
         if (isOptional && type is not DictionaryType and not SequenceType)
         {
             string csType = type.ToTypeString(currentNamespace);
-            return $"(ref SliceDecoder decoder) => ({csType}?){decodeExpr}";
+            return $"({csType}?){decodeExpr}";
         }
 
-        return $"(ref SliceDecoder decoder) => {decodeExpr}";
+        return decodeExpr;
     }
 
     /// <summary>Returns an encode lambda for a type.</summary>

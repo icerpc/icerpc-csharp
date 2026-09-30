@@ -10,9 +10,9 @@ internal static class ResultTypeExtensions
     extension(ResultType result)
     {
         /// <summary>Gets a value indicating whether the success and failure values are wrapped in
-        /// <c>ZeroC.Slice.Success&lt;T&gt;</c> and <c>ZeroC.Slice.Failure&lt;T&gt;</c>. The union stores its value as
-        /// an object, so it can't tell the two cases apart when they map to the same C# type or when a null value
-        /// is possible.</summary>
+        /// <c>ZeroC.Slice.Success&lt;T&gt;</c> and <c>ZeroC.Slice.Failure&lt;T&gt;</c>. The union tells its two cases
+        /// apart by their runtime types, so it needs the wrappers when a case is optional (null) or when both cases
+        /// are the same type.</summary>
         internal bool WrapsValues =>
             result.SuccessTypeIsOptional ||
             result.FailureTypeIsOptional ||
