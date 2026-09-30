@@ -50,16 +50,22 @@ internal static class TypeRefExtensions
     }
 
     /// <summary>Returns an encode lambda for an optional type reference that writes a bool null marker before the
-    /// value, for use where the caller has no bit sequence.</summary>
-    internal static string GetEncodeLambdaWithNullMarker(this TypeRef typeRef, string currentNamespace)
+    /// value, for use where the caller has no bit sequence. When <paramref name="wrapper" /> is not null, the lambda
+    /// parameter is this generic type and the lambda encodes the value it holds.</summary>
+    internal static string GetEncodeLambdaWithNullMarker(
+        this TypeRef typeRef,
+        string currentNamespace,
+        string? wrapper = null)
     {
         string csType = typeRef.FieldTypeString(true, currentNamespace);
-        CodeBlock encodeBody = typeRef.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional("value"));
+        string paramType = wrapper is null ? csType : $"{wrapper}<{csType}>";
+        string value = wrapper is null ? "value" : "value.Value";
+        CodeBlock encodeBody = typeRef.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional(value));
         return $$"""
-            (ref SliceEncoder encoder, {{csType}} value) =>
+            (ref SliceEncoder encoder, {{paramType}} value) =>
             {
-                encoder.EncodeBool(value != null);
-                if (value != null)
+                encoder.EncodeBool({{value}} != null);
+                if ({{value}} != null)
                 {
                     {{encodeBody.Indent().Indent()}};
                 }
@@ -155,6 +161,7 @@ internal static class TypeRefExtensions
             Struct => true,
             BasicEnum => true,
             VariantEnum => true,
+            ResultType => true,
             _ => false,
         };
     }

@@ -99,7 +99,7 @@ public partial class OperationTests
         // Arrange
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
-        var arg = new Result<string, int>.Success("hello");
+        Result<string, int> arg = "hello";
 
         // Act
         Result<string, int> r = await proxy.OpWithResultAsync(arg);
@@ -114,7 +114,7 @@ public partial class OperationTests
         // Arrange
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
-        var arg = new Result<string, int>.Failure(123);
+        Result<string, int> arg = 123;
 
         // Act
         Result<string, int> r = await proxy.OpWithResultAsync(arg);

@@ -54,11 +54,13 @@ internal static class ITypeExtensions
             CodeBlock decodeLambda = ResultDecodeLambda(
                 result.SuccessType,
                 result.SuccessTypeIsOptional,
-                currentNamespace);
+                currentNamespace,
+                result.WrapsValues ? "ZeroC.Slice.Success" : null);
             CodeBlock decodeFailureLambda = ResultDecodeLambda(
                 result.FailureType,
                 result.FailureTypeIsOptional,
-                currentNamespace);
+                currentNamespace,
+                result.WrapsValues ? "ZeroC.Slice.Failure" : null);
             return $$"""
                 decoder.DecodeResult(
                     {{decodeLambda.Indent()}},
@@ -116,19 +118,28 @@ internal static class ITypeExtensions
                 """;
         }
 
-        // Returns a decode lambda for a result success/failure type, handling optional inner types
-        // with a one bit bit-sequence.
-        static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace)
+        // Returns a decode lambda for a result success/failure type. An optional type is preceded by a bool null
+        // marker. When wrapper is not null, the lambda wraps the decoded value in this generic type.
+        static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace, string? wrapper)
         {
             IType type = typeRef.Type;
 
-            if (!isOptional)
+            if (!isOptional && wrapper is null)
             {
                 return type.GetDecodeLambda(isOptional: false, currentNamespace, withCast: true);
             }
+
             string csType = type.ToTypeString(currentNamespace);
             string decodeExpr = type.DecodeExpression(currentNamespace);
-            return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}?){decodeExpr} : null";
+            string valueExpr = isOptional ?
+                $"decoder.DecodeBool() ? ({csType}?){decodeExpr} : null" :
+                type is DictionaryType or SequenceType ? $"({csType}){decodeExpr}" : decodeExpr;
+
+            if (wrapper is not null)
+            {
+                valueExpr = $"new {wrapper}<{typeRef.FieldTypeString(isOptional, currentNamespace)}>({valueExpr})";
+            }
+            return $"(ref SliceDecoder decoder) => {valueExpr}";
         }
     }
 
@@ -175,8 +186,16 @@ internal static class ITypeExtensions
             string param,
             string encoderName)
         {
-            CodeBlock encodeLambda = ResultEncodeLambda(result.SuccessType, result.SuccessTypeIsOptional, currentNamespace);
-            CodeBlock encodeFailureLambda = ResultEncodeLambda(result.FailureType, result.FailureTypeIsOptional, currentNamespace);
+            CodeBlock encodeLambda = ResultEncodeLambda(
+                result.SuccessType,
+                result.SuccessTypeIsOptional,
+                currentNamespace,
+                result.WrapsValues ? "ZeroC.Slice.Success" : null);
+            CodeBlock encodeFailureLambda = ResultEncodeLambda(
+                result.FailureType,
+                result.FailureTypeIsOptional,
+                currentNamespace,
+                result.WrapsValues ? "ZeroC.Slice.Failure" : null);
             return $$"""
                 {{encoderName}}.EncodeResult(
                     {{param}},
@@ -206,10 +225,22 @@ internal static class ITypeExtensions
                 """;
         }
 
-        static string ResultEncodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace) =>
-            isOptional
-                ? typeRef.GetEncodeLambdaWithNullMarker(currentNamespace)
-                : typeRef.GetEncodeLambda(isOptional: false, currentNamespace);
+        // Returns an encode lambda for a result success/failure type. An optional type is preceded by a bool null
+        // marker. When wrapper is not null, the lambda encodes the value held by this generic type.
+        static string ResultEncodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace, string? wrapper)
+        {
+            if (isOptional)
+            {
+                return typeRef.GetEncodeLambdaWithNullMarker(currentNamespace, wrapper);
+            }
+            if (wrapper is null)
+            {
+                return typeRef.GetEncodeLambda(isOptional: false, currentNamespace);
+            }
+            string csType = typeRef.FieldTypeString(false, currentNamespace);
+            string encodeExpr = typeRef.EncodeExpression(currentNamespace, "value.Value");
+            return $"(ref SliceEncoder encoder, {wrapper}<{csType}> value) => {encodeExpr}";
+        }
     }
 
     /// <summary>Returns a decode lambda for a type. When <paramref name="withCast"/> is true, a cast to the field
@@ -291,7 +322,9 @@ internal static class ITypeExtensions
         {
             string successType = result.SuccessType.FieldTypeString(result.SuccessTypeIsOptional, currentNamespace);
             string failureType = result.FailureType.FieldTypeString(result.FailureTypeIsOptional, currentNamespace);
-            return $"ZeroC.Slice.Result<{successType}, {failureType}>";
+            return result.WrapsValues ?
+                $"ZeroC.Slice.Result<ZeroC.Slice.Success<{successType}>, ZeroC.Slice.Failure<{failureType}>>" :
+                $"ZeroC.Slice.Result<{successType}, {failureType}>";
         }
 
         static string SequenceToTypeString(SequenceType seq, string currentNamespace)

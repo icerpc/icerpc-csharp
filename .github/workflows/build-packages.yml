@@ -115,7 +115,6 @@ jobs:
         run: |
           $exceptions = @(
             # These upstream binaries are not Authenticode-signed.
-            'tools/Dunet.dll'
             'tools/Google.Protobuf.dll'
             'tools/windows_x64/protoc.exe'
           )

@@ -324,7 +324,7 @@ public class VariantEnumTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var holder = new OptionalColorResultHolder(new Result<string, Color?>.Failure(default(Color)));
+        var holder = new OptionalColorResultHolder(new Failure<Color?>(default(Color)));
 
         // Act/Assert
         Assert.That(

@@ -2,7 +2,6 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace ZeroC.Slice.Codec;
@@ -88,28 +87,27 @@ public static class SliceEncoderExtensions
     /// <param name="v">The result to encode.</param>
     /// <param name="successEncodeAction">The encode action for the success type.</param>
     /// <param name="failureEncodeAction">The encode action for the failure type.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="v" /> is the default value.</exception>
     public static void EncodeResult<TSuccess, TFailure>(
         this ref SliceEncoder encoder,
         Result<TSuccess, TFailure> v,
         EncodeAction<TSuccess> successEncodeAction,
         EncodeAction<TFailure> failureEncodeAction)
     {
-        switch (v)
+        switch (v.Value)
         {
-            case Result<TSuccess, TFailure>.Success success:
+            case TSuccess success:
                 encoder.EncodeVarInt32(0);
-                successEncodeAction(ref encoder, success.Value);
+                successEncodeAction(ref encoder, success);
                 break;
 
-            case Result<TSuccess, TFailure>.Failure failure:
+            case TFailure failure:
                 encoder.EncodeVarInt32(1);
-                failureEncodeAction(ref encoder, failure.Value);
+                failureEncodeAction(ref encoder, failure);
                 break;
 
             default:
-                // Our result type somehow got extended with an additional enumerator.
-                Debug.Fail("Unexpected result type");
-                break;
+                throw new ArgumentException("Cannot encode a default Result.", nameof(v));
         }
     }
 
