@@ -65,7 +65,7 @@ internal static class VariantEnumGenerator
         body.WriteLine(
             $"""
                 case null:
-                    throw new global::System.InvalidOperationException("Cannot encode a default {identifier}.");
+                    throw new global::System.ArgumentException("Cannot encode a default {identifier}.", nameof(value));
             """);
         body.WriteLine("}");
 
@@ -89,6 +89,11 @@ internal static class VariantEnumGenerator
                         "value",
                         null,
                         @$"The <see cref=""{identifier}"" /> variant value to encode.")
+                    .AddComment(
+                        "exception",
+                        "cref",
+                        "global::System.ArgumentException",
+                        @"Thrown when <paramref name=""value"" /> is the default value.")
                     .SetBody(body)
                     .Build())
             .Build();

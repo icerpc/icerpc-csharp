@@ -6,9 +6,7 @@ generated for the Slice type.
 You define a discriminated union in Slice by defining an enum without an underlying type. Each enumerator of such an
 enum can then define 0 or more fields.
 
-The Slice code generator for C# maps such a Slice enum to a C# [union] with a nested record class for each enumerator.
-You process a union value with a switch expression, and the compiler checks that this switch expression handles every
-enumerator.
+The Slice code generator for C# maps such a Slice enum to a C# [union] with a nested record class for each variant.
 
 This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
 steps; see .NET's [QUIC platform dependencies][quic-platform].

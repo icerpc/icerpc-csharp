@@ -17,7 +17,7 @@ internal partial class MathWizard : IAreaCalculatorService
     {
         Console.WriteLine($"Computing area for shape {shape}");
 
-        // The compiler checks that this switch expression handles every shape.
+        // Shape is a checked enum: the decoded shape is always one of these four variants.
         double area = shape switch
         {
             Shape.Square(var side) => side * side,

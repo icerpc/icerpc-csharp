@@ -316,7 +316,7 @@ public class VariantEnumTests
                 var encoder = new SliceEncoder(buffer);
                 encoder.EncodeShape(default);
             },
-            Throws.InvalidOperationException);
+            Throws.ArgumentException);
     }
 
     [Test]
