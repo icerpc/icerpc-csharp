@@ -730,12 +730,21 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new ArgumentException($"Cannot create an {protocol} service address from URI '{uri}'.", nameof(uri));
         }
 
-        // The AbsolutePath is empty for a URI such as "icerpc:?foo=bar"
+        // The AbsolutePath is empty for a URI such as "icerpc:"
         string path = uri.AbsolutePath.Length > 0 ? uri.AbsolutePath : "/";
         string fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "";
 
-        (ImmutableDictionary<string, string> queryParams, string? altServerValue, string? transport) =
-            uri.ParseQuery();
+        ImmutableDictionary<string, string> queryParams;
+        string? altServerValue;
+        string? transport;
+        try
+        {
+            (queryParams, altServerValue, transport) = uri.ParseQuery();
+        }
+        catch (FormatException exception)
+        {
+            throw new ArgumentException($"Cannot parse query of service address URI '{uri}'.", nameof(uri), exception);
+        }
 
         ServerAddress? serverAddress = null;
         ImmutableList<ServerAddress> altServerAddresses = ImmutableList<ServerAddress>.Empty;
@@ -751,7 +760,24 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             Debug.Assert(host.Length > 0); // the IdnHost provided by Uri is never empty
             ushort port = uri.Port == -1 ? protocol.DefaultPort : checked((ushort)uri.Port);
 
-            serverAddress = new ServerAddress(protocol, host, port, transport, queryParams);
+            try
+            {
+                // The init accessors validate transport and queryParams.
+                serverAddress = new ServerAddress(protocol)
+                {
+                    Host = host,
+                    Port = port,
+                    Transport = transport,
+                    Params = queryParams
+                };
+            }
+            catch (ArgumentException exception)
+            {
+                throw new ArgumentException(
+                    $"Invalid server address in service address URI '{uri}'.",
+                    nameof(uri),
+                    exception);
+            }
 
             if (altServerValue is not null)
             {

@@ -56,11 +56,11 @@ public class ServerAddressTests
              4061,
              null,
              new Dictionary<string, string>() { ["foo"] = "bar", ["xyz"] = "true" }),
-            (new Uri("ice://[::0]?xyz=false&xyz=true&foo=&b="),
+            (new Uri("ice://[::0]?xyz=false&foo=&b="),
              "::",
              4061,
              null,
-             new Dictionary<string, string>() { ["xyz"] = "false,true", ["foo"] = "", ["b"] = "" }),
+             new Dictionary<string, string>() { ["xyz"] = "false", ["foo"] = "", ["b"] = "" }),
             (new Uri("ice://host:10000?xyz=foo"),
              "host",
              10000,
@@ -80,12 +80,6 @@ public class ServerAddressTests
              null,
              new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
             (new Uri("IceRpc://host:10000"), "host", 10000, null, null),
-            // parses ok even though not a valid name
-            (new Uri("ice://host:10000? =bar"),
-             "host",
-             10000,
-             null,
-             new Dictionary<string, string>() { ["%20"] = "bar" })
         };
 
     /// <summary>Verifies that a server address can be correctly converted into a string.</summary>
@@ -121,6 +115,17 @@ public class ServerAddressTests
     [TestCase("icerpc://host:10000?alt-server=host2")] // alt-server is service address only
     [TestCase("icerpc://host:10000?=bar")] // empty param name
     [TestCase("icerpc://host:10000?foo=bar")] // icerpc server address parameter
+    [TestCase("icerpc://host:10000?transport=tcp&transport=quic")] // duplicate transport
+    [TestCase("icerpc://host:10000?transport=")] // empty transport name
+    [TestCase("icerpc://host:10000?transport=tcp$foo")] // invalid character in transport name
+    [TestCase("icerpc://host:10000?transport=tcp,quic")] // invalid character in transport name
+    [TestCase("ice://host:10000?foo=bar&foo=baz")] // duplicate parameter
+    [TestCase("ice://host:10000?foo=bar$baz")] // invalid character in parameter value
+    [TestCase("ice://host:10000?foo=bar,baz")] // invalid character in parameter value
+    [TestCase("ice://host:10000?foo$bar=baz")] // invalid character in parameter name
+    [TestCase("ice://host:10000?foo,bar=baz")] // invalid character in parameter name
+    [TestCase("ice://host:10000? =bar")] // invalid character in parameter name
+    [TestCase("ice://host:10000?foo%20bar=baz")] // invalid character in parameter name
     [TestCase("icerpc:///foo")] // path, empty authority
     [TestCase("icerpc:///")] // empty authority
     [TestCase("icerpc://")] // empty authority
@@ -223,7 +228,7 @@ public class ServerAddressTests
     /// <param name="name">The name of the server address parameter to set.</param>
     /// <param name="value">The value of the server address parameter to set.</param>
     [TestCase("name", "value")]
-    [TestCase("name%23[]", "value%25[]@!")]
+    [TestCase("My-name_2.0", "value%25[]@!")]
     public void Setting_the_server_address_params(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("ice://localhost"));
@@ -257,6 +262,12 @@ public class ServerAddressTests
     [TestCase(" name", "value")]
     [TestCase("name", "valu#e")] // cSpell:disable-line
     [TestCase("name", "valu&e")] // cSpell:disable-line
+    [TestCase("name", "valu$e")] // cSpell:disable-line
+    [TestCase("name", "valu,e")] // cSpell:disable-line
+    [TestCase("na$me", "value")]
+    [TestCase("na,me", "value")]
+    [TestCase("name%23", "value")]
+    [TestCase("name[]", "value")]
     public void Setting_invalid_server_address_params_fails(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("ice://localhost"));
@@ -264,6 +275,37 @@ public class ServerAddressTests
         Assert.Throws<ArgumentException>(() => _ = serverAddress with { Params = serverAddress.Params.Add(name, value) });
 
         Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
+    }
+
+    /// <summary>Verifies that setting the transport works with a valid transport name.</summary>
+    /// <param name="transport">The transport name.</param>
+    [TestCase("tcp")]
+    [TestCase("My-transport_2.0")]
+    public void Setting_the_server_address_transport(string transport)
+    {
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
+
+        serverAddress = serverAddress with { Transport = transport };
+
+        Assert.That(serverAddress.Transport, Is.EqualTo(transport));
+    }
+
+    /// <summary>Verifies that trying to set the <see cref="ServerAddress.Transport" /> to an invalid transport name
+    /// throws <see cref="ArgumentException" /> and the <see cref="ServerAddress.Transport" /> property remains
+    /// unchanged.</summary>
+    /// <param name="transport">The invalid transport name.</param>
+    [TestCase("")]
+    [TestCase("tcp$foo")]
+    [TestCase("tcp,quic")]
+    [TestCase("tcp%20")]
+    [TestCase("tcp=")]
+    public void Setting_invalid_server_address_transport_fails(string transport)
+    {
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
+
+        Assert.Throws<ArgumentException>(() => _ = serverAddress with { Transport = transport });
+
+        Assert.That(serverAddress.Transport, Is.Null);
     }
 
     /// <summary>Verifies that an icerpc server address cannot have parameters.</summary>
@@ -278,11 +320,9 @@ public class ServerAddressTests
     }
 
     [TestCase("ice://127.0.0.1?transport=foo&p=v&p1=v1", "ice://127.0.0.1:4061?p1=v1&transport=foo&p=v")]
-    [TestCase("ice://127.0.0.1?transport=foo&p=v1&p=v2&p=v3", "ice://127.0.0.1:4061?p=v1,v2,v3&transport=foo")]
     public void Server_address_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
 
     [TestCase("icerpc://127.0.0.1", "icerpc://localhost")]
     [TestCase("ice://127.0.0.1?transport=foo&p=v", "ice://127.0.0.1?transport=foo&p=v1")]
-    [TestCase("ice://127.0.0.1?p=v1&p=v2", "ice://127.0.0.1?p=v2&p=v1")]
     public void Server_address_not_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.Not.EqualTo(rhs));
 }

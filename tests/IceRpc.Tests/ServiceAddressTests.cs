@@ -193,6 +193,15 @@ public class ServiceAddressTests
             "icerpc://user@host/path",      // bad user info
             "icerpc:/path?foo=bar",         // icerpc service address parameter
             "icerpc://host/path?foo=bar",   // icerpc server address parameter
+            "icerpc://host/path?transport=tcp&transport=quic", // duplicate transport
+            "icerpc://host/path?transport=tcp$foo", // invalid character in transport name
+            "icerpc://host/path?transport=tcp,quic", // invalid character in transport name
+            "ice://host/path?foo=bar&foo=baz", // duplicate server address parameter
+            "ice://host/path?foo=bar$baz",  // invalid character in server address parameter value
+            "ice://host/path?foo=bar,baz",  // invalid character in server address parameter value
+            "ice://host/path?foo$bar=baz",  // invalid character in server address parameter name
+            "ice://host/path?=bar",         // empty parameter name
+            "ice:/path?adapter-id=foo&adapter-id=bar", // duplicate adapter-id
             "ice://host/s1/s2/s3",          // too many slashes in path
             "ice:/path?alt-server=foo",     // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
@@ -206,6 +215,8 @@ public class ServiceAddressTests
         new (string, string, string)[]
         {
             /* spellchecker:disable */
+            ("icerpc:", "/", ""),
+            ("ice:", "/", ""),
             ("ice://host.zeroc.com/identity#facet", "/identity", "facet"),
             ("ice://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x"),
             ("ice://host.zeroc.com/identity#", "/identity", ""),
@@ -225,6 +236,7 @@ public class ServiceAddressTests
             ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com", "//identity", ""),
             ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com:10000", "//identity", ""),
             ("icerpc://[::1]:10000/identity?alt-server=host1:10000,host2,host3,host4", "/identity", ""),
+            ("ice://host1/identity?transport=tcp&t=30000&alt-server=host2?transport=ssl$t=60000$z,host3?z", "/identity", ""),
             ("icerpc://[::1]:10000/identity?alt-server=host1:10000&alt-server=host2,host3&alt-server=[::2]",
              "/identity",
              ""),
