@@ -65,7 +65,7 @@ public class LocatorInterceptor : IInvoker
 
             if (location != default)
             {
-                (ServiceAddress? serviceAddress, bool fromCache) = await _locationResolver.ResolveAsync(
+                (ServiceAddress.Ice? serviceAddress, bool fromCache) = await _locationResolver.ResolveAsync(
                     location,
                     refreshCache,
                     cancellationToken).ConfigureAwait(false);
@@ -89,13 +89,13 @@ public class LocatorInterceptor : IInvoker
                 {
                     // A well behaved location resolver should never return a non-null service address with a null
                     // serverAddress.
-                    Debug.Assert(serviceAddress.Value.ServerAddress is not null);
+                    Debug.Assert(serviceAddress.ServerAddress is not null);
 
                     // Before assigning the new resolved server addresses to the server address feature we have to
                     // remove any server addresses that are included in the list of removed server addresses, to
                     // avoid retrying with a server address that has been already excluded for the invocation.
                     (ServerAddress? serverAddress, ImmutableList<ServerAddress> altServerAddresses) =
-                        ComputeServerAddresses(serviceAddress.Value, serverAddressFeature.RemovedServerAddresses);
+                        ComputeServerAddresses(serviceAddress, serverAddressFeature.RemovedServerAddresses);
                     serverAddressFeature.ServerAddress = serverAddress;
                     serverAddressFeature.AltServerAddresses = altServerAddresses;
                 }
@@ -105,7 +105,7 @@ public class LocatorInterceptor : IInvoker
         return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
         static (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) ComputeServerAddresses(
-            ServiceAddress serviceAddress,
+            ServiceAddress.Ice serviceAddress,
             IEnumerable<ServerAddress> excludedAddresses)
         {
             // Use the ServerAddressComparer.OptionalTransport comparer so the filter matches the connection layer's
@@ -159,23 +159,25 @@ public readonly record struct Location
     public override string ToString() => Value;
 }
 
-/// <summary>A location resolver resolves a location into one or more server addresses carried by a dummy service
+/// <summary>A location resolver resolves a location into one or more server addresses carried by a dummy ice service
 /// address, and optionally maintains a cache for these resolutions. It's the "brain" of
 /// <see cref="LocatorInterceptor" />. The same location resolver can be shared by multiple locator interceptors.
 /// </summary>
 public interface ILocationResolver
 {
-    /// <summary>Resolves a location into one or more server addresses carried by a dummy service address.</summary>
+    /// <summary>Resolves a location into one or more server addresses carried by a dummy ice service address.
+    /// </summary>
     /// <param name="location">The location to resolve.</param>
     /// <param name="refreshCache">When <see langword="true" />, requests a cache refresh.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
-    /// that indicates whether the resolution was served from the implementation's cache: <see langword="true" /> when
-    /// the location lookup — or, for a well-known service address carrying an adapter ID, the recursive adapter ID
-    /// lookup — was served from the cache, in which case requesting a cache refresh on a retry can produce a different
-    /// resolution. ServiceAddress is <see langword="null" /> when the location resolver fails to resolve a location.
-    /// When ServiceAddress is not null, its ServerAddress is not <see langword="null" />.</returns>
-    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+    /// <returns>A tuple with a nullable dummy ice service address that holds the server addresses (if resolved), and a
+    /// bool that indicates whether the resolution was served from the implementation's cache:
+    /// <see langword="true" /> when the location lookup — or, for a well-known service address carrying an adapter ID,
+    /// the recursive adapter ID lookup — was served from the cache, in which case requesting a cache refresh on a retry
+    /// can produce a different resolution. ServiceAddress is <see langword="null" /> when the location resolver fails
+    /// to resolve a location. When ServiceAddress is not null, its ServerAddress is not <see langword="null" />.
+    /// </returns>
+    ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken);
@@ -236,7 +238,7 @@ public class LocatorLocationResolver : ILocationResolver
     }
 
     /// <inheritdoc/>
-    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+    public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken) =>

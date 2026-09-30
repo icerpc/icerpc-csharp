@@ -19,7 +19,7 @@ public class LocatorInterceptorTests
 
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/path"));
+        var serviceAddress = new ServiceAddress.Ice(new Uri("ice://localhost:10000/path"));
         using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
@@ -34,7 +34,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
+        var expected = new ServiceAddress.Ice(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         ServiceAddress serviceAddress = new ServiceAddress.Ice { AdapterId = "foo" };
@@ -54,7 +54,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
+        var expected = new ServiceAddress.Ice(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         ServiceAddress serviceAddress = new ServiceAddress.Ice { Path = "/foo" };
@@ -98,7 +98,7 @@ public class LocatorInterceptorTests
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
-        var resolved = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
+        var resolved = new ServiceAddress.Ice(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(resolved, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         ServiceAddress serviceAddress = new ServiceAddress.Ice { Path = "/foo" };
@@ -145,7 +145,7 @@ public class LocatorInterceptorTests
     {
         public bool Called { get; set; }
 
-        public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+        public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
             CancellationToken cancellationToken)
@@ -158,16 +158,16 @@ public class LocatorInterceptorTests
     // A mock location resolver that remember if it was called
     private sealed class MockLocationResolver : ILocationResolver
     {
-        private readonly ServiceAddress? _serviceAddress;
+        private readonly ServiceAddress.Ice _serviceAddress;
         private readonly bool _adapterId;
 
-        public MockLocationResolver(ServiceAddress serviceAddress, bool adapterId)
+        public MockLocationResolver(ServiceAddress.Ice serviceAddress, bool adapterId)
         {
             _serviceAddress = serviceAddress;
             _adapterId = adapterId;
         }
 
-        public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+        public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
             CancellationToken cancellationToken) => new((_adapterId == location.IsAdapterId ? _serviceAddress : null, false));
@@ -180,9 +180,9 @@ public class LocatorInterceptorTests
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
 
-        private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
+        private readonly ServiceAddress.Ice _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
 
-        public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+        public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
             CancellationToken cancellationToken)
@@ -199,9 +199,9 @@ public class LocatorInterceptorTests
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
 
-        private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
+        private readonly ServiceAddress.Ice _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
 
-        public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+        public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
             CancellationToken cancellationToken)

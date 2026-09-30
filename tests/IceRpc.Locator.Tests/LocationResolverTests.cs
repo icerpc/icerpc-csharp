@@ -15,7 +15,7 @@ public class LocationResolverTests
         int refreshThreshold,
         int cacheEntryAge)
     {
-        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/cached"));
+        var cachedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/cached"));
         var serverAddressFinder = new MockServerAddressFinder();
         var resolver = new LocationResolver(
                 serverAddressFinder,
@@ -25,7 +25,7 @@ public class LocationResolverTests
                 ttl: Timeout.InfiniteTimeSpan,
                 NullLogger.Instance);
 
-        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
+        (ServiceAddress.Ice? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
 
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(0));
         Assert.That(resolved, Is.EqualTo(cachedServiceAddress));
@@ -38,8 +38,8 @@ public class LocationResolverTests
         int refreshThreshold,
         int cacheEntryAge)
     {
-        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/cached"));
-        var resolvedServiceAddress = new ServiceAddress(new Uri("ice://localhost/resolved"));
+        var cachedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/cached"));
+        var resolvedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/resolved"));
         var serverAddressFinder = new MockServerAddressFinder(resolvedServiceAddress);
         var resolver = new LocationResolver(
                 serverAddressFinder,
@@ -49,7 +49,7 @@ public class LocationResolverTests
                 ttl: Timeout.InfiniteTimeSpan,
                 NullLogger.Instance);
 
-        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
+        (ServiceAddress.Ice? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
 
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(1));
         Assert.That(resolved, Is.EqualTo(resolvedServiceAddress));
@@ -59,8 +59,8 @@ public class LocationResolverTests
     [NonParallelizable]
     public async Task ServerAddress_finder_called_on_background()
     {
-        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/stale"));
-        var resolvedServiceAddress = new ServiceAddress(new Uri("ice://localhost/resolved"));
+        var cachedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/stale"));
+        var resolvedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/resolved"));
         var serverAddressFinder = new MockServerAddressFinder(resolvedServiceAddress);
         var resolver = new LocationResolver(
                 serverAddressFinder,
@@ -70,7 +70,8 @@ public class LocationResolverTests
                 ttl: TimeSpan.FromSeconds(30),
                 NullLogger.Instance);
 
-        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(default, refreshCache: false, default);
+        (ServiceAddress.Ice? resolved, bool fromCache) =
+            await resolver.ResolveAsync(default, refreshCache: false, default);
 
         Assert.That(fromCache, Is.True);
         Assert.That(resolved, Is.EqualTo(cachedServiceAddress));
@@ -80,8 +81,8 @@ public class LocationResolverTests
     [Test]
     public async Task Location_recursive_resolution()
     {
-        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/foo?adapter-id=bar"));
-        var adapterIdServiceAddress = new ServiceAddress(new Uri("ice://localhost/resolved"));
+        var wellKnownServiceAddress = new ServiceAddress.Ice(new Uri("ice:/foo?adapter-id=bar"));
+        var adapterIdServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/resolved"));
         var serverAddressFinder = new MockServerAddressFinder(wellKnownServiceAddress, adapterIdServiceAddress);
         var resolver = new LocationResolver(
                 serverAddressFinder,
@@ -91,7 +92,7 @@ public class LocationResolverTests
                 ttl: TimeSpan.FromSeconds(30),
                 NullLogger.Instance);
 
-        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
+        (ServiceAddress.Ice? resolved, bool fromCache) = await resolver.ResolveAsync(
             new Location
             {
                 Value = "/hello",
@@ -111,8 +112,8 @@ public class LocationResolverTests
     [NonParallelizable]
     public async Task Location_recursive_resolution_with_cached_adapter_id_is_from_cache()
     {
-        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/hello?adapter-id=bar"));
-        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/hello"));
+        var wellKnownServiceAddress = new ServiceAddress.Ice(new Uri("ice:/hello?adapter-id=bar"));
+        var cachedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/hello"));
         var serverAddressFinder = new MockServerAddressFinder(wellKnownServiceAddress);
         var resolver = new LocationResolver(
                 serverAddressFinder,
@@ -124,7 +125,7 @@ public class LocationResolverTests
                 ttl: TimeSpan.FromSeconds(30),
                 NullLogger.Instance);
 
-        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
+        (ServiceAddress.Ice? resolved, bool fromCache) = await resolver.ResolveAsync(
             new Location
             {
                 Value = "/hello",
@@ -141,7 +142,7 @@ public class LocationResolverTests
     [Test]
     public async Task Failure_to_recursively_resolve_adapter_id_removes_proxy_from_cache()
     {
-        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/foo?adapter-id=bar"));
+        var wellKnownServiceAddress = new ServiceAddress.Ice(new Uri("ice:/foo?adapter-id=bar"));
         var serverAddressFinder = new MockServerAddressFinder(wellKnownServiceAddress);
         var serverAddressCache = new MockServerAddressCache(wellKnownServiceAddress);
         var resolver = new LocationResolver(
@@ -157,7 +158,7 @@ public class LocationResolverTests
             IsAdapterId = false,
         };
 
-        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
+        (ServiceAddress.Ice? resolved, bool fromCache) = await resolver.ResolveAsync(
             location,
             refreshCache: false,
             default);
@@ -172,18 +173,18 @@ public class LocationResolverTests
     {
         public int Calls { get; private set; }
 
-        private readonly ServiceAddress? _adapterIdServiceAddress;
-        private readonly ServiceAddress? _wellKnownServiceAddress;
+        private readonly ServiceAddress.Ice? _adapterIdServiceAddress;
+        private readonly ServiceAddress.Ice? _wellKnownServiceAddress;
 
         internal MockServerAddressFinder(
-            ServiceAddress? wellKnownServiceAddress = null,
-            ServiceAddress? adapterIdServiceAddress = null)
+            ServiceAddress.Ice? wellKnownServiceAddress = null,
+            ServiceAddress.Ice? adapterIdServiceAddress = null)
         {
             _wellKnownServiceAddress = wellKnownServiceAddress;
             _adapterIdServiceAddress = adapterIdServiceAddress;
         }
 
-        public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
+        public Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken)
         {
             Calls++;
             return Task.FromResult(location.IsAdapterId ? _adapterIdServiceAddress : _wellKnownServiceAddress);
@@ -195,12 +196,12 @@ public class LocationResolverTests
         public List<Location> Removed { get; } = new List<Location>();
 
         private readonly TimeSpan _insertionTime;
-        private readonly ServiceAddress? _adapterIdServiceAddress;
-        private readonly ServiceAddress? _wellKnownServiceAddress;
+        private readonly ServiceAddress.Ice? _adapterIdServiceAddress;
+        private readonly ServiceAddress.Ice? _wellKnownServiceAddress;
 
         internal MockServerAddressCache(
-            ServiceAddress? wellKnownServiceAddress = null,
-            ServiceAddress? adapterIdServiceAddress = null,
+            ServiceAddress.Ice? wellKnownServiceAddress = null,
+            ServiceAddress.Ice? adapterIdServiceAddress = null,
             TimeSpan? insertionTime = null)
         {
             _wellKnownServiceAddress = wellKnownServiceAddress;
@@ -210,9 +211,11 @@ public class LocationResolverTests
 
         public void Remove(Location location) => Removed.Add(location);
 
-        public void Set(Location location, ServiceAddress serviceAddress) => throw new NotImplementedException();
+        public void Set(Location location, ServiceAddress.Ice serviceAddress) => throw new NotImplementedException();
 
-        public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
+        public bool TryGetValue(
+            Location location,
+            out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) value)
         {
             if ((location.IsAdapterId && _adapterIdServiceAddress is null) ||
                 (!location.IsAdapterId && _wellKnownServiceAddress is null))
@@ -223,7 +226,7 @@ public class LocationResolverTests
             else
             {
                 value = (TimeSpan.FromMilliseconds(Environment.TickCount64) - _insertionTime,
-                         location.IsAdapterId ? _adapterIdServiceAddress!.Value : _wellKnownServiceAddress!.Value);
+                         location.IsAdapterId ? _adapterIdServiceAddress! : _wellKnownServiceAddress!);
                 return true;
             }
         }
