@@ -20,7 +20,7 @@ internal static partial class ServerAddressCacheLoggerExtensions
         this ILogger logger,
         string locationKind,
         Location location,
-        ServiceAddress serviceAddress);
+        ServiceAddress.Ice serviceAddress);
 
     [LoggerMessage(
         EventId = (int)LocationEventId.SetEntry,
@@ -31,7 +31,7 @@ internal static partial class ServerAddressCacheLoggerExtensions
         this ILogger logger,
         string locationKind,
         Location location,
-        ServiceAddress serviceAddress);
+        ServiceAddress.Ice serviceAddress);
 
     [LoggerMessage(
         EventId = (int)LocationEventId.RemovedEntry,
@@ -51,15 +51,15 @@ internal interface IServerAddressCache
 {
     void Remove(Location location);
 
-    void Set(Location location, ServiceAddress serviceAddress);
+    void Set(Location location, ServiceAddress.Ice serviceAddress);
 
-    bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value);
+    bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) value);
 }
 
 /// <summary>The main implementation for <see cref="IServerAddressCache" />.</summary>
 internal sealed class ServerAddressCache : IServerAddressCache
 {
-    private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node)> _cache;
+    private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress, LinkedListNode<Location> Node)> _cache;
 
     // The keys in _cache. The first entries correspond to the most recently added cache entries.
     private readonly LinkedList<Location> _cacheKeys = new();
@@ -75,14 +75,14 @@ internal sealed class ServerAddressCache : IServerAddressCache
         {
             if (_cache.TryRemove(
                 location,
-                out (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node) entry))
+                out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress, LinkedListNode<Location> Node) entry))
             {
                 _cacheKeys.Remove(entry.Node);
             }
         }
     }
 
-    public void Set(Location location, ServiceAddress serviceAddress)
+    public void Set(Location location, ServiceAddress.Ice serviceAddress)
     {
         lock (_mutex)
         {
@@ -101,13 +101,13 @@ internal sealed class ServerAddressCache : IServerAddressCache
         }
     }
 
-    public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
+    public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) value)
     {
         // no mutex lock: _cache is a concurrent dictionary and it's ok if it's updated while we read it
 
         if (_cache.TryGetValue(
             location,
-            out (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node) entry))
+            out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress, LinkedListNode<Location> Node) entry))
         {
             value.InsertionTime = entry.InsertionTime;
             value.ServiceAddress = entry.ServiceAddress;
@@ -140,7 +140,7 @@ internal class LogServerAddressCacheDecorator : IServerAddressCache
         _logger.LogRemovedEntry(location.Kind, location);
     }
 
-    public void Set(Location location, ServiceAddress serviceAddress)
+    public void Set(Location location, ServiceAddress.Ice serviceAddress)
     {
         _decoratee.Set(location, serviceAddress);
         _logger.LogSetEntry(location.Kind, location, serviceAddress);
@@ -148,7 +148,7 @@ internal class LogServerAddressCacheDecorator : IServerAddressCache
 
     public bool TryGetValue(
         Location location,
-        out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
+        out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) value)
     {
         if (_decoratee.TryGetValue(location, out value))
         {

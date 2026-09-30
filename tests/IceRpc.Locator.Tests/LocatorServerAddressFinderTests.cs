@@ -12,12 +12,12 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_adapter_by_id()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
-        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+        ServiceAddress.Ice? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
         Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress));
     }
@@ -27,12 +27,12 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_adapter_by_id_not_found()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "bad" };
 
-        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+        ServiceAddress.Ice? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
         Assert.That(serviceAddress, Is.Null);
     }
@@ -45,7 +45,7 @@ public class LocatorServerAddressFinderTests
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new NotFoundLocator());
         var location = new Location { IsAdapterId = true, Value = "good" };
 
-        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+        ServiceAddress.Ice? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
         Assert.That(serviceAddress, Is.Null);
     }
@@ -55,7 +55,7 @@ public class LocatorServerAddressFinderTests
     public void Find_adapter_by_id_returning_a_proxy_without_server_address_fails()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
-            new FakeLocator(new ServiceAddress(new Uri("ice:/dummy")), adapterId: true));
+            new FakeLocator(new ServiceAddress.Ice(new Uri("ice:/dummy")), adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
         Assert.That(
@@ -67,11 +67,11 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_object_by_id()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
-        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+        ServiceAddress.Ice? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
         Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress));
     }
@@ -81,12 +81,12 @@ public class LocatorServerAddressFinderTests
     [Test]
     public async Task Find_object_by_id_not_found()
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/bad" };
 
-        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+        ServiceAddress.Ice? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
         Assert.That(serviceAddress, Is.Null);
     }
@@ -99,7 +99,7 @@ public class LocatorServerAddressFinderTests
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new NotFoundLocator());
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
-        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+        ServiceAddress.Ice? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
         Assert.That(serviceAddress, Is.Null);
     }
@@ -109,7 +109,7 @@ public class LocatorServerAddressFinderTests
     public void Find_object_by_id_returning_proxy_without_server_address_fails()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
-            new FakeLocator(new ServiceAddress(new Uri("ice:/dummy")), adapterId: false));
+            new FakeLocator(new ServiceAddress.Ice(new Uri("ice:/dummy")), adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
         Assert.That(
@@ -137,7 +137,7 @@ public class LocatorServerAddressFinderTests
     {
         var serverAddressCache = new ServerAddressCache();
         var location = new Location { IsAdapterId = false, Value = "/good" };
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(
             new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: false)),
             serverAddressCache);
@@ -156,7 +156,7 @@ public class LocatorServerAddressFinderTests
     {
         var serverAddressCache = new ServerAddressCache();
         var location = new Location { IsAdapterId = false, Value = "/good" };
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        var expectedServiceAddress = new ServiceAddress.Ice(new Uri("ice://localhost/dummy:10000"));
         serverAddressCache.Cache[location] = expectedServiceAddress;
 
         IServerAddressFinder serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(
@@ -186,9 +186,9 @@ public class LocatorServerAddressFinderTests
 
         // Act
         blockingServerAddressFinder.Release(1);
-        ServiceAddress? p1 = await t1;
-        ServiceAddress? p2 = await t2;
-        ServiceAddress? p3 = await t3;
+        ServiceAddress.Ice? p1 = await t1;
+        ServiceAddress.Ice? p2 = await t2;
+        ServiceAddress.Ice? p3 = await t3;
 
         // Assert
         Assert.That(blockingServerAddressFinder.Count, Is.EqualTo(1));
@@ -209,8 +209,8 @@ public class LocatorServerAddressFinderTests
         var location = new Location { IsAdapterId = false, Value = "/good" };
 
         using var cts1 = new CancellationTokenSource();
-        Task<ServiceAddress?> t1 = serverAddressFinder.FindAsync(location, cts1.Token);
-        Task<ServiceAddress?> t2 = serverAddressFinder.FindAsync(location, default);
+        Task<ServiceAddress.Ice?> t1 = serverAddressFinder.FindAsync(location, cts1.Token);
+        Task<ServiceAddress.Ice?> t2 = serverAddressFinder.FindAsync(location, default);
 
         // Act: cancel the first caller; the shared lookup must keep running for the second caller.
         cts1.Cancel();
@@ -219,7 +219,7 @@ public class LocatorServerAddressFinderTests
         blockingServerAddressFinder.Release(1);
 
         // Assert: the second caller still resolves successfully.
-        ServiceAddress? p2 = await t2;
+        ServiceAddress.Ice? p2 = await t2;
         Assert.That(p2, Is.Not.Null);
         Assert.That(blockingServerAddressFinder.Count, Is.EqualTo(1));
     }
@@ -249,12 +249,12 @@ public class LocatorServerAddressFinderTests
 
         void IDisposable.Dispose() => _semaphore.Dispose();
 
-        async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken)
+        async Task<ServiceAddress.Ice?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken)
         {
             await _semaphore.WaitAsync(cancellationToken);
             Interlocked.Increment(ref Count);
 
-            return new ServiceAddress(new Uri("ice://localhost:10000/dummy?transport=unknown"));
+            return new ServiceAddress.Ice(new Uri("ice://localhost:10000/dummy?transport=unknown"));
         }
 
         internal void Release(int count) => _semaphore.Release(count);
@@ -262,13 +262,15 @@ public class LocatorServerAddressFinderTests
 
     private sealed class ServerAddressCache : IServerAddressCache
     {
-        public Dictionary<Location, ServiceAddress> Cache { get; } = new();
+        public Dictionary<Location, ServiceAddress.Ice> Cache { get; } = new();
 
         public void Remove(Location location) => Cache.Remove(location);
 
-        public void Set(Location location, ServiceAddress serviceAddress) => Cache[location] = serviceAddress;
+        public void Set(Location location, ServiceAddress.Ice serviceAddress) => Cache[location] = serviceAddress;
 
-        public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value) =>
+        public bool TryGetValue(
+            Location location,
+            out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) value) =>
             throw new NotImplementedException();
     }
 }

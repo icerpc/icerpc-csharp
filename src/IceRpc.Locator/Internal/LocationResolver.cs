@@ -17,7 +17,7 @@ internal static partial class LocatorLoggerExtensions
         this ILogger logger,
         string locationKind,
         Location location,
-        ServiceAddress serviceAddress);
+        ServiceAddress.Ice serviceAddress);
 
     [LoggerMessage(
         EventId = (int)LocationEventId.FailedToResolve,
@@ -50,23 +50,23 @@ internal class CacheLessLocationResolver : ILocationResolver
     internal CacheLessLocationResolver(IServerAddressFinder serverAddressFinder) =>
         _serverAddressFinder = serverAddressFinder;
 
-    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+    public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken) => ResolveAsync(location, cancellationToken);
 
-    private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+    private async ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = await _serverAddressFinder.FindAsync(location, cancellationToken)
+        ServiceAddress.Ice? serviceAddress = await _serverAddressFinder.FindAsync(location, cancellationToken)
             .ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
-        if (serviceAddress is ServiceAddress.Ice { AdapterId: not "" } iceServiceAddress)
+        if (serviceAddress?.AdapterId is { Length: > 0 } adapterId)
         {
             (serviceAddress, _) = await ResolveAsync(
-                new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId },
+                new Location { IsAdapterId = true, Value = adapterId },
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -101,22 +101,24 @@ internal class LocationResolver : ILocationResolver
         _logger = logger;
     }
 
-    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+    public ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken) => PerformResolveAsync(location, refreshCache, cancellationToken);
 
-    private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> PerformResolveAsync(
+    private async ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> PerformResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = null;
+        ServiceAddress.Ice? serviceAddress = null;
         bool expired = false;
         bool justRefreshed = false;
         bool resolved = false;
 
-        if (_serverAddressCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) entry))
+        if (_serverAddressCache.TryGetValue(
+            location,
+            out (TimeSpan InsertionTime, ServiceAddress.Ice ServiceAddress) entry))
         {
             serviceAddress = entry.ServiceAddress;
             TimeSpan cacheEntryAge = TimeSpan.FromMilliseconds(Environment.TickCount64) - entry.InsertionTime;
@@ -138,14 +140,14 @@ internal class LocationResolver : ILocationResolver
         bool adapterIdFromCache = false;
 
         // A well-known service address resolution can return a service address with an adapter-id.
-        if (serviceAddress is ServiceAddress.Ice { AdapterId: not "" } iceServiceAddress)
+        if (serviceAddress?.AdapterId is { Length: > 0 } adapterId)
         {
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                 // service address, we request a cache refresh for the adapter ID.
                 (serviceAddress, adapterIdFromCache) = await PerformResolveAsync(
-                    new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId },
+                    new Location { IsAdapterId = true, Value = adapterId },
                     refreshCache || resolved,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -189,18 +191,18 @@ internal class LogLocationResolverDecorator : ILocationResolver
     private readonly ILocationResolver _decoratee;
     private readonly ILogger _logger;
 
-    public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
+    public async ValueTask<(ServiceAddress.Ice? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken)
     {
         try
         {
-            (ServiceAddress? serviceAddress, bool fromCache) =
+            (ServiceAddress.Ice? serviceAddress, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
             if (serviceAddress is not null)
             {
-                _logger.LogResolved(location.Kind, location, serviceAddress.Value);
+                _logger.LogResolved(location.Kind, location, serviceAddress);
             }
             else
             {

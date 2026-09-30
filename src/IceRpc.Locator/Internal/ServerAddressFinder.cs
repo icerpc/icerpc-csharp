@@ -28,7 +28,7 @@ internal static partial class ServerAddressFinderLoggerExtensions
         this ILogger logger,
         string locationKind,
         Location location,
-        ServiceAddress serviceAddress);
+        ServiceAddress.Ice serviceAddress);
 }
 
 /// <summary>A server address finder finds the server address(es) of a location. These server address(es) are carried by
@@ -37,7 +37,7 @@ internal static partial class ServerAddressFinderLoggerExtensions
 /// cache-related parameters and typically does not maintain a cache.</summary>
 internal interface IServerAddressFinder
 {
-    Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken);
+    Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken);
 }
 
 /// <summary>The main implementation of IServerAddressFinder. It uses an <see cref="ILocator"/> to "find" the server
@@ -46,7 +46,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
 {
     private readonly ILocator _locator;
 
-    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
+    public async Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken)
     {
         if (location.IsAdapterId)
         {
@@ -58,8 +58,8 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
-                    return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } ?
-                        serviceAddress :
+                    return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } iceServiceAddress ?
+                        iceServiceAddress :
                         throw new InvalidDataException(
                             $"The locator returned invalid proxy '{proxy}' when looking up an adapter by ID.");
                 }
@@ -85,9 +85,9 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
                     // findObjectById can return an indirect service address with an adapter ID
-                    return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } or
-                        ServiceAddress.Ice { AdapterId: not "" } ?
-                            serviceAddress :
+                    return serviceAddress is ServiceAddress.Ice iceServiceAddress &&
+                        (iceServiceAddress.ServerAddress is not null || iceServiceAddress.AdapterId.Length > 0) ?
+                            iceServiceAddress :
                             throw new InvalidDataException(
                                 $"The locator returned invalid proxy '{proxy}' when looking up an object by ID.");
                 }
@@ -113,14 +113,15 @@ internal class LogServerAddressFinderDecorator : IServerAddressFinder
     private readonly IServerAddressFinder _decoratee;
     private readonly ILogger _logger;
 
-    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
+    public async Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken)
     {
         // We don't log any exceptions here because we expect another decorator further up in chain to log these
         // exceptions.
-        ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
+        ServiceAddress.Ice? serviceAddress =
+            await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
         if (serviceAddress is not null)
         {
-            _logger.LogFound(location.Kind, location, serviceAddress.Value);
+            _logger.LogFound(location.Kind, location, serviceAddress);
         }
         else
         {
@@ -143,13 +144,14 @@ internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
     private readonly IServerAddressFinder _decoratee;
     private readonly IServerAddressCache _serverAddressCache;
 
-    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
+    public async Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
+        ServiceAddress.Ice? serviceAddress =
+            await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
 
         if (serviceAddress is not null)
         {
-            _serverAddressCache.Set(location, serviceAddress.Value);
+            _serverAddressCache.Set(location, serviceAddress);
         }
         else
         {
@@ -173,12 +175,12 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
 {
     private readonly IServerAddressFinder _decoratee;
     private readonly Lock _mutex = new();
-    private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
+    private readonly Dictionary<Location, Task<ServiceAddress.Ice?>> _requests = new();
     private readonly TimeSpan _resolveTimeout;
 
-    public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
+    public Task<ServiceAddress.Ice?> FindAsync(Location location, CancellationToken cancellationToken)
     {
-        Task<ServiceAddress?>? task;
+        Task<ServiceAddress.Ice?>? task;
 
         lock (_mutex)
         {
@@ -204,7 +206,7 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
         // The shared task uses an internal CTS bounded by _resolveTimeout — never the caller's token. Otherwise
         // the first caller's cancellation would fault the shared task and propagate to every joined waiter.
         // Per-caller cancellation is handled by task.WaitAsync above.
-        async Task<ServiceAddress?> PerformFindAsync()
+        async Task<ServiceAddress.Ice?> PerformFindAsync()
         {
             using var cts = new CancellationTokenSource(_resolveTimeout);
             try
