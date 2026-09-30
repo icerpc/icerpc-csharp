@@ -72,3 +72,15 @@ enum VariantFieldKinds {
     IntSequence(values: Sequence<int32>)
     StringDictionary(entries: Dictionary<int32, string>)
 }
+
+// Exercises variant enums as field types: plain, optional, tagged, and as optional sequence elements.
+struct VariantEnumHolder {
+    shape: Shape
+    optionalShape: Shape?
+    colors: Sequence<Color?>
+    tag(1) taggedShape: Shape?
+}
+
+struct OptionalColorResultHolder {
+    value: Result<string, Color?>
+}

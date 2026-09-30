@@ -21,12 +21,14 @@ foreach (string name in names)
 {
     Result<string, GreeterError> result = await greeter.GreetAsync(name);
 
-    // Use the Dunet-generated MatchXxx methods to process the result and the GreeterError.
+    // Use the Dunet-generated Match method to process the result, and a switch expression to process the GreeterError.
     string message = result.Match(
         success => success.Value,
-        failure => failure.Value.MatchAway(
-            away => $"Away until {away.Until.ToLocalTime()}",
-            () => $"{failure.Value}"));
+        failure => failure.Value switch
+        {
+            GreeterError.Away away => $"Away until {away.Until.ToLocalTime()}",
+            _ => $"{failure.Value}",
+        });
 
     Console.WriteLine($"The greeting for '{name}' is '{message}'");
 }

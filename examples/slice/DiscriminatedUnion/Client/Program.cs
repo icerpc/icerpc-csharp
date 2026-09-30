@@ -14,7 +14,7 @@ await using var connection = new ClientConnection(
 
 var areaCalculator = new AreaCalculatorProxy(connection);
 
-// An array of various shapes (C# record classes).
+// An array of various shapes; each shape record converts implicitly to the Shape union.
 Shape[] shapes =
 {
     new Shape.Rectangle(3.0F, 2.0F),

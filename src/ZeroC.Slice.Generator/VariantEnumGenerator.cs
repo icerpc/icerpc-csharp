@@ -5,7 +5,7 @@ using ZeroC.Slice.Symbols;
 
 namespace ZeroC.Slice.Generator;
 
-/// <summary>Generates Dunet discriminated unions from Slice variant enums.</summary>
+/// <summary>Generates C# unions from Slice variant enums.</summary>
 internal static class VariantEnumGenerator
 {
     internal static CodeBlock Generate(VariantEnum enumDef)
@@ -22,23 +22,21 @@ internal static class VariantEnumGenerator
         ]);
     }
 
-    private static CodeBlock GenerateUnknownRecord(
-        VariantEnum enumDef,
-        string parentIdentifier)
+    private static CodeBlock GenerateUnknownRecord(VariantEnum enumDef, string accessModifier)
     {
         string enumName = enumDef.Name;
         return new ContainerBuilder(
-                "partial record class",
+                $"{accessModifier} sealed partial record class",
                 $"Unknown(int Discriminant, global::System.ReadOnlyMemory<byte> Fields)")
-            .AddBase(parentIdentifier)
             .AddComment(
                 "summary",
                 @$"Represents a variant not defined in the local Slice definition of unchecked enum '{enumName}'.")
             .AddComment("param", "name", "Discriminant", "The discriminant of this unknown variant.")
             .AddComment("param", "name", "Fields", "The encoded fields of this unknown variant.")
-            .AddBlock("""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal override void Encode(ref SliceEncoder encoder)
+            .AddBlock($$"""
+                /// <summary>Encodes this variant with a Slice encoder.</summary>
+                /// <param name="encoder">The Slice encoder.</param>
+                {{accessModifier}} void Encode(ref SliceEncoder encoder)
                 {
                     encoder.EncodeVarInt32(Discriminant);
                     encoder.EncodeSize(Fields.Length);
@@ -52,6 +50,25 @@ internal static class VariantEnumGenerator
     {
         string scopedId = enumDef.ScopedIdentifier;
 
+        var body = new CodeBlock();
+        body.WriteLine("switch (value)");
+        body.WriteLine("{");
+        foreach (string caseName in CaseNames(enumDef))
+        {
+            body.WriteLine(
+                $"""
+                    case {identifier}.{caseName} variant:
+                        variant.Encode(ref encoder);
+                        break;
+                """);
+        }
+        body.WriteLine(
+            $"""
+                case null:
+                    throw new global::System.ArgumentException("Cannot encode a default {identifier}.", nameof(value));
+            """);
+        body.WriteLine("}");
+
         return new ContainerBuilder($"{accessModifier} static class", $"{identifier}SliceEncoderExtensions")
             .AddComment(
                 "summary",
@@ -64,7 +81,7 @@ internal static class VariantEnumGenerator
                         $"{accessModifier} static",
                         "void",
                         $"Encode{identifier}",
-                        FunctionType.ExpressionBody)
+                        FunctionType.BlockBody)
                     .AddComment("summary", @$"Encodes a <see cref=""{identifier}"" /> enum.")
                     .AddParameter("this ref SliceEncoder", "encoder", null, "The Slice encoder.")
                     .AddParameter(
@@ -72,7 +89,12 @@ internal static class VariantEnumGenerator
                         "value",
                         null,
                         @$"The <see cref=""{identifier}"" /> variant value to encode.")
-                    .SetBody("value.Encode(ref encoder)")
+                    .AddComment(
+                        "exception",
+                        "cref",
+                        "global::System.ArgumentException",
+                        @"Thrown when <paramref name=""value"" /> is the default value.")
+                    .SetBody(body)
                     .Build())
             .Build();
     }
@@ -85,54 +107,74 @@ internal static class VariantEnumGenerator
     {
         string scopedId = enumDef.ScopedIdentifier;
 
-        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} abstract partial record class", identifier)
-            .AddDocCommentSummary(enumDef.Comment, currentNamespace)
-            .AddComment(
-                "remarks",
-                @$"The Slice compiler generated this discriminated union from the Slice enum <c>{scopedId}</c>.")
-            .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
-            .AddDeprecatedAttribute(enumDef.Attributes)
-            .AddAttribute("Dunet.Union");
+        string cases = string.Join(", ", CaseNames(enumDef).Select(caseName => $"{identifier}.{caseName}"));
 
-        // Generate nested record classes for each variant.
+        ContainerBuilder builder =
+            new ContainerBuilder($"{accessModifier} readonly partial union", $"{identifier}({cases})")
+                .AddBase($"global::System.IEquatable<{identifier}>")
+                .AddDocCommentSummary(enumDef.Comment, currentNamespace)
+                .AddComment(
+                    "remarks",
+                    @$"The Slice compiler generated this union from the Slice enum <c>{scopedId}</c>.")
+                .AddDocCommentSeeAlso(enumDef.Comment, currentNamespace)
+                .AddDeprecatedAttribute(enumDef.Attributes);
+
         foreach (VariantEnum.Variant variant in enumDef.Variants)
         {
-            builder.AddBlock(
-                GenerateVariantRecord(
-                    variant,
-                    enumDef,
-                    identifier,
-                    currentNamespace,
-                    variant.Discriminant));
+            builder.AddBlock(GenerateVariantRecord(variant, enumDef, accessModifier, currentNamespace));
         }
 
-        // For unchecked variant enums, add the Unknown variant.
         if (enumDef.IsUnchecked)
         {
-            builder.AddBlock(GenerateUnknownRecord(enumDef, identifier));
+            builder.AddBlock(GenerateUnknownRecord(enumDef, accessModifier));
         }
 
-        // Abstract Encode method.
-        var abstractEncode = new CodeBlock();
-        abstractEncode.WriteLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        abstractEncode.WriteLine("internal abstract void Encode(ref SliceEncoder encoder);");
-        builder.AddBlock(abstractEncode);
+        // A union is a plain struct, not a record: we generate the members a record struct would synthesize.
+        builder.AddBlock(
+            $$"""
+            /// <inheritdoc/>
+            public bool Equals({{identifier}} other) => Equals(Value, other.Value);
+
+            /// <inheritdoc/>
+            public override bool Equals(object? obj) => obj is {{identifier}} other && Equals(other);
+
+            /// <inheritdoc/>
+            public override int GetHashCode() => Value?.GetHashCode() ?? 0;
+
+            /// <inheritdoc/>
+            public override string ToString() => Value?.ToString() ?? "";
+
+            /// <summary>Checks if two <see cref="{{identifier}}" /> values are equal.</summary>
+            /// <param name="left">The first value.</param>
+            /// <param name="right">The second value.</param>
+            /// <returns><see langword="true" /> if the values are equal; otherwise, <see langword="false" />.</returns>
+            public static bool operator ==({{identifier}} left, {{identifier}} right) => left.Equals(right);
+
+            /// <summary>Checks if two <see cref="{{identifier}}" /> values are not equal.</summary>
+            /// <param name="left">The first value.</param>
+            /// <param name="right">The second value.</param>
+            /// <returns><see langword="true" /> if the values differ; otherwise, <see langword="false" />.</returns>
+            public static bool operator !=({{identifier}} left, {{identifier}} right) => !left.Equals(right);
+            """);
 
         return builder.Build();
     }
 
+    /// <summary>Returns the names of the nested case types of the union generated for a variant enum.</summary>
+    private static IEnumerable<string> CaseNames(VariantEnum enumDef) =>
+        enumDef.Variants.Select(variant => variant.Name)
+            .Concat(enumDef.IsUnchecked ? ["Unknown"] : []);
+
     private static CodeBlock GenerateVariantRecord(
         VariantEnum.Variant variant,
         VariantEnum enumDef,
-        string parentIdentifier,
-        string currentNamespace,
-        int discriminant)
+        string accessModifier,
+        string currentNamespace)
     {
-        ContainerBuilder builder = new ContainerBuilder("partial record class", variant.Name)
+        ContainerBuilder builder = new ContainerBuilder($"{accessModifier} sealed partial record class", variant.Name)
             .AddDocCommentSummary(variant.Comment, currentNamespace);
 
-        // Inside the union record, the case record names can shadow type names from the enclosing namespace. We set
+        // Inside the union, the case record names can shadow type names from the enclosing namespace. We set
         // currentNamespace to "" to generate fully qualified type names for the parameters and the encode method.
         foreach (Field field in variant.Fields)
         {
@@ -146,26 +188,27 @@ internal static class VariantEnumGenerator
         return builder
             .AddDocCommentSeeAlso(variant.Comment, currentNamespace)
             .AddDeprecatedAttribute(variant.Attributes)
-            .AddBase(parentIdentifier)
             .AddBlock(
                 $"""
                 /// <summary>The discriminant of this variant, used for encoding/decoding.</summary>
-                public const int Discriminant = {discriminant};
+                {accessModifier} const int Discriminant = {variant.Discriminant};
                 """)
-            .AddBlock(GenerateEncodeMethod(variant, enumDef, currentNamespace: ""))
+            .AddBlock(GenerateEncodeMethod(variant, enumDef, accessModifier, currentNamespace: ""))
             .Build();
     }
 
     private static CodeBlock GenerateEncodeMethod(
         VariantEnum.Variant variant,
         VariantEnum enumDef,
+        string accessModifier,
         string currentNamespace)
     {
         var code = new CodeBlock();
         code.WriteLine(
-            """
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            internal override void Encode(ref SliceEncoder encoder)
+            $$"""
+            /// <summary>Encodes this variant with a Slice encoder.</summary>
+            /// <param name="encoder">The Slice encoder.</param>
+            {{accessModifier}} void Encode(ref SliceEncoder encoder)
             {
                 encoder.EncodeVarInt32(Discriminant);
             """);

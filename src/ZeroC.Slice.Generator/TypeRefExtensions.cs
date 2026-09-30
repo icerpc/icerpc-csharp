@@ -58,8 +58,8 @@ internal static class TypeRefExtensions
         return $$"""
             (ref SliceEncoder encoder, {{csType}} value) =>
             {
-                encoder.EncodeBool(value is not null);
-                if (value is not null)
+                encoder.EncodeBool(value != null);
+                if (value != null)
                 {
                     {{encodeBody.Indent().Indent()}};
                 }
@@ -154,6 +154,7 @@ internal static class TypeRefExtensions
             Builtin b => b.Kind != BuiltinKind.String,
             Struct => true,
             BasicEnum => true,
+            VariantEnum => true,
             _ => false,
         };
     }
