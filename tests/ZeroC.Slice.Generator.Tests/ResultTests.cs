@@ -28,28 +28,8 @@ public class ResultTests
         var holder = new StringInt32ResultHolder(ref decoder);
 
         // Assert
-        Result<string, int> expected = success ? new(successValue) : new(failureValue);
+        Result<string, int> expected = success ? new Success<string>(successValue) : new Failure<int>(failureValue);
         Assert.That(holder.Value, Is.EqualTo(expected));
-        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
-    }
-
-    [Test]
-    public void String_string_result_wraps_the_values([Values] bool success)
-    {
-        // Arrange
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer);
-        Result<Success<string>, Failure<string>> result =
-            success ? new Success<string>("hello") : new Failure<string>("oops");
-        new StringStringResultHolder(result).Encode(ref encoder);
-
-        var decoder = new SliceDecoder(buffer.WrittenMemory);
-
-        // Act
-        var holder = new StringStringResultHolder(ref decoder);
-
-        // Assert
-        Assert.That(holder.Value, Is.EqualTo(result));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
 
@@ -71,7 +51,7 @@ public class ResultTests
         var holder = new StringOptInt32ResultHolder(ref decoder);
 
         // Assert
-        Result<Success<string>, Failure<int?>> expected = new Failure<int?>(failureValue);
+        Result<string, int?> expected = new Failure<int?>(failureValue);
         Assert.That(holder.Value, Is.EqualTo(expected));
 
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));

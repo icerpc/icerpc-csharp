@@ -3,7 +3,7 @@
 using IceRpc;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
-using ZeroC.Slice; // for the Result<TSuccess, TFailure> union
+using ZeroC.Slice; // for Result, Success and Failure
 
 // Load the test root CA certificate in order to connect to the server that uses a test server certificate.
 using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
@@ -25,8 +25,8 @@ foreach (string name in names)
 
     string message = result switch
     {
-        string greeting => greeting,
-        GreeterError error => error switch
+        Success<string>(var greeting) => greeting,
+        Failure<GreeterError>(var error) => error switch
         {
             GreeterError.Away away => $"Away until {away.Until.ToLocalTime()}",
             _ => $"{error}",
