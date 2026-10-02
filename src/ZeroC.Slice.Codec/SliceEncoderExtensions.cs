@@ -93,22 +93,20 @@ public static class SliceEncoderExtensions
         Result<TSuccess, TFailure> v,
         EncodeAction<TSuccess> successEncodeAction,
         EncodeAction<TFailure> failureEncodeAction)
-        where TSuccess : notnull
-        where TFailure : notnull
     {
-        switch (v.Value)
+        switch (v)
         {
-            case TSuccess success:
+            case Success<TSuccess> success:
                 encoder.EncodeVarInt32(0);
-                successEncodeAction(ref encoder, success);
+                successEncodeAction(ref encoder, success.Value);
                 break;
 
-            case TFailure failure:
+            case Failure<TFailure> failure:
                 encoder.EncodeVarInt32(1);
-                failureEncodeAction(ref encoder, failure);
+                failureEncodeAction(ref encoder, failure.Value);
                 break;
 
-            default:
+            case null:
                 throw new ArgumentException("Cannot encode a default Result.", nameof(v));
         }
     }

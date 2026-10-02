@@ -47,8 +47,3 @@ struct OptionalCustomTypeResults {
     r4: Result<string, WellKnownTypes::Uri?>
     r5: Result<CustomType?, string>
 }
-
-// The success and failure types map to the same C# type, so the Slice compiler wraps them.
-compact struct StringStringResultHolder {
-    value: Result<string, string>
-}

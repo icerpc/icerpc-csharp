@@ -3,7 +3,7 @@
 using IceRpc;
 using IceRpc.Features;
 using VisitorCenter;
-using ZeroC.Slice; // for the Result<TSuccess, TFailure> union
+using ZeroC.Slice; // for Result, Success and Failure
 
 namespace CustomErrorServer;
 
@@ -20,14 +20,12 @@ internal partial class Chatbot : IGreeterService
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
 
-        // A GreeterError variant converts implicitly to GreeterError and a GreeterError converts implicitly to Result,
-        // but C# does not chain these two conversions.
         Result<string, GreeterError> result = name switch
         {
-            "" => (GreeterError)new GreeterError.EmptyName(),
-            "jimmy" => (GreeterError)new GreeterError.Away(DateTime.Now + TimeSpan.FromMinutes(5)),
-            _ when name.Length > MaxLength => (GreeterError)new GreeterError.NameTooLong(MaxLength),
-            _ => $"Hello, {name}!"
+            "" => new Failure<GreeterError>(new GreeterError.EmptyName()),
+            "jimmy" => new Failure<GreeterError>(new GreeterError.Away(DateTime.Now + TimeSpan.FromMinutes(5))),
+            _ when name.Length > MaxLength => new Failure<GreeterError>(new GreeterError.NameTooLong(MaxLength)),
+            _ => new Success($"Hello, {name}!")
         };
 
         return new(result);
