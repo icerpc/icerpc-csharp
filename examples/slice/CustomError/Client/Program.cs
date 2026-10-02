@@ -3,7 +3,7 @@
 using IceRpc;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
-using ZeroC.Slice; // for the Result<TSuccess, TFailure> generic type
+using ZeroC.Slice; // for the Result<TSuccess, TFailure> union
 
 // Load the test root CA certificate in order to connect to the server that uses a test server certificate.
 using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
@@ -19,16 +19,19 @@ string[] names = ["", "jimmy", "billy bob", "alice", Environment.UserName];
 
 foreach (string name in names)
 {
-    Result<string, GreeterError> result = await greeter.GreetAsync(name);
+    // Passing the cancellation token explicitly works around a .NET 11 RC1 compiler bug (CS8655 on the switch below).
+    // See https://github.com/dotnet/roslyn/issues/85852.
+    Result<string, GreeterError> result = await greeter.GreetAsync(name, cancellationToken: CancellationToken.None);
 
-    // Use the Dunet-generated Match method to process the result, and a switch expression to process the GreeterError.
-    string message = result.Match(
-        success => success.Value,
-        failure => failure.Value switch
+    string message = result switch
+    {
+        string greeting => greeting,
+        GreeterError error => error switch
         {
             GreeterError.Away away => $"Away until {away.Until.ToLocalTime()}",
-            _ => $"{failure.Value}",
-        });
+            _ => $"{error}",
+        },
+    };
 
     Console.WriteLine($"The greeting for '{name}' is '{message}'");
 }

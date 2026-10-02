@@ -20,7 +20,6 @@
         }
       ],
       "dest": "reference",
-      "filter": "filterConfig.yml",
       "includePrivateMembers": false,
       "disableGitFeatures": false,
       "disableDefaultFilter": false,
