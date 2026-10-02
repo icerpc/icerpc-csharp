@@ -17,7 +17,7 @@ internal static class TypeRefExtensions
         {
             return typeRef.Type.DecodeExpression(currentNamespace, concreteType: csTypeAttr.Args[0]);
         }
-        return typeRef.Type.DecodeExpression(currentNamespace);
+        return typeRef.Type.DecodeExpression(currentNamespace, wrap: typeRef.HasWrapAttribute);
     }
 
     /// <summary>Generates encode expression for a type reference.</summary>
@@ -26,12 +26,12 @@ internal static class TypeRefExtensions
         string currentNamespace,
         string param,
         string encoderName = "encoder") =>
-        typeRef.Type.EncodeExpression(currentNamespace, param, encoderName);
+        typeRef.Type.EncodeExpression(currentNamespace, param, encoderName, typeRef.HasWrapAttribute);
 
     /// <summary>Returns the C# type string for a field type reference.</summary>
     internal static string FieldTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
     {
-        string baseType = typeRef.Type.ToTypeString(currentNamespace);
+        string baseType = typeRef.Type.ToTypeString(currentNamespace, typeRef.HasWrapAttribute);
         return isOptional ? $"{baseType}?" : baseType;
     }
 
@@ -41,11 +41,11 @@ internal static class TypeRefExtensions
     {
         if (!isOptional)
         {
-            return typeRef.Type.GetEncodeLambda(false, currentNamespace);
+            return typeRef.Type.GetEncodeLambda(false, currentNamespace, typeRef.HasWrapAttribute);
         }
 
-        string csType = typeRef.Type.ToTypeString(currentNamespace) + "?";
-        string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional("value"));
+        string csType = typeRef.FieldTypeString(true, currentNamespace);
+        string encodeExpr = typeRef.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional("value"));
         return $"(ref SliceEncoder encoder, {csType} value) => {encodeExpr}";
     }
 
@@ -90,7 +90,7 @@ internal static class TypeRefExtensions
                 attr.Args[0],
             DictionaryType dict =>
                 $"global::System.Collections.Generic.Dictionary<{dict.KeyType.FieldTypeString(false, currentNamespace)}, {dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace)}>",
-            _ => typeRef.Type.ToTypeString(currentNamespace),
+            _ => typeRef.Type.ToTypeString(currentNamespace, typeRef.HasWrapAttribute),
         };
         return isOptional ? $"{baseType}?" : baseType;
     }
@@ -127,7 +127,7 @@ internal static class TypeRefExtensions
         }
         else
         {
-            baseType = typeRef.Type.ToTypeString(currentNamespace);
+            baseType = typeRef.Type.ToTypeString(currentNamespace, typeRef.HasWrapAttribute);
         }
 
         return (isOptional && !ignoreOptional) ? $"{baseType}?" : baseType;
@@ -140,6 +140,9 @@ internal static class TypeRefExtensions
 
     extension(TypeRef value)
     {
+        /// <summary>Gets a value indicating whether this type reference has the <c>cs::wrap</c> attribute.</summary>
+        internal bool HasWrapAttribute => value.Attributes.HasAttribute(CSAttributes.CSWrap);
+
         /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
         internal int? FixedSize => value.Type switch
         {

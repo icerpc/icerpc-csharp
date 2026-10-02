@@ -155,7 +155,10 @@ internal static class ServiceGenerator
                         currentNamespace);
                     string decodeLambda = streamParam.DataTypeIsOptional ?
                         OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace) :
-                        streamParam.DataType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
+                        streamParam.DataType.Type.GetDecodeLambda(
+                            isOptional: false,
+                            currentNamespace,
+                            wrap: streamParam.DataType.HasWrapAttribute);
 
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
                     {

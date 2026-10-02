@@ -399,8 +399,9 @@ internal static class OperationExtensions
     internal static string GetStreamOfOptionalDecodeLambda(Field streamField, string currentNamespace)
     {
         IType elemType = streamField.DataType.Type;
-        string csType = elemType.ToTypeString(currentNamespace);
-        string decodeExpr = elemType.DecodeExpression(currentNamespace);
+        bool wrap = streamField.DataType.HasWrapAttribute;
+        string csType = elemType.ToTypeString(currentNamespace, wrap);
+        string decodeExpr = elemType.DecodeExpression(currentNamespace, wrap: wrap);
         return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}?){decodeExpr} : null";
     }
 }

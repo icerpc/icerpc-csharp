@@ -52,3 +52,19 @@ struct OptionalCustomTypeResults {
 compact struct StringStringResultHolder {
     value: Result<string, string>
 }
+
+// The cs::wrap attribute forces the wrapping of the type arguments.
+compact struct WrappedResultHolder {
+    value: [cs::wrap] Result<string, int32>
+    values: Sequence<[cs::wrap] Result<Sequence<string>, Sequence<string?>>>
+}
+
+// The cs::wrap attribute is missing: the two type arguments map to the same C# type at run time.
+compact struct UnwrappedSequencesResultHolder {
+    value: Result<Sequence<string>, Sequence<string?>>
+}
+
+// The cs::wrap attribute is missing: at run time, an int[] is both an IList<uint> and an IList<int>.
+compact struct UnwrappedIntegerSequencesResultHolder {
+    value: Result<Sequence<uint32>, Sequence<int32>>
+}

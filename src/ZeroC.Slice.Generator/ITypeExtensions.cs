@@ -14,7 +14,12 @@ internal static class ITypeExtensions
     /// other namespaces will be fully qualified.</param>
     /// <param name="concreteType">Optional concrete type override from a cs::type attribute on the TypeRef.
     /// Used as the factory type for dictionary/sequence decoding instead of the default.</param>
-    internal static string DecodeExpression(this IType type, string currentNamespace, string? concreteType = null)
+    /// <param name="wrap">True when the TypeRef has the cs::wrap attribute.</param>
+    internal static string DecodeExpression(
+        this IType type,
+        string currentNamespace,
+        string? concreteType = null,
+        bool wrap = false)
     {
         return type switch
         {
@@ -22,7 +27,7 @@ internal static class ITypeExtensions
             DictionaryType dict => DecodeDictionary(dict, currentNamespace, concreteType),
             Entity e when e.UsesExtensionsClass =>
                 $"{e.ExtensionsClass(currentNamespace, decoder: true)}.Decode{e.Name}(ref decoder)",
-            ResultType r => DecodeResult(r, currentNamespace),
+            ResultType r => DecodeResult(r, currentNamespace, wrap),
             SequenceType seq => DecodeSequence(seq, currentNamespace, concreteType),
             _ => $"new {type.ToTypeString(currentNamespace)}(ref decoder)",
         };
@@ -33,7 +38,8 @@ internal static class ITypeExtensions
             CodeBlock valueDecodeLambda = dict.ValueType.Type.GetDecodeLambda(
                 dict.ValueTypeIsOptional,
                 currentNamespace,
-                withCast: true);
+                withCast: true,
+                dict.ValueType.HasWrapAttribute);
             string keyType = dict.KeyType.FieldTypeString(false, currentNamespace);
             string valueType = dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace);
             string concreteDictType = concreteType
@@ -49,18 +55,19 @@ internal static class ITypeExtensions
                 """;
         }
 
-        static string DecodeResult(ResultType result, string currentNamespace)
+        static string DecodeResult(ResultType result, string currentNamespace, bool wrap)
         {
+            wrap = wrap || result.WrapsValues;
             CodeBlock decodeLambda = ResultDecodeLambda(
                 result.SuccessType,
                 result.SuccessTypeIsOptional,
                 currentNamespace,
-                result.WrapsValues ? "ZeroC.Slice.Success" : null);
+                wrap ? "ZeroC.Slice.Success" : null);
             CodeBlock decodeFailureLambda = ResultDecodeLambda(
                 result.FailureType,
                 result.FailureTypeIsOptional,
                 currentNamespace,
-                result.WrapsValues ? "ZeroC.Slice.Failure" : null);
+                wrap ? "ZeroC.Slice.Failure" : null);
             return $$"""
                 decoder.DecodeResult(
                     {{decodeLambda.Indent()}},
@@ -87,7 +94,10 @@ internal static class ITypeExtensions
             string method = seq.ElementTypeIsOptional
                 ? "decoder.DecodeSequenceOfOptionals"
                 : "decoder.DecodeSequence";
-            CodeBlock decodeLambda = elemType.GetDecodeLambda(seq.ElementTypeIsOptional, currentNamespace);
+            CodeBlock decodeLambda = elemType.GetDecodeLambda(
+                seq.ElementTypeIsOptional,
+                currentNamespace,
+                wrap: seq.ElementType.HasWrapAttribute);
 
             if (concreteType is not null)
             {
@@ -124,10 +134,11 @@ internal static class ITypeExtensions
         static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace, string? wrapper)
         {
             IType type = typeRef.Type;
-            string csType = type.ToTypeString(currentNamespace);
+            bool wrap = typeRef.HasWrapAttribute;
+            string csType = type.ToTypeString(currentNamespace, wrap);
             string valueExpr = isOptional ?
-                $"decoder.DecodeBool() ? ({csType}?){type.DecodeExpression(currentNamespace)} : null" :
-                type.GetDecodeExpression(isOptional: false, currentNamespace, withCast: true);
+                $"decoder.DecodeBool() ? ({csType}?){type.DecodeExpression(currentNamespace, wrap: wrap)} : null" :
+                type.GetDecodeExpression(isOptional: false, currentNamespace, withCast: true, wrap);
 
             if (wrapper is not null)
             {
@@ -142,7 +153,8 @@ internal static class ITypeExtensions
         this IType type,
         string currentNamespace,
         string param,
-        string encoderName = "encoder")
+        string encoderName = "encoder",
+        bool wrap = false)
     {
         return type switch
         {
@@ -151,7 +163,7 @@ internal static class ITypeExtensions
             Entity e when e.UsesExtensionsClass =>
                 $"{e.ExtensionsClass(currentNamespace, decoder: false)}.Encode{e.Name}(ref {encoderName}, {param})",
             SequenceType seq => EncodeSequence(seq, currentNamespace, param, encoderName),
-            ResultType result => EncodeResult(result, currentNamespace, param, encoderName),
+            ResultType result => EncodeResult(result, currentNamespace, param, encoderName, wrap),
             _ => $"{param}.Encode(ref {encoderName})",
         };
 
@@ -178,18 +190,20 @@ internal static class ITypeExtensions
             ResultType result,
             string currentNamespace,
             string param,
-            string encoderName)
+            string encoderName,
+            bool wrap)
         {
+            wrap = wrap || result.WrapsValues;
             CodeBlock encodeLambda = ResultEncodeLambda(
                 result.SuccessType,
                 result.SuccessTypeIsOptional,
                 currentNamespace,
-                result.WrapsValues ? "ZeroC.Slice.Success" : null);
+                wrap ? "ZeroC.Slice.Success" : null);
             CodeBlock encodeFailureLambda = ResultEncodeLambda(
                 result.FailureType,
                 result.FailureTypeIsOptional,
                 currentNamespace,
-                result.WrapsValues ? "ZeroC.Slice.Failure" : null);
+                wrap ? "ZeroC.Slice.Failure" : null);
             return $$"""
                 {{encoderName}}.EncodeResult(
                     {{param}},
@@ -240,13 +254,15 @@ internal static class ITypeExtensions
 
     /// <summary>Returns a decode lambda for a type. When <paramref name="withCast"/> is true, a cast to the field
     /// type is added for sequence and dictionary types. This is needed when decoding in a generic context (e.g.,
-    /// dictionary values, result types) where C# cannot implicitly convert nested generic types.</summary>
+    /// dictionary values, result types) where C# cannot implicitly convert nested generic types.
+    /// <paramref name="wrap"/> is true when the TypeRef has the cs::wrap attribute.</summary>
     internal static string GetDecodeLambda(
         this IType type,
         bool isOptional,
         string currentNamespace,
-        bool withCast = false) =>
-        $"(ref SliceDecoder decoder) => {type.GetDecodeExpression(isOptional, currentNamespace, withCast)}";
+        bool withCast = false,
+        bool wrap = false) =>
+        $"(ref SliceDecoder decoder) => {type.GetDecodeExpression(isOptional, currentNamespace, withCast, wrap)}";
 
     /// <summary>Returns the expression that decodes a value of a type from <c>decoder</c>, with the casts described
     /// in <see cref="GetDecodeLambda"/>.</summary>
@@ -254,9 +270,10 @@ internal static class ITypeExtensions
         this IType type,
         bool isOptional,
         string currentNamespace,
-        bool withCast = false)
+        bool withCast = false,
+        bool wrap = false)
     {
-        string decodeExpr = type.DecodeExpression(currentNamespace);
+        string decodeExpr = type.DecodeExpression(currentNamespace, wrap: wrap);
 
         // For dict/seq in generic contexts (withCast), use a single combined cast that includes ? if optional.
         // Without withCast, dict/seq get no cast here — the caller handles it (e.g., nested sequence cast).
@@ -270,27 +287,32 @@ internal static class ITypeExtensions
         // For non-dict/non-seq optional types, add the nullable cast.
         if (isOptional && type is not DictionaryType and not SequenceType)
         {
-            string csType = type.ToTypeString(currentNamespace);
+            string csType = type.ToTypeString(currentNamespace, wrap);
             return $"({csType}?){decodeExpr}";
         }
 
         return decodeExpr;
     }
 
-    /// <summary>Returns an encode lambda for a type.</summary>
-    internal static string GetEncodeLambda(this IType type, bool isOptional, string currentNamespace)
+    /// <summary>Returns an encode lambda for a type. <paramref name="wrap"/> is true when the TypeRef has the
+    /// cs::wrap attribute.</summary>
+    internal static string GetEncodeLambda(
+        this IType type,
+        bool isOptional,
+        string currentNamespace,
+        bool wrap = false)
     {
-        string csType = type.ToTypeString(currentNamespace);
+        string csType = type.ToTypeString(currentNamespace, wrap);
         if (isOptional)
         {
             csType += "?";
         }
-        string encodeExpr = type.EncodeExpression(currentNamespace, "value");
+        string encodeExpr = type.EncodeExpression(currentNamespace, "value", wrap: wrap);
         return $"(ref SliceEncoder encoder, {csType} value) => {encodeExpr}";
     }
 
     /// <summary>Returns the C# type string for a type (without optional modifier).</summary>
-    internal static string ToTypeString(this IType type, string currentNamespace)
+    internal static string ToTypeString(this IType type, string currentNamespace, bool wrap = false)
     {
         return type switch
         {
@@ -298,7 +320,7 @@ internal static class ITypeExtensions
             CustomType c => CustomToTypeString(c),
             DictionaryType dict => DictionaryToTypeString(dict, currentNamespace),
             Entity entity => EntityToTypeString(entity, currentNamespace),
-            ResultType result => ResultToTypeString(result, currentNamespace),
+            ResultType result => ResultToTypeString(result, currentNamespace, wrap),
             SequenceType seq => SequenceToTypeString(seq, currentNamespace),
             _ => throw new InvalidOperationException($"Unexpected type '{type.GetType().Name}'."),
         };
@@ -322,11 +344,11 @@ internal static class ITypeExtensions
                 ? entity.Name
                 : $"global::{entity.Namespace}.{entity.Name}";
 
-        static string ResultToTypeString(ResultType result, string currentNamespace)
+        static string ResultToTypeString(ResultType result, string currentNamespace, bool wrap)
         {
             string successType = result.SuccessType.FieldTypeString(result.SuccessTypeIsOptional, currentNamespace);
             string failureType = result.FailureType.FieldTypeString(result.FailureTypeIsOptional, currentNamespace);
-            return result.WrapsValues ?
+            return wrap || result.WrapsValues ?
                 $"ZeroC.Slice.Result<ZeroC.Slice.Success<{successType}>, ZeroC.Slice.Failure<{failureType}>>" :
                 $"ZeroC.Slice.Result<{successType}, {failureType}>";
         }

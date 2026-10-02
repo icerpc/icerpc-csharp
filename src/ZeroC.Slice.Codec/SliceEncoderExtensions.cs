@@ -88,6 +88,8 @@ public static class SliceEncoderExtensions
     /// <param name="successEncodeAction">The encode action for the success type.</param>
     /// <param name="failureEncodeAction">The encode action for the failure type.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="v" /> is the default value.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the value of <paramref name="v" /> is an instance of both
+    /// <typeparamref name="TSuccess" /> and <typeparamref name="TFailure" />.</exception>
     public static void EncodeResult<TSuccess, TFailure>(
         this ref SliceEncoder encoder,
         Result<TSuccess, TFailure> v,
@@ -99,6 +101,11 @@ public static class SliceEncoderExtensions
         switch (v.Value)
         {
             case TSuccess success:
+                if (success is TFailure)
+                {
+                    throw new NotSupportedException(
+                        $"Cannot encode a Result whose value is an instance of both '{typeof(TSuccess)}' and '{typeof(TFailure)}'. Apply the cs::wrap attribute to the Slice Result.");
+                }
                 encoder.EncodeVarInt32(0);
                 successEncodeAction(ref encoder, success);
                 break;

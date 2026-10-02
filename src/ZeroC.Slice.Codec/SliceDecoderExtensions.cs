@@ -119,18 +119,32 @@ public static class SliceDecoderExtensions
     /// <param name="successDecodeFunc">The decode function for the success type.</param>
     /// <param name="failureDecodeFunc">The decode function for the failure type.</param>
     /// <returns>The decoded result.</returns>
+    /// <exception cref="NotSupportedException">Thrown when the decoded value is an instance of both
+    /// <typeparamref name="TSuccess" /> and <typeparamref name="TFailure" />.</exception>
     public static Result<TSuccess, TFailure> DecodeResult<TSuccess, TFailure>(
         this ref SliceDecoder decoder,
         DecodeFunc<TSuccess> successDecodeFunc,
         DecodeFunc<TFailure> failureDecodeFunc)
         where TSuccess : notnull
-        where TFailure : notnull =>
-        decoder.DecodeVarInt32() switch
+        where TFailure : notnull
+    {
+        switch (decoder.DecodeVarInt32())
         {
-            0 => successDecodeFunc(ref decoder),
-            1 => failureDecodeFunc(ref decoder),
-            int value => throw new InvalidDataException($"Received invalid discriminant value '{value}' for Result.")
-        };
+            case 0:
+                TSuccess success = successDecodeFunc(ref decoder);
+                return success is TFailure ? throw CreateNotSupportedException() : success;
+
+            case 1:
+                TFailure failure = failureDecodeFunc(ref decoder);
+                return failure is TSuccess ? throw CreateNotSupportedException() : failure;
+
+            case int value:
+                throw new InvalidDataException($"Received invalid discriminant value '{value}' for Result.");
+        }
+
+        static NotSupportedException CreateNotSupportedException() =>
+            new($"Cannot decode a Result whose value is an instance of both '{typeof(TSuccess)}' and '{typeof(TFailure)}'. Apply the cs::wrap attribute to the Slice Result.");
+    }
 
     /// <summary>Decodes a sequence of fixed-size numeric values.</summary>
     /// <typeparam name="T">The sequence element type.</typeparam>

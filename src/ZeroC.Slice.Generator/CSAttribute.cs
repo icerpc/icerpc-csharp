@@ -22,4 +22,7 @@ internal static class CSAttributes
 
     /// <summary>The directive for the <c>cs::type</c> attribute.</summary>
     internal const string CSType = "cs::type";
+
+    /// <summary>The directive for the <c>cs::wrap</c> attribute.</summary>
+    internal const string CSWrap = "cs::wrap";
 }

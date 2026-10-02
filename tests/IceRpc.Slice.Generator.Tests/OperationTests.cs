@@ -109,6 +109,21 @@ public partial class OperationTests
     }
 
     [Test]
+    public async Task Operation_with_wrapped_result([Values] bool success)
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MyOperationsAService());
+        var proxy = new MyOperationsAProxy(invoker);
+        Result<Success<string>, Failure<int>> arg = success ? new Success<string>("hello") : new Failure<int>(123);
+
+        // Act
+        Result<Success<string>, Failure<int>> r = await proxy.OpWithWrappedResultAsync(arg);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(arg));
+    }
+
+    [Test]
     public async Task Operation_with_result_failure()
     {
         // Arrange
@@ -768,6 +783,11 @@ public partial class OperationTests
 
         public ValueTask<Result<string, int>> OpWithResultAsync(
             Result<string, int> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+
+        public ValueTask<Result<Success<string>, Failure<int>>> OpWithWrappedResultAsync(
+            Result<Success<string>, Failure<int>> p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
 

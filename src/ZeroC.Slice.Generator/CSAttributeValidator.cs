@@ -28,6 +28,7 @@ internal static class CsAttributeValidator
         TypeRef,
         TypeRefSequence,
         TypeRefDictionary,
+        TypeRefResult,
     }
 
     /// <summary>Validates all CS attributes across the given files and returns any diagnostics.</summary>
@@ -187,9 +188,33 @@ internal static class CsAttributeValidator
         {
             SequenceType => Target.TypeRefSequence,
             DictionaryType => Target.TypeRefDictionary,
+            ResultType => Target.TypeRefResult,
             _ => Target.TypeRef,
         };
-        ValidateAttributes(typeRef.Attributes, source, target, diagnostics);
+
+        // A diagnostic source can't reference an attribute on a type reference: we use the enclosing entity.
+        foreach (Attribute attribute in typeRef.Attributes)
+        {
+            if (attribute.Directive.StartsWith("cs::", StringComparison.Ordinal))
+            {
+                ValidateCSAttribute(attribute, source, target, diagnostics);
+            }
+        }
+
+        switch (typeRef.Type)
+        {
+            case SequenceType sequence:
+                ValidateTypeRef(sequence.ElementType, source, diagnostics);
+                break;
+            case DictionaryType dictionary:
+                ValidateTypeRef(dictionary.KeyType, source, diagnostics);
+                ValidateTypeRef(dictionary.ValueType, source, diagnostics);
+                break;
+            case ResultType result:
+                ValidateTypeRef(result.SuccessType, source, diagnostics);
+                ValidateTypeRef(result.FailureType, source, diagnostics);
+                break;
+        }
     }
 
     private static void ValidateAttributes(
@@ -243,7 +268,7 @@ internal static class CsAttributeValidator
             case CSAttributes.CSIdentifier:
                 RequireArgs(attr, 1, source, diagnostics);
                 if (target is Target.File or Target.TypeAlias or Target.TypeRef
-                    or Target.TypeRefSequence or Target.TypeRefDictionary)
+                    or Target.TypeRefSequence or Target.TypeRefDictionary or Target.TypeRefResult)
                 {
                     var diagnostic = Diagnostic.InvalidAttribute(CSAttributes.CSIdentifier, source);
                     diagnostic.AddNote("'cs::identifier' can only be applied to Slice elements which have identifiers");
@@ -277,6 +302,16 @@ internal static class CsAttributeValidator
                 {
                     var diagnostic = Diagnostic.InvalidAttribute(CSAttributes.CSType, source);
                     diagnostic.AddNote("'cs::type' can only be applied to sequences, dictionaries, and custom types");
+                    diagnostics.Add(diagnostic);
+                }
+                break;
+
+            case CSAttributes.CSWrap:
+                RequireArgs(attr, 0, source, diagnostics);
+                if (target is not Target.TypeRefResult)
+                {
+                    var diagnostic = Diagnostic.InvalidAttribute(CSAttributes.CSWrap, source);
+                    diagnostic.AddNote("'cs::wrap' can only be applied to a Result type");
                     diagnostics.Add(diagnostic);
                 }
                 break;
