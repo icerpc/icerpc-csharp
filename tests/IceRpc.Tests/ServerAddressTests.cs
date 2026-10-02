@@ -129,6 +129,8 @@ public class ServerAddressTests
     [TestCase("icerpc:///foo")] // path, empty authority
     [TestCase("icerpc:///")] // empty authority
     [TestCase("icerpc://")] // empty authority
+    [TestCase("icerpc://_host:10000")] // invalid host
+    [TestCase("icerpc://-host:10000")] // invalid host
     [TestCase("icerpc:/foo")] // no authority
     [TestCase("icerpc:")] // no authority
     [TestCase("foo://host:10000")] // protocol not supported
@@ -244,6 +246,7 @@ public class ServerAddressTests
     /// <param name="host">The invalid value for <see cref="ServerAddress.Host" /> property.</param>
     [TestCase("")]
     [TestCase("::1.2")]
+    [TestCase("_host")]
     public void Setting_invalid_server_address_host_fails(string host)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));

@@ -762,7 +762,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
             try
             {
-                // The init accessors validate transport and queryParams.
+                // The init accessors validate host, transport and queryParams.
                 serverAddress = new ServerAddress(protocol)
                 {
                     Host = host,
@@ -786,6 +786,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 {
                     // The separator for server address parameters in alt-server is $, so we replace these '$' by '&'
                     // before sending the string (Uri) to the server address constructor which uses '&' as separator.
+                    // Only ice needs this replacement: transport is the only query parameter of an icerpc server
+                    // address.
                     var altUri = new Uri($"{uri.Scheme}://{serverAddressStr}".Replace('$', '&'));
                     altServerAddresses = altServerAddresses.Add(new ServerAddress(altUri));
                 }

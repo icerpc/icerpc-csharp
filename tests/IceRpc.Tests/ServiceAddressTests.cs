@@ -191,6 +191,8 @@ public class ServiceAddressTests
             "icerpc:/host/path#fragment",   // bad fragment
             "icerpc:/path#fragment",        // bad fragment
             "icerpc://user@host/path",      // bad user info
+            "icerpc://_host/path",          // invalid host
+            "icerpc://host/path?alt-server=_host", // invalid alt-server host
             "icerpc:/path?foo=bar",         // icerpc service address parameter
             "icerpc://host/path?foo=bar",   // icerpc server address parameter
             "icerpc://host/path?transport=tcp&transport=quic", // duplicate transport

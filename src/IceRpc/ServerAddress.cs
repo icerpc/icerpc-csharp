@@ -124,10 +124,8 @@ public readonly record struct ServerAddress
 
     /// <summary>Constructs a server address from a <see cref="Uri" />.</summary>
     /// <param name="uri">An absolute URI.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not an absolute URI, or when its
-    /// scheme is not a supported protocol, or when it has a non-empty path or fragment, or when it has an empty host,
-    /// or when its query can't be parsed or has an alt-server query parameter, or when its query has an invalid
-    /// transport name or a parameter that is not valid for its protocol.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not a valid server address URI.
+    /// </exception>
     public ServerAddress(Uri uri)
     {
         if (!uri.IsAbsoluteUri)
@@ -139,9 +137,9 @@ public readonly record struct ServerAddress
             throw new ArgumentException($"Cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
 
         _host = uri.IdnHost;
-        if (_host.Length == 0)
+        if (Uri.CheckHostName(_host) == UriHostNameType.Unknown)
         {
-            throw new ArgumentException("Cannot create a server address with an empty host.", nameof(uri));
+            throw new ArgumentException($"Cannot create a server address with host '{_host}'.", nameof(uri));
         }
 
         _port = uri.Port == -1 ? Protocol.DefaultPort : checked((ushort)uri.Port);
