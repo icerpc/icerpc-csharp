@@ -8,10 +8,12 @@ namespace ZeroC.Slice;
 /// <typeparam name="TFailure">The failure type.</typeparam>
 /// <remarks><para>The Slice Result type (a built-in generic type) maps to this generic union in C#. The Slice compiler
 /// wraps the type arguments in <see cref="Success{T}" /> and <see cref="Failure{T}" /> when one of them is optional or
-/// when both are the same type.</para>
-/// <para>The type arguments must be two non-nullable types such that no value is an instance of both. Otherwise, use
+/// when both map to the same C# type.</para>
+/// <para>The type arguments must be two types such that no value is an instance of both. Otherwise, use
 /// <see cref="Success{T}" /> and <see cref="Failure{T}" /> as the type arguments.</para></remarks>
 public readonly union Result<TSuccess, TFailure>(TSuccess, TFailure) : IEquatable<Result<TSuccess, TFailure>>
+    where TSuccess : notnull
+    where TFailure : notnull
 {
     /// <inheritdoc/>
     public bool Equals(Result<TSuccess, TFailure> other) => Equals(Value, other.Value);

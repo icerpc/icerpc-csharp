@@ -122,7 +122,9 @@ public static class SliceDecoderExtensions
     public static Result<TSuccess, TFailure> DecodeResult<TSuccess, TFailure>(
         this ref SliceDecoder decoder,
         DecodeFunc<TSuccess> successDecodeFunc,
-        DecodeFunc<TFailure> failureDecodeFunc) =>
+        DecodeFunc<TFailure> failureDecodeFunc)
+        where TSuccess : notnull
+        where TFailure : notnull =>
         decoder.DecodeVarInt32() switch
         {
             0 => successDecodeFunc(ref decoder),

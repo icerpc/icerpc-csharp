@@ -119,7 +119,8 @@ internal static class ITypeExtensions
         }
 
         // Returns a decode lambda for a result success/failure type. An optional type is preceded by a bool null
-        // marker. When wrapper is not null, the lambda wraps the decoded value in this generic type.
+        // marker. wrapper is ZeroC.Slice.Success or ZeroC.Slice.Failure when the lambda returns the decoded value
+        // wrapped in a Success<T> or Failure<T>; otherwise, null.
         static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace, string? wrapper)
         {
             IType type = typeRef.Type;
@@ -219,7 +220,8 @@ internal static class ITypeExtensions
         }
 
         // Returns an encode lambda for a result success/failure type. An optional type is preceded by a bool null
-        // marker. When wrapper is not null, the lambda encodes the value held by this generic type.
+        // marker. wrapper is ZeroC.Slice.Success or ZeroC.Slice.Failure when the value to encode is wrapped in a
+        // Success<T> or Failure<T>; otherwise, null.
         static string ResultEncodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace, string? wrapper)
         {
             if (isOptional)

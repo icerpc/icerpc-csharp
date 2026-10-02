@@ -266,7 +266,7 @@ internal static class FieldExtensions
             && seq.ElementType.FixedSize is not null;
 
         /// <summary>Gets a value indicating whether this field should have the C# 'required' keyword
-        /// (non-optional reference type, variant enum or Result). The default value of a union is not a valid
+        /// (non-optional reference type, variant enum, or Result). The default value of a union is not a valid
         /// value.</summary>
         internal bool IsRequired =>
             !value.DataTypeIsOptional &&

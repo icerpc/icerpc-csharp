@@ -93,6 +93,8 @@ public static class SliceEncoderExtensions
         Result<TSuccess, TFailure> v,
         EncodeAction<TSuccess> successEncodeAction,
         EncodeAction<TFailure> failureEncodeAction)
+        where TSuccess : notnull
+        where TFailure : notnull
     {
         switch (v.Value)
         {

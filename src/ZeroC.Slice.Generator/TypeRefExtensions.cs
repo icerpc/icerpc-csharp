@@ -50,8 +50,11 @@ internal static class TypeRefExtensions
     }
 
     /// <summary>Returns an encode lambda for an optional type reference that writes a bool null marker before the
-    /// value, for use where the caller has no bit sequence. When <paramref name="wrapper" /> is not null, the lambda
-    /// parameter is this generic type and the lambda encodes the value it holds.</summary>
+    /// value, for use where the caller has no bit sequence.</summary>
+    /// <param name="typeRef">The optional type reference.</param>
+    /// <param name="currentNamespace">The current C# namespace.</param>
+    /// <param name="wrapper"><c>ZeroC.Slice.Success</c> or <c>ZeroC.Slice.Failure</c> when the value to encode is
+    /// wrapped in a <c>Success&lt;T&gt;</c> or <c>Failure&lt;T&gt;</c>; otherwise, null.</param>
     internal static string GetEncodeLambdaWithNullMarker(
         this TypeRef typeRef,
         string currentNamespace,
