@@ -9,6 +9,8 @@ internal static class UriExtensions
 {
     /// <summary>Parses the query portion of a URI into a dictionary of name/value. The value of the alt-server
     /// and transport parameters, if set, are returned separately.</summary>
+    /// <exception cref="FormatException">Thrown when a parameter name is empty, or when a parameter other than
+    /// alt-server appears more than once.</exception>
     internal static (ImmutableDictionary<string, string> QueryParams, string? AltServerValue, string? TransportValue) ParseQuery(
         this Uri uri)
     {
@@ -35,8 +37,8 @@ internal static class UriExtensions
                 }
                 else if (name == "transport")
                 {
-                    // This is the regular parsing for query parameters, even though it's not meaningful for transport.
-                    transport = transport is null ? value : $"{transport},{value}";
+                    transport = transport is null ? value :
+                        throw new FormatException($"Duplicate transport parameter in URI '{uri.OriginalString}'.");
                 }
                 else
                 {
@@ -45,16 +47,12 @@ internal static class UriExtensions
                         throw new FormatException($"Invalid empty query parameter name in URI '{uri.OriginalString}'.");
                     }
 
-                    // we assume the C# URI parser validates the name and value sufficiently
-
-                    if (queryParams.TryGetValue(name, out string? existingValue))
+                    if (queryParams.ContainsKey(name))
                     {
-                        queryParams = queryParams.SetItem(name, $"{existingValue},{value}");
+                        throw new FormatException(
+                            $"Duplicate query parameter '{name}' in URI '{uri.OriginalString}'.");
                     }
-                    else
-                    {
-                        queryParams = queryParams.Add(name, value);
-                    }
+                    queryParams = queryParams.Add(name, value);
                 }
             }
             return (queryParams, altServer, transport);
