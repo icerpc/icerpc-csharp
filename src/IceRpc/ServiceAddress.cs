@@ -800,9 +800,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 throw new ArgumentException($"Invalid path in service address URI '{uri}'.", nameof(uri));
             }
 
-            if (altServerValue is not null)
+            if (altServerValue is not null || transport is not null)
             {
-                throw new ArgumentException($"Invalid alt-server parameter in URI '{uri}'.", nameof(uri));
+                throw new ArgumentException(
+                    $"Cannot create a service address without a server address from URI '{uri}'.",
+                    nameof(uri));
             }
         }
 

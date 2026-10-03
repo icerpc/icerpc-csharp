@@ -194,6 +194,8 @@ public class ServiceAddressTests
             "icerpc://_host/path",          // invalid host
             "icerpc://host/path?alt-server=_host", // invalid alt-server host
             "icerpc:/path?foo=bar",         // icerpc service address parameter
+            "icerpc:/path?transport=tcp",   // transport without a server address
+            "ice:/path?transport=tcp",      // transport without a server address
             "icerpc://host/path?foo=bar",   // icerpc server address parameter
             "icerpc://host/path?transport=tcp&transport=quic", // duplicate transport
             "icerpc://host/path?transport=tcp$foo", // invalid character in transport name
