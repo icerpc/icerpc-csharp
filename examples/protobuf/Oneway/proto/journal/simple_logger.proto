@@ -1,0 +1,24 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package journal;
+option csharp_namespace = "Journal";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// Represents a logger.
+service SimpleLogger {
+    // Logs an entry. The client doesn't need anything back, so this RPC returns Empty.
+    rpc Log (LogEntry) returns (google.protobuf.Empty);
+}
+
+// A log entry.
+message LogEntry {
+    // The time the client created this entry.
+    google.protobuf.Timestamp timestamp = 1;
+
+    // The message to log.
+    string message = 2;
+}

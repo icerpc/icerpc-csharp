@@ -13,6 +13,7 @@ you can use proto2, proto3, or editions (e.g. `edition = "2024"`) in your own pr
 | [Logger](./Logger/)                    | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)                  | Shows how to use the metrics interceptor and middleware.                                                                            |
 | [MultipleServices](./MultipleServices) | Shows how a service can implement multiple Protobuf services.                                                                       |
+| [Oneway](./Oneway/)                    | Shows how to send oneway requests, which complete as soon as the request is sent, without waiting for the response.                 |
 | [RequestContext](./RequestContext/)    | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
 | [Retry](./Retry/)                      | Shows how to use the retry interceptor to retry failed requests.                                                                    |
 | [Stream](./Stream/)                    | Shows how to stream data from a server to a client.                                                                                 |
