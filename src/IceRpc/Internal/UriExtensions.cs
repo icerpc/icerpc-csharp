@@ -40,18 +40,16 @@ internal static class UriExtensions
                     transport = transport is null ? value :
                         throw new FormatException($"Duplicate transport parameter in URI '{uri.OriginalString}'.");
                 }
+                else if (name.Length == 0)
+                {
+                    throw new FormatException($"Invalid empty query parameter name in URI '{uri.OriginalString}'.");
+                }
+                else if (queryParams.ContainsKey(name))
+                {
+                    throw new FormatException($"Duplicate query parameter '{name}' in URI '{uri.OriginalString}'.");
+                }
                 else
                 {
-                    if (name.Length == 0)
-                    {
-                        throw new FormatException($"Invalid empty query parameter name in URI '{uri.OriginalString}'.");
-                    }
-
-                    if (queryParams.ContainsKey(name))
-                    {
-                        throw new FormatException(
-                            $"Duplicate query parameter '{name}' in URI '{uri.OriginalString}'.");
-                    }
                     queryParams = queryParams.Add(name, value);
                 }
             }

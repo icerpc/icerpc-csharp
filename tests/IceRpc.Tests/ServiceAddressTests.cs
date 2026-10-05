@@ -241,6 +241,7 @@ public class ServiceAddressTests
             ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com:10000", "//identity", ""),
             ("icerpc://[::1]:10000/identity?alt-server=host1:10000,host2,host3,host4", "/identity", ""),
             ("ice://host1/identity?transport=tcp&t=30000&alt-server=host2?transport=ssl$t=60000$z,host3?z", "/identity", ""),
+            ("ice://host1/identity?alt-server=host2?x=a%24b$y=c%2Cd,host3", "/identity", ""),
             ("icerpc://[::1]:10000/identity?alt-server=host1:10000&alt-server=host2,host3&alt-server=[::2]",
              "/identity",
              ""),
