@@ -52,6 +52,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     throw new InvalidOperationException(
                         $"Cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty.");
                 }
+                else if (_path.StartsWith("//", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot clear {nameof(ServerAddress)} when {nameof(Path)} starts with '//'.");
+                }
                 _serverAddress = value;
             }
         }
@@ -72,6 +77,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 catch (FormatException exception)
                 {
                     throw new ArgumentException("Invalid path.", nameof(value), exception);
+                }
+                if (_serverAddress is null && value.StartsWith("//", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot set a {nameof(Path)} that starts with '//' on a service address without a server address.");
                 }
                 _path = value;
             }
@@ -318,6 +328,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     throw new InvalidOperationException(
                         $"Cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty.");
                 }
+                else if (_path.StartsWith("//", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot clear {nameof(ServerAddress)} when {nameof(Path)} starts with '//'.");
+                }
                 _serverAddress = value;
             }
         }
@@ -337,6 +352,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 catch (FormatException exception)
                 {
                     throw new ArgumentException("Invalid path.", nameof(value), exception);
+                }
+                if (_serverAddress is null && value.StartsWith("//", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot set a {nameof(Path)} that starts with '//' on a service address without a server address.");
                 }
                 _path = value;
             }
@@ -720,7 +740,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
     /// fragment without its leading <c>#</c>. With an authority, an ice main server address also carries the query
     /// parameters.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not an absolute URI with the scheme
-    /// of <paramref name="protocol" />, or when its authority or query is not valid for a service address.</exception>
+    /// of <paramref name="protocol" />, or when its path, authority or query is not valid for a service address.
+    /// </exception>
     private static (string Path, ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses, ImmutableDictionary<string, string> QueryParams, string Fragment) ParseUri(
         Uri uri,
         Protocol protocol)
@@ -795,7 +816,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         }
         else
         {
-            if (!path.StartsWith('/', StringComparison.Ordinal))
+            if (!path.StartsWith('/', StringComparison.Ordinal) ||
+                path.StartsWith("//", StringComparison.Ordinal))
             {
                 throw new ArgumentException($"Invalid path in service address URI '{uri}'.", nameof(uri));
             }
