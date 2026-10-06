@@ -3,7 +3,7 @@
 using IceRpc;
 using IceRpc.Features;
 using VisitorCenter;
-using ZeroC.Slice; // for Result, Success and Failure
+using ZeroC.Slice; // for Result and Failure
 
 namespace CustomErrorServer;
 
@@ -25,7 +25,7 @@ internal partial class Chatbot : IGreeterService
             "" => new Failure<GreeterError>(new GreeterError.EmptyName()),
             "jimmy" => new Failure<GreeterError>(new GreeterError.Away(DateTime.Now + TimeSpan.FromMinutes(5))),
             _ when name.Length > MaxLength => new Failure<GreeterError>(new GreeterError.NameTooLong(MaxLength)),
-            _ => new Success<string>($"Hello, {name}!")
+            _ => Result.FromSuccess($"Hello, {name}!")
         };
 
         return new(result);
