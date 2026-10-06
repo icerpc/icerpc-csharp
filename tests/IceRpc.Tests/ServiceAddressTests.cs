@@ -193,6 +193,9 @@ public class ServiceAddressTests
             "icerpc://user@host/path",      // bad user info
             "icerpc://_host/path",          // invalid host
             "icerpc://host/path?alt-server=_host", // invalid alt-server host
+            "icerpc://host/path?alt-server=host2:99999", // invalid alt-server port
+            "icerpc://host/path?alt-server=host2:x", // invalid alt-server port
+            "icerpc://host/path?alt-server=[bad", // invalid alt-server host
             "icerpc:/path?foo=bar",         // icerpc service address parameter
             "icerpc:/path?transport=tcp",   // transport without a server address
             "ice:/path?transport=tcp",      // transport without a server address

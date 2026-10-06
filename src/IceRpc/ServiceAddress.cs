@@ -788,8 +788,18 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     // before sending the string (Uri) to the server address constructor which uses '&' as separator.
                     // Only ice needs this replacement: transport is the only query parameter of an icerpc server
                     // address.
-                    var altUri = new Uri($"{uri.Scheme}://{serverAddressStr}".Replace('$', '&'));
-                    altServerAddresses = altServerAddresses.Add(new ServerAddress(altUri));
+                    try
+                    {
+                        var altUri = new Uri($"{uri.Scheme}://{serverAddressStr}".Replace('$', '&'));
+                        altServerAddresses = altServerAddresses.Add(new ServerAddress(altUri));
+                    }
+                    catch (Exception exception) when (exception is UriFormatException or ArgumentException)
+                    {
+                        throw new ArgumentException(
+                            $"Invalid alt-server '{serverAddressStr}' in service address URI '{uri}'.",
+                            nameof(uri),
+                            exception);
+                    }
                 }
             }
         }
