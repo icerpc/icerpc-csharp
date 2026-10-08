@@ -33,10 +33,10 @@ Console.WriteLine($" done in {stopwatch.ElapsedMilliseconds} ms.");
 // Part 2: send each log entry in a oneway request.
 //
 // A oneway invocation completes as soon as the request is sent, without waiting for the server to dispatch it.
-// Protobuf provides no way to mark an RPC as oneway, so an interceptor marks each request as oneway. This interceptor
-// applies to all the requests sent through its pipeline, so we create a dedicated pipeline for the SimpleLogger client.
+// Protobuf provides no way to mark an RPC as oneway, so a dedicated pipeline with an interceptor marks each request
+// sent through it as oneway.
 
-Pipeline pipeline = new Pipeline()
+Pipeline onewayPipeline = new Pipeline()
     .Use(next => new InlineInvoker((request, cancellationToken) =>
     {
         request.IsOneway = true;
@@ -44,7 +44,7 @@ Pipeline pipeline = new Pipeline()
     }))
     .Into(connection);
 
-var onewayLogger = new SimpleLoggerClient(pipeline);
+var onewayLogger = new SimpleLoggerClient(onewayPipeline);
 
 Console.Write("Sending log entries with oneway requests...");
 stopwatch.Restart();

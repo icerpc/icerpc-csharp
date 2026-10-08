@@ -1,12 +1,19 @@
 # Oneway
 
-This example application illustrates how to send oneway requests with the IceRPC + Protobuf integration, and what you
-give up by doing so.
+This example application illustrates how to send oneway requests, and what you give up by doing so.
 
 A two-way invocation completes when the client receives the response, after the server has dispatched the request. A
-oneway invocation completes as soon as the request is sent: the client doesn't wait for the server to dispatch the
-request, and never finds out whether the server dispatched it at all. Oneway requests suit best-effort traffic such as
-logging and telemetry.
+oneway invocation completes as soon as the request is sent. This makes oneway invocations much faster, at a price: the
+client gives up reliability and ordering.
+
+- Reliability: the client never finds out whether the server dispatched the request. If the request is lost, for
+  example because the connection closes before the server reads it, the invocation still succeeds and nobody notices.
+
+- Ordering: the server dispatches the requests it receives concurrently, so it can dispatch separate oneway requests
+  in any order. See the [Ordered](../../slice/Ordered/README.md) Slice example for a discussion of this behavior.
+
+Oneway requests suit best-effort traffic such as logging and telemetry, where an occasional lost or reordered entry is
+acceptable.
 
 Protobuf provides no way to mark an RPC as oneway. With IceRPC, oneway is a property of the request: the client marks
 a request as oneway by setting `IsOneway` on this request, which this example does with an interceptor. IceRPC
@@ -26,8 +33,7 @@ run takes:
 Each log entry carries the time the client created it, which `Scribe` prints with the entry. In the two-way run, these
 times are spaced by the processing time of `Scribe`; in the oneway run, they are all within a few milliseconds.
 
-The server dispatches the requests it receives concurrently, so in the oneway run, the server may log the entries out
-of order. See the [Ordered](../../slice/Ordered/) Slice example for a discussion of this behavior.
+The server may log the entries of the oneway run out of order.
 
 This example uses QUIC, IceRPC's default multiplexed transport. On Linux and macOS, QUIC requires extra setup
 steps; see .NET's [QUIC platform dependencies][quic-platform].

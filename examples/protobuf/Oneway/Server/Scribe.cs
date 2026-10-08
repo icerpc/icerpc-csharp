@@ -7,8 +7,8 @@ using Journal;
 
 namespace OnewayServer;
 
-/// <summary>A Scribe is an IceRPC service that implements Protobuf service <c>SimpleLogger</c> by printing each entry
-/// to the console.</summary>
+/// <summary>A Scribe is an IceRPC service that implements Protobuf service <c>SimpleLogger</c> by printing each log
+/// entry to the console.</summary>
 [Service]
 internal partial class Scribe : ISimpleLoggerService
 {
