@@ -210,6 +210,8 @@ public class ServiceAddressTests
             "ice://host/path?=bar",         // empty parameter name
             "ice:/path?adapter-id=foo&adapter-id=bar", // duplicate adapter-id
             "ice://host/s1/s2/s3",          // too many slashes in path
+            "icerpc:////identity",          // path starts with // without a server address
+            "ice:////identity",             // path starts with // without a server address
             "ice:/path?alt-server=foo",     // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
             "ice:/path?adapter-id=foo&foo", // extra parameter
@@ -345,6 +347,41 @@ public class ServiceAddressTests
 
         // Act/Assert
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
+    }
+
+    /// <summary>Verifies that the path of a service address without a server address cannot start with //.</summary>
+    [TestCase("icerpc")]
+    [TestCase("ice")]
+    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address(string protocol)
+    {
+        var serviceAddress = new ServiceAddress(Protocol.Parse(protocol));
+
+        Assert.That(() => serviceAddress with { Path = "//foo" }, Throws.InvalidOperationException);
+    }
+
+    /// <summary>Verifies that the server address cannot be cleared when the path starts with //.</summary>
+    [TestCase("icerpc://localhost//foo")]
+    [TestCase("ice://localhost//foo")]
+    public void Cannot_clear_server_address_when_path_starts_with_double_slash(Uri uri)
+    {
+        var serviceAddress = new ServiceAddress(uri);
+
+        Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
+    }
+
+    /// <summary>Verifies that a with expression cannot produce a service address without a server address and with a
+    /// path that starts with //, whichever property it sets first.</summary>
+    [Test]
+    public void With_expression_cannot_produce_double_slash_path_without_server_address()
+    {
+        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost/foo"));
+
+        Assert.That(
+            () => serviceAddress with { Path = "//foo", ServerAddress = null },
+            Throws.InvalidOperationException);
+        Assert.That(
+            () => serviceAddress with { ServerAddress = null, Path = "//foo" },
+            Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the adapter ID cannot be set when the service address has a server address.</summary>
