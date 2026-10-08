@@ -9,9 +9,9 @@ await using var server = new Server(new ServerOptions
     {
         Dispatcher = new Scribe(),
 
-        // Dispatch at most one request at a time per connection. The ice protocol delivers the requests received over a
-        // connection in order, so this also dispatches them in order. Comment out this line to see the server log the
-        // entries out of order.
+        // Dispatch at most one request at a time per connection. This keeps the dispatches in order, since the ice
+        // protocol delivers the requests received over a connection in order. Comment out this line to see the server
+        // log the entries out of order.
         MaxDispatches = 1,
     },
 
