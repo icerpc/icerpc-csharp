@@ -28,7 +28,7 @@ public class ResultTests
         var holder = new StringInt32ResultHolder(ref decoder);
 
         // Assert
-        Result<string, int> expected = success ? new Success<string>(successValue) : new Failure<int>(failureValue);
+        Result<string, int> expected = success ? Result.FromSuccess(successValue) : Result.FromFailure(failureValue);
         Assert.That(holder.Value, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
@@ -51,7 +51,7 @@ public class ResultTests
         var holder = new StringOptInt32ResultHolder(ref decoder);
 
         // Assert
-        Result<string, int?> expected = new Failure<int?>(failureValue);
+        Result<string, int?> expected = Result.FromFailure(failureValue);
         Assert.That(holder.Value, Is.EqualTo(expected));
 
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));

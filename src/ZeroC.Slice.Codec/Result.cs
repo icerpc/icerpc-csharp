@@ -38,6 +38,27 @@ public readonly union Result<TSuccess, TFailure>(Success<TSuccess>, Failure<TFai
         !left.Equals(right);
 }
 
+/// <summary>Provides factory methods that create the cases of <see cref="Result{TSuccess, TFailure}" />.</summary>
+/// <remarks>These methods are useful when the compiler infers the type argument from the value, as in
+/// <c>Result.FromSuccess("hello")</c>. Otherwise, construct the case directly, as in
+/// <c>new Failure&lt;MyError&gt;(new MyError.NotFound())</c>.</remarks>
+public static class Result
+{
+    /// <summary>Creates a success case.</summary>
+    /// <typeparam name="T">The type of the success value.</typeparam>
+    /// <param name="value">The success value.</param>
+    /// <returns>A new <see cref="Success{T}" />, which converts implicitly to any
+    /// <see cref="Result{TSuccess, TFailure}" /> whose success type is <typeparamref name="T" />.</returns>
+    public static Success<T> FromSuccess<T>(T value) => new(value);
+
+    /// <summary>Creates a failure case.</summary>
+    /// <typeparam name="T">The type of the failure value.</typeparam>
+    /// <param name="value">The failure value.</param>
+    /// <returns>A new <see cref="Failure{T}" />, which converts implicitly to any
+    /// <see cref="Result{TSuccess, TFailure}" /> whose failure type is <typeparamref name="T" />.</returns>
+    public static Failure<T> FromFailure<T>(T value) => new(value);
+}
+
 /// <summary>The success case of a <see cref="Result{TSuccess, TFailure}" />.</summary>
 /// <typeparam name="T">The type of the success value.</typeparam>
 /// <param name="Value">The success value.</param>

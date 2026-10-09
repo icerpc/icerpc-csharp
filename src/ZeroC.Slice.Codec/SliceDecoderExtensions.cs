@@ -125,8 +125,8 @@ public static class SliceDecoderExtensions
         DecodeFunc<TFailure> failureDecodeFunc) =>
         decoder.DecodeVarInt32() switch
         {
-            0 => new Success<TSuccess>(successDecodeFunc(ref decoder)),
-            1 => new Failure<TFailure>(failureDecodeFunc(ref decoder)),
+            0 => Result.FromSuccess(successDecodeFunc(ref decoder)),
+            1 => Result.FromFailure(failureDecodeFunc(ref decoder)),
             int value => throw new InvalidDataException($"Received invalid discriminant value '{value}' for Result.")
         };
 
