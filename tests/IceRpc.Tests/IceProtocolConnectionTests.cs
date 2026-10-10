@@ -63,6 +63,26 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
+    private static IEnumerable<TestCaseData> OnewayDispatcherSource
+    {
+        get
+        {
+            yield return new TestCaseData(
+                new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))))
+                .SetName("Oneway_dispatch_does_not_send_a_reply(success)");
+
+            yield return new TestCaseData(
+                new InlineDispatcher(
+                    (request, cancellationToken) => new(new OutgoingResponse(request, StatusCode.NotFound))))
+                .SetName("Oneway_dispatch_does_not_send_a_reply(not_found)");
+
+            yield return new TestCaseData(
+                new InlineDispatcher(
+                    (request, cancellationToken) => throw new DispatchException(StatusCode.ApplicationError)))
+                .SetName("Oneway_dispatch_does_not_send_a_reply(exception)");
+        }
+    }
+
     private static IEnumerable<TestCaseData> StatusCodeRoundTripSource
     {
         get
@@ -373,6 +393,41 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
         Assert.That(() => invokeTask, Throws.Exception); // Observe the exception.
+    }
+
+    /// <summary>Verifies that a one-way dispatch does not send a reply, whether it succeeds or fails.</summary>
+    [Test]
+    [TestCaseSource(nameof(OnewayDispatcherSource))]
+    public async Task Oneway_dispatch_does_not_send_a_reply(IDispatcher dispatcher)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .AddTestDuplexTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        Task serverShutdownTask = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+
+        TestDuplexConnectionDecorator serverConnection =
+            provider.GetRequiredService<TestDuplexServerTransportDecorator>().LastAcceptedConnection;
+
+        // Get a task that completes when the server writes to the duplex connection.
+        Task writeCalledTask = serverConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice)) { IsOneway = true };
+
+        // Act
+        _ = await sut.Client.InvokeAsync(request);
+
+        // The server shutdown completes once the dispatch has completed.
+        await sut.Client.ShutdownAsync();
+        await serverShutdownTask;
+
+        // Assert
+        // The server did not write anything for the one-way request.
+        Assert.That(writeCalledTask.IsCompletedSuccessfully, Is.False);
     }
 
     /// <summary>Ensures the reading of the outgoing response payload is canceled when when the peer shuts down its side
