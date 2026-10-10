@@ -426,8 +426,11 @@ public sealed class IceProtocolConnectionTests
         await serverShutdownTask;
 
         // Assert
-        // The server did not write anything for the one-way request.
-        Assert.That(writeCalledTask.IsCompletedSuccessfully, Is.False);
+        // The server did not write anything for the one-way request: the disposal of its duplex connection fails this
+        // task when Write was never called.
+        Assert.That(
+            async () => await writeCalledTask,
+            Throws.Exception.With.Message.EqualTo("The operation Write was not called."));
     }
 
     /// <summary>Ensures the reading of the outgoing response payload is canceled when when the peer shuts down its side
