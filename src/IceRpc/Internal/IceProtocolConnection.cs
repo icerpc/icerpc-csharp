@@ -1073,6 +1073,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException(
                     "The dispatcher did not return the last response created for this request.");
             }
+
+            if (request.IsOneway)
+            {
+                // Nothing to send back; request.Dispose completes the response payload.
+                response = null;
+            }
         }
         catch when (request.IsOneway)
         {
