@@ -430,6 +430,37 @@ public sealed class IceProtocolConnectionTests
         Assert.That(async () => await writeCalledTask, Throws.TypeOf<OperationNotCalledException>());
     }
 
+    /// <summary>Verifies that the shutdown of a connection does not wait for the peer to complete the dispatch of a
+    /// one-way request: the peer closes the transport connection as soon as it receives CloseConnection, while its own
+    /// shutdown still waits for this dispatch to complete.</summary>
+    [Test]
+    public async Task Shutdown_does_not_wait_for_peer_oneway_dispatch_to_complete()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        Task serverShutdownTask = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice)) { IsOneway = true };
+        _ = await sut.Client.InvokeAsync(request);
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Act
+        await sut.Client.ShutdownAsync();
+
+        // Assert
+        Assert.That(dispatcher.DispatchComplete.IsCompleted, Is.False);
+        Assert.That(serverShutdownTask.IsCompleted, Is.False);
+        dispatcher.ReleaseDispatch();
+        Assert.That(() => dispatcher.DispatchComplete, Is.Null);
+        Assert.That(() => serverShutdownTask, Throws.Nothing);
+    }
+
     /// <summary>Ensures the reading of the outgoing response payload is canceled when when the peer shuts down its side
     /// of the connection or when the connection is disposed.</summary>
     [Test]
@@ -447,7 +478,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
-        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+        Task serverShutdownTask = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         using var invocationCts = new CancellationTokenSource();
@@ -460,6 +491,10 @@ public sealed class IceProtocolConnectionTests
             // Canceling the invocation is required because ShutdownAsync waits for invocations to complete.
             invocationCts.Cancel();
             await sut.Client.ShutdownAsync();
+
+            // The client shutdown completes as soon as the server closes the transport connection; the server shutdown
+            // completes once the canceled dispatch has completed.
+            await serverShutdownTask;
         }
         else
         {

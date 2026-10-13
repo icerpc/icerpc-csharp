@@ -524,24 +524,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     cancellationToken,
                     _disposedCts.Token);
 
-                // Wait for dispatches and invocations to complete.
-                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
-
-                // Stops sending heartbeats. We can't do earlier: while we're waiting for dispatches and invocations to
-                // complete, we need to keep sending heartbeats otherwise the peer could see the connection as idle and
-                // abort it.
-                lock (_mutex)
-                {
-                    _heartbeatEnabled = false; // makes _heartbeatTask immutable
-                }
-
-                // Wait for the last send heartbeat to complete before sending the CloseConnection frame or disposing
-                // the duplex connection. _heartbeatTask is immutable once _shutdownTask set. _heartbeatTask can be
-                // canceled by DisposeAsync.
-                await _heartbeatTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
-
                 if (sendCloseConnectionFrame)
                 {
+                    // Wait for dispatches and invocations to complete.
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
+
+                    // We keep sending heartbeats while waiting for dispatches and invocations to complete; otherwise,
+                    // the peer's idle check could abort the connection.
+                    await StopSendingHeartbeatAsync(shutdownCts.Token).ConfigureAwait(false);
+
                     // Send CloseConnection frame.
                     await SendControlFrameAsync(EncodeCloseConnectionFrame, shutdownCts.Token).ConfigureAwait(false);
 
@@ -553,12 +544,31 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 else
                 {
-                    // _readFramesTask should be already completed or nearly completed.
+                    // This branch is taken when we've received CloseConnection from the peer, or we failed to read
+                    // the connection.
+
+                    await StopSendingHeartbeatAsync(shutdownCts.Token).ConfigureAwait(false);
+
+                    // _readFramesTask should be already completed or nearly completed. If a read on the connection
+                    // failed, this call throws the corresponding exception.
                     await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                    // _readFramesTask succeeded means the peer is waiting for us to abort the duplex connection;
-                    // we oblige.
-                    _duplexConnection.Dispose();
+                    // _readFramesTask succeeded means the peer is waiting for us to abort the duplex connection.
+                    {
+                        // Holding the write lock guarantees no write is in progress. Nothing can write after we
+                        // release it, in particular:
+                        // - _refuseInvocations is true and an invocation re-checks it under the write lock
+                        // before writing anything.
+                        // - _twowayDispatchesCts is canceled and a two-way dispatch acquires the write lock with this
+                        // token, so it can't acquire it.
+                        using SemaphoreLock _ = await AcquireWriteLockAsync(shutdownCts.Token).ConfigureAwait(false);
+
+                        _duplexConnection.Dispose();
+                    }
+
+                    // Nothing attempts to read or write the disposed connection anymore. The shutdown completes
+                    // successfully when all outstanding dispatches and invocations are done.
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -584,6 +594,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 var encoder = new IceEncoder(writer);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
+            }
+
+            async Task StopSendingHeartbeatAsync(CancellationToken cancellationToken)
+            {
+                lock (_mutex)
+                {
+                    _heartbeatEnabled = false; // makes _heartbeatTask immutable
+                }
+
+                // Wait for the last send heartbeat to complete before sending the CloseConnection frame or disposing
+                // the duplex connection. _heartbeatTask is immutable once _shutdownTask set. _heartbeatTask can be
+                // canceled by DisposeAsync.
+                await _heartbeatTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -1618,7 +1641,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // We can't send responses so these dispatches can be canceled.
         _twowayDispatchesCts.Cancel();
 
-        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync
+        // We don't change _sendCloseConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync
         // to send CloseConnection - and fail.
 
         _ = _shutdownRequestedTcs.TrySetResult();
