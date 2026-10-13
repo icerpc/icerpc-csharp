@@ -67,6 +67,9 @@ public class TransportOperations<T> where T : struct, Enum
     /// <summary>Gets a task which can be awaited to wait for the given operation to be called. The task must be
     /// obtained before the operation is called. It can't be obtained again until the operation is called.</summary>
     /// <param name="operation">The operation for which the task will complete when the operation is called.</param>
+    /// <returns>A task that completes when the operation is called, or fails with
+    /// <see cref="OperationNotCalledException" /> when the connection or listener completes without calling it.
+    /// </returns>
     /// <exception cref="InvalidOperationException">Thrown when the task has already been returned and the operation has
     /// not been called yet. The caller should only obtain a new task after the operation has been called.</exception>
     public Task GetCalledTask(T operation)
@@ -177,7 +180,19 @@ public class TransportOperations<T> where T : struct, Enum
         }
         foreach ((T operation, TaskCompletionSource tcs) in _calledOperationsTcsMap)
         {
-            tcs.TrySetException(new Exception($"The operation {operation} was not called."));
+            tcs.TrySetException(new OperationNotCalledException(operation.ToString()));
         }
+    }
+}
+
+/// <summary>The exception that fails a task returned by <see cref="TransportOperations{T}.GetCalledTask" /> when the
+/// transport connection or listener completes without calling the operation.</summary>
+public sealed class OperationNotCalledException : Exception
+{
+    /// <summary>Constructs an operation not called exception.</summary>
+    /// <param name="operation">The operation that was not called.</param>
+    public OperationNotCalledException(string operation)
+        : base($"The operation {operation} was not called.")
+    {
     }
 }
