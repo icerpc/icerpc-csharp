@@ -56,7 +56,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                     location.Value,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
+                if (proxy?.ServiceAddress is { } serviceAddress)
                 {
                     return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } iceServiceAddress ?
                         iceServiceAddress :
@@ -82,7 +82,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                     Identity.Parse(location.Value),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
+                if (proxy?.ServiceAddress is { } serviceAddress)
                 {
                     // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress is ServiceAddress.Ice iceServiceAddress &&

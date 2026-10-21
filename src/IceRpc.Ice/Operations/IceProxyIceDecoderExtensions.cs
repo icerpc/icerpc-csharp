@@ -19,7 +19,7 @@ public static class IceProxyIceDecoderExtensions
     /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded proxy, or <see langword="null" />.</returns>
     public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy<TProxy> =>
-        decoder.DecodeServiceAddress() is ServiceAddress serviceAddress ?
+        decoder.DecodeServiceAddress() is { } serviceAddress ?
             CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)

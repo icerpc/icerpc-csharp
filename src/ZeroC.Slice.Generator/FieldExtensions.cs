@@ -51,9 +51,15 @@ internal static class FieldExtensions
                 """).ToString();
         }
 
-        string csType = field.DataType.FieldTypeString(false, currentNamespace);
         string varName = $"{field.ParameterName}_";
-        string encodeLambda = field.DataType.GetEncodeLambda(false, currentNamespace);
+
+        // The lambda takes the type of the value being encoded: an operation parameter's sequence or dictionary is an
+        // IEnumerable, not the IList or IDictionary of a struct field.
+        string valueType = isOperationParam ?
+            field.DataType.OutgoingParameterTypeString(false, currentNamespace) :
+            field.DataType.FieldTypeString(false, currentNamespace);
+        string encodeExpr = field.DataType.Type.EncodeExpression(currentNamespace, "value");
+        string encodeLambda = $"(ref SliceEncoder encoder, {valueType} value) => {encodeExpr}";
 
         if (field.DataType.IsValueType)
         {
@@ -62,7 +68,7 @@ internal static class FieldExtensions
                 : $"{encoderName}.EncodeTagged({tag}, {varName}, {encodeLambda});";
             return new CodeBlock(
                 $$"""
-                if ({{param}} is {{csType}} {{varName}})
+                if ({{param}} is { } {{varName}})
                 {
                     {{encodeCall}}
                 }
@@ -73,7 +79,7 @@ internal static class FieldExtensions
             string sizeExpr = $"SliceEncoder.GetSizeLength(count_) + {elemSize} * count_";
             return new CodeBlock(
                 $$"""
-                if ({{param}} is {{csType}} {{varName}})
+                if ({{param}} is { } {{varName}})
                 {
                     int count_ = global::System.Linq.Enumerable.Count({{varName}});
                     {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{varName}}, {{encodeLambda}});
@@ -84,7 +90,7 @@ internal static class FieldExtensions
         {
             return new CodeBlock(
                 $$"""
-                if ({{param}} is {{csType}} {{varName}})
+                if ({{param}} is { } {{varName}})
                 {
                     {{encoderName}}.EncodeTagged({{tag}}, {{varName}}, {{encodeLambda}});
                 }
