@@ -664,6 +664,29 @@ public partial class OperationTests
         Assert.That(p2, Is.EqualTo(new Dictionary<int, int> { [1] = 2, [3] = 4 }));
     }
 
+    /// <summary>Verifies that tagged sequence and dictionary parameters with optional fixed-size elements are
+    /// encoded.</summary>
+    [Test]
+    public async Task Slice_operation_encode_with_optional_elements_tagged_params()
+    {
+        // Arrange
+        int?[] sequence = [1, null, 3];
+        var dictionary = new Dictionary<int, int?> { [1] = 2, [3] = null };
+
+        // Act
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpOptionalElementsTagged(sequence, dictionary);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = payload
+        };
+        (int?[]? p1, Dictionary<int, int?>? p2) =
+            await IMyOperationsAService.Request.DecodeOpOptionalElementsTaggedAsync(request, default);
+        Assert.That(p1, Is.EqualTo(new int?[] { 1, null, 3 }));
+        Assert.That(p2, Is.EqualTo(new Dictionary<int, int?> { [1] = 2, [3] = null }));
+    }
+
     /// <summary>Verifies that sequence of fixed size numeric values outgoing tagged return value is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the optional incoming return value is not affected.</summary>
     [Test]
@@ -945,6 +968,12 @@ public partial class OperationTests
         public ValueTask OpEnumerableTaggedAsync(
             string[]? p1,
             Dictionary<int, int>? p2,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => default;
+
+        public ValueTask OpOptionalElementsTaggedAsync(
+            int?[]? p1,
+            Dictionary<int, int?>? p2,
             IFeatureCollection features,
             CancellationToken cancellationToken) => default;
 
