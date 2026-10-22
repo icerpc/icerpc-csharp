@@ -73,7 +73,8 @@ internal static class FieldExtensions
                 }
                 """).ToString();
         }
-        else if (GetCollectionElementSize(field.DataType.Type) is int elemSize)
+        // Counting an operation parameter's IEnumerable would enumerate it twice, so the encoder computes its size.
+        else if (!isOperationParam && GetCollectionElementSize(field.DataType.Type) is int elemSize)
         {
             string sizeExpr = $"SliceEncoder.GetSizeLength(count_) + {elemSize} * count_";
             return new CodeBlock(

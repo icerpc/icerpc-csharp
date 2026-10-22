@@ -634,30 +634,34 @@ public partial class OperationTests
             Is.EqualTo(p));
     }
 
-    /// <summary>Verifies that a tagged sequence parameter is encoded when the argument is an
-    /// <see cref="IEnumerable{T}" /> that is not an <see cref="IList{T}" />.</summary>
+    /// <summary>Verifies that tagged sequence and dictionary parameters are encoded when the arguments are
+    /// <see cref="IEnumerable{T}" /> iterators that can be enumerated only once.</summary>
     [Test]
-    public void Slice_operation_encode_with_enumerable_tagged_param()
+    public async Task Slice_operation_encode_with_enumerable_tagged_params()
     {
         // Arrange
-        static IEnumerable<string> GetStrings()
+        static IEnumerable<T> Drain<T>(Queue<T> queue)
         {
-            yield return "a";
-            yield return "b";
+            while (queue.TryDequeue(out T? item))
+            {
+                yield return item;
+            }
         }
+        var strings = new Queue<string>(["a", "b"]);
+        var entries = new Queue<KeyValuePair<int, int>>([new(1, 2), new(3, 4)]);
 
         // Act
-        PipeReader payload = MyOperationsAProxy.Request.EncodeOpEnumerableTagged(GetStrings());
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpEnumerableTagged(Drain(strings), Drain(entries));
 
         // Assert
-        Assert.That(
-            async () => await IMyOperationsAService.Request.DecodeOpEnumerableTaggedAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = payload
-                },
-                default),
-            Is.EqualTo(new string[] { "a", "b" }));
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = payload
+        };
+        (string[]? p1, Dictionary<int, int>? p2) =
+            await IMyOperationsAService.Request.DecodeOpEnumerableTaggedAsync(request, default);
+        Assert.That(p1, Is.EqualTo(new string[] { "a", "b" }));
+        Assert.That(p2, Is.EqualTo(new Dictionary<int, int> { [1] = 2, [3] = 4 }));
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing tagged return value is mapped to
@@ -940,6 +944,7 @@ public partial class OperationTests
 
         public ValueTask OpEnumerableTaggedAsync(
             string[]? p1,
+            Dictionary<int, int>? p2,
             IFeatureCollection features,
             CancellationToken cancellationToken) => default;
 
