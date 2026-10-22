@@ -51,23 +51,18 @@ internal static class FieldExtensions
                 """).ToString();
         }
 
-        // An operation parameter's sequence or dictionary is an IEnumerable, not the IList or IDictionary of a struct
-        // field.
-        string valueType = isOperationParam ?
-            field.DataType.OutgoingParameterTypeString(false, currentNamespace) :
-            field.DataType.FieldTypeString(false, currentNamespace);
-        string encodeExpr = field.DataType.Type.EncodeExpression(currentNamespace, "value");
-        string encodeLambda = $"(ref SliceEncoder encoder, {valueType} value) => {encodeExpr}";
-        string value = field.DataType.UnwrapNonNullOptional(param);
+        string csType = field.DataType.FieldTypeString(false, currentNamespace);
+        string varName = $"{field.ParameterName}_";
+        string encodeLambda = field.DataType.GetEncodeLambda(false, currentNamespace);
 
         if (field.DataType.IsValueType)
         {
             string encodeCall = (field.DataType.FixedSize is int fixedSizeValue)
-                ? $"{encoderName}.EncodeTagged({tag}, size: {fixedSizeValue}, {value}, {encodeLambda});"
-                : $"{encoderName}.EncodeTagged({tag}, {value}, {encodeLambda});";
+                ? $"{encoderName}.EncodeTagged({tag}, size: {fixedSizeValue}, {varName}, {encodeLambda});"
+                : $"{encoderName}.EncodeTagged({tag}, {varName}, {encodeLambda});";
             return new CodeBlock(
                 $$"""
-                if ({{param}} != null)
+                if ({{param}} is {{csType}} {{varName}})
                 {
                     {{encodeCall}}
                 }
@@ -78,10 +73,10 @@ internal static class FieldExtensions
             string sizeExpr = $"SliceEncoder.GetSizeLength(count_) + {elemSize} * count_";
             return new CodeBlock(
                 $$"""
-                if ({{param}} != null)
+                if ({{param}} is {{csType}} {{varName}})
                 {
-                    int count_ = global::System.Linq.Enumerable.Count({{value}});
-                    {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{value}}, {{encodeLambda}});
+                    int count_ = global::System.Linq.Enumerable.Count({{varName}});
+                    {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{varName}}, {{encodeLambda}});
                 }
                 """).ToString();
         }
@@ -89,9 +84,9 @@ internal static class FieldExtensions
         {
             return new CodeBlock(
                 $$"""
-                if ({{param}} != null)
+                if ({{param}} is {{csType}} {{varName}})
                 {
-                    {{encoderName}}.EncodeTagged({{tag}}, {{value}}, {{encodeLambda}});
+                    {{encoderName}}.EncodeTagged({{tag}}, {{varName}}, {{encodeLambda}});
                 }
                 """).ToString();
         }

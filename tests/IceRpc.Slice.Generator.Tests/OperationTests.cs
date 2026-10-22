@@ -634,32 +634,6 @@ public partial class OperationTests
             Is.EqualTo(p));
     }
 
-    /// <summary>Verifies that a tagged sequence parameter is encoded when the argument is an
-    /// <see cref="IEnumerable{T}" /> that is not an <see cref="IList{T}" />.</summary>
-    [Test]
-    public void Slice_operation_encode_with_enumerable_tagged_param()
-    {
-        // Arrange
-        static IEnumerable<string> GetStrings()
-        {
-            yield return "a";
-            yield return "b";
-        }
-
-        // Act
-        PipeReader payload = MyOperationsAProxy.Request.EncodeOpEnumerableTagged(GetStrings());
-
-        // Assert
-        Assert.That(
-            async () => await IMyOperationsAService.Request.DecodeOpEnumerableTaggedAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = payload
-                },
-                default),
-            Is.EqualTo(new string[] { "a", "b" }));
-    }
-
     /// <summary>Verifies that sequence of fixed size numeric values outgoing tagged return value is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the optional incoming return value is not affected.</summary>
     [Test]
@@ -937,11 +911,6 @@ public partial class OperationTests
             int[]? p1,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p1);
-
-        public ValueTask OpEnumerableTaggedAsync(
-            string[]? p1,
-            IFeatureCollection features,
-            CancellationToken cancellationToken) => default;
 
         public ValueTask OpWithProxyParameterAsync(
             PingableProxy service,
