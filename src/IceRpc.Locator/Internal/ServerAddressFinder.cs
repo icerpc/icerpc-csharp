@@ -56,8 +56,9 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                     location.Value,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (proxy?.ServiceAddress is { } serviceAddress)
+                if (proxy is not null)
                 {
+                    ServiceAddress serviceAddress = proxy.Value.ServiceAddress;
                     return serviceAddress is ServiceAddress.Ice { ServerAddress: not null } iceServiceAddress ?
                         iceServiceAddress :
                         throw new InvalidDataException(
@@ -82,8 +83,10 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                     Identity.Parse(location.Value),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (proxy?.ServiceAddress is { } serviceAddress)
+                if (proxy is not null)
                 {
+                    ServiceAddress serviceAddress = proxy.Value.ServiceAddress;
+
                     // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress is ServiceAddress.Ice iceServiceAddress &&
                         (iceServiceAddress.ServerAddress is not null || iceServiceAddress.AdapterId.Length > 0) ?
