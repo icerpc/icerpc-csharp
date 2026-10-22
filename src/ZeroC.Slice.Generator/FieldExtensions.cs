@@ -54,8 +54,8 @@ internal static class FieldExtensions
         // An operation parameter's sequence or dictionary is an IEnumerable, not the IList or IDictionary of a struct
         // field.
         string valueType = isOperationParam ?
-            field.DataType.OutgoingParameterTypeString(false, currentNamespace) :
-            field.DataType.FieldTypeString(false, currentNamespace);
+            field.DataType.OutgoingParameterTypeString(isOptional: false, currentNamespace) :
+            field.DataType.FieldTypeString(isOptional: false, currentNamespace);
         string encodeExpr = field.DataType.Type.EncodeExpression(currentNamespace, "value");
         string encodeLambda = $"(ref SliceEncoder encoder, {valueType} value) => {encodeExpr}";
         string value = field.DataType.UnwrapNonNullOptional(param);
