@@ -73,19 +73,6 @@ internal static class FieldExtensions
                 }
                 """).ToString();
         }
-        // Counting an operation parameter's IEnumerable would enumerate it twice, so the encoder computes its size.
-        else if (!isOperationParam && GetCollectionElementSize(field.DataType.Type) is int elemSize)
-        {
-            string sizeExpr = $"SliceEncoder.GetSizeLength(count_) + {elemSize} * count_";
-            return new CodeBlock(
-                $$"""
-                if ({{param}} != null)
-                {
-                    int count_ = global::System.Linq.Enumerable.Count({{value}});
-                    {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{value}}, {{encodeLambda}});
-                }
-                """).ToString();
-        }
         else
         {
             return new CodeBlock(
@@ -97,17 +84,6 @@ internal static class FieldExtensions
                 """).ToString();
         }
     }
-
-    /// <summary>Returns the per-entry fixed wire size for a collection type, or null if variable-size.
-    /// For sequences, returns the element's fixed size (excluding size-1 elements which use an optimized
-    /// raw-bytes encoding path). For dictionaries, returns the sum of key and value fixed sizes.</summary>
-    private static int? GetCollectionElementSize(IType type) => type switch
-    {
-        SequenceType seq => seq.ElementType.FixedSize is > 1 ? seq.ElementType.FixedSize : null,
-        DictionaryType dict => dict.KeyType.FixedSize is int k && dict.ValueType.FixedSize is int v
-            ? k + v : null,
-        _ => null,
-    };
 
     /// <summary>Counts non-tagged optional fields (for Slice bit sequence sizing).</summary>
     internal static int GetBitSequenceSize(this ImmutableList<Field> fields) =>
