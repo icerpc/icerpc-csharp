@@ -60,29 +60,15 @@ internal static class FieldExtensions
         string encodeLambda = $"(ref SliceEncoder encoder, {valueType} value) => {encodeExpr}";
         string value = field.DataType.UnwrapNonNullOptional(param);
 
-        if (field.DataType.IsValueType)
-        {
-            string encodeCall = (field.DataType.FixedSize is int fixedSizeValue)
-                ? $"{encoderName}.EncodeTagged({tag}, size: {fixedSizeValue}, {value}, {encodeLambda});"
-                : $"{encoderName}.EncodeTagged({tag}, {value}, {encodeLambda});";
-            return new CodeBlock(
-                $$"""
-                if ({{param}} != null)
-                {
-                    {{encodeCall}}
-                }
-                """).ToString();
-        }
-        else
-        {
-            return new CodeBlock(
-                $$"""
-                if ({{param}} != null)
-                {
-                    {{encoderName}}.EncodeTagged({{tag}}, {{value}}, {{encodeLambda}});
-                }
-                """).ToString();
-        }
+        string sizeArg = field.DataType.FixedSize is int fixedSize ? $"size: {fixedSize}, " : "";
+
+        return new CodeBlock(
+            $$"""
+            if ({{param}} != null)
+            {
+                {{encoderName}}.EncodeTagged({{tag}}, {{sizeArg}}{{value}}, {{encodeLambda}});
+            }
+            """).ToString();
     }
 
     /// <summary>Counts non-tagged optional fields (for Slice bit sequence sizing).</summary>
