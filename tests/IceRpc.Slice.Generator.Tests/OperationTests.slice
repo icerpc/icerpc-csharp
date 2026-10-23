@@ -69,6 +69,12 @@ interface MyOperationsA {
     // ReadOnlyMemory tagged input parameters and return values
     opReadOnlyMemoryTagged(tag(1) p1: Sequence<int32>?) -> tag(1) Sequence<int32>?
 
+    // Tagged input parameters mapped to IEnumerable
+    opEnumerableTagged(tag(1) p1: Sequence<string>?, tag(2) p2: Dictionary<int32, int32>?)
+
+    // Tagged input parameters with optional fixed-size elements
+    opOptionalElementsTagged(tag(1) p1: Sequence<int32?>?, tag(2) p2: Dictionary<int32, int32?>?)
+
     // Proxy parameter and return value
     opWithProxyParameter(service: PingableProxy)
     opWithProxyReturnValue() -> PingableProxy

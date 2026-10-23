@@ -12,4 +12,9 @@ struct MyStructWithTaggedFields {
     tag(7) g: Dictionary<int32, int32>?
 }
 
+struct MyStructWithTaggedOptionalElements {
+    tag(1) s: Sequence<int32?>?
+    tag(2) d: Dictionary<int32, int32?>?
+}
+
 struct MyStructWithoutTaggedFields {}
