@@ -51,8 +51,8 @@ internal static class FieldExtensions
                 """).ToString();
         }
 
-        // An operation parameter's sequence or dictionary is an IEnumerable, not the IList or IDictionary of a struct
-        // field.
+        // The encode lambda takes the C# type of the value it encodes: the outgoing parameter type for an operation
+        // parameter, and the field type for a struct or variant enum field.
         string valueType = isOperationParam ?
             field.DataType.OutgoingParameterTypeString(isOptional: false, currentNamespace) :
             field.DataType.FieldTypeString(isOptional: false, currentNamespace);
