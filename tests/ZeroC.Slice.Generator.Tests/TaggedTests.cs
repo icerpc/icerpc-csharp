@@ -184,6 +184,26 @@ internal class TaggedTests
     }
 
     [Test]
+    public void Encode_decode_slice_tagged_collections_of_optionals()
+    {
+        // Arrange
+        var expected = new MyStructWithTaggedOptionalElements(
+            new int?[] { 1, null, 3 },
+            new Dictionary<int, int?> { [1] = 2, [3] = null });
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+
+        // Act
+        expected.Encode(ref encoder);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+        var decoded = new MyStructWithTaggedOptionalElements(ref decoder);
+
+        // Assert
+        Assert.That(decoded.S, Is.EqualTo(new int?[] { 1, null, 3 }));
+        Assert.That(decoded.D, Is.EqualTo(new Dictionary<int, int?> { [1] = 2, [3] = null }));
+    }
+
+    [Test]
     [TestCaseSource(nameof(SkipSliceTaggedFieldsSource))]
     public void Skip_slice_tagged_fields(MyStructWithTaggedFields value)
     {

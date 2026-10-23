@@ -51,57 +51,25 @@ internal static class FieldExtensions
                 """).ToString();
         }
 
-        string csType = field.DataType.FieldTypeString(false, currentNamespace);
-        string varName = $"{field.ParameterName}_";
-        string encodeLambda = field.DataType.GetEncodeLambda(false, currentNamespace);
+        // The encode lambda takes the C# type of the value it encodes: the outgoing parameter type for an operation
+        // parameter, and the field type for a struct or variant enum field.
+        string valueType = isOperationParam ?
+            field.DataType.OutgoingParameterTypeString(isOptional: false, currentNamespace) :
+            field.DataType.FieldTypeString(isOptional: false, currentNamespace);
+        string encodeExpr = field.DataType.Type.EncodeExpression(currentNamespace, "value");
+        string encodeLambda = $"(ref SliceEncoder encoder, {valueType} value) => {encodeExpr}";
+        string value = field.DataType.UnwrapNonNullOptional(param);
 
-        if (field.DataType.IsValueType)
-        {
-            string encodeCall = (field.DataType.FixedSize is int fixedSizeValue)
-                ? $"{encoderName}.EncodeTagged({tag}, size: {fixedSizeValue}, {varName}, {encodeLambda});"
-                : $"{encoderName}.EncodeTagged({tag}, {varName}, {encodeLambda});";
-            return new CodeBlock(
-                $$"""
-                if ({{param}} is {{csType}} {{varName}})
-                {
-                    {{encodeCall}}
-                }
-                """).ToString();
-        }
-        else if (GetCollectionElementSize(field.DataType.Type) is int elemSize)
-        {
-            string sizeExpr = $"SliceEncoder.GetSizeLength(count_) + {elemSize} * count_";
-            return new CodeBlock(
-                $$"""
-                if ({{param}} is {{csType}} {{varName}})
-                {
-                    int count_ = global::System.Linq.Enumerable.Count({{varName}});
-                    {{encoderName}}.EncodeTagged({{tag}}, size: {{sizeExpr}}, {{varName}}, {{encodeLambda}});
-                }
-                """).ToString();
-        }
-        else
-        {
-            return new CodeBlock(
-                $$"""
-                if ({{param}} is {{csType}} {{varName}})
-                {
-                    {{encoderName}}.EncodeTagged({{tag}}, {{varName}}, {{encodeLambda}});
-                }
-                """).ToString();
-        }
+        string sizeArg = field.DataType.FixedSize is int fixedSize ? $"size: {fixedSize}, " : "";
+
+        return new CodeBlock(
+            $$"""
+            if ({{param}} != null)
+            {
+                {{encoderName}}.EncodeTagged({{tag}}, {{sizeArg}}{{value}}, {{encodeLambda}});
+            }
+            """).ToString();
     }
-
-    /// <summary>Returns the per-entry fixed wire size for a collection type, or null if variable-size.
-    /// For sequences, returns the element's fixed size (excluding size-1 elements which use an optimized
-    /// raw-bytes encoding path). For dictionaries, returns the sum of key and value fixed sizes.</summary>
-    private static int? GetCollectionElementSize(IType type) => type switch
-    {
-        SequenceType seq => seq.ElementType.FixedSize is > 1 ? seq.ElementType.FixedSize : null,
-        DictionaryType dict => dict.KeyType.FixedSize is int k && dict.ValueType.FixedSize is int v
-            ? k + v : null,
-        _ => null,
-    };
 
     /// <summary>Counts non-tagged optional fields (for Slice bit sequence sizing).</summary>
     internal static int GetBitSequenceSize(this ImmutableList<Field> fields) =>
