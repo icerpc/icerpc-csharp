@@ -18,9 +18,11 @@ public static class IceProxyIceDecoderExtensions
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded proxy, or <see langword="null" />.</returns>
-    public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy<TProxy> =>
-        decoder.DecodeServiceAddress() is ServiceAddress serviceAddress ?
-            CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
+    public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy<TProxy>
+    {
+        ServiceAddress? serviceAddress = decoder.DecodeServiceAddress();
+        return serviceAddress.HasValue ? CreateProxy<TProxy>(serviceAddress.Value, decoder.DecodingContext) : null;
+    }
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
         where TProxy : struct, IIceProxy<TProxy>
