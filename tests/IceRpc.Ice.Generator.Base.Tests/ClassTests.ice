@@ -50,15 +50,13 @@ module IceRpc::Ice::Generator::Base::Tests
         int e;
     }
 
-    // TODO: this metadata doesn't exist yet.
-    // ["cs:internal"]
+    ["cs:internal"]
     class MyInternalBaseClass
     {
         string m1;
     }
 
-    // TODO: this metadata doesn't exist yet.
-    // ["cs:internal"]
+    ["cs:internal"]
     class MyInternalClass : MyInternalBaseClass
     {
         string m2;
