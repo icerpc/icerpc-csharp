@@ -18,11 +18,10 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
-  <!-- Compile .ice files for IceRPC by default, targeting this version of IceRPC C#. -->
+  <!-- Set the default Rpc framework for .ice file compilation to icerpc -->
   <ItemDefinitionGroup>
     <SliceCompile>
       <IceRpc>true</IceRpc>
-      <IceRpcVersion>0.7</IceRpcVersion>
     </SliceCompile>
   </ItemDefinitionGroup>
 
