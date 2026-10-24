@@ -224,6 +224,42 @@ public class TcpTransportTests
         }
     }
 
+    /// <summary>Verifies that accepting a connection the peer reset before it was accepted either succeeds or fails
+    /// with <see cref="IceRpcError.ConnectionAborted" />. On macOS, the accepted socket has no peer address.</summary>
+    [Test]
+    public async Task Accept_connection_reset_by_the_peer_before_accept()
+    {
+        Ipv6SupportFixture.FixtureSetUp();
+
+        // Arrange
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
+            new TransportAddress { Host = "::1", Port = 0 });
+
+        using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp)
+        {
+            // Closing the socket sends a RST instead of a FIN.
+            LingerState = new LingerOption(enable: true, seconds: 0)
+        };
+        await socket.ConnectAsync(IPAddress.IPv6Loopback, listener.TransportAddress.Port);
+        socket.Close();
+
+        // Act
+        IceRpcException? exception = null;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            (IDuplexConnection connection, EndPoint _) = await listener.AcceptAsync(cts.Token);
+            connection.Dispose();
+        }
+        catch (IceRpcException ex)
+        {
+            exception = ex;
+        }
+
+        // Assert
+        Assert.That(exception?.IceRpcError, Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see
     /// cref="NotSupportedException" /> exception.</summary>
     [Test]
