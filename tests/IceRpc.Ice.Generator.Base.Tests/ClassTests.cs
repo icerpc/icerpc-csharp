@@ -60,6 +60,8 @@ public sealed class ClassTests
         // Act
         MyInternalClass? decoded = decoder.DecodeClass<MyInternalClass>();
 
+        // Assert
+        Assert.That(typeof(MyInternalClass).IsNotPublic, Is.True);
         Assert.That(decoded?.M1, Is.EqualTo("m1"));
         Assert.That(decoded?.M2, Is.EqualTo("m2"));
     }
