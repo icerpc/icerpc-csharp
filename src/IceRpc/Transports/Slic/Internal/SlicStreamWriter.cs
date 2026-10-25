@@ -9,12 +9,10 @@ namespace IceRpc.Transports.Slic.Internal;
 
 // Type owns disposable field(s) '_completeWritesCts' and '_sendCreditSemaphore' but is not disposable
 #pragma warning disable CA1001
-internal class SlicPipeWriter : ReadOnlySequencePipeWriter
+internal class SlicStreamWriter : IMultiplexedStreamWriter
 #pragma warning restore CA1001
 {
-    public override bool CanGetUnflushedBytes => true;
-
-    public override long UnflushedBytes => _pipe.Writer.UnflushedBytes;
+    public long UnflushedBytes => _pipe.Writer.UnflushedBytes;
 
     // We can avoid disposing _completeWritesCts because it was not created using CreateLinkedTokenSource, and it
     // doesn't use a timer. It is not easy to dispose it because CompleteWrites can be called by another thread after
@@ -22,40 +20,29 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
+    // Set by a WriteAsync call with endStream: no further write is allowed.
+    private bool _isEnded;
     private volatile int _peerWindowSize;
     private readonly Pipe _pipe;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private readonly SlicStream _stream;
 
-    public override void Advance(int bytes)
+    public void Advance(int count)
     {
-        if (_isCompleted)
-        {
-            throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
-        }
-        _pipe.Writer.Advance(bytes);
+        ThrowIfWritingNotAllowed();
+        _pipe.Writer.Advance(count);
     }
 
-    // SlicPipeWriter does not support this method: the IceRPC core does not need it. And when the application code
-    // installs a payload writer interceptor, this interceptor should never call it on "next".
-    public override void CancelPendingFlush() => throw new NotSupportedException();
-
-    public override void Complete(Exception? exception = null)
+    public void Complete(Exception exception)
     {
         if (!_isCompleted)
         {
             _isCompleted = true;
 
-            if (exception is null && _pipe.Writer.UnflushedBytes > 0)
-            {
-                throw new InvalidOperationException(
-                    $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
-            }
-
-            // If the exception is set, forcefully close the stream writes if writes were not already gracefully closed
-            // by WriteAsync called with endStream=true. Otherwise, if exception is null, writes are gracefully closed.
-            _stream.CloseWrites(graceful: exception is null);
+            // Forcefully close the stream writes unless they were already gracefully closed by a WriteAsync call with
+            // endStream set.
+            _stream.CloseWrites(graceful: false);
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
@@ -68,31 +55,50 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
-        // WriteAsync will flush the internal buffer
-        WriteAsync(ReadOnlySequence<byte>.Empty, endStream: false, cancellationToken);
+    public async ValueTask CompleteAsync(CancellationToken cancellationToken)
+    {
+        if (!_isCompleted)
+        {
+            // The StreamLast frame is needed when the peer hasn't closed its reads yet and the stream is started or
+            // has unflushed bytes; an unstarted stream with nothing to send is unknown to the peer.
+            if (!_isEnded &&
+                (_pipe.Writer.UnflushedBytes > 0 || (_stream.IsStarted && !_stream.WritesClosed.IsCompleted)))
+            {
+                try
+                {
+                    _ = await WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    Complete(exception);
+                    throw;
+                }
+            }
 
-    public override Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
+            _isCompleted = true;
 
-    public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
+            // Closes the writes of an unstarted stream; otherwise, writes are already closed or a StreamLast frame is
+            // queued.
+            _stream.CloseWrites(graceful: true);
 
-    public override ValueTask<FlushResult> WriteAsync(
-        ReadOnlyMemory<byte> source,
-        CancellationToken cancellationToken) =>
-        WriteAsync(new ReadOnlySequence<byte>(source), endStream: false, cancellationToken);
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
+        }
+    }
 
-    public override async ValueTask<FlushResult> WriteAsync(
+    public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
+
+    public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
+
+    public async ValueTask<WriteResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
         CancellationToken cancellationToken)
     {
-        if (_isCompleted)
-        {
-            throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
-        }
+        ThrowIfWritingNotAllowed();
+        _isEnded = endStream;
 
-        // Flush the pipe before the check for the close connection. This makes sure that the check for unflushed data
-        // on successful compete succeeds. See the Complete implementation above.
         if (_pipe.Writer.UnflushedBytes > 0)
         {
             await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
@@ -121,25 +127,24 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         if (source1.IsEmpty && source2.IsEmpty && !endStream)
         {
-            // WriteAsync is called with an empty buffer, typically by a call to FlushAsync. Some payload writers such
-            // as the deflate compressor might do this.
-            return new FlushResult(isCanceled: false, isCompleted: false);
+            // Nothing to send; a payload writer such as the compressor can call WriteAsync with an empty buffer to
+            // flush.
+            return WriteResult.Written;
         }
 
         try
         {
-            return await _stream.WriteStreamFrameAsync(
+            await _stream.WriteStreamFrameAsync(
                 source1,
                 source2,
                 endStream,
                 _completeWritesCts.Token).ConfigureAwait(false);
+            return WriteResult.Written;
         }
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return _exception is null ?
-                new FlushResult(isCanceled: false, isCompleted: true) :
-                throw ExceptionUtil.Throw(_exception);
+            return _exception is null ? WriteResult.WritesClosed : throw ExceptionUtil.Throw(_exception);
         }
         finally
         {
@@ -153,13 +158,13 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal SlicPipeWriter(SlicStream stream, SlicConnection connection)
+    internal SlicStreamWriter(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
         _peerWindowSize = connection.PeerInitialStreamWindowSize;
 
-        // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
-        // the Slic flow control doesn't permit sending more data.
+        // Create a pipe that never pauses on flush or write. The SlicStreamWriter will pause the write if the Slic
+        // flow control doesn't permit sending more data.
         // The readerScheduler doesn't matter (we don't call _pipe.Reader.ReadAsync) and the writerScheduler doesn't
         // matter (_pipe.Writer.FlushAsync never blocks).
         _pipe = new(new PipeOptions(
@@ -183,8 +188,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     }
 
     /// <summary>Complete writes.</summary>
-    /// <param name="exception">The exception that will be raised by <see cref="PipeWriter.WriteAsync" /> or <see
-    /// cref="FlushAsync" />.</param>
+    /// <param name="exception">The exception that will be raised by <see cref="WriteAsync" />.</param>
     internal void CompleteWrites(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
@@ -228,6 +232,15 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
             _sendCreditSemaphore.Release();
+        }
+    }
+
+    private void ThrowIfWritingNotAllowed()
+    {
+        if (_isCompleted || _isEnded)
+        {
+            throw new InvalidOperationException(
+                "Writing is not allowed once the writer is completed or the stream is ended.");
         }
     }
 }

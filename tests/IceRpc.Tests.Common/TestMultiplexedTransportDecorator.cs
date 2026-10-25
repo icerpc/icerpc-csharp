@@ -55,7 +55,7 @@ public enum MultiplexedTransportOperations
     /// <summary>The <see cref="PipeReader.ReadAsync" /> operation.</summary>
     StreamRead = 64,
 
-    /// <summary>The <see cref="PipeWriter.WriteAsync" /> or <see cref="PipeWriter.FlushAsync" /> operation.</summary>
+    /// <summary>The <see cref="IMultiplexedStreamWriter.WriteAsync" /> operation.</summary>
     StreamWrite = 128,
 }
 
@@ -284,7 +284,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                     // Cleanup the stream if the operation is configured to fail.
                     if (stream.IsBidirectional)
                     {
-                        stream.Output.Complete();
+                        stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
                     }
                     stream.Input.Complete();
                 }
@@ -308,7 +308,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.CreateStream))
                 {
                     // Cleanup the stream if the operation is not configure to fail.
-                    stream.Output.Complete();
+                    stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
                     if (stream.IsBidirectional)
                     {
                         stream.Input.Complete();
@@ -387,7 +387,8 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     public bool IsStarted => _decoratee.IsStarted;
 
     /// <inheritdoc/>
-    public PipeWriter Output => _output ?? throw new InvalidOperationException("No output for unidirectional stream.");
+    public IMultiplexedStreamWriter Output =>
+        _output ?? throw new InvalidOperationException("No output for unidirectional stream.");
 
     /// <inheritdoc/>
     public Task WritesClosed => _decoratee.WritesClosed;
@@ -402,7 +403,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 
     private readonly IMultiplexedStream _decoratee;
     private readonly TestPipeReader? _input;
-    private readonly TestPipeWriter? _output;
+    private readonly TestStreamWriter? _output;
 
     internal TestMultiplexedStreamDecorator(
         IMultiplexedStream decoratee,
@@ -412,7 +413,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
         Operations = new(operationsOptions);
         if (!IsRemote || IsBidirectional)
         {
-            _output = new TestPipeWriter(decoratee.Output, Operations);
+            _output = new TestStreamWriter(decoratee.Output, Operations);
         }
         if (IsRemote || IsBidirectional)
         {
@@ -433,54 +434,48 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     }
 }
 
-internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
+internal sealed class TestStreamWriter : IMultiplexedStreamWriter
 {
-    public override bool CanGetUnflushedBytes => _decoratee.CanGetUnflushedBytes;
-
-    public override long UnflushedBytes => _decoratee.UnflushedBytes;
+    public long UnflushedBytes => _decoratee.UnflushedBytes;
 
     internal Task Completed => _completedTcs.Task;
 
     private readonly TaskCompletionSource _completedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly ReadOnlySequencePipeWriter _decoratee;
+    private readonly IMultiplexedStreamWriter _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
-    public override void Advance(int bytes) => _decoratee.Advance(bytes);
+    public void Advance(int count) => _decoratee.Advance(count);
 
-    public override void CancelPendingFlush() => _decoratee.CancelPendingFlush();
-
-    public override void Complete(Exception? exception)
+    public void Complete(Exception exception)
     {
         _operations.Hold &= ~MultiplexedTransportOperations.StreamWrite;
         _decoratee.Complete(exception);
         _completedTcs.TrySetResult();
     }
 
-    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
-        _operations.CallAsync(
-            MultiplexedTransportOperations.StreamWrite,
-            () => _decoratee.FlushAsync(cancellationToken),
-            cancellationToken);
+    public async ValueTask CompleteAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _decoratee.CompleteAsync(cancellationToken);
+        }
+        finally
+        {
+            _completedTcs.TrySetResult();
+        }
+    }
 
-    public override Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
+    public Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
 
-    public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
+    public Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-    public override ValueTask<FlushResult> WriteAsync(
-        ReadOnlyMemory<byte> source,
-        CancellationToken cancellationToken) =>
-        _operations.CallAsync(
-            MultiplexedTransportOperations.StreamWrite,
-            () => _decoratee.WriteAsync(source, cancellationToken),
-            cancellationToken);
-
-    public override ValueTask<FlushResult> WriteAsync(
+    public ValueTask<WriteResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
         CancellationToken cancellationToken) =>
         _operations.CallAsync(
             MultiplexedTransportOperations.StreamWrite,
-            async ValueTask<FlushResult> () =>
+            async ValueTask<WriteResult> () =>
             {
                 return await _decoratee.WriteAsync(
                     source,
@@ -489,11 +484,11 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
             },
             cancellationToken);
 
-    internal TestPipeWriter(
-        PipeWriter decoratee,
+    internal TestStreamWriter(
+        IMultiplexedStreamWriter decoratee,
         TransportOperations<MultiplexedTransportOperations> operations)
     {
-        _decoratee = (ReadOnlySequencePipeWriter)decoratee;
+        _decoratee = decoratee;
         _operations = operations;
     }
 }

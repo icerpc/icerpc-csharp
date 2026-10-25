@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Transports;
 using System.IO.Pipelines;
 
 namespace IceRpc;
@@ -42,18 +43,14 @@ public abstract class OutgoingFrame
 
     private PipeReader? _payloadContinuation;
 
-    private Stack<Func<PipeWriter, PipeWriter>>? _payloadWriterInterceptorStack;
+    private Stack<Func<IMultiplexedStreamWriter, IMultiplexedStreamWriter>>? _payloadWriterInterceptorStack;
 
     /// <summary>Installs a payload writer interceptor in this outgoing frame. This interceptor is executed just
     /// before sending <see cref="Payload" />, and is typically used to compress both <see cref="Payload" /> and
     /// <see cref="PayloadContinuation" />.</summary>
     /// <param name="payloadWriterInterceptor">The payload writer interceptor to install.</param>
     /// <returns>This outgoing frame.</returns>
-    /// <remarks>IceRPC completes the payload writer <see cref="PipeWriter" /> with the <see
-    /// cref="PipeWriter.Complete(Exception?)" /> method. It never calls <see
-    /// cref="PipeWriter.CompleteAsync(Exception?)" />. The implementation of <see
-    /// cref="PipeWriter.Complete(Exception?)" /> should not block.</remarks>
-    public OutgoingFrame Use(Func<PipeWriter, PipeWriter> payloadWriterInterceptor)
+    public OutgoingFrame Use(Func<IMultiplexedStreamWriter, IMultiplexedStreamWriter> payloadWriterInterceptor)
     {
         if (!Protocol.SupportsPayloadWriterInterceptors)
         {
@@ -66,11 +63,12 @@ public abstract class OutgoingFrame
     }
 
     /// <summary>Returns the payload writer to use when sending the payload.</summary>
-    internal PipeWriter GetPayloadWriter(PipeWriter writer)
+    internal IMultiplexedStreamWriter GetPayloadWriter(IMultiplexedStreamWriter writer)
     {
         if (_payloadWriterInterceptorStack is not null)
         {
-            foreach (Func<PipeWriter, PipeWriter> interceptor in _payloadWriterInterceptorStack)
+            foreach (Func<IMultiplexedStreamWriter, IMultiplexedStreamWriter> interceptor in
+                _payloadWriterInterceptorStack)
             {
                 writer = interceptor(writer);
             }

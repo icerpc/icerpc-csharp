@@ -24,13 +24,13 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
     public bool IsStarted => true;
 
-    public PipeWriter Output =>
-        _outputPipeWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
+    public IMultiplexedStreamWriter Output =>
+        _outputWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
 
-    public Task WritesClosed => _outputPipeWriter?.Closed ?? Task.CompletedTask;
+    public Task WritesClosed => _outputWriter?.Closed ?? Task.CompletedTask;
 
     private readonly QuicPipeReader? _inputPipeReader;
-    private readonly QuicPipeWriter? _outputPipeWriter;
+    private readonly QuicStreamWriter? _outputWriter;
     private readonly QuicStream _stream;
 
     internal QuicMultiplexedStream(
@@ -55,8 +55,8 @@ internal class QuicMultiplexedStream : IMultiplexedStream
                 ReleaseStream,
                 throwIfConnectionClosedOrDisposed) :
             null;
-        _outputPipeWriter = stream.CanWrite ?
-            new QuicPipeWriter(
+        _outputWriter = stream.CanWrite ?
+            new QuicStreamWriter(
                 stream,
                 pool,
                 minSegmentSize,

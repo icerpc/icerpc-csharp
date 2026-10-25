@@ -477,7 +477,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Cleanup
         foreach (IMultiplexedStream stream in streams)
         {
-            stream.Output.Complete();
+            await stream.Output.CompleteAsync(default);
             stream.Input.Complete();
         }
     }
@@ -541,7 +541,14 @@ public sealed class IceRpcProtocolConnectionTests
         // Act - manufacture an invalid request by writing directly to the multiplexed connection.
         stream.Output.Write(invalidRequestBytes);
         await stream.Output.FlushAsync();
-        stream.Output.CompleteOutput(success);
+        if (success)
+        {
+            await stream.Output.CompleteAsync(default);
+        }
+        else
+        {
+            stream.Output.Complete(new Exception());
+        }
 
         // Assert
         Assert.That(
@@ -589,7 +596,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act - write the manufactured request directly to the multiplexed stream.
         stream.Output.Write(requestBytes);
         await stream.Output.FlushAsync();
-        stream.Output.CompleteOutput(success: true);
+        await stream.Output.CompleteAsync(default);
 
         // Assert
         Assert.That(
@@ -667,7 +674,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         stream.Output.Write(writer.WrittenMemory.Span);
         await stream.Output.FlushAsync();
-        stream.Output.CompleteOutput(success: true);
+        await stream.Output.CompleteAsync(default);
 
         // Assert
         Assert.That(
@@ -712,7 +719,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         stream.Output.Write(writer.WrittenMemory.Span);
         await stream.Output.FlushAsync();
-        stream.Output.CompleteOutput(success: true);
+        await stream.Output.CompleteAsync(default);
 
         // Assert
         Assert.That(
@@ -1421,7 +1428,7 @@ public sealed class IceRpcProtocolConnectionTests
             {
                 Payload = payloadDecorator
             };
-            response.Use(writer => InvalidPipeWriter.Instance);
+            response.Use(writer => InvalidMultiplexedStreamWriter.Instance);
             return new(response);
         });
 
@@ -1696,10 +1703,10 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var payloadWriterSource = new TaskCompletionSource<PayloadWriterDecorator>();
         request.Use(writer =>
         {
-            var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+            var payloadWriterDecorator = new PayloadWriterDecorator(writer);
             payloadWriterSource.SetResult(payloadWriterDecorator);
             return payloadWriterDecorator;
         });
@@ -1719,13 +1726,13 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task PayloadWriter_completed_with_valid_response()
     {
         // Arrange
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var payloadWriterSource = new TaskCompletionSource<PayloadWriterDecorator>();
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             var response = new OutgoingResponse(request);
             response.Use(writer =>
             {
-                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                var payloadWriterDecorator = new PayloadWriterDecorator(writer);
                 payloadWriterSource.SetResult(payloadWriterDecorator);
                 return payloadWriterDecorator;
             });
@@ -1767,10 +1774,10 @@ public sealed class IceRpcProtocolConnectionTests
         {
             Payload = InvalidPipeReader.Instance
         };
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var payloadWriterSource = new TaskCompletionSource<PayloadWriterDecorator>();
         request.Use(writer =>
             {
-                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                var payloadWriterDecorator = new PayloadWriterDecorator(writer);
                 payloadWriterSource.SetResult(payloadWriterDecorator);
                 return payloadWriterDecorator;
             });
@@ -1790,7 +1797,7 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task PayloadWriter_completed_with_invalid_response()
     {
         // Arrange
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var payloadWriterSource = new TaskCompletionSource<PayloadWriterDecorator>();
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
             {
                 var response = new OutgoingResponse(request)
@@ -1799,7 +1806,7 @@ public sealed class IceRpcProtocolConnectionTests
                 };
                 response.Use(writer =>
                 {
-                    var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                    var payloadWriterDecorator = new PayloadWriterDecorator(writer);
                     payloadWriterSource.SetResult(payloadWriterDecorator);
                     return payloadWriterDecorator;
                 });
@@ -1960,7 +1967,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         if (invalidGoAwayFrame.Length == 0)
         {
-            serverControlStream.Output.Complete();
+            await serverControlStream.Output.CompleteAsync(default);
         }
         else
         {
@@ -1998,7 +2005,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         if (invalidGoAwayFrame.Length == 0)
         {
-            clientControlStream.Output.Complete();
+            await clientControlStream.Output.CompleteAsync(default);
         }
         else
         {

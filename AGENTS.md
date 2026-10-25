@@ -78,8 +78,9 @@ code in a way that reverses one of these decisions. The ones most likely to matt
 
 - `.slice`, `.proto`, and `.ice` files are trusted build inputs, not untrusted data; the generators don't validate or
   sanitize what they emit from them.
-- Complete every `PipeReader` and `PipeWriter` with `Complete`, never `CompleteAsync`; a `Complete` implementation must
-  not block.
+- Complete every `PipeReader` with `Complete`, never `CompleteAsync`; a `Complete` implementation must not block. An
+  `IMultiplexedStreamWriter` is completed with `CompleteAsync` on success and `Complete(Exception)` on failure; only the
+  former may write.
 - Unknown wire values (enumerators, parameters, fields) are tolerated for forward compatibility, not rejected.
 - Limits are enforced systemically (decoder allocation budgets, frame size limits), not with a guard at each call site.
 - Don't add defensive code for paths that only fire when a documented contract is already violated.

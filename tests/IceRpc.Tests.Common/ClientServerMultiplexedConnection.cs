@@ -69,7 +69,7 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
         IMultiplexedStream localStream = await createStreamConnection.CreateStreamAsync(
             bidirectional: bidirectional,
             default).ConfigureAwait(false);
-        _ = await localStream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), cancellationToken);
+        _ = await localStream.Output.WriteAsync(new byte[] { 0xFF }, cancellationToken);
         IMultiplexedStream remoteStream = await acceptStreamConnection.AcceptStreamAsync(cancellationToken);
         ReadResult readResult = await remoteStream.Input.ReadAsync(cancellationToken);
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
@@ -100,8 +100,8 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
     }
 }
 
-/// <summary>A helper class to provide access to a local and remote stream. It also ensures the streams are correctly
-/// completed.</summary>
+/// <summary>A helper class to provide access to a local and remote stream. Its disposal aborts the streams that the
+/// test didn't complete.</summary>
 public sealed class LocalAndRemoteMultiplexedStreams : IDisposable
 {
     /// <summary>The local stream.</summary>
@@ -127,7 +127,7 @@ public sealed class LocalAndRemoteMultiplexedStreams : IDisposable
     {
         if (stream.IsBidirectional)
         {
-            stream.Output.Complete();
+            stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
             stream.Input.Complete();
         }
         else if (stream.IsRemote)
@@ -136,7 +136,7 @@ public sealed class LocalAndRemoteMultiplexedStreams : IDisposable
         }
         else
         {
-            stream.Output.Complete();
+            stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
         }
     }
 }

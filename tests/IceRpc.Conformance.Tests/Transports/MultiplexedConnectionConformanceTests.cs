@@ -160,7 +160,7 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(async () => await clientStream2Task, Throws.Nothing);
 
         // Cleanup
-        clientStream1.Output.Complete();
+        await clientStream1.Output.CompleteAsync(default);
     }
 
     [Test]
@@ -188,7 +188,14 @@ public abstract class MultiplexedConnectionConformanceTests
         bool stream2TaskIsCompleted = clientStream2Task.IsCompleted;
         // Completing the remote input and output will allow a new stream to be accepted.
         serverStream1.Input.Complete(abort ? new Exception() : null);
-        serverStream1.Output.Complete(abort ? new Exception() : null);
+        if (abort)
+        {
+            serverStream1.Output.Complete(new Exception());
+        }
+        else
+        {
+            await serverStream1.Output.CompleteAsync(default);
+        }
 
         // Assert
 
@@ -199,7 +206,7 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(async () => await clientStream2Task, Throws.Nothing);
 
         // Cleanup
-        clientStream1.Output.Complete();
+        await clientStream1.Output.CompleteAsync(default);
         clientStream1.Input.Complete();
     }
 
@@ -322,8 +329,8 @@ public abstract class MultiplexedConnectionConformanceTests
                 // It can take few writes for the peer to detect the connection closure.
                 while (true)
                 {
-                    FlushResult result = await peerStream.Output.WriteAsync(_oneBytePayload);
-                    Assert.That(result.IsCompleted, Is.False);
+                    WriteResult result = await peerStream.Output.WriteAsync(_oneBytePayload);
+                    Assert.That(result, Is.EqualTo(WriteResult.Written));
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });
@@ -521,9 +528,9 @@ public abstract class MultiplexedConnectionConformanceTests
 
         using var streams = await sut.CreateAndAcceptStreamAsync();
         streams.Local.Input.Complete();
-        streams.Remote.Output.Complete();
+        await streams.Remote.Output.CompleteAsync(default);
 
-        Task<FlushResult> writeTask;
+        Task<WriteResult> writeTask;
         while (true)
         {
             writeTask = streams.Local.Output.WriteAsync(payload).AsTask();
@@ -543,7 +550,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
-        streams.Local.Output.Complete();
+        await streams.Local.Output.CompleteAsync(default);
         Assert.That(async () => await readTask, Throws.Nothing);
 
         static async Task ReadAsync(IMultiplexedStream stream)
@@ -584,13 +591,20 @@ public abstract class MultiplexedConnectionConformanceTests
             Throws.InstanceOf<TimeoutException>());
 
         // Completing the remote output and input will allow a new stream to be accepted.
-        streams.Remote.Output.Complete(abort ? new Exception() : null);
+        if (abort)
+        {
+            streams.Remote.Output.Complete(new Exception());
+        }
+        else
+        {
+            await streams.Remote.Output.CompleteAsync(default);
+        }
         streams.Remote.Input.Complete(abort ? new Exception() : null);
 
         using var _ = await newStreamsTask;
 
         // Cleanup
-        streams.Local.Output.Complete();
+        await streams.Local.Output.CompleteAsync(default);
         streams.Local.Input.Complete();
     }
 
@@ -646,7 +660,7 @@ public abstract class MultiplexedConnectionConformanceTests
                 streamCount++;
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
-            stream.Output.Complete();
+            await stream.Output.CompleteAsync(default);
 
             while (true)
             {
@@ -679,7 +693,7 @@ public abstract class MultiplexedConnectionConformanceTests
             }
 
             await stream.Output.WriteAsync(payload);
-            stream.Output.Complete();
+            await stream.Output.CompleteAsync(default);
         }
     }
 
@@ -742,7 +756,7 @@ public abstract class MultiplexedConnectionConformanceTests
             await stream.Output.WriteAsync(payload);
             await stream.Output.WriteAsync(payload);
 
-            stream.Output.Complete();
+            await stream.Output.CompleteAsync(default);
         }
 
         async Task ServerReadAsync(IMultiplexedStream stream)
@@ -825,7 +839,7 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
 
         stream1.Input.Complete();
-        stream1.Output.Complete();
+        await stream1.Output.CompleteAsync(default);
     }
 
     /// <summary>This test verifies that stream flow control prevents a new stream from being created under the
@@ -850,7 +864,7 @@ public abstract class MultiplexedConnectionConformanceTests
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
 
         IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
-        serverStream1.Output.Complete();
+        await serverStream1.Output.CompleteAsync(default);
 
         // At this point the server stream input is not completed. CreateStreamAsync should block because the data isn't
         // consumed.
@@ -886,16 +900,13 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.AcceptAndConnectAsync();
 
         IMultiplexedStream clientStream1 = await sut.Client.CreateStreamAsync(bidirectional, default);
-        await ((ReadOnlySequencePipeWriter)clientStream1.Output).WriteAsync(
-            new ReadOnlySequence<byte>(_oneBytePayload),
-            endStream: true,
-            default);
-        clientStream1.Output.Complete();
+        await clientStream1.Output.WriteAsync(new ReadOnlySequence<byte>(_oneBytePayload), endStream: true, default);
+        await clientStream1.Output.CompleteAsync(default);
 
         IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
         if (bidirectional)
         {
-            serverStream1.Output.Complete();
+            await serverStream1.Output.CompleteAsync(default);
         }
 
         // At this point the server stream input is not completed. CreateStreamAsync should block because the data isn't

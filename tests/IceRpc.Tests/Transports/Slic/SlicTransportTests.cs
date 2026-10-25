@@ -660,7 +660,7 @@ public class SlicTransportTests
             _ = await stream.Output.WriteAsync(new byte[1], default);
             await Task.Delay(TimeSpan.FromMilliseconds(500));
         }
-        stream.Output.Complete();
+        await stream.Output.CompleteAsync(default);
         ValueTask<IMultiplexedStream> nextAcceptStreamTask = sut.Server.AcceptStreamAsync(default);
 
         // Assert
@@ -923,7 +923,7 @@ public class SlicTransportTests
             exception.InnerException?.Message,
             Is.EqualTo("The window update is trying to increase the window size to a value larger than allowed."));
 
-        acceptedStream.Output.Complete();
+        await acceptedStream.Output.CompleteAsync(default);
         acceptedStream.Input.Complete();
     }
 
@@ -1028,7 +1028,7 @@ public class SlicTransportTests
             exception.InnerException?.Message,
             Is.EqualTo("Received StreamWindowUpdate frame with a zero window size increment."));
 
-        acceptedStream.Output.Complete();
+        await acceptedStream.Output.CompleteAsync(default);
         acceptedStream.Input.Complete();
     }
 
@@ -1075,7 +1075,7 @@ public class SlicTransportTests
         acceptedStream.Input.AdvanceTo(readResult.Buffer.End);
 
         // Act - write data that spans multiple stream frames, closing writes.
-        await ((ReadOnlySequencePipeWriter)acceptedStream.Output).WriteAsync(
+        await acceptedStream.Output.WriteAsync(
             new ReadOnlySequence<byte>(new byte[10_000]),
             endStream: true,
             default);
@@ -1091,7 +1091,7 @@ public class SlicTransportTests
             frameTypes,
             Is.EqualTo(new[] { FrameType.Stream, FrameType.Stream, FrameType.StreamLast, FrameType.StreamReadsClosed }));
 
-        acceptedStream.Output.Complete();
+        await acceptedStream.Output.CompleteAsync(default);
         acceptedStream.Input.Complete();
     }
 
@@ -1195,7 +1195,7 @@ public class SlicTransportTests
         _ = await streams.Local.Output.WriteAsync(payload, default);
 
         // Act
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
 
         // Assert
         await Task.Delay(TimeSpan.FromMilliseconds(50));
@@ -1226,7 +1226,7 @@ public class SlicTransportTests
         using var streams2 = await sut.CreateAndAcceptStreamAsync();
 
         _ = await streams1.Local.Output.WriteAsync(payload, default);
-        ValueTask<FlushResult> writeTask = streams1.Local.Output.WriteAsync(payload, default);
+        ValueTask<WriteResult> writeTask = streams1.Local.Output.WriteAsync(payload, default);
 
         // Act
 
@@ -1270,7 +1270,7 @@ public class SlicTransportTests
 
         // Act
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[128 * 1024], writeCts.Token);
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(new byte[128 * 1024], writeCts.Token);
         writeCts.Cancel();
 
         // Assert
@@ -1281,8 +1281,8 @@ public class SlicTransportTests
     }
 
     /// <summary>Verifies that when a write on the underlying duplex connection fails, a subsequent fire-and-forget
-    /// stream frame (here the StreamLast frame sent when the stream's output is completed) closes the Slic connection
-    /// instead of letting the transport exception go unobserved.</summary>
+    /// stream frame (here the StreamWritesClosed frame sent when the stream's output is aborted) closes the Slic
+    /// connection instead of letting the transport exception go unobserved.</summary>
     [Test]
     public async Task Duplex_connection_write_failure_from_fire_and_forget_stream_frame_closes_connection()
     {
@@ -1318,9 +1318,9 @@ public class SlicTransportTests
         // Give the background writer task time to fail and complete its pipe reader.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
-        // Completing the stream sends a StreamLast/StreamReadsClosed frame through the fire-and-forget write path,
-        // whose flush rethrows the transport exception.
-        streams.Local.Output.Complete();
+        // Aborting the stream output sends a StreamWritesClosed frame through the fire-and-forget write path, whose
+        // flush rethrows the transport exception.
+        streams.Local.Output.Complete(new Exception());
         streams.Local.Input.Complete();
 
         // Assert
@@ -1529,7 +1529,10 @@ public class SlicTransportTests
             async () => await multiplexedServerConnection.AcceptStreamAsync(default),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
 
-        acceptedStream?.Output.Complete();
+        if (acceptedStream is not null)
+        {
+            await acceptedStream.Output.CompleteAsync(default);
+        }
         acceptedStream?.Input.Complete();
     }
 
@@ -1549,7 +1552,7 @@ public class SlicTransportTests
 
         using var streams = await sut.CreateAndAcceptStreamAsync();
 
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[windowSize + 1024], default);
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(new byte[windowSize + 1024], default);
         ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(windowSize, default);
 
         // Act
@@ -1748,11 +1751,10 @@ public class SlicTransportTests
         byte[] payload = new byte[128 * 1024];
         try
         {
-            FlushResult flushResult = await streams.Local.Output.WriteAsync(payload, cts.Token);
+            WriteResult writeResult = await streams.Local.Output.WriteAsync(payload, cts.Token);
 
             // Assert: the write completes without the background writer task draining anything.
-            Assert.That(flushResult.IsCompleted, Is.False);
-            Assert.That(flushResult.IsCanceled, Is.False);
+            Assert.That(writeResult, Is.EqualTo(WriteResult.Written));
         }
         finally
         {
@@ -1792,7 +1794,7 @@ public class SlicTransportTests
         using var writeCts = new CancellationTokenSource();
 
         // Act: the next write blocks on AcquireSendCreditAsync because the peer window is exhausted.
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, writeCts.Token);
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(payload, writeCts.Token);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
         writeCts.Cancel();
@@ -1838,7 +1840,7 @@ public class SlicTransportTests
         streams.Remote.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
 
         // Assert: the stream still works. Write the last stream frame; the next read returns all the data.
-        _ = await ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+        _ = await streams.Local.Output.WriteAsync(
             new ReadOnlySequence<byte>(new byte[1]),
             endStream: true,
             default);
@@ -1972,7 +1974,7 @@ public class SlicTransportTests
 
         // Create a stream and complete it without ever writing: the stream is never started.
         IMultiplexedStream stream = await sut.Client.CreateStreamAsync(bidirectional, default);
-        stream.Output.Complete();
+        await stream.Output.CompleteAsync(default);
         if (bidirectional)
         {
             stream.Input.Complete();
@@ -1986,7 +1988,7 @@ public class SlicTransportTests
             .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
 
         // Cleanup
-        nextStream.Output.Complete();
+        await nextStream.Output.CompleteAsync(default);
         if (bidirectional)
         {
             nextStream.Input.Complete();
@@ -2016,7 +2018,7 @@ public class SlicTransportTests
 
         // The endStream write blocks on AcquireSendCreditAsync because the peer window is exhausted; cancel it
         // before the StreamLast frame is written.
-        ValueTask<FlushResult> writeTask = ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(
             new ReadOnlySequence<byte>(payload),
             endStream: true,
             writeCts.Token);
@@ -2081,7 +2083,7 @@ public class SlicTransportTests
 
         // This write queues the data and the StreamLast frame on the connection's outbound pipe, then parks on
         // FlushAsync; cancel it while parked.
-        ValueTask<FlushResult> writeTask = ((ReadOnlySequencePipeWriter)streams.Local.Output).WriteAsync(
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(
             new ReadOnlySequence<byte>(payload),
             endStream: true,
             writeCts.Token);
@@ -2125,15 +2127,15 @@ public class SlicTransportTests
 
         // The endStream write parks on AcquireSendCreditAsync because the peer window is exhausted; the client closes
         // its reads while the write is parked, which cancels the write.
-        ValueTask<FlushResult> writeTask = ((ReadOnlySequencePipeWriter)serverStream.Output).WriteAsync(
+        ValueTask<WriteResult> writeTask = serverStream.Output.WriteAsync(
             new ReadOnlySequence<byte>(new byte[4 * 1024]),
             endStream: true,
             cancellationToken);
         await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
         Assert.That(writeTask.IsCompleted, Is.False);
         clientStream.Input.Complete(new OperationCanceledException());
-        FlushResult flushResult = await writeTask;
-        Assert.That(flushResult.IsCompleted, Is.True);
+        WriteResult writeResult = await writeTask;
+        Assert.That(writeResult, Is.EqualTo(WriteResult.WritesClosed));
 
         // Act/Assert
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
@@ -2155,11 +2157,11 @@ public class SlicTransportTests
 
         clientStream.Input.Complete(new OperationCanceledException());
         await serverStream.WritesClosed.WaitAsync(cancellationToken);
-        FlushResult flushResult = await ((ReadOnlySequencePipeWriter)serverStream.Output).WriteAsync(
+        WriteResult writeResult = await serverStream.Output.WriteAsync(
             new ReadOnlySequence<byte>(new byte[4 * 1024]),
             endStream: true,
             cancellationToken);
-        Assert.That(flushResult.IsCompleted, Is.True);
+        Assert.That(writeResult, Is.EqualTo(WriteResult.WritesClosed));
 
         // Act/Assert
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
@@ -2238,7 +2240,7 @@ public class SlicTransportTests
         try
         {
             // Act: this write fills the connection-level pipe past PauseWriterThreshold and parks on FlushAsync.
-            ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(
+            ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(
                 new byte[8 * 1024],
                 writeCts.Token);
             await Task.Delay(TimeSpan.FromMilliseconds(50));
@@ -2285,7 +2287,7 @@ public class SlicTransportTests
 
         using var writeCts = new CancellationTokenSource();
 
-        ValueTask<FlushResult> firstWriteTask = firstStreams.Local.Output.WriteAsync(
+        ValueTask<WriteResult> firstWriteTask = firstStreams.Local.Output.WriteAsync(
             new byte[8 * 1024],
             writeCts.Token);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
@@ -2300,11 +2302,10 @@ public class SlicTransportTests
 
         using var secondStreams = await sut.CreateAndAcceptStreamAsync();
         byte[] payload = new byte[1024];
-        FlushResult flushResult = await secondStreams.Local.Output.WriteAsync(payload);
+        WriteResult writeResult = await secondStreams.Local.Output.WriteAsync(payload);
 
         // Assert: the new stream's write completes normally.
-        Assert.That(flushResult.IsCompleted, Is.False);
-        Assert.That(flushResult.IsCanceled, Is.False);
+        Assert.That(writeResult, Is.EqualTo(WriteResult.Written));
 
         ReadResult readResult = await secondStreams.Remote.Input.ReadAtLeastAsync(payload.Length);
         Assert.That((int)readResult.Buffer.Length, Is.GreaterThanOrEqualTo(payload.Length));
@@ -2341,7 +2342,7 @@ public class SlicTransportTests
         // Push enough server-side stream data into the outbound pipe to exceed PauseWriterThreshold. This write parks
         // on FlushAsync; CloseAsync below cancels _closedCts which cancels the write's writeCts and releases the write
         // semaphore — but the bytes remain buffered, leaving the pipe past PauseWriterThreshold.
-        Task<FlushResult> serverWriteTask = streams.Remote.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        Task<WriteResult> serverWriteTask = streams.Remote.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(serverWriteTask.IsCompleted, Is.False);
 
@@ -2419,7 +2420,7 @@ public class SlicTransportTests
 
         // This write fills the outbound pipe past PauseWriterThreshold and parks on FlushAsync while holding the
         // write semaphore.
-        Task<FlushResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        Task<WriteResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(serverWriteTask.IsCompleted, Is.False);
 
@@ -2502,7 +2503,7 @@ public class SlicTransportTests
 
         // This write fills the outbound pipe past PauseWriterThreshold and parks on FlushAsync while holding the
         // write semaphore.
-        Task<FlushResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
+        Task<WriteResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(serverWriteTask.IsCompleted, Is.False);
 
@@ -2601,7 +2602,7 @@ public class SlicTransportTests
 
         // Act: write a payload much larger than PauseWriterThreshold.
         byte[] payload = new byte[256 * 1024];
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
 
         // The peer reads everything.
         int totalRead = 0;
@@ -2636,7 +2637,7 @@ public class SlicTransportTests
 
         // Act: write a payload larger than PauseWriterThreshold.
         byte[] payload = new byte[64 * 1024];
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
 
         int totalRead = 0;
         while (totalRead < payload.Length)
@@ -2670,8 +2671,8 @@ public class SlicTransportTests
         // Act: both streams write concurrently.
         byte[] payload = new byte[32 * 1024];
 
-        ValueTask<FlushResult> writeTask1 = streams1.Local.Output.WriteAsync(payload, default);
-        ValueTask<FlushResult> writeTask2 = streams2.Local.Output.WriteAsync(payload, default);
+        ValueTask<WriteResult> writeTask1 = streams1.Local.Output.WriteAsync(payload, default);
+        ValueTask<WriteResult> writeTask2 = streams2.Local.Output.WriteAsync(payload, default);
 
         // Read from both streams concurrently.
         async Task ReadAllAsync(PipeReader reader, int expectedBytes)
@@ -2701,14 +2702,14 @@ public class SlicTransportTests
         CancellationToken cancellationToken)
     {
         // Act: complete the server output, like a dispatch does.
-        serverStream.Output.Complete();
+        await serverStream.Output.CompleteAsync(default);
 
         // Assert: the client stream is released, so a new stream can be created.
         IMultiplexedStream nextStream = await sut.Client.CreateStreamAsync(bidirectional: true, cancellationToken);
 
         // Cleanup
         serverStream.Input.Complete();
-        nextStream.Output.Complete();
+        await nextStream.Output.CompleteAsync(default);
         nextStream.Input.Complete();
     }
 
@@ -2739,7 +2740,7 @@ public class SlicTransportTests
         IMultiplexedStream clientStream = await sut.Client.CreateStreamAsync(bidirectional: true, cancellationToken);
         if (clientEndStreamWrite)
         {
-            _ = await ((ReadOnlySequencePipeWriter)clientStream.Output).WriteAsync(
+            _ = await clientStream.Output.WriteAsync(
                 new ReadOnlySequence<byte>(new byte[1]),
                 endStream: true,
                 cancellationToken);
@@ -2748,7 +2749,7 @@ public class SlicTransportTests
         {
             _ = await clientStream.Output.WriteAsync(new byte[1], cancellationToken);
         }
-        clientStream.Output.Complete();
+        await clientStream.Output.CompleteAsync(default);
 
         // The server consumes the request: reads are gracefully closed and the StreamReadsClosed frame is deferred
         // until the closure of writes.

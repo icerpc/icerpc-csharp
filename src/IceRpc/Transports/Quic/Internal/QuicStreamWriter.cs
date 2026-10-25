@@ -12,16 +12,16 @@ namespace IceRpc.Transports.Quic.Internal;
 [SupportedOSPlatform("linux")]
 [SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
-internal class QuicPipeWriter : ReadOnlySequencePipeWriter
+internal class QuicStreamWriter : IMultiplexedStreamWriter
 {
-    public override bool CanGetUnflushedBytes => true;
-
-    public override long UnflushedBytes => _pipe.Writer.UnflushedBytes;
+    public long UnflushedBytes => _pipe.Writer.UnflushedBytes;
 
     internal Task Closed { get; }
 
-    private bool _isCompleted;
     private readonly Action _completeCallback;
+    private bool _isCompleted;
+    // Set by a WriteAsync call with endStream: no further write is allowed.
+    private bool _isEnded;
     private readonly int _minSegmentSize;
 
     // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
@@ -31,35 +31,20 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     private readonly Action _throwIfConnectionClosedOrDisposed;
 
-    public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+    public void Advance(int count)
+    {
+        ThrowIfWritingNotAllowed();
+        _pipe.Writer.Advance(count);
+    }
 
-    // QuicPipeWriter does not support this method: the IceRPC core does not need it. And when the application code
-    // installs a payload writer interceptor, this interceptor should never call it on "next".
-    public override void CancelPendingFlush() => throw new NotSupportedException();
-
-    public override void Complete(Exception? exception = null)
+    public void Complete(Exception exception)
     {
         if (!_isCompleted)
         {
-            if (exception is null && _pipe.Writer.UnflushedBytes > 0)
-            {
-                throw new InvalidOperationException(
-                    $"Completing a {nameof(QuicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
-            }
-
             _isCompleted = true;
 
-            if (exception is null)
-            {
-                // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
-                // buffered for send on the QUIC stream and aborting the stream would discard this data.
-                _stream.CompleteWrites();
-            }
-            else
-            {
-                // We don't use the application error code, it's irrelevant.
-                _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
-            }
+            // We don't use the application error code, it's irrelevant.
+            _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
 
             _completeCallback();
 
@@ -68,28 +53,49 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
-        // WriteAsync will flush the internal buffer
-        WriteAsync(ReadOnlySequence<byte>.Empty, endStream: false, cancellationToken);
+    public async ValueTask CompleteAsync(CancellationToken cancellationToken)
+    {
+        if (!_isCompleted)
+        {
+            // Nothing to send when the writes are already closed (by the peer or a connection closure) and no bytes
+            // are pending.
+            if (!_isEnded && (_pipe.Writer.UnflushedBytes > 0 || !Closed.IsCompleted))
+            {
+                try
+                {
+                    // Flushes the unflushed bytes, if any, and completes the writes of the QUIC stream. Unlike Slic,
+                    // it's important to complete the writes and not abort the stream: data might still be buffered for
+                    // send on the QUIC stream and aborting the stream would discard this data.
+                    _ = await WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    Complete(exception);
+                    throw;
+                }
+            }
 
-    public override Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
+            _isCompleted = true;
 
-    public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
+            _completeCallback();
 
-    public override ValueTask<FlushResult> WriteAsync(
-        ReadOnlyMemory<byte> source,
-        CancellationToken cancellationToken) =>
-        WriteAsync(new ReadOnlySequence<byte>(source), endStream: false, cancellationToken);
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
+        }
+    }
 
-    public override async ValueTask<FlushResult> WriteAsync(
+    public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
+
+    public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
+
+    public async ValueTask<WriteResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
         CancellationToken cancellationToken)
     {
-        if (_isCompleted)
-        {
-            throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
-        }
+        ThrowIfWritingNotAllowed();
+        _isEnded = endStream;
 
         _throwIfConnectionClosedOrDisposed();
 
@@ -139,24 +145,21 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 if (source.IsEmpty)
                 {
                     // We're done, we don't want to write again an empty sequence.
-                    return new FlushResult(isCanceled: false, isCompleted: endStream);
+                    return WriteResult.Written;
                 }
             }
 
-            if (source.IsEmpty && !endStream)
+            if (!source.IsEmpty || endStream)
             {
-                // Nothing to do; this typically corresponds to a call to FlushAsync when there was no unflushed bytes.
-                return new FlushResult(isCanceled: false, isCompleted: false);
-            }
-            else
-            {
+                // With an empty source and endStream, this only completes the writes of the QUIC stream.
                 await WriteSequenceAsync(source, completeWrites: endStream, cancellationToken).ConfigureAwait(false);
-                return new FlushResult(isCanceled: false, isCompleted: endStream);
             }
+            // else nothing to do: this typically corresponds to a flush when there was no unflushed bytes.
+            return WriteResult.Written;
         }
         catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
         {
-            return new FlushResult(isCanceled: false, isCompleted: true);
+            return WriteResult.WritesClosed;
         }
         catch (QuicException exception)
         {
@@ -194,7 +197,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal QuicPipeWriter(
+    internal QuicStreamWriter(
         QuicStream stream,
         MemoryPool<byte> pool,
         int minSegmentSize,
@@ -233,6 +236,15 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             {
                 // Ignore failures.
             }
+        }
+    }
+
+    private void ThrowIfWritingNotAllowed()
+    {
+        if (_isCompleted || _isEnded)
+        {
+            throw new InvalidOperationException(
+                "Writing is not allowed once the writer is completed or the stream is ended.");
         }
     }
 }
