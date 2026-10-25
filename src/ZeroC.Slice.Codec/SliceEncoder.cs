@@ -367,7 +367,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>
     /// <param name="span">The span to copy.</param>
-    public void WriteByteSpan(ReadOnlySpan<byte> span)
+    public void WriteByteSpan(scoped ReadOnlySpan<byte> span)
     {
         _bufferWriter.Write(span);
         EncodedByteCount += span.Length;

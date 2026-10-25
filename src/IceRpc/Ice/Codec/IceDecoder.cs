@@ -266,7 +266,7 @@ public ref partial struct IceDecoder
     /// </summary>
     /// <param name="destination">The span to which bytes of this decoder will be copied.</param>
     /// <remarks>This method also moves the reader's Consumed property.</remarks>
-    public void CopyTo(Span<byte> destination)
+    public void CopyTo(scoped Span<byte> destination)
     {
         if (_reader.TryCopyTo(destination))
         {
