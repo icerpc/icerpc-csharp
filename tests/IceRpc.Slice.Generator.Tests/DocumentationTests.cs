@@ -65,7 +65,8 @@ public class DocumentationTests
         Assert.That(member.Element("returns")!.Value.Trim(), Does.StartWith("A tuple containing:"));
         Assert.That(
             items,
-            Is.EqualTo(new[] { ("Payload", "The encoded return value."), ("Entries", "The log entries.") }));
+            Is.EqualTo(
+                new[] { ("EncodedReturnValue", "The encoded return value."), ("Entries", "The log entries.") }));
     }
 
     private static XElement GetMember(string name) =>

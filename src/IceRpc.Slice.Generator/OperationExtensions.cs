@@ -53,10 +53,11 @@ internal static class OperationExtensions
         internal string ResponseEncodeOptionsParamName =>
             op.ReturnType.Any(f => f.ParameterName == "encodeOptions") ? "encodeOptions_" : "encodeOptions";
 
-        /// <summary>Gets the escaped name for the synthetic "Payload" tuple element used by cs::encodedReturn
-        /// operations with a streamed return, appending "_" if the streamed return field uses the name "Payload".
-        /// </summary>
-        internal string EncodedReturnPayloadName => op.StreamedReturn?.Name == "Payload" ? "Payload_" : "Payload";
+        /// <summary>Gets the escaped name for the synthetic "EncodedReturnValue" tuple element used by
+        /// cs::encodedReturn operations with a streamed return, appending "_" if the streamed return field uses the
+        /// name "EncodedReturnValue".</summary>
+        internal string EncodedReturnValueName =>
+            op.StreamedReturn?.Name == "EncodedReturnValue" ? "EncodedReturnValue_" : "EncodedReturnValue";
 
         /// <summary>Returns the C# type string for an outgoing (sent) streamed field. Non-optional stream uint8
         /// maps to <c>PipeReader</c>, all others to <c>IAsyncEnumerable&lt;T&gt;</c>.</summary>
@@ -165,11 +166,11 @@ internal static class OperationExtensions
         }
 
         /// <summary>Returns the <c>&lt;returns&gt;</c> doc comment for a service operation with
-        /// <c>cs::encodedReturn</c>: a fixed description of the encoded return payload, or for an operation with a
-        /// streamed return, a list with the payload and the streamed return.</summary>
+        /// <c>cs::encodedReturn</c>: a fixed description of the encoded return value, or for an operation with a
+        /// streamed return, a list with the encoded return value and the streamed return.</summary>
         internal string GetEncodedReturnsDocComment(string currentNamespace)
         {
-            const string payloadDescription = "The encoded return value.";
+            const string encodedReturnValueDescription = "The encoded return value.";
 
             if (op.StreamedReturn is Field streamReturn)
             {
@@ -177,11 +178,14 @@ internal static class OperationExtensions
                     DocCommentFormatter.FormatOverview(streamReturn.Comment, currentNamespace) ??
                     "The streamed return value.";
                 return TupleReturnsDocComment(
-                    [(op.EncodedReturnPayloadName, payloadDescription), (streamReturn.Name, streamDescription)]);
+                    [
+                        (op.EncodedReturnValueName, encodedReturnValueDescription),
+                        (streamReturn.Name, streamDescription)
+                    ]);
             }
             else
             {
-                return payloadDescription;
+                return encodedReturnValueDescription;
             }
         }
 
@@ -207,8 +211,7 @@ internal static class OperationExtensions
                 if (op.StreamedReturn is Field streamReturn)
                 {
                     string streamType = GetOutgoingStreamTypeString(streamReturn, currentNamespace);
-                    string payloadName = op.EncodedReturnPayloadName;
-                    return $"global::System.Threading.Tasks.ValueTask<(global::System.IO.Pipelines.PipeReader {payloadName}, {streamType} {streamReturn.Name})>";
+                    return $"global::System.Threading.Tasks.ValueTask<(global::System.IO.Pipelines.PipeReader {op.EncodedReturnValueName}, {streamType} {streamReturn.Name})>";
                 }
                 return op.NonStreamedReturns.Count > 0
                     ? "global::System.Threading.Tasks.ValueTask<global::System.IO.Pipelines.PipeReader>"
