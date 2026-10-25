@@ -34,7 +34,7 @@ public partial class ProxyTests
         var expected = value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter);
-        encoder.EncodeServiceAddress(value);
+        encoder.EncodeString(value.ToString());
         var sut = new SliceDecoder(bufferWriter.WrittenMemory);
 
         // Act
@@ -122,6 +122,46 @@ public partial class ProxyTests
             () =>
             {
                 var decoder = new SliceDecoder(bufferWriter.WrittenMemory, decodingContext: baseProxy);
+                return decoder.DecodePingableProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    /// <summary>Verifies that decoding a proxy whose service address URI is not parsable throws
+    /// <see cref="InvalidDataException" />.</summary>
+    [Test]
+    public void Decode_proxy_with_unparsable_uri_fails()
+    {
+        // Arrange
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString("\u0001cerpc://host/path"); // a URI scheme must start with a letter
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
+                return decoder.DecodePingableProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    /// <summary>Verifies that decoding a proxy whose service address URI has an unsupported protocol throws
+    /// <see cref="InvalidDataException" />.</summary>
+    [Test]
+    public void Decode_proxy_with_unsupported_protocol_fails()
+    {
+        // Arrange
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString("gopher://host/path");
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
                 return decoder.DecodePingableProxy();
             },
             Throws.InstanceOf<InvalidDataException>());
