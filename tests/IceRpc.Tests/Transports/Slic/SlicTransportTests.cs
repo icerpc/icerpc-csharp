@@ -1529,10 +1529,8 @@ public class SlicTransportTests
             async () => await multiplexedServerConnection.AcceptStreamAsync(default),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
 
-        if (acceptedStream is not null)
-        {
-            await acceptedStream.Output.CompleteAsync(default);
-        }
+        // The connection is aborted: a graceful completion of the output would fail.
+        acceptedStream?.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
         acceptedStream?.Input.Complete();
     }
 

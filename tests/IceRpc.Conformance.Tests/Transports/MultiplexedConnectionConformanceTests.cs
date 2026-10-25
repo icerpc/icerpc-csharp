@@ -838,8 +838,9 @@ public abstract class MultiplexedConnectionConformanceTests
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await stream2CreateStreamTask);
         Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
 
+        // The connection is closed: a graceful completion of the output would fail.
         stream1.Input.Complete();
-        await stream1.Output.CompleteAsync(default);
+        stream1.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>This test verifies that stream flow control prevents a new stream from being created under the

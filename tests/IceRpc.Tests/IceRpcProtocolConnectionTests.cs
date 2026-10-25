@@ -474,10 +474,10 @@ public sealed class IceRpcProtocolConnectionTests
             Assert.That(requestStream.OutputCompleted.IsCompleted, Is.True);
         }
 
-        // Cleanup
+        // Cleanup: the server is disposed, so a graceful completion of the outputs would fail.
         foreach (IMultiplexedStream stream in streams)
         {
-            await stream.Output.CompleteAsync(default);
+            stream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
             stream.Input.Complete();
         }
     }
