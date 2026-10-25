@@ -57,6 +57,9 @@ internal class SlicStreamWriter : IMultiplexedStreamWriter
 
     public async ValueTask CompleteAsync(CancellationToken cancellationToken)
     {
+        // Advance throws once the stream is ended, so no byte can be pending after an endStream write.
+        Debug.Assert(!_isEnded || _pipe.Writer.UnflushedBytes == 0);
+
         if (!_isCompleted)
         {
             // The StreamLast frame is needed when the peer hasn't closed its reads yet and the stream is started or

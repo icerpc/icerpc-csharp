@@ -55,6 +55,9 @@ internal class QuicStreamWriter : IMultiplexedStreamWriter
 
     public async ValueTask CompleteAsync(CancellationToken cancellationToken)
     {
+        // Advance throws once the stream is ended, so no byte can be pending after an endStream write.
+        Debug.Assert(!_isEnded || _pipe.Writer.UnflushedBytes == 0);
+
         if (!_isCompleted)
         {
             // Nothing to send when the writes are already closed (by the peer or a connection closure) and no bytes
