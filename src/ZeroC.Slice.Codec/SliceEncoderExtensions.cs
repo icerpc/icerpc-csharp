@@ -201,7 +201,7 @@ public static class SliceEncoderExtensions
     /// <typeparam name="T">The span element type.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The span of numeric values represented by a <see cref="ReadOnlySpan{T}" />.</param>
-    public static void EncodeSpan<T>(this ref SliceEncoder encoder, ReadOnlySpan<T> v)
+    public static void EncodeSpan<T>(this ref SliceEncoder encoder, scoped ReadOnlySpan<T> v)
         where T : struct
     {
         // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.

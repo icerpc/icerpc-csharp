@@ -28,6 +28,25 @@ public class SequenceEncodingTests
         }
     }
 
+    /// <summary>Verifies that <see cref="SliceEncoderExtensions.EncodeSpan{T}(ref SliceEncoder, ReadOnlySpan{T})" /> accepts a
+    /// stack-allocated span.</summary>
+    [Test]
+    public void Encode_stack_allocated_span()
+    {
+        int[] values = [1, 2, 3, 4];
+        var expectedBuffer = new MemoryBufferWriter(new byte[256]);
+        var expectedEncoder = new SliceEncoder(expectedBuffer);
+        expectedEncoder.EncodeSequence(values);
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var sut = new SliceEncoder(buffer);
+        Span<int> span = stackalloc int[4];
+        values.CopyTo(span);
+
+        sut.EncodeSpan<int>(span);
+
+        Assert.That(buffer.WrittenMemory.ToArray(), Is.EqualTo(expectedBuffer.WrittenMemory.ToArray()));
+    }
+
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T})" /> with a
     /// value type.</summary>
     /// <param name="expected">The enumerable to be encoded.</param>
