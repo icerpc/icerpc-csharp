@@ -65,12 +65,12 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         {
             HandshakeTimeout = connectTimeout,
 
-            MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? 0 :
+            MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? (ushort)0 :
                 connectionOptions.MaxIceRpcBidirectionalStreams,
 
             // Add an additional stream for the icerpc protocol control stream.
-            MaxUnidirectionalStreams = connectionOptions.Dispatcher is null ? 1 :
-                int.Min(connectionOptions.MaxIceRpcUnidirectionalStreams + 1, ushort.MaxValue),
+            MaxUnidirectionalStreams = connectionOptions.Dispatcher is null ? (ushort)1 :
+                ushort.CreateSaturating(connectionOptions.MaxIceRpcUnidirectionalStreams + 1),
 
             Pool = connectionOptions.Pool,
             MinSegmentSize = connectionOptions.MinSegmentSize,

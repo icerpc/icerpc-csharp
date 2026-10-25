@@ -18,12 +18,12 @@ public record class MultiplexedConnectionOptions
     /// <summary>Gets or sets the maximum allowed number of simultaneous remote bidirectional streams that can be
     /// opened.</summary>
     /// <value>The maximum number of remote bidirectional streams. Defaults to <c>100</c>.</value>
-    public int MaxBidirectionalStreams { get; set; } = DefaultMaxBidirectionalStreams;
+    public ushort MaxBidirectionalStreams { get; set; } = DefaultMaxBidirectionalStreams;
 
     /// <summary>Gets or sets the maximum allowed number of simultaneous remote unidirectional streams that can be
     /// opened.</summary>
     /// <value>The maximum number of remote unidirectional streams. Defaults to <c>100</c>.</value>
-    public int MaxUnidirectionalStreams { get; set; } = DefaultMaxUnidirectionalStreams;
+    public ushort MaxUnidirectionalStreams { get; set; } = DefaultMaxUnidirectionalStreams;
 
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
     /// <value>The minimum size in bytes of the segment requested from the <see cref="Pool" />.  Defaults to <c>4</c>
@@ -39,6 +39,6 @@ public record class MultiplexedConnectionOptions
     /// System.Net.Sockets.SocketFlags)" />. The QUIC transport has no such requirement.</remarks>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
-    internal const int DefaultMaxBidirectionalStreams = 100;
-    internal const int DefaultMaxUnidirectionalStreams = 100;
+    internal const ushort DefaultMaxBidirectionalStreams = 100;
+    internal const ushort DefaultMaxUnidirectionalStreams = 100;
 }
