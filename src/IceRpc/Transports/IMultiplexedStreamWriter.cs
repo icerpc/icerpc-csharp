@@ -8,8 +8,9 @@ namespace IceRpc.Transports;
 /// methods buffer bytes locally; the next <see cref="WriteAsync" /> or <see cref="CompleteAsync" /> call sends them.
 /// IceRPC uses them to encode the request and response headers in place, so that a header rides in the same frame as
 /// the first payload bytes.</summary>
-/// <remarks>The owner of this writer calls exactly one of <see cref="CompleteAsync" /> and <see cref="Abort" />.
-/// An implementation makes both calls idempotent: a call after the writer is completed does nothing.</remarks>
+/// <remarks>The owner of this writer completes it with <see cref="CompleteAsync" /> or <see cref="Abort" />. An
+/// implementation makes both calls idempotent: a call after the writer is completed, by either method, does nothing.
+/// </remarks>
 public interface IMultiplexedStreamWriter : IBufferWriter<byte>
 {
     /// <summary>Gets the number of bytes buffered by the <see cref="IBufferWriter{T}" /> methods and not yet sent.
@@ -28,6 +29,7 @@ public interface IMultiplexedStreamWriter : IBufferWriter<byte>
     /// closed its reads and the bytes were discarded.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the writer is completed or a previous call to <see
     /// cref="WriteAsync" /> had <paramref name="endStream" /> set.</exception>
+    /// <remarks>When this method throws, the owner aborts the writer with <see cref="Abort" />.</remarks>
     ValueTask<WriteResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,

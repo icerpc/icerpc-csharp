@@ -68,6 +68,7 @@ public class CompressorInterceptorTests
         Assert.That(await DecompressAsync(pipe.Reader, compressionFormat), Is.EqualTo(_payload));
     }
 
+    /// <summary>Verifies that aborting the compressor payload writer aborts its output.</summary>
     [Test]
     public async Task Abort_compressor_payload_writer_aborts_the_output(
         [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
@@ -285,6 +286,8 @@ public class CompressorInterceptorTests
         }
     }
 
+    /// <summary>Verifies that the compressor interceptor does not install a payload writer interceptor if the request
+    /// does not contain the compress payload feature.</summary>
     [Test]
     public async Task Compressor_interceptor_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {

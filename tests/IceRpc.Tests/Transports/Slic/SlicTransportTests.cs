@@ -874,7 +874,7 @@ public class SlicTransportTests
         await connectTask;
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
-        // Advertise InitialStreamWindowSize = MaxWindowSize so the server's outgoing SlicPipeWriter starts its
+        // Advertise InitialStreamWindowSize = MaxWindowSize so the server's outgoing SlicStreamWriter starts its
         // _peerWindowSize at int.MaxValue; any positive increment then overflows.
         await WriteFrameAsync(
             duplexClientConnection,
@@ -899,7 +899,7 @@ public class SlicTransportTests
         await ReadFrameAsync(reader); // consume InitializeAck
         await serverConnectTask;
 
-        // Open a bidirectional stream so the server has a SlicPipeWriter whose _peerWindowSize == MaxWindowSize.
+        // Open a bidirectional stream so the server has a SlicStreamWriter whose _peerWindowSize == MaxWindowSize.
         await WriteStreamFrameAsync(
             duplexClientConnection,
             FrameType.Stream,
@@ -2027,7 +2027,7 @@ public class SlicTransportTests
         writeCts.Cancel();
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
 
-        // Act: complete the output with an exception, like a failed invocation does.
+        // Act: abort the output, like a failed invocation does.
         streams.Local.Output.Abort();
 
         // Assert: the peer observes the writes closure (TruncatedData) after consuming the buffered data, instead
@@ -2092,7 +2092,7 @@ public class SlicTransportTests
         writeCts.Cancel();
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
 
-        // Act: complete the output with an exception, like a failed invocation does, then release the hold so the
+        // Act: abort the output, like a failed invocation does, then release the hold so the
         // queued data and StreamLast frame reach the peer.
         streams.Local.Output.Abort();
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;

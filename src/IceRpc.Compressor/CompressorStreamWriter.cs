@@ -67,6 +67,8 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
             {
                 if (!_isEnded)
                 {
+                    // Finish the compression: send the buffered bytes and the compression trailer, and end the
+                    // stream. The result is ignored because the peer having closed its reads is not a failure here.
                     _ = await WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancellationToken)
                         .ConfigureAwait(false);
                 }
@@ -100,13 +102,13 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
         ThrowIfWritingNotAllowed();
         _isEnded = endStream;
 
-        WriteResult result = WriteResult.Written;
-
+        // Compress the bytes written with GetSpan, GetMemory, and Advance first, since they come before source.
         if (_uncompressedPipe.Writer.UnflushedBytes > 0)
         {
             await _uncompressedPipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             bool tryReadOk = _uncompressedPipe.Reader.TryRead(out ReadResult readResult);
             Debug.Assert(tryReadOk);
+            WriteResult result;
             try
             {
                 result = await CompressAsync(readResult.Buffer, cancellationToken).ConfigureAwait(false);
@@ -115,31 +117,35 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
             {
                 _uncompressedPipe.Reader.AdvanceTo(readResult.Buffer.End);
             }
-        }
 
-        if (result == WriteResult.Written)
-        {
-            result = await CompressAsync(source, cancellationToken).ConfigureAwait(false);
-        }
-
-        if (result == WriteResult.Written)
-        {
-            if (endStream)
+            // CompressAsync drains the compressed bytes into the decoratee as it goes. Once the peer has closed its
+            // reads, there is nothing left to compress or send.
+            if (result == WriteResult.WritesClosed)
             {
-                // Finishes the compression: this writes the compression trailer into _compressedPipe.
-                await _compressionStream.DisposeAsync().ConfigureAwait(false);
+                return result;
             }
-            else
-            {
-                // Makes the compression stream emit the compressed bytes it holds, so that the peer receives what the
-                // application wrote.
-                await _compressionStream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-
-            // The last drain always writes, with endStream when requested and to flush the decoratee otherwise.
-            result = await DrainAsync(endStream, force: true, cancellationToken).ConfigureAwait(false);
         }
-        return result;
+
+        // Then compress source.
+        if (await CompressAsync(source, cancellationToken).ConfigureAwait(false) == WriteResult.WritesClosed)
+        {
+            return WriteResult.WritesClosed;
+        }
+
+        if (endStream)
+        {
+            // Finishes the compression: this writes the compression trailer into _compressedPipe.
+            await _compressionStream.DisposeAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            // Makes the compression stream emit the compressed bytes it holds, so that the peer receives what the
+            // application wrote.
+            await _compressionStream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+
+        // The last drain always writes, with endStream when requested and to flush the decoratee otherwise.
+        return await DrainAsync(endStream, force: true, cancellationToken).ConfigureAwait(false);
     }
 
     internal CompressorStreamWriter(
@@ -165,6 +171,9 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
 
     /// <summary>Compresses <paramref name="source" /> chunk by chunk, draining the compressed bytes into the decoratee
     /// after each chunk.</summary>
+    /// <returns><see cref="WriteResult.WritesClosed" /> as soon as a drain reports that the peer closed its reads,
+    /// without compressing the rest of <paramref name="source" />; otherwise <see cref="WriteResult.Written" />.
+    /// </returns>
     private async ValueTask<WriteResult> CompressAsync(
         ReadOnlySequence<byte> source,
         CancellationToken cancellationToken)

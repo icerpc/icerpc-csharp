@@ -136,11 +136,11 @@ internal class SlicStream : IMultiplexedStream
             if (IsStarted && !_state.HasFlag(State.ReadsClosed))
             {
                 // As an optimization, if reads are gracefully closed once the buffered data is consumed but before
-                // writes are closed, we don't send the StreamReadsClosed frame just yet. Instead, when writes are
-                // closed, CloseWrites will bundle the sending of the StreamReadsClosed with the sending of the
-                // StreamLast or StreamWritesClosed frame. This allows to send both frames with a single write on the
-                // duplex connection. If the peer closes its reads first, ReceivedReadsClosedFrame sends the frame on
-                // its own.
+                // writes are closed, we don't send the StreamReadsClosed frame just yet. Instead, the frame that
+                // closes the writes, the StreamLast frame of WriteStreamFrameAsync or the StreamWritesClosed frame of
+                // AbortWrites, carries the reads closure with it, so that both reach the duplex connection in a
+                // single write. If the peer closes its reads first, ReceivedReadsClosedFrame sends the frame on its
+                // own.
                 if (graceful &&
                     IsBidirectional &&
                     IsRemote &&
@@ -193,11 +193,10 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Closes the write-side of the stream. It's only called by <see cref="SlicStreamWriter.Abort" /> and
+    /// <summary>Closes the write-side of the stream abruptly, unless a <see cref="FrameType.StreamLast" /> frame
+    /// already closed it gracefully. It's only called by <see cref="SlicStreamWriter.Abort" /> and
     /// <see cref="SlicStreamWriter.CompleteAsync" />, never concurrently.</summary>
-    /// <param name="graceful"><see langword="true" /> if the application wrote all the stream data on the stream <see
-    /// cref="Output" />; otherwise, <see langword="false" />.</param>
-    internal void CloseWrites(bool graceful)
+    internal void AbortWrites()
     {
         bool writeWritesClosedFrame = false;
         bool writeReadsClosedFrame = false;
@@ -219,48 +218,29 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsRemote)
             {
-                // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
-                // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
-                // is decreased before the peer receives the frame. This is necessary to prevent a race condition
-                // where the peer could release the connection's bidirectional or unidirectional stream semaphore
-                // before this connection's stream count is actually decreased.
+                // If it's a remote stream, we close writes before sending the StreamWritesClosed frame to ensure
+                // _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount is decreased before
+                // the peer receives the frame. This is necessary to prevent a race condition where the peer could
+                // release the connection's bidirectional or unidirectional stream semaphore before this connection's
+                // stream count is actually decreased.
                 TrySetWritesClosed();
             }
 
-            if (graceful)
+            try
             {
-                try
-                {
-                    WriteStreamFrame(FrameType.StreamLast, encode: null, writeReadsClosedFrame);
-                }
-                catch (IceRpcException)
-                {
-                    // Ignore connection failures.
-                }
-
-                // If the stream is a local stream, writes are not closed until the StreamReadsClosed frame is
-                // received from the peer (see ReceivedReadsClosedFrame). This ensures that the connection's
-                // bidirectional or unidirectional stream semaphore is released only once the peer consumed the
-                // buffered data.
+                WriteStreamFrame(FrameType.StreamWritesClosed, encode: null, writeReadsClosedFrame);
             }
-            else
+            catch (IceRpcException)
             {
-                try
-                {
-                    WriteStreamFrame(FrameType.StreamWritesClosed, encode: null, writeReadsClosedFrame);
-                }
-                catch (IceRpcException)
-                {
-                    // Ignore connection failures.
-                }
+                // Ignore connection failures.
+            }
 
-                if (!IsRemote)
-                {
-                    // We can now close writes to allow starting a new stream. Since the sending of frames is
-                    // serialized over the connection, the peer will receive this StreamWritesClosed frame before
-                    // a new stream sends a StreamFrame frame.
-                    TrySetWritesClosed();
-                }
+            if (!IsRemote)
+            {
+                // We can now close writes to allow starting a new stream. Since the sending of frames is serialized
+                // over the connection, the peer will receive this StreamWritesClosed frame before a new stream sends
+                // a StreamFrame frame.
+                TrySetWritesClosed();
             }
         }
         else if (!IsStarted)
@@ -349,7 +329,7 @@ internal class SlicStream : IMultiplexedStream
     internal void ReceivedWindowUpdateFrame(StreamWindowUpdateBody frame)
     {
         // The connection rejects window updates on remote unidirectional streams, the only streams with no output
-        // pipe writer.
+        // writer.
         Debug.Assert(_outputWriter is not null);
 
         if (frame.WindowSizeIncrement == 0)

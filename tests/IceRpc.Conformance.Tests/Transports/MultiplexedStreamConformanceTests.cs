@@ -114,6 +114,7 @@ public abstract class MultiplexedStreamConformanceTests
         Assert.That(receivedData.WrittenMemory.ToArray(), Is.EqualTo(new byte[] { 0x1, 0x2, 0x3 }));
     }
 
+    /// <summary>Verifies that create stream fails if called before connect.</summary>
     [Test]
     public async Task Create_stream_before_calling_connect_fails()
     {
@@ -645,7 +646,7 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_remote_write_returns_completed_flush_result_when_local_input_is_completed()
+    public async Task Stream_remote_write_returns_writes_closed_when_local_input_is_completed()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -662,7 +663,7 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_remote_flush_returns_completed_flush_result_when_local_input_is_completed()
+    public async Task Stream_remote_flush_returns_writes_closed_when_local_input_is_completed()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();

@@ -16,7 +16,7 @@ internal class SlicStreamWriter : IMultiplexedStreamWriter
 
     // We can avoid disposing _completeWritesCts because it was not created using CreateLinkedTokenSource, and it
     // doesn't use a timer. It is not easy to dispose it because CompleteWrites can be called by another thread after
-    // Complete has been called.
+    // Abort has been called.
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
@@ -42,7 +42,7 @@ internal class SlicStreamWriter : IMultiplexedStreamWriter
 
             // Forcefully close the stream writes unless they were already gracefully closed by a WriteAsync call with
             // endStream set.
-            _stream.CloseWrites(graceful: false);
+            _stream.AbortWrites();
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
@@ -81,9 +81,9 @@ internal class SlicStreamWriter : IMultiplexedStreamWriter
 
             _isCompleted = true;
 
-            // Closes the writes of an unstarted stream; otherwise, writes are already closed or a StreamLast frame is
-            // queued.
-            _stream.CloseWrites(graceful: true);
+            // Closes the writes of an unstarted stream, or abruptly after a canceled write; otherwise, writes are already
+            // closed or a StreamLast frame is queued.
+            _stream.AbortWrites();
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
