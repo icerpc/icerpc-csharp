@@ -188,6 +188,7 @@ public sealed partial class ProtocolBridgingTests
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken)
         {
+            Assert.That(features.Get<IDispatchInformationFeature>()!.IsOneway, Is.True);
             OnewayArgument.SetResult(x);
             return default;
         }
