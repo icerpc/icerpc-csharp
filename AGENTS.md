@@ -78,6 +78,8 @@ code in a way that reverses one of these decisions. The ones most likely to matt
 
 - `.slice`, `.proto`, and `.ice` files are trusted build inputs, not untrusted data; the generators don't validate or
   sanitize what they emit from them.
+- `cs::identifier` values are emitted verbatim, including in the collision checks that rename a synthetic name such as
+  `features_` or `EncodedReturnValue_`; a bad identifier (a keyword, a stray `@`) fails at C# compile time by design.
 - Complete every `PipeReader` with `Complete`, never `CompleteAsync`; a `Complete` implementation must not block.
 - Unknown wire values (enumerators, parameters, fields) are tolerated for forward compatibility, not rejected.
 - Limits are enforced systemically (decoder allocation budgets, frame size limits), not with a guard at each call site.

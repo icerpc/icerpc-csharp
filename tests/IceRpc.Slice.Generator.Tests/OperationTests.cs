@@ -899,11 +899,12 @@ public partial class OperationTests
             IFeatureCollection features,
             CancellationToken cancellationToken) => new((1, 42));
 
-        public ValueTask<(PipeReader Payload_, IAsyncEnumerable<int> Payload)> OpWithPayloadStreamReturnAsync(
+        public ValueTask<(PipeReader EncodedReturnValue_, IAsyncEnumerable<int> EncodedReturnValue)>
+            OpWithEncodedReturnValueStreamReturnAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
-            var payload = IMyOperationsAService.Response.EncodeOpWithPayloadStreamReturn(
+            var payload = IMyOperationsAService.Response.EncodeOpWithEncodedReturnValueStreamReturn(
                 new int[] { 1, 2, 3 },
                 features.Get<ISliceFeature>()?.EncodeOptions);
             return new((payload, GetDataAsync()));
@@ -932,7 +933,8 @@ public partial class OperationTests
                 new int[] { 1, 2, 3 },
                 features.Get<ISliceFeature>()?.EncodeOptions));
 
-        public ValueTask<(PipeReader Payload, IAsyncEnumerable<int> R2)> OpWithStreamReturnAndEncodedReturnAttributeAsync(
+        public ValueTask<(PipeReader EncodedReturnValue, IAsyncEnumerable<int> R2)>
+            OpWithStreamReturnAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {

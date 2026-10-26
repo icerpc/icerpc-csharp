@@ -26,12 +26,25 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         {
             Socket acceptedSocket = await _socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
+            EndPoint remoteEndPoint;
+            try
+            {
+                remoteEndPoint = acceptedSocket.RemoteEndPoint!;
+            }
+            catch (SocketException exception)
+            {
+                // macOS accepts a connection the peer reset before accept without a peer address, and getpeername
+                // then fails. The connection is already dead.
+                acceptedSocket.Dispose();
+                throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
+            }
+
             var tcpConnection = new TcpServerConnection(
                 acceptedSocket,
                 _serverAuthenticationOptions,
                 _pool,
                 _minSegmentSize);
-            return (tcpConnection, acceptedSocket.RemoteEndPoint!);
+            return (tcpConnection, remoteEndPoint);
         }
         catch (SocketException exception)
         {

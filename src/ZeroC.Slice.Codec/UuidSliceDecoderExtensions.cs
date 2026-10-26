@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Buffers;
-
 namespace ZeroC.Slice.Codec;
 
 /// <summary>Provides an extension method for <see cref="SliceDecoder" /> to decode a <c>WellKnownTypes::Uuid</c> into a
@@ -11,11 +9,12 @@ public static class UuidSliceDecoderExtensions
     /// <summary>Decodes a <c>WellKnownTypes::Uuid</c>.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The Uuid decoded as a <see cref="Guid"/>.</returns>
+    /// <remarks>The 16 bytes are read in the network byte order specified by RFC 9562, not in the mixed-endian layout
+    /// of <see cref="Guid.ToByteArray()" />.</remarks>
     public static Guid DecodeUuid(this ref SliceDecoder decoder)
     {
-        using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> span = owner.Memory.Span[..16];
+        Span<byte> span = stackalloc byte[16];
         decoder.CopyTo(span);
-        return new Guid(span);
+        return new Guid(span, bigEndian: true);
     }
 }

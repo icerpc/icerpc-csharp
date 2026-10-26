@@ -143,7 +143,7 @@ public sealed class Server : IAsyncDisposable
                         MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.
                         MaxUnidirectionalStreams =
-                            int.Min(options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1, ushort.MaxValue),
+                            ushort.CreateSaturating(options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1),
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool
                     },

@@ -167,7 +167,7 @@ public sealed class ProtocolConnectionTests
             // parameters. We configure it to maxDispatches + 100 to make sure we don't indirectly limit max dispatches
             // with MaxBidirectionalStreams.
             services.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = maxDispatches + 100);
+                options => options.MaxBidirectionalStreams = (ushort)(maxDispatches + 100));
         }
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);

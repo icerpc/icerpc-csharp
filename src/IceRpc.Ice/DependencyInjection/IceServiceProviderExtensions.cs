@@ -17,7 +17,7 @@ public static class IceServiceProviderExtensions
     /// invocation pipeline, and the <see cref="IceEncodeOptions" /> retrieved from <paramref name="provider" /> as
     /// its encode options.</remarks>
     public static TProxy CreateIceProxy<TProxy>(this IServiceProvider provider, ServiceAddress? serviceAddress = null)
-        where TProxy : struct, IIceProxy<TProxy>
+        where TProxy : struct, IIceProxy
     {
         var invoker = (IInvoker?)provider.GetService(typeof(IInvoker));
         if (invoker is null)
@@ -25,10 +25,19 @@ public static class IceServiceProviderExtensions
             throw new InvalidOperationException("Could not find service of type 'IInvoker' in the service container.");
         }
 
-        return TProxy.Create(
-            invoker,
-            serviceAddress,
-            (IceEncodeOptions?)provider.GetService(typeof(IceEncodeOptions)));
+        return serviceAddress.HasValue ?
+            new TProxy
+            {
+                EncodeOptions = (IceEncodeOptions?)provider.GetService(typeof(IceEncodeOptions)),
+                Invoker = invoker,
+                ServiceAddress = serviceAddress.Value
+            }
+            :
+            new TProxy
+            {
+                EncodeOptions = (IceEncodeOptions?)provider.GetService(typeof(IceEncodeOptions)),
+                Invoker = invoker
+            };
     }
 
     /// <summary>Creates an Ice proxy with this service provider.</summary>
@@ -40,6 +49,6 @@ public static class IceServiceProviderExtensions
     /// invocation pipeline, and the <see cref="IceEncodeOptions" /> retrieved from <paramref name="provider" /> as
     /// its encode options.</remarks>
     public static TProxy CreateIceProxy<TProxy>(this IServiceProvider provider, Uri serviceAddressUri)
-        where TProxy : struct, IIceProxy<TProxy> =>
+        where TProxy : struct, IIceProxy =>
         provider.CreateIceProxy<TProxy>(new ServiceAddress(serviceAddressUri));
 }

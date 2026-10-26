@@ -18,19 +18,33 @@ public static class IceProxyIceDecoderExtensions
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded proxy, or <see langword="null" />.</returns>
-    public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy<TProxy>
+    /// <remarks>The decoding context of the decoder, when not <see langword="null" />, must be the base proxy, an
+    /// <see cref="IIceProxy" />: the decoded proxy inherits the invoker and encode options of this base proxy. Without
+    /// a decoding context, the decoded proxy has <see cref="InvalidInvoker.Instance" /> as its invoker and no encode
+    /// options.</remarks>
+    public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy
     {
         ServiceAddress? serviceAddress = decoder.DecodeServiceAddress();
         return serviceAddress.HasValue ? CreateProxy<TProxy>(serviceAddress.Value, decoder.DecodingContext) : null;
     }
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
-        where TProxy : struct, IIceProxy<TProxy>
+        where TProxy : struct, IIceProxy
     {
-        var baseProxy = (IIceProxy?)decodingContext;
-        return baseProxy is null ?
-            TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null) :
-            TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);
+        if (decodingContext is null)
+        {
+            return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };
+        }
+        else
+        {
+            var baseProxy = (IIceProxy)decodingContext;
+            return new TProxy
+            {
+                EncodeOptions = baseProxy.EncodeOptions,
+                Invoker = baseProxy.Invoker,
+                ServiceAddress = serviceAddress
+            };
+        }
     }
 
     /// <summary>Decodes a service address.</summary>

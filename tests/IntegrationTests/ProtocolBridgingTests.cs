@@ -94,6 +94,8 @@ public sealed partial class ProtocolBridgingTests
             await proxy.OpVoidAsync();
 
             await proxy.OpOnewayAsync(42);
+            Assert.That(await targetService.OnewayArgument.Task, Is.EqualTo(42));
+            targetService.OnewayArgument = new TaskCompletionSource<int>();
 
             Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
 
@@ -152,6 +154,8 @@ public sealed partial class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
+        public TaskCompletionSource<int> OnewayArgument { get; set; } = new();
+
         private readonly ServerAddress _publishedServerAddress;
 
         public ProtocolBridgingTestService(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
@@ -182,7 +186,12 @@ public sealed partial class ProtocolBridgingTests
             return new(new ProtocolBridgingTestProxy(InvalidInvoker.Instance, serviceAddress));
         }
 
-        public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) => default;
+        public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken)
+        {
+            Assert.That(features.Get<IDispatchInformationFeature>()!.IsOneway, Is.True);
+            OnewayArgument.SetResult(x);
+            return default;
+        }
 
         public ValueTask OpNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw new DispatchException(StatusCode.NotFound);
