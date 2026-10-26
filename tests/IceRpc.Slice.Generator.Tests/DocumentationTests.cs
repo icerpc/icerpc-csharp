@@ -53,7 +53,7 @@ public class DocumentationTests
     }
 
     [Test]
-    public void Encoded_return_with_stream_gets_returns_doc_comment_with_payload_and_stream_items()
+    public void Encoded_return_with_stream_gets_returns_doc_comment_with_encoded_return_value_and_stream_items()
     {
         // Arrange / Act
         XElement member = GetMember(
@@ -65,7 +65,8 @@ public class DocumentationTests
         Assert.That(member.Element("returns")!.Value.Trim(), Does.StartWith("A tuple containing:"));
         Assert.That(
             items,
-            Is.EqualTo(new[] { ("Payload", "The encoded return value."), ("Entries", "The log entries.") }));
+            Is.EqualTo(
+                new[] { ("EncodedReturnValue", "The encoded return value."), ("Entries", "The log entries.") }));
     }
 
     private static XElement GetMember(string name) =>

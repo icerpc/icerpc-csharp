@@ -49,8 +49,12 @@ interface MyOperationsA {
     // encodeOptions as regular return name (collides with the injected encodeOptions parameter on Response.Encode*)
     opWithEncodeOptionsReturn() -> (r1: int32, encodeOptions: int32)
 
-    // payload as streamed return name with cs::encodedReturn (collides with the synthetic Payload tuple element)
-    [cs::encodedReturn] opWithPayloadStreamReturn() -> (r1: Sequence<int32>, payload: stream int32)
+    // encodedReturnValue as streamed return name with cs::encodedReturn (collides with the synthetic EncodedReturnValue
+    // tuple element)
+    [cs::encodedReturn] opWithEncodedReturnValueStreamReturn() -> (
+        r1: Sequence<int32>
+        encodedReturnValue: stream int32
+    )
 
     // Encoded return
     [cs::encodedReturn] opWithSingleReturnValueAndEncodedReturnAttribute() -> Sequence<int32>
