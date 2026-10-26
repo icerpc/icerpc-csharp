@@ -27,7 +27,9 @@ data. Code-injection framing does not apply: anyone who can author IDL in a proj
 values (cs::type, cs::attribute, cs::identifier, csharp_namespace, deprecated message, attribute payloads, deeply
 nested types, slicec symbol output) surface as C# compiler errors on the generated source, which is an acceptable
 failure mode. In particular, `cs::identifier` emits exactly the string the user specifies: the generators do not
-validate, `@`-escape, or otherwise fix a "bad" identifier such as a C# keyword.
+validate, `@`-escape, or otherwise fix a "bad" identifier such as a C# keyword. The same applies to the checks that
+rename a synthetic name (`features_`, `cancellationToken_`, `encodeOptions_`, `EncodedReturnValue_`) when a user
+identifier collides with it: they compare the emitted string, so an identifier with a stray `@` is not normalized.
 (See #4444, #4449, #4459, #4467, #4470, #4485, #4495, #4496, #4497, #4502, #4503, #4813.)
 
 ### Toolchain downloads come from trusted upstreams
