@@ -28,8 +28,8 @@ public class SequenceEncodingTests
         }
     }
 
-    /// <summary>Verifies that <see cref="IceEncoderExtensions.EncodeSpan{T}(ref IceEncoder, ReadOnlySpan{T})" /> accepts a
-    /// stack-allocated span.</summary>
+    /// <summary>Verifies that <see cref="IceEncoderExtensions.EncodeSpan{T}(ref IceEncoder, ReadOnlySpan{T})" />
+    /// accepts a stack-allocated span.</summary>
     [Test]
     public void Encode_stack_allocated_span()
     {
