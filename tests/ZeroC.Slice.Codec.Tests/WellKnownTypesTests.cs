@@ -139,13 +139,9 @@ public class WellKnownTypesTests
     [TestCase("cfbe7458-6e8f-45c1-b1d1-404866a9d904")]
     public void Decode_uuid(string value)
     {
-        var buffer = new byte[256];
-        var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter);
         var guid = Guid.Parse(value);
-        var span = encoder.GetPlaceholderSpan(16);
-        _ = guid.TryWriteBytes(span);
-
+        // The wire representation is the RFC 9562 network byte order: the hex digits of the textual form, in order.
+        byte[] buffer = Convert.FromHexString(guid.ToString("N"));
         var decoder = new SliceDecoder(buffer);
 
         // Act
@@ -158,7 +154,7 @@ public class WellKnownTypesTests
     [TestCase("cfbe7458-6e8f-45c1-b1d1-404866a9d904")]
     public void Encode_uuid(string value)
     {
-        var buffer = new byte[256];
+        var buffer = new byte[16];
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter);
         var guid = Guid.Parse(value);
@@ -166,12 +162,6 @@ public class WellKnownTypesTests
         // Act
         encoder.EncodeUuid(guid);
 
-        var decoder = new SliceDecoder(buffer);
-
-        Span<byte> data = new byte[16];
-        decoder.CopyTo(data);
-        var decodedGuid = new Guid(data);
-
-        Assert.That(decodedGuid, Is.EqualTo(guid));
+        Assert.That(buffer, Is.EqualTo(Convert.FromHexString(guid.ToString("N"))));
     }
 }
