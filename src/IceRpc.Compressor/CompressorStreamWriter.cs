@@ -15,9 +15,9 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
 {
     public long UnflushedBytes => _uncompressedPipe.Writer.UnflushedBytes;
 
-    // The maximum number of bytes given to the compression stream in one write; the compressed bytes this write
-    // produces are drained into the decoratee before the next chunk, so _compressedPipe never holds more than the
-    // compressed output of one chunk.
+    // The maximum number of bytes given to the compression stream in one write. The compressed bytes are drained into
+    // the decoratee after each chunk, so a large write is sent progressively and observes cancellation between chunks.
+    // How many bytes a chunk produces is up to the compression stream, which can buffer its input and emit it later.
     private const int MaxChunkSize = 32 * 1024;
 
     // Receives the compressed bytes written by _compressionStream; DrainAsync empties it into _decoratee.

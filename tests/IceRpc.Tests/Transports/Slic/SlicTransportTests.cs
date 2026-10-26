@@ -923,7 +923,8 @@ public class SlicTransportTests
             exception.InnerException?.Message,
             Is.EqualTo("The window update is trying to increase the window size to a value larger than allowed."));
 
-        await acceptedStream.Output.CompleteAsync(default);
+        // The connection is aborted: a graceful completion of the output would fail.
+        acceptedStream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
         acceptedStream.Input.Complete();
     }
 
@@ -1028,7 +1029,8 @@ public class SlicTransportTests
             exception.InnerException?.Message,
             Is.EqualTo("Received StreamWindowUpdate frame with a zero window size increment."));
 
-        await acceptedStream.Output.CompleteAsync(default);
+        // The connection is aborted: a graceful completion of the output would fail.
+        acceptedStream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
         acceptedStream.Input.Complete();
     }
 

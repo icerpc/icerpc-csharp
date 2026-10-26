@@ -109,19 +109,16 @@ conversion. (#4804.)
 
 ## Runtime conventions
 
-### `Complete` is synchronous and non-blocking
+### `PipeReader.Complete` is synchronous and non-blocking
 
 IceRPC completes every `PipeReader` — the payloads of outgoing frames, the inputs of multiplexed streams — with
-`Complete`, never `CompleteAsync` (#965). We interpret `Complete` as a fast, non-blocking call, the way modern C#
-treats a synchronous method that also has an async counterpart. This is our interpretation, not Microsoft's (which
-considers such a method potentially blocking), and it was adopted deliberately: completing a reader releases buffers
-and notifies the writer, with no I/O to wait for. Don't add an asynchronous finalization step ahead of `Complete` or
-switch to `CompleteAsync`, and don't treat a `Complete` implementation that follows this rule as sync-over-async.
-
-The writing side is not a `PipeWriter`: `IMultiplexedStreamWriter` separates the graceful completion,
-`CompleteAsync(CancellationToken)`, which may write (unflushed bytes, a compression trailer) and is bounded by its
-token, from the abort, `Complete(Exception)`, which never writes. A writer implementation or decorator writes nothing
-in `Complete(Exception)`. (#965, #4840, #4911, #5047.)
+`Complete`, never `CompleteAsync`. In modern C#, a synchronous method is fast and non-blocking, and an operation that
+can block gets only an async method; a synchronous method with an async counterpart is a legacy pattern, kept for old
+code, and the synchronous one usually blocks. Pipelines is a modern API, yet it offers both `Complete` and
+`CompleteAsync`, which fits neither pattern. We deliberately read `Complete` as the fast, non-blocking method:
+completing a reader releases buffers and notifies the writer, with no I/O to wait for. Don't add an asynchronous
+finalization step ahead of `Complete` or switch to `CompleteAsync`, and don't treat a `Complete` implementation that
+follows this rule as sync-over-async. (#965.)
 
 ### Activator caches pin generated-code assemblies
 
