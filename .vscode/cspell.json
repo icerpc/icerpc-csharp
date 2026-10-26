@@ -26,6 +26,7 @@
     "ECONNRESET",
     "EPIPE",
     "finalizers",
+    "getpeername",
     "globalconfig",
     "globaltool",
     "icerpc",
