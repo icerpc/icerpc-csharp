@@ -31,7 +31,7 @@ public sealed class StructTests
         else
         {
             bitSequenceWriter.Write(true);
-            encoder.EncodeServiceAddress(expected.I.Value.ServiceAddress);
+            encoder.EncodeString(expected.I.Value.ServiceAddress.ToString());
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
@@ -57,7 +57,7 @@ public sealed class StructTests
         encoder.EncodeSequenceOfOptionals(
             expected.I,
             (ref SliceEncoder encoder, PingableProxy? value) =>
-                encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
+                encoder.EncodeString(value!.Value.ServiceAddress.ToString()));
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
@@ -82,7 +82,8 @@ public sealed class StructTests
         encoder.EncodeDictionaryWithOptionalValueType(
             expected.I,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
+            (ref SliceEncoder encoder, PingableProxy? value) =>
+                encoder.EncodeString(value!.Value.ServiceAddress.ToString()));
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);

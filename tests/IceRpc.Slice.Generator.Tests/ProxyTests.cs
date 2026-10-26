@@ -13,7 +13,7 @@ using ZeroC.Tests.Common;
 
 namespace IceRpc.Slice.Generator.Tests;
 
-/// <summary>Test encoding and decoding service addresses and proxies.</summary>
+/// <summary>Test encoding and decoding proxies.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
@@ -34,7 +34,7 @@ public partial class ProxyTests
         var expected = value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter);
-        encoder.EncodeServiceAddress(value);
+        encoder.EncodeString(value.ToString());
         var sut = new SliceDecoder(bufferWriter.WrittenMemory);
 
         // Act
@@ -122,6 +122,28 @@ public partial class ProxyTests
             () =>
             {
                 var decoder = new SliceDecoder(bufferWriter.WrittenMemory, decodingContext: baseProxy);
+                return decoder.DecodePingableProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    /// <summary>Verifies that decoding a proxy whose service address URI is not parsable or has an unsupported protocol
+    /// throws <see cref="InvalidDataException" />.</summary>
+    /// <param name="value">The encoded service address URI.</param>
+    [TestCase("1icerpc://host/path")] // a URI scheme must start with a letter
+    [TestCase("gopher://host/path")]
+    public void Decode_proxy_with_invalid_uri_fails(string value)
+    {
+        // Arrange
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+        encoder.EncodeString(value);
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
                 return decoder.DecodePingableProxy();
             },
             Throws.InstanceOf<InvalidDataException>());

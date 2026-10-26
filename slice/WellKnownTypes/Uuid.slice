@@ -3,7 +3,8 @@
 [cs::identifier("ZeroC.Slice.Codec")]
 module WellKnownTypes
 
-/// Represents a Universally unique identifier (UUID), encoded as a span of 16 bytes (128-bit).
-/// https://en.wikipedia.org/wiki/Universally_unique_identifier
+/// Represents a Universally Unique Identifier (UUID), encoded as 16 bytes (128-bit) in the network byte order
+/// specified by RFC 9562 (https://www.rfc-editor.org/rfc/rfc9562#section-4): the bytes follow the order of the
+/// hexadecimal digits in the UUID's string form.
 [cs::type("System.Guid")]
 custom Uuid

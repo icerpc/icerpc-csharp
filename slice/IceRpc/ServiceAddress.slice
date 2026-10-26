@@ -1,8 +1,0 @@
-// Copyright (c) ZeroC, Inc.
-
-[cs::identifier("IceRpc.Slice")]
-module IceRpc
-
-/// Represents the address of an RPC service that can be called using ice or icerpc.
-[cs::type("IceRpc.ServiceAddress")]
-custom ServiceAddress
