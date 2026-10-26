@@ -31,12 +31,12 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             {
                 remoteEndPoint = acceptedSocket.RemoteEndPoint!;
             }
-            catch (SocketException)
+            catch (SocketException exception)
             {
                 // macOS accepts a connection the peer reset before accept without a peer address, and getpeername
                 // then fails. The connection is already dead.
                 acceptedSocket.Dispose();
-                throw new IceRpcException(IceRpcError.ConnectionAborted);
+                throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
             }
 
             var tcpConnection = new TcpServerConnection(
