@@ -13,7 +13,7 @@ using ZeroC.Tests.Common;
 
 namespace IceRpc.Slice.Generator.Tests;
 
-/// <summary>Test encoding and decoding service addresses and proxies.</summary>
+/// <summary>Test encoding and decoding proxies.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
@@ -127,35 +127,17 @@ public partial class ProxyTests
             Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that decoding a proxy whose service address URI is not parsable throws
-    /// <see cref="InvalidDataException" />.</summary>
-    [Test]
-    public void Decode_proxy_with_unparsable_uri_fails()
+    /// <summary>Verifies that decoding a proxy whose service address URI is not parsable or has an unsupported protocol
+    /// throws <see cref="InvalidDataException" />.</summary>
+    /// <param name="value">The encoded service address URI.</param>
+    [TestCase("1icerpc://host/path")] // a URI scheme must start with a letter
+    [TestCase("gopher://host/path")]
+    public void Decode_proxy_with_invalid_uri_fails(string value)
     {
         // Arrange
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter);
-        encoder.EncodeString("\u0001cerpc://host/path"); // a URI scheme must start with a letter
-
-        // Act/Assert
-        Assert.That(
-            () =>
-            {
-                var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
-                return decoder.DecodePingableProxy();
-            },
-            Throws.InstanceOf<InvalidDataException>());
-    }
-
-    /// <summary>Verifies that decoding a proxy whose service address URI has an unsupported protocol throws
-    /// <see cref="InvalidDataException" />.</summary>
-    [Test]
-    public void Decode_proxy_with_unsupported_protocol_fails()
-    {
-        // Arrange
-        var bufferWriter = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(bufferWriter);
-        encoder.EncodeString("gopher://host/path");
+        encoder.EncodeString(value);
 
         // Act/Assert
         Assert.That(
