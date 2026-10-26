@@ -87,15 +87,12 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// bidirectional stream. Since an bidirectional stream is opened for each two-way invocation, the sending of the
     /// two-way invocation will be delayed until another two-way invocation's stream completes.</summary>
-    /// <value>The maximum number of bidirectional streams. It can't be less than <c>1</c> or greater than
-    /// <c>65,535</c>. Defaults to <c>100</c>.</value>
-    public int MaxIceRpcBidirectionalStreams
+    /// <value>The maximum number of bidirectional streams. It can't be <c>0</c>. Defaults to <c>100</c>.</value>
+    public ushort MaxIceRpcBidirectionalStreams
     {
         get => _maxIceRpcBidirectionalStreams;
-        set => _maxIceRpcBidirectionalStreams = value is > 0 and <= ushort.MaxValue ? value :
-            throw new ArgumentException(
-                $"{nameof(MaxIceRpcBidirectionalStreams)} must be between 1 and {ushort.MaxValue}",
-                nameof(value));
+        set => _maxIceRpcBidirectionalStreams = value > 0 ? value :
+            throw new ArgumentException($"{nameof(MaxIceRpcBidirectionalStreams)} can't be 0", nameof(value));
     }
 
     /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
@@ -111,15 +108,12 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// unidirectional stream. Since an unidirectional stream is opened for each one-way invocation, the sending of the
     /// one-way invocation will be delayed until another one-way invocation's stream completes.</summary>
-    /// <value>The maximum number of unidirectional streams. It can't be less than <c>1</c> or greater than
-    /// <c>65,535</c>. Defaults to <c>100</c>.</value>
-    public int MaxIceRpcUnidirectionalStreams
+    /// <value>The maximum number of unidirectional streams. It can't be <c>0</c>. Defaults to <c>100</c>.</value>
+    public ushort MaxIceRpcUnidirectionalStreams
     {
         get => _maxIceRpcUnidirectionalStreams;
-        set => _maxIceRpcUnidirectionalStreams = value is > 0 and <= ushort.MaxValue ? value :
-            throw new ArgumentException(
-                $"{nameof(MaxIceRpcUnidirectionalStreams)} must be between 1 and {ushort.MaxValue}",
-                nameof(value));
+        set => _maxIceRpcUnidirectionalStreams = value > 0 ? value :
+            throw new ArgumentException($"{nameof(MaxIceRpcUnidirectionalStreams)} can't be 0", nameof(value));
     }
 
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
@@ -146,9 +140,9 @@ public record class ConnectionOptions
     private TimeSpan _inactivityTimeout = TimeSpan.FromMinutes(5);
     private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
-    private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
+    private ushort _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
     private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
-    private int _maxIceRpcUnidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxUnidirectionalStreams;
+    private ushort _maxIceRpcUnidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxUnidirectionalStreams;
     private int _minSegmentSize = 4096;
 
     internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
