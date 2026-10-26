@@ -14,7 +14,7 @@ module IceRpc::IntegrationTests
         void opVoid();
 
         // Oneway operation
-        // ["oneway"] TODO: not implemented yet
+        ["oneway"]
         void opOneway(int x);
 
         // Operation that throws an exception
