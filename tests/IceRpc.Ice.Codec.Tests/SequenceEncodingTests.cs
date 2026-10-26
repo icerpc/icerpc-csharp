@@ -33,18 +33,14 @@ public class SequenceEncodingTests
     [Test]
     public void Encode_stack_allocated_span()
     {
-        int[] values = [1, 2, 3, 4];
-        var expectedBuffer = new MemoryBufferWriter(new byte[256]);
-        var expectedEncoder = new IceEncoder(expectedBuffer);
-        expectedEncoder.EncodeSequence(values);
         var buffer = new MemoryBufferWriter(new byte[256]);
         var sut = new IceEncoder(buffer);
-        Span<int> span = stackalloc int[4];
-        values.CopyTo(span);
 
-        sut.EncodeSpan<int>(span);
+        sut.EncodeSpan<int>(stackalloc int[] { 1, 2, 3, 4 });
 
-        Assert.That(buffer.WrittenMemory.ToArray(), Is.EqualTo(expectedBuffer.WrittenMemory.ToArray()));
+        Assert.That(
+            buffer.WrittenMemory.ToArray(),
+            Is.EqualTo(new byte[] { 4, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0 }));
     }
 
     /// <summary>Tests <see cref="IceEncoderExtensions.EncodeSequence{T}(ref IceEncoder, IEnumerable{T})" /> with a
