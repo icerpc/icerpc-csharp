@@ -22,19 +22,29 @@ public static class IceProxyIceDecoderExtensions
     /// <see cref="IIceProxy" />: the decoded proxy inherits the invoker and encode options of this base proxy. Without
     /// a decoding context, the decoded proxy has <see cref="InvalidInvoker.Instance" /> as its invoker and no encode
     /// options.</remarks>
-    public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy<TProxy>
+    public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy
     {
         ServiceAddress? serviceAddress = decoder.DecodeServiceAddress();
         return serviceAddress.HasValue ? CreateProxy<TProxy>(serviceAddress.Value, decoder.DecodingContext) : null;
     }
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
-        where TProxy : struct, IIceProxy<TProxy>
+        where TProxy : struct, IIceProxy
     {
-        var baseProxy = (IIceProxy?)decodingContext;
-        return baseProxy is null ?
-            TProxy.Create(InvalidInvoker.Instance, serviceAddress, encodeOptions: null) :
-            TProxy.Create(baseProxy.Invoker, serviceAddress, baseProxy.EncodeOptions);
+        if (decodingContext is null)
+        {
+            return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };
+        }
+        else
+        {
+            var baseProxy = (IIceProxy)decodingContext;
+            return new TProxy
+            {
+                EncodeOptions = baseProxy.EncodeOptions,
+                Invoker = baseProxy.Invoker,
+                ServiceAddress = serviceAddress
+            };
+        }
     }
 
     /// <summary>Decodes a service address.</summary>
