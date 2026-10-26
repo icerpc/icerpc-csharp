@@ -28,6 +28,21 @@ public class SequenceEncodingTests
         }
     }
 
+    /// <summary>Verifies that <see cref="IceEncoderExtensions.EncodeSpan{T}(ref IceEncoder, ReadOnlySpan{T})" />
+    /// accepts a stack-allocated span.</summary>
+    [Test]
+    public void Encode_stack_allocated_span()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var sut = new IceEncoder(buffer);
+
+        sut.EncodeSpan<int>(stackalloc int[] { 1, 2, 3, 4 });
+
+        Assert.That(
+            buffer.WrittenMemory.ToArray(),
+            Is.EqualTo(new byte[] { 4, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0 }));
+    }
+
     /// <summary>Tests <see cref="IceEncoderExtensions.EncodeSequence{T}(ref IceEncoder, IEnumerable{T})" /> with a
     /// value type.</summary>
     /// <param name="expected">The enumerable to be encoded.</param>

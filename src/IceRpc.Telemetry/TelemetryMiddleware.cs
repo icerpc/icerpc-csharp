@@ -98,12 +98,11 @@ public class TelemetryMiddleware : IDispatcher
 
         byte traceIdVersion = decoder.DecodeUInt8();
 
-        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
+        Span<byte> traceIdSpan = stackalloc byte[16];
         decoder.CopyTo(traceIdSpan);
         var traceId = ActivityTraceId.CreateFromBytes(traceIdSpan);
 
-        Span<byte> spanIdSpan = memoryOwner.Memory.Span[0..8];
+        Span<byte> spanIdSpan = traceIdSpan[0..8];
         decoder.CopyTo(spanIdSpan);
         var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
 

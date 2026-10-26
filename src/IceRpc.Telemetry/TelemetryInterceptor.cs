@@ -2,7 +2,6 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Telemetry.Internal;
-using System.Buffers;
 using System.Diagnostics;
 using ZeroC.Slice.Codec;
 
@@ -125,9 +124,7 @@ public class TelemetryInterceptor : IInvoker
         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
         encoder.EncodeUInt8(0);
 
-        // Unfortunately we can't use stackalloc.
-        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> buffer = memoryOwner.Memory.Span[0..16];
+        Span<byte> buffer = stackalloc byte[16];
         activity.TraceId.CopyTo(buffer);
         encoder.WriteByteSpan(buffer);
         activity.SpanId.CopyTo(buffer[0..8]);

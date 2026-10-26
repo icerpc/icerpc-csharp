@@ -519,8 +519,7 @@ public sealed class TelemetryMiddlewareTests
         var encoder = new SliceEncoder(pipe.Writer);
 
         encoder.EncodeUInt8(0);
-        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> buffer = memoryOwner.Memory.Span[..16];
+        Span<byte> buffer = stackalloc byte[16];
         activity.TraceId.CopyTo(buffer);
         encoder.WriteByteSpan(buffer);
         activity.SpanId.CopyTo(buffer[..8]);
