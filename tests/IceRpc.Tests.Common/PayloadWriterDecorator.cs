@@ -8,15 +8,18 @@ namespace IceRpc.Tests.Common;
 /// <summary>A payload writer decorator that reports how it was completed.</summary>
 public sealed class PayloadWriterDecorator : IMultiplexedStreamWriter
 {
-    /// <summary>Gets a task that completes when this writer is completed, with <see langword="null" /> when completed
-    /// with <see cref="CompleteAsync" /> and the exception otherwise.</summary>
-    public Task<Exception?> Completed => _completed.Task;
+    /// <summary>Gets a task that completes when this writer is completed, by <see cref="CompleteAsync" /> or
+    /// <see cref="Abort" />.</summary>
+    public Task Completed => _completedTcs.Task;
+
+    /// <summary>Gets a value indicating whether this writer completed successfully: <see cref="CompleteAsync" /> was
+    /// called and did not throw.</summary>
+    public bool IsCompletedSuccessfully { get; private set; }
 
     /// <inheritdoc/>
     public long UnflushedBytes => _decoratee.UnflushedBytes;
 
-    private readonly TaskCompletionSource<Exception?> _completed =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _completedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly IMultiplexedStreamWriter _decoratee;
 
@@ -24,10 +27,10 @@ public sealed class PayloadWriterDecorator : IMultiplexedStreamWriter
     public void Advance(int count) => _decoratee.Advance(count);
 
     /// <inheritdoc/>
-    public void Complete(Exception exception)
+    public void Abort()
     {
-        _completed.TrySetResult(exception);
-        _decoratee.Complete(exception);
+        _decoratee.Abort();
+        _completedTcs.TrySetResult();
     }
 
     /// <inheritdoc/>
@@ -36,12 +39,11 @@ public sealed class PayloadWriterDecorator : IMultiplexedStreamWriter
         try
         {
             await _decoratee.CompleteAsync(cancellationToken);
-            _completed.TrySetResult(null);
+            IsCompletedSuccessfully = true;
         }
-        catch (Exception exception)
+        finally
         {
-            _completed.TrySetResult(exception);
-            throw;
+            _completedTcs.TrySetResult();
         }
     }
 

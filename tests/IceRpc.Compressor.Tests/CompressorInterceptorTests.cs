@@ -40,7 +40,7 @@ public class CompressorInterceptorTests
         await payloadWriter.CompleteAsync(default);
 
         Assert.That(output.IsEnded, Is.True);
-        Assert.That(output.CompleteException, Is.Null);
+        Assert.That(output.IsCompletedSuccessfully, Is.True);
         Assert.That(await DecompressAsync(pipe.Reader, compressionFormat), Is.EqualTo(_payload));
     }
 
@@ -69,7 +69,7 @@ public class CompressorInterceptorTests
     }
 
     [Test]
-    public async Task Complete_compressor_payload_writer_with_exception_completes_output_with_exception(
+    public async Task Abort_compressor_payload_writer_aborts_the_output(
         [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
         // Arrange
@@ -86,10 +86,11 @@ public class CompressorInterceptorTests
         await payloadWriter.WriteAsync(new ReadOnlySequence<byte>(_payload), endStream: false, default);
 
         // Act
-        payloadWriter.Complete(new InvalidOperationException("payload copy failed"));
+        payloadWriter.Abort();
 
         // Assert
-        Assert.That(output.CompleteException, Is.InstanceOf<InvalidOperationException>());
+        Assert.That(output.IsCompleted, Is.True);
+        Assert.That(output.IsCompletedSuccessfully, Is.False);
         Assert.That(
             async () =>
             {
@@ -103,7 +104,7 @@ public class CompressorInterceptorTests
                     }
                 }
             },
-            Throws.InstanceOf<InvalidOperationException>());
+            Throws.InstanceOf<IceRpcException>());
         pipe.Reader.Complete();
     }
 
@@ -126,7 +127,8 @@ public class CompressorInterceptorTests
 
         // Act/Assert
         Assert.That(async () => await payloadWriter.CompleteAsync(default), Throws.InstanceOf<IOException>());
-        Assert.That(failingWriter.CompleteException, Is.InstanceOf<IOException>());
+        Assert.That(failingWriter.IsCompleted, Is.True);
+        Assert.That(failingWriter.IsCompletedSuccessfully, Is.False);
     }
 
     /// <summary>Verifies that the write of the compression trailer honors the cancellation token: a peer that stops
@@ -156,7 +158,8 @@ public class CompressorInterceptorTests
 
         // Assert
         Assert.That(async () => await completeTask, Throws.InstanceOf<OperationCanceledException>());
-        Assert.That(blockingWriter.CompleteException, Is.InstanceOf<OperationCanceledException>());
+        Assert.That(blockingWriter.IsCompleted, Is.True);
+        Assert.That(blockingWriter.IsCompletedSuccessfully, Is.False);
     }
 
     // A stream writer that throws IOException on every write once FailWrites is set.
@@ -164,22 +167,21 @@ public class CompressorInterceptorTests
     {
         public long UnflushedBytes => _pipe.Writer.UnflushedBytes;
 
-        internal Exception? CompleteException { get; private set; }
+        internal bool IsCompleted { get; private set; }
+
+        internal bool IsCompletedSuccessfully { get; private set; }
 
         internal bool FailWrites { get; set; }
-
-        private bool _isCompleted;
 
         private readonly Pipe _pipe = new();
 
         public void Advance(int count) => _pipe.Writer.Advance(count);
 
-        public void Complete(Exception exception)
+        public void Abort()
         {
-            if (!_isCompleted)
+            if (!IsCompleted)
             {
-                _isCompleted = true;
-                CompleteException = exception;
+                IsCompleted = true;
                 _pipe.Writer.Complete();
                 _pipe.Reader.Complete();
             }
@@ -189,10 +191,11 @@ public class CompressorInterceptorTests
         {
             if (FailWrites)
             {
-                Complete(new IOException("write failed"));
+                Abort();
                 throw new IOException("write failed");
             }
-            _isCompleted = true;
+            IsCompleted = true;
+            IsCompletedSuccessfully = true;
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
             return default;
@@ -228,23 +231,23 @@ public class CompressorInterceptorTests
 
         internal bool BlockWrites { get; set; }
 
-        internal Exception? CompleteException { get; private set; }
+        internal bool IsCompleted { get; private set; }
+
+        internal bool IsCompletedSuccessfully { get; private set; }
 
         internal Task WriteBlocked => _writeBlockedTcs.Task;
 
-        private bool _isCompleted;
         private readonly Pipe _pipe = new();
         private readonly TaskCompletionSource _writeBlockedTcs =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public void Advance(int count) => _pipe.Writer.Advance(count);
 
-        public void Complete(Exception exception)
+        public void Abort()
         {
-            if (!_isCompleted)
+            if (!IsCompleted)
             {
-                _isCompleted = true;
-                CompleteException = exception;
+                IsCompleted = true;
                 _pipe.Writer.Complete();
                 _pipe.Reader.Complete();
             }
@@ -253,7 +256,8 @@ public class CompressorInterceptorTests
         public async ValueTask CompleteAsync(CancellationToken cancellationToken)
         {
             await WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancellationToken);
-            _isCompleted = true;
+            IsCompleted = true;
+            IsCompletedSuccessfully = true;
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
         }

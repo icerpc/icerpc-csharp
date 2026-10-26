@@ -34,7 +34,7 @@ internal class SlicStreamWriter : IMultiplexedStreamWriter
         _pipe.Writer.Advance(count);
     }
 
-    public void Complete(Exception exception)
+    public void Abort()
     {
         if (!_isCompleted)
         {
@@ -72,9 +72,9 @@ internal class SlicStreamWriter : IMultiplexedStreamWriter
                     _ = await WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancellationToken)
                         .ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    Complete(exception);
+                    Abort();
                     throw;
                 }
             }

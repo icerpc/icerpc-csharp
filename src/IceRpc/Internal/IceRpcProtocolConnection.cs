@@ -17,12 +17,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private bool IsServer => _transportConnectionInformation is not null;
 
-    // The exceptions given to IMultiplexedStreamWriter.Complete when the caller has no better one; the transports don't
-    // report them to anyone.
-    private static readonly IceRpcException _abortException = new(IceRpcError.OperationAborted);
-    private static readonly IceRpcException _connectionDisposedException =
-        new(IceRpcError.OperationAborted, "The connection was disposed.");
-
     private Task? _acceptRequestsTask;
 
     private Task? _connectTask;
@@ -170,12 +164,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         settings.Encode,
                         connectCts.Token).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
                     // If we fail to send the Settings frame, we are in an abortive closure and we close Output to allow
                     // the peer to continue if it's waiting for us. This could happen when the cancellation token is
                     // canceled.
-                    _controlStream!.Output.Complete(exception);
+                    _controlStream!.Output.Abort();
                     throw;
                 }
 
@@ -332,7 +326,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             // The transport connection disposal already closed the writes, so this completion sends nothing: it only
             // releases the output.
-            _controlStream?.Output.Complete(_connectionDisposedException);
+            _controlStream?.Output.Abort();
 
             // It's safe to complete the input since read operations have been completed by the transport connection
             // disposal.
@@ -345,7 +339,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 stream.Input.Complete();
                 if (stream.IsBidirectional)
                 {
-                    stream.Output.Complete(_connectionDisposedException);
+                    stream.Output.Abort();
                 }
             }
 
@@ -463,9 +457,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     EncodeHeader(stream.Output);
                     payloadWriter = request.GetPayloadWriter(stream.Output);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    stream.Output.Complete(exception);
+                    stream.Output.Abort();
                     throw;
                 }
 
@@ -482,9 +476,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         endStream: !hasContinuation,
                         invocationCts.Token).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    payloadWriter.Complete(exception);
+                    payloadWriter.Abort();
                     request.PayloadContinuation?.Complete();
                     throw;
                 }
@@ -500,7 +494,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     request.PayloadContinuation?.Complete();
                     if (copyResult == CopyResult.Canceled)
                     {
-                        payloadWriter.Complete(_abortException);
+                        payloadWriter.Abort();
                     }
                     else
                     {
@@ -728,12 +722,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // it can close the transport connection whenever it likes.
                     await _controlStream.Output.CompleteAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
                     // If we fail to send the GoAway frame or some other failure occur (such as
                     // OperationCanceledException) we are in an abortive closure and we close Output to allow
                     // the peer to continue if it's waiting for us.
-                    _controlStream.Output.Complete(exception);
+                    _controlStream.Output.Abort();
                     throw;
                 }
 
@@ -1180,16 +1174,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                         if (copyResult == CopyResult.Canceled)
                         {
-                            payloadWriter.Complete(_abortException);
+                            payloadWriter.Abort();
                         }
                         else
                         {
                             await payloadWriter.CompleteAsync(_disposedCts.Token).ConfigureAwait(false);
                         }
                     }
-                    catch (Exception exception)
+                    catch
                     {
-                        payloadWriter.Complete(exception);
+                        payloadWriter.Abort();
                         throw;
                     }
                     finally
@@ -1239,7 +1233,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 // We always need to complete streamOutput when an exception is thrown. For example, we received an
                 // invalid request header that we could not decode.
-                streamOutput?.Complete(_abortException);
+                streamOutput?.Abort();
                 streamInput?.Complete();
             }
             fieldsPipeReader?.Complete();
@@ -1624,7 +1618,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     if (copyResult == CopyResult.Canceled)
                     {
-                        payloadWriter.Complete(_abortException);
+                        payloadWriter.Abort();
                     }
                     else
                     {
@@ -1633,7 +1627,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
                 {
-                    payloadWriter.Complete(exception);
+                    payloadWriter.Abort();
 
                     // Process/translate this exception primarily for the benefit of _taskExceptionObserver.
 
@@ -1655,9 +1649,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
                     }
                 }
-                catch (Exception exception)
+                catch
                 {
-                    payloadWriter.Complete(exception);
+                    payloadWriter.Abort();
                     throw;
                 }
             }

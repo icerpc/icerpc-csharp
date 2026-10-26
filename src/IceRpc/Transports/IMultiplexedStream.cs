@@ -58,7 +58,7 @@ public interface IMultiplexedStream
     /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:
     /// <list type="bullet">
     /// <item><description>this stream's <see cref="Output" /> is completed with <see
-    /// cref="IMultiplexedStreamWriter.CompleteAsync" /> or <see cref="IMultiplexedStreamWriter.Complete" />.
+    /// cref="IMultiplexedStreamWriter.CompleteAsync" /> or <see cref="IMultiplexedStreamWriter.Abort" />.
     /// </description></item>
     /// <item><description>the peer calls <see cref="PipeReader.Complete(Exception?)"/> on the stream's <see
     /// cref="Input" />.</description></item>

@@ -41,15 +41,15 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
         _uncompressedPipe.Writer.Advance(count);
     }
 
-    public void Complete(Exception exception)
+    public void Abort()
     {
         if (!_isCompleted)
         {
             _isCompleted = true;
 
-            // Completing the decoratee first makes sure the disposal of the compression stream below can't write
+            // Aborting the decoratee first makes sure the disposal of the compression stream below can't write
             // anything to the network: its trailer lands in _compressedPipe and is discarded.
-            _decoratee.Complete(exception);
+            _decoratee.Abort();
             _compressionStream.Dispose();
 
             _uncompressedPipe.Writer.Complete();
@@ -72,9 +72,9 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
                 }
                 await _decoratee.CompleteAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch
             {
-                Complete(exception);
+                Abort();
                 throw;
             }
 

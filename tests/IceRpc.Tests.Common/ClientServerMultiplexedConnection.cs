@@ -127,7 +127,7 @@ public sealed class LocalAndRemoteMultiplexedStreams : IDisposable
     {
         if (stream.IsBidirectional)
         {
-            stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
+            stream.Output.Abort();
             stream.Input.Complete();
         }
         else if (stream.IsRemote)
@@ -136,7 +136,7 @@ public sealed class LocalAndRemoteMultiplexedStreams : IDisposable
         }
         else
         {
-            stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
+            stream.Output.Abort();
         }
     }
 }

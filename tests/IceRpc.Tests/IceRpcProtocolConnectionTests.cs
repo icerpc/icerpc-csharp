@@ -477,7 +477,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Cleanup: the server is disposed, so a graceful completion of the outputs would fail.
         foreach (IMultiplexedStream stream in streams)
         {
-            stream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+            stream.Output.Abort();
             stream.Input.Complete();
         }
     }
@@ -547,7 +547,7 @@ public sealed class IceRpcProtocolConnectionTests
         }
         else
         {
-            stream.Output.Complete(new Exception());
+            stream.Output.Abort();
         }
 
         // Assert
@@ -1715,7 +1715,9 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+        PayloadWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        await payloadWriter.Completed;
+        Assert.That(payloadWriter.IsCompletedSuccessfully, Is.True);
 
         // Cleanup
         await responseTask;
@@ -1751,7 +1753,9 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+        PayloadWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        await payloadWriter.Completed;
+        Assert.That(payloadWriter.IsCompletedSuccessfully, Is.True);
 
         // Cleanup
         await responseTask;
@@ -1786,7 +1790,9 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null); // actual exception does not matter
+        PayloadWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        await payloadWriter.Completed;
+        Assert.That(payloadWriter.IsCompletedSuccessfully, Is.False);
         Assert.That(async () => await responseTask, Throws.InstanceOf<InvalidOperationException>());
     }
 
@@ -1828,7 +1834,9 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null);
+        PayloadWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        await payloadWriter.Completed;
+        Assert.That(payloadWriter.IsCompletedSuccessfully, Is.False);
 
         Assert.That(
             async () => await invokeTask,

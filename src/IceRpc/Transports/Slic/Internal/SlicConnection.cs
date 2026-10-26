@@ -553,7 +553,7 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 if (stream.IsBidirectional)
                 {
-                    stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
+                    stream.Output.Abort();
                     stream.Input.Complete();
                 }
                 else if (stream.IsRemote)
@@ -562,7 +562,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 else
                 {
-                    stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
+                    stream.Output.Abort();
                 }
             }
 
@@ -771,7 +771,7 @@ internal class SlicConnection : IMultiplexedConnection
     }
 
     /// <summary>Writes a stream frame as a fire-and-forget operation. Used by sync code paths (e.g.
-    /// <see cref="SlicPipeReader.Complete"/>, <see cref="SlicStreamWriter.Complete"/>, window updates) that cannot
+    /// <see cref="SlicPipeReader.Complete"/>, <see cref="SlicStreamWriter.Abort"/>, window updates) that cannot
     /// await.</summary>
     /// <param name="stream">The stream to write the frame for.</param>
     /// <param name="frameType">The frame type.</param>
@@ -1712,7 +1712,7 @@ internal class SlicConnection : IMultiplexedConnection
                 stream.Input.Complete();
                 if (isBidirectional)
                 {
-                    stream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+                    stream.Output.Abort();
                 }
             }
         }

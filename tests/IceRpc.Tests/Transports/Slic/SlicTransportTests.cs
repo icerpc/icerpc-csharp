@@ -924,7 +924,7 @@ public class SlicTransportTests
             Is.EqualTo("The window update is trying to increase the window size to a value larger than allowed."));
 
         // The connection is aborted: a graceful completion of the output would fail.
-        acceptedStream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+        acceptedStream.Output.Abort();
         acceptedStream.Input.Complete();
     }
 
@@ -1030,7 +1030,7 @@ public class SlicTransportTests
             Is.EqualTo("Received StreamWindowUpdate frame with a zero window size increment."));
 
         // The connection is aborted: a graceful completion of the output would fail.
-        acceptedStream.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+        acceptedStream.Output.Abort();
         acceptedStream.Input.Complete();
     }
 
@@ -1322,7 +1322,7 @@ public class SlicTransportTests
 
         // Aborting the stream output sends a StreamWritesClosed frame through the fire-and-forget write path, whose
         // flush rethrows the transport exception.
-        streams.Local.Output.Complete(new Exception());
+        streams.Local.Output.Abort();
         streams.Local.Input.Complete();
 
         // Assert
@@ -1532,7 +1532,7 @@ public class SlicTransportTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
 
         // The connection is aborted: a graceful completion of the output would fail.
-        acceptedStream?.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+        acceptedStream?.Output.Abort();
         acceptedStream?.Input.Complete();
     }
 
@@ -2028,7 +2028,7 @@ public class SlicTransportTests
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
 
         // Act: complete the output with an exception, like a failed invocation does.
-        streams.Local.Output.Complete(new OperationCanceledException());
+        streams.Local.Output.Abort();
 
         // Assert: the peer observes the writes closure (TruncatedData) after consuming the buffered data, instead
         // of waiting for data forever. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang
@@ -2094,7 +2094,7 @@ public class SlicTransportTests
 
         // Act: complete the output with an exception, like a failed invocation does, then release the hold so the
         // queued data and StreamLast frame reach the peer.
-        streams.Local.Output.Complete(new OperationCanceledException());
+        streams.Local.Output.Abort();
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
 
         // Assert: the peer reads all the data and a graceful end of stream, not a TruncatedData error.

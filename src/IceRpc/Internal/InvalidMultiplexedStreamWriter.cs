@@ -6,7 +6,7 @@ using System.Buffers;
 namespace IceRpc.Internal;
 
 /// <summary>A multiplexed stream writer that throws <see cref="InvalidOperationException" /> for every operation
-/// except <see cref="Complete" />.</summary>
+/// except <see cref="Abort" />.</summary>
 internal sealed class InvalidMultiplexedStreamWriter : IMultiplexedStreamWriter
 {
     public long UnflushedBytes => throw new InvalidOperationException(ExceptionMessage);
@@ -18,7 +18,7 @@ internal sealed class InvalidMultiplexedStreamWriter : IMultiplexedStreamWriter
 
     public void Advance(int count) => throw new InvalidOperationException(ExceptionMessage);
 
-    public void Complete(Exception exception)
+    public void Abort()
     {
         // no-op
     }

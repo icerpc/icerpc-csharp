@@ -107,12 +107,12 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
 
         public void Advance(int count) => _decoratee.Advance(count);
 
-        public void Complete(Exception exception)
+        public void Abort()
         {
             if (!_isCompleted)
             {
                 _isCompleted = true;
-                _decoratee.Complete(exception);
+                _decoratee.Abort();
                 _onCompleted();
             }
         }

@@ -193,7 +193,7 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Closes the write-side of the stream. It's only called by <see cref="SlicStreamWriter.Complete" /> and
+    /// <summary>Closes the write-side of the stream. It's only called by <see cref="SlicStreamWriter.Abort" /> and
     /// <see cref="SlicStreamWriter.CompleteAsync" />, never concurrently.</summary>
     /// <param name="graceful"><see langword="true" /> if the application wrote all the stream data on the stream <see
     /// cref="Output" />; otherwise, <see langword="false" />.</param>

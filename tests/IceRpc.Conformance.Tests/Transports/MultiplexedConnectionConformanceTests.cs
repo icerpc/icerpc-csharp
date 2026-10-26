@@ -190,7 +190,7 @@ public abstract class MultiplexedConnectionConformanceTests
         serverStream1.Input.Complete(abort ? new Exception() : null);
         if (abort)
         {
-            serverStream1.Output.Complete(new Exception());
+            serverStream1.Output.Abort();
         }
         else
         {
@@ -593,7 +593,7 @@ public abstract class MultiplexedConnectionConformanceTests
         // Completing the remote output and input will allow a new stream to be accepted.
         if (abort)
         {
-            streams.Remote.Output.Complete(new Exception());
+            streams.Remote.Output.Abort();
         }
         else
         {
@@ -840,7 +840,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // The connection is closed: a graceful completion of the output would fail.
         stream1.Input.Complete();
-        stream1.Output.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+        stream1.Output.Abort();
     }
 
     /// <summary>This test verifies that stream flow control prevents a new stream from being created under the

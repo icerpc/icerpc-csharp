@@ -284,7 +284,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                     // Cleanup the stream if the operation is configured to fail.
                     if (stream.IsBidirectional)
                     {
-                        stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
+                        stream.Output.Abort();
                     }
                     stream.Input.Complete();
                 }
@@ -308,7 +308,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.CreateStream))
                 {
                     // Cleanup the stream if the operation is not configure to fail.
-                    stream.Output.Complete(new IceRpcException(IceRpcError.OperationAborted));
+                    stream.Output.Abort();
                     if (stream.IsBidirectional)
                     {
                         stream.Input.Complete();
@@ -446,10 +446,10 @@ internal sealed class TestStreamWriter : IMultiplexedStreamWriter
 
     public void Advance(int count) => _decoratee.Advance(count);
 
-    public void Complete(Exception exception)
+    public void Abort()
     {
         _operations.Hold &= ~MultiplexedTransportOperations.StreamWrite;
-        _decoratee.Complete(exception);
+        _decoratee.Abort();
         _completedTcs.TrySetResult();
     }
 

@@ -249,7 +249,7 @@ public abstract class MultiplexedStreamConformanceTests
         using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
 
         // Act
-        sut.Local.Output.Complete(new OperationCanceledException()); // can be any exception
+        sut.Local.Output.Abort();
         // Wait for the peer to receive the StreamWritesClosed frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
@@ -414,7 +414,7 @@ public abstract class MultiplexedStreamConformanceTests
         // Act
         if (abort)
         {
-            sut.Local.Output.Complete(new Exception());
+            sut.Local.Output.Abort();
         }
         else
         {

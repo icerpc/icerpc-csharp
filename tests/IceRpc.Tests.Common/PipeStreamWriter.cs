@@ -10,12 +10,13 @@ namespace IceRpc.Tests.Common;
 /// in-memory <see cref="Pipe" /> whose reader the test checks.</summary>
 public sealed class PipeStreamWriter : IMultiplexedStreamWriter
 {
-    /// <summary>Gets the exception given to <see cref="Complete" />, or <see langword="null" /> when this writer was
-    /// completed with <see cref="CompleteAsync" /> or is not completed.</summary>
-    public Exception? CompleteException { get; private set; }
-
-    /// <summary>Gets a value indicating whether this writer is completed.</summary>
+    /// <summary>Gets a value indicating whether this writer is completed, by <see cref="CompleteAsync" /> or
+    /// <see cref="Abort" />.</summary>
     public bool IsCompleted { get; private set; }
+
+    /// <summary>Gets a value indicating whether this writer completed successfully: <see cref="CompleteAsync" /> was
+    /// called and did not throw.</summary>
+    public bool IsCompletedSuccessfully { get; private set; }
 
     /// <summary>Gets a value indicating whether a write with endStream was performed.</summary>
     public bool IsEnded { get; private set; }
@@ -29,13 +30,12 @@ public sealed class PipeStreamWriter : IMultiplexedStreamWriter
     public void Advance(int count) => _pipeWriter.Advance(count);
 
     /// <inheritdoc/>
-    public void Complete(Exception exception)
+    public void Abort()
     {
         if (!IsCompleted)
         {
             IsCompleted = true;
-            CompleteException = exception;
-            _pipeWriter.Complete(exception);
+            _pipeWriter.Complete(new IceRpcException(IceRpcError.OperationAborted));
         }
     }
 
@@ -51,12 +51,13 @@ public sealed class PipeStreamWriter : IMultiplexedStreamWriter
                     await _pipeWriter.FlushAsync(cancellationToken);
                 }
             }
-            catch (Exception exception)
+            catch
             {
-                Complete(exception);
+                Abort();
                 throw;
             }
             IsCompleted = true;
+            IsCompletedSuccessfully = true;
             _pipeWriter.Complete();
         }
     }
