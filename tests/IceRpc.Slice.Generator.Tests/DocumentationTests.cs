@@ -53,7 +53,7 @@ public class DocumentationTests
     }
 
     [Test]
-    public void Encoded_return_with_stream_gets_returns_doc_comment_with_payload_and_stream_items()
+    public void Encoded_return_with_stream_gets_returns_doc_comment_with_encoded_return_value_and_stream_items()
     {
         // Arrange / Act
         XElement member = GetMember(
