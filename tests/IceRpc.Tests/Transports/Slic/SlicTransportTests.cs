@@ -667,7 +667,6 @@ public class SlicTransportTests
         Assert.That(acceptStreamTask.IsCompleted, Is.True);
         if (nextAcceptStreamTask.IsCompleted)
         {
-            // Unexpected. See #4108.
             Assert.DoesNotThrowAsync(async () => await nextAcceptStreamTask);
             Assert.Fail("nextAcceptStreamTask should not be completed");
         }
@@ -1957,7 +1956,7 @@ public class SlicTransportTests
     }
 
     /// <summary>Verifies that completing a stream that was created but never started releases the stream-count
-    /// semaphore permit acquired by CreateStreamAsync. See icerpc/icerpc-csharp-audit#25.</summary>
+    /// semaphore permit acquired by CreateStreamAsync.</summary>
     [Test]
     public async Task Completing_unstarted_stream_releases_the_stream_count_permit([Values] bool bidirectional)
     {
@@ -1997,7 +1996,7 @@ public class SlicTransportTests
 
     /// <summary>Verifies that when a blocked WriteAsync with endStream is canceled before the StreamLast frame is
     /// written, completing the stream output still notifies the peer of the writes closure with a StreamWritesClosed
-    /// frame. See icerpc/icerpc-csharp-audit#26.</summary>
+    /// frame.</summary>
     [Test]
     public async Task Canceled_end_stream_write_does_not_lose_the_writes_closed_frame()
     {
@@ -2454,8 +2453,7 @@ public class SlicTransportTests
     }
 
     /// <summary>Verifies that the connection is aborted when a Ping frame is received while
-    /// <see cref="SlicTransportOptions.MaxOutstandingPongs" /> Pong frames are already queued for sending. See
-    /// icerpc/icerpc-csharp-audit#17.</summary>
+    /// <see cref="SlicTransportOptions.MaxOutstandingPongs" /> Pong frames are already queued for sending.</summary>
     [Test]
     public async Task Connection_is_aborted_when_max_outstanding_pongs_is_exceeded()
     {
@@ -2538,7 +2536,7 @@ public class SlicTransportTests
 
     /// <summary>Verifies that a Ping frame received after a local CloseAsync doesn't fault the read frames loop:
     /// the read frames loop keeps reading until the peer shuts down the duplex connection, and the Pong write
-    /// failure on the closed connection must be ignored. See icerpc/icerpc-csharp-audit#29.</summary>
+    /// failure on the closed connection must be ignored.</summary>
     [Test]
     public async Task Ping_received_after_local_close_does_not_fail_graceful_close()
     {

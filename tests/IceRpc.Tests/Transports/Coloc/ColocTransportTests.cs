@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Transports.Coloc;
 public class ColocTransportTests
 {
     /// <summary>Verifies that after a listener is disposed, a new listener can be created at the same
-    /// transport address on the same <see cref="ColocTransport" /> (see issue #4484).</summary>
+    /// transport address on the same <see cref="ColocTransport" />.</summary>
     [Test]
     public async Task Listen_succeeds_at_the_same_address_after_dispose()
     {

@@ -118,7 +118,7 @@ public class TelemetryInterceptor : IInvoker
         //
         // Baggage is modeled as a sequence rather than a dictionary because Activity.Baggage allows
         // duplicate keys: encoding as a Slice dictionary could produce bytes that a strict dictionary
-        // decoder in another language would reject (see #4518).
+        // decoder in another language would reject.
 
         // W3C traceparent binary encoding (1 byte version, 16 bytes trace-ID, 8 bytes span-ID,
         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values

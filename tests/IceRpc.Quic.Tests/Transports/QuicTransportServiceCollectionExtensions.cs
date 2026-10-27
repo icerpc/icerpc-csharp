@@ -15,8 +15,8 @@ public static class QuicTransportServiceCollectionExtensions
     /// <summary>The loopback server address used by the QUIC tests.</summary>
     /// <remarks>On macOS, the kernel can give the dual-mode listener socket of MsQuic an ephemeral port that an
     /// IPv4-only socket of another process already holds. IPv4 datagrams sent to that port are then delivered to the
-    /// other process and the handshake times out. Connecting over IPv6 avoids this misdelivery. See
-    /// https://github.com/icerpc/icerpc-csharp/issues/4714.</remarks>
+    /// other process and the handshake times out. Connecting over IPv6 avoids this misdelivery.</remarks>
+    // TODO: revert to the IPv4 loopback on all platforms once a fixed libmsquic is in Homebrew, see #5054.
     public static Uri LoopbackServerAddressUri { get; } =
         new(OperatingSystem.IsMacOS() ? "icerpc://[::1]:0/" : "icerpc://127.0.0.1:0/");
 

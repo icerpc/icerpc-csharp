@@ -17,8 +17,9 @@ These conventions apply to all AI coding assistants (Copilot, Claude Code, etc.)
 
 - In PR descriptions, commit messages, and Markdown docs, prefer `#1234` over full GitHub URLs when referencing issues
   or PRs in this repo (`icerpc/icerpc-csharp`). Use full URLs only when linking to other repositories.
-- Don't reference this repository's issues or PRs in source code or code comments (no `#1234`, no URLs). A comment
-  must stand on its own; the issue belongs in the commit message and PR description. A workaround for a bug in another
+- Don't reference this repository's issues or PRs in source code or code comments (no `#1234`, no URLs), except in
+  a TODO that points at an open issue. A comment must stand on its own; the issue belongs in the commit message and PR
+  description. Never reference a private repository such as `icerpc-csharp-audit`. A workaround for a bug in another
   project may link that project's issue, which tells the reader when the workaround can be removed.
 - XML doc comments use `<summary>`, `<remarks>`, `<param>`, etc. — not Markdown.
 - A comment states what the code cannot show: a why, a constraint, a contract, a non-obvious rule. It never narrates

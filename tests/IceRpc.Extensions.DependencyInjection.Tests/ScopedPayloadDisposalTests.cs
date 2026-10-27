@@ -9,10 +9,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Extensions.DependencyInjection.Tests;
 
-/// <summary>Demonstrates the issue reported in #4424: the per-request DI scope is disposed by
-/// <see cref="DispatcherBuilder" /> as soon as the dispatcher returns its <see cref="OutgoingResponse" />, but the
-/// protocol connection only reads <c>response.Payload</c> afterwards. A payload that lazily pulls from a scoped
-/// service therefore hits an <see cref="ObjectDisposedException" /> mid-transmission.</summary>
+/// <summary>Demonstrates a limitation of the per-request DI scope: <see cref="DispatcherBuilder" /> disposes it as
+/// soon as the dispatcher returns its <see cref="OutgoingResponse" />, but the protocol connection only reads
+/// <c>response.Payload</c> afterwards. A payload that lazily pulls from a scoped service therefore hits an
+/// <see cref="ObjectDisposedException" /> mid-transmission.</summary>
 public sealed class ScopedPayloadDisposalTests
 {
     /// <summary>This test documents the limitation: a response payload that lazily pulls from a scoped service will
