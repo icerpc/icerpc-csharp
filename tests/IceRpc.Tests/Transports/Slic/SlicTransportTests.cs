@@ -2051,6 +2051,60 @@ public class SlicTransportTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
+    /// <summary>Verifies that completing the stream output after a canceled WriteAsync closes the writes abruptly:
+    /// the peer observes a TruncatedData error, not a graceful end of stream that would pass off the truncated payload
+    /// as complete.</summary>
+    [Test]
+    [CancelAfter(30_000)]
+    public async Task Complete_after_canceled_write_closes_writes_abruptly(
+        [Values] bool endStream,
+        CancellationToken cancellationToken)
+    {
+        // Arrange: use a small peer window so it's easy to exhaust.
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = 4 * 1024);
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync(cancellationToken);
+        using var streams =
+            await sut.CreateAndAcceptStreamAsync(bidirectional: false, cancellationToken: cancellationToken);
+
+        // Exhaust the peer's window without reading.
+        byte[] payload = new byte[(4 * 1024) - 1];
+        _ = await streams.Local.Output.WriteAsync(payload, cancellationToken);
+
+        using var writeCts = new CancellationTokenSource();
+
+        // The next write can't complete because the peer's window is exhausted; cancel it.
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(
+            new ReadOnlySequence<byte>(payload),
+            endStream,
+            writeCts.Token);
+        Assert.That(writeTask.IsCompleted, Is.False);
+        writeCts.Cancel();
+        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Act
+        await streams.Local.Output.CompleteAsync(cancellationToken);
+
+        // Assert: the peer observes TruncatedData, not a graceful end of stream.
+        Assert.That(
+            async () =>
+            {
+                while (true)
+                {
+                    ReadResult readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
+                    streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+
+                    // Fail fast instead of spinning if the peer observes a graceful end of stream instead of the
+                    // expected TruncatedData error.
+                    Assert.That(readResult.IsCompleted, Is.False, "Expected TruncatedData, got end of stream.");
+                }
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+    }
+
     /// <summary>Verifies that when a WriteAsync with endStream is canceled after the StreamLast frame was queued on
     /// the connection (parked on the connection-level pipe pause), completing the stream output doesn't send a
     /// StreamWritesClosed frame after the StreamLast frame: the peer reads all the data and observes a graceful end
