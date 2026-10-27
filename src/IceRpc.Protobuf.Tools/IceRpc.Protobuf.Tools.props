@@ -72,6 +72,7 @@
   <!-- default values -->
   <ItemDefinitionGroup>
     <ProtoFile>
+      <Access>public</Access>
       <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
       <Pack>false</Pack>
       <PackagePath>protobuf</PackagePath>

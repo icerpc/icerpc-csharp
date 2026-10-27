@@ -8,13 +8,13 @@ namespace IceRpc.Protobuf.Generator;
 
 internal class ClientGenerator
 {
-    internal static CodeBlock GenerateClient(ServiceDescriptor service)
+    internal static CodeBlock GenerateClient(ServiceDescriptor service, string access)
     {
         string clientName = $"{service.Name.ToProtocPascalCase()}Client";
 
         ContainerBuilder clientBuilder =
             new ContainerBuilder(
-                "public readonly partial record struct",
+                $"{access} readonly partial record struct",
                 $"{clientName} : I{service.Name.ToProtocPascalCase()}, IProtobufClient<{clientName}>")
             .AddComment(
                 "summary",
@@ -93,11 +93,11 @@ static {clientName} IProtobufClient<{clientName}>.Create(
         return clientBuilder.Build();
     }
 
-    internal static CodeBlock GenerateInterface(ServiceDescriptor service)
+    internal static CodeBlock GenerateInterface(ServiceDescriptor service, string access)
     {
         ContainerBuilder interfaceBuilder =
             new ContainerBuilder(
-                "public partial interface",
+                $"{access} partial interface",
                 $"I{service.Name.ToProtocPascalCase()}")
             .AddComment(
                 "remarks",

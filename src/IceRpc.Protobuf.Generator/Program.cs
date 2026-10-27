@@ -32,13 +32,22 @@ var response = new CodeGeneratorResponse
     MaximumEdition = (int)Edition.Max
 };
 
-if (request.Parameter.Length > 0)
+// The only parameter is internal_access, with the same name and meaning as for protoc's C# plug-in.
+string access = "public";
+foreach (string parameter in request.Parameter.Split(',', StringSplitOptions.RemoveEmptyEntries))
 {
-    // This plug-in does not accept any parameters, so we return an error response if any are provided.
-    response.Error = $"Plugin does not accept any parameters, but received: '{request.Parameter}'";
+    if (parameter == "internal_access")
+    {
+        access = "internal";
+    }
+    else
+    {
+        response.Error = $"Unknown parameter '{parameter}'. The only supported parameter is 'internal_access'.";
 
-    // No need to generate any code.
-    descriptors = [];
+        // No need to generate any code.
+        descriptors = [];
+        break;
+    }
 }
 
 foreach (FileDescriptor descriptor in descriptors)
@@ -75,9 +84,9 @@ using IceRpc.Protobuf.RpcMethods;
 
     foreach (ServiceDescriptor service in descriptor.Services)
     {
-        codeBlock.AddBlock(ClientGenerator.GenerateInterface(service));
-        codeBlock.AddBlock(ClientGenerator.GenerateClient(service));
-        codeBlock.AddBlock(ServiceGenerator.GenerateInterface(service));
+        codeBlock.AddBlock(ClientGenerator.GenerateInterface(service, access));
+        codeBlock.AddBlock(ClientGenerator.GenerateClient(service, access));
+        codeBlock.AddBlock(ServiceGenerator.GenerateInterface(service, access));
     }
 
     response.File.Add(
