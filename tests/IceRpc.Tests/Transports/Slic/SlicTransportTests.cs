@@ -1806,19 +1806,23 @@ public class SlicTransportTests
     /// <summary>Verifies that a read returning a canceled result with buffered data can be advanced with positions
     /// from the returned buffer, and that reading resumes correctly afterwards.</summary>
     [Test]
-    public async Task Canceled_read_with_buffered_data_then_resume_reading([Values] bool useTryRead)
+    [CancelAfter(30_000)]
+    public async Task Canceled_read_with_buffered_data_then_resume_reading(
+        [Values] bool useTryRead,
+        CancellationToken cancellationToken)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
-        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: false);
+        await sut.AcceptAndConnectAsync(cancellationToken);
+        using var streams =
+            await sut.CreateAndAcceptStreamAsync(bidirectional: false, cancellationToken: cancellationToken);
 
         // Buffer data on the remote stream input.
-        _ = await streams.Local.Output.WriteAsync(new byte[1024], default);
-        await Task.Delay(TimeSpan.FromMilliseconds(100));
+        _ = await streams.Local.Output.WriteAsync(new byte[1024], cancellationToken);
+        await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
 
         // Act: cancel the next read; it returns the buffered data with IsCanceled=true.
         streams.Remote.Input.CancelPendingRead();
@@ -1829,7 +1833,7 @@ public class SlicTransportTests
         }
         else
         {
-            readResult = await streams.Remote.Input.ReadAsync(default);
+            readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
         }
         Assert.That(readResult.IsCanceled, Is.True);
         Assert.That(readResult.Buffer, Has.Length.EqualTo(1024));
@@ -1841,8 +1845,8 @@ public class SlicTransportTests
         _ = await streams.Local.Output.WriteAsync(
             new ReadOnlySequence<byte>(new byte[1]),
             endStream: true,
-            default);
-        readResult = await streams.Remote.Input.ReadAsync(default).AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+            cancellationToken);
+        readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
         Assert.That(readResult.IsCanceled, Is.False);
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer, Has.Length.EqualTo(1025));
@@ -1853,7 +1857,8 @@ public class SlicTransportTests
     /// returned by the canceled read: the total of the StreamWindowUpdate increments sent to the peer never exceeds
     /// the number of bytes the peer wrote on the stream.</summary>
     [Test]
-    public async Task Canceled_read_advance_does_not_corrupt_window_accounting()
+    [CancelAfter(30_000)]
+    public async Task Canceled_read_advance_does_not_corrupt_window_accounting(CancellationToken cancellationToken)
     {
         // Arrange: small server-side stream window so window updates are sent frequently (the window update
         // threshold is half the window size, 2048 bytes here).
@@ -1864,12 +1869,12 @@ public class SlicTransportTests
 
         var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var acceptTask = listener.AcceptAsync(default);
+        var acceptTask = listener.AcceptAsync(cancellationToken);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
             listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
-        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        Task connectTask = duplexClientConnection.ConnectAsync(cancellationToken);
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
@@ -1877,32 +1882,33 @@ public class SlicTransportTests
 
         // Connect the multiplexed connection.
         await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
-        await multiplexedServerConnection.ConnectAsync(default);
+        await multiplexedServerConnection.ConnectAsync(cancellationToken);
         await ReadFrameAsync(reader);
 
         // Open a unidirectional stream (the first client unidirectional stream ID is 2) with 4096 bytes and consume
         // them on the server; this exercises the regular window accounting (one or more window updates).
-        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask =
+            multiplexedServerConnection.AcceptStreamAsync(cancellationToken);
         await WriteRawStreamFrameAsync(duplexClientConnection, streamId: 2ul, size: 4096);
         IMultiplexedStream serverStream = await acceptStreamTask;
-        await ReadStreamDataAsync(serverStream.Input, 4096);
+        await ReadStreamDataAsync(serverStream.Input, 4096, cancellationToken);
 
         // Write 1000 additional bytes and give the server time to buffer them on the stream input.
         await WriteRawStreamFrameAsync(duplexClientConnection, streamId: 2ul, size: 1000);
-        await Task.Delay(TimeSpan.FromMilliseconds(100));
+        await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
 
         // Act: cancel the next read; it returns the buffered data with IsCanceled=true. Advance without consuming
         // or examining anything.
         serverStream.Input.CancelPendingRead();
-        ReadResult readResult = await serverStream.Input.ReadAsync(default);
+        ReadResult readResult = await serverStream.Input.ReadAsync(cancellationToken);
         Assert.That(readResult.IsCanceled, Is.True);
         Assert.That(readResult.Buffer, Has.Length.EqualTo(1000));
         serverStream.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.Start);
 
         // Resume reading: consume the 1000 buffered bytes, then 1100 more.
-        await ReadStreamDataAsync(serverStream.Input, 1000);
+        await ReadStreamDataAsync(serverStream.Input, 1000, cancellationToken);
         await WriteRawStreamFrameAsync(duplexClientConnection, streamId: 2ul, size: 1100);
-        await ReadStreamDataAsync(serverStream.Input, 1100);
+        await ReadStreamDataAsync(serverStream.Input, 1100, cancellationToken);
 
         // Completing the input sends the StreamReadsClosed frame, which bounds the frame collection below.
         serverStream.Input.Complete();
@@ -1912,7 +1918,7 @@ public class SlicTransportTests
         while (true)
         {
             (FrameType frameType, ReadOnlySequence<byte> buffer) =
-                await ReadFrameAsync(reader).WaitAsync(TimeSpan.FromMinutes(2));
+                await ReadFrameAsync(reader).WaitAsync(cancellationToken);
             if (frameType == FrameType.StreamWindowUpdate)
             {
                 var decoder = new SliceDecoder(buffer);
@@ -1926,12 +1932,12 @@ public class SlicTransportTests
         }
         Assert.That(windowUpdateTotal, Is.LessThanOrEqualTo(4096 + 1000 + 1100));
 
-        static async Task ReadStreamDataAsync(PipeReader input, long byteCount)
+        static async Task ReadStreamDataAsync(PipeReader input, long byteCount, CancellationToken cancellationToken)
         {
             long read = 0;
             while (read < byteCount)
             {
-                ReadResult readResult = await input.ReadAsync(default).AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+                ReadResult readResult = await input.ReadAsync(cancellationToken);
                 read += readResult.Buffer.Length;
                 input.AdvanceTo(readResult.Buffer.End, readResult.Buffer.End);
             }
@@ -1957,7 +1963,10 @@ public class SlicTransportTests
     /// <summary>Verifies that completing a stream that was created but never started releases the stream-count
     /// semaphore permit acquired by CreateStreamAsync.</summary>
     [Test]
-    public async Task Completing_unstarted_stream_releases_the_stream_count_permit([Values] bool bidirectional)
+    [CancelAfter(30_000)]
+    public async Task Completing_unstarted_stream_releases_the_stream_count_permit(
+        [Values] bool bidirectional,
+        CancellationToken cancellationToken)
     {
         // Arrange: the peer allows a single stream.
         IServiceCollection services = new ServiceCollection().AddSlicTest();
@@ -1968,25 +1977,21 @@ public class SlicTransportTests
         });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
+        await sut.AcceptAndConnectAsync(cancellationToken);
 
         // Create a stream and complete it without ever writing: the stream is never started.
-        IMultiplexedStream stream = await sut.Client.CreateStreamAsync(bidirectional, default);
-        await stream.Output.CompleteAsync(default);
+        IMultiplexedStream stream = await sut.Client.CreateStreamAsync(bidirectional, cancellationToken);
+        await stream.Output.CompleteAsync(cancellationToken);
         if (bidirectional)
         {
             stream.Input.Complete();
         }
 
-        // Act/Assert: creating a new stream succeeds; if the permit was not released this would wait forever. The
-        // WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and dumped by the hang
-        // detection first; the timeout is only a fallback that fails this test instead of hanging the test run when
-        // hang detection is not enabled.
-        IMultiplexedStream nextStream = await sut.Client.CreateStreamAsync(bidirectional, default)
-            .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+        // Act/Assert: creating a new stream succeeds; if the permit was not released this would wait forever.
+        IMultiplexedStream nextStream = await sut.Client.CreateStreamAsync(bidirectional, cancellationToken);
 
         // Cleanup
-        await nextStream.Output.CompleteAsync(default);
+        await nextStream.Output.CompleteAsync(cancellationToken);
         if (bidirectional)
         {
             nextStream.Input.Complete();
@@ -1997,7 +2002,9 @@ public class SlicTransportTests
     /// written, completing the stream output still notifies the peer of the writes closure with a StreamWritesClosed
     /// frame.</summary>
     [Test]
-    public async Task Canceled_end_stream_write_does_not_lose_the_writes_closed_frame()
+    [CancelAfter(30_000)]
+    public async Task Canceled_end_stream_write_does_not_lose_the_writes_closed_frame(
+        CancellationToken cancellationToken)
     {
         // Arrange: use a small peer window so it's easy to exhaust.
         IServiceCollection services = new ServiceCollection().AddSlicTest();
@@ -2005,12 +2012,13 @@ public class SlicTransportTests
             options => options.InitialStreamWindowSize = 4 * 1024);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
-        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: false);
+        await sut.AcceptAndConnectAsync(cancellationToken);
+        using var streams =
+            await sut.CreateAndAcceptStreamAsync(bidirectional: false, cancellationToken: cancellationToken);
 
         // Exhaust the peer's window without reading.
         byte[] payload = new byte[(4 * 1024) - 1];
-        _ = await streams.Local.Output.WriteAsync(payload, default);
+        _ = await streams.Local.Output.WriteAsync(payload, cancellationToken);
 
         using var writeCts = new CancellationTokenSource();
 
@@ -2020,7 +2028,7 @@ public class SlicTransportTests
             new ReadOnlySequence<byte>(payload),
             endStream: true,
             writeCts.Token);
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
         Assert.That(writeTask.IsCompleted, Is.False);
         writeCts.Cancel();
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
@@ -2028,17 +2036,13 @@ public class SlicTransportTests
         // Act: abort the output, like a failed invocation does.
         streams.Local.Output.Abort();
 
-        // Assert: the peer observes the writes closure (TruncatedData) after consuming the buffered data, instead
-        // of waiting for data forever. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang
-        // is detected and dumped by the hang detection first; the timeout is only a fallback that fails this test
-        // instead of hanging the test run when hang detection is not enabled.
+        // Assert: the peer observes the writes closure (TruncatedData) instead of waiting for data forever.
         Assert.That(
             async () =>
             {
                 while (true)
                 {
-                    ReadResult readResult = await streams.Remote.Input.ReadAsync(default)
-                        .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+                    ReadResult readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
                     streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
 
                     // Fail fast instead of spinning if the peer observes a graceful end of stream instead of the
@@ -2108,7 +2112,9 @@ public class SlicTransportTests
     /// StreamWritesClosed frame after the StreamLast frame: the peer reads all the data and observes a graceful end
     /// of the stream.</summary>
     [Test]
-    public async Task End_stream_write_canceled_after_frame_queued_preserves_graceful_peer_reads()
+    [CancelAfter(30_000)]
+    public async Task End_stream_write_canceled_after_frame_queued_preserves_graceful_peer_reads(
+        CancellationToken cancellationToken)
     {
         // Arrange: small client-side PauseWriterThreshold and a held duplex Write so the endStream write parks on
         // FlushAsync after queueing the StreamLast frame.
@@ -2120,12 +2126,13 @@ public class SlicTransportTests
         services.AddTestDuplexTransportDecorator();
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
+        await sut.AcceptAndConnectAsync(cancellationToken);
 
         var duplexClientConnection =
             provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
 
-        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: false);
+        using var streams =
+            await sut.CreateAndAcceptStreamAsync(bidirectional: false, cancellationToken: cancellationToken);
 
         // Hold duplex writes so the background writer task can't drain the connection-level pipe.
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
@@ -2139,7 +2146,7 @@ public class SlicTransportTests
             new ReadOnlySequence<byte>(payload),
             endStream: true,
             writeCts.Token);
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
         Assert.That(writeTask.IsCompleted, Is.False);
         writeCts.Cancel();
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
@@ -2154,8 +2161,7 @@ public class SlicTransportTests
         bool isCompleted = false;
         while (!isCompleted)
         {
-            ReadResult readResult = await streams.Remote.Input.ReadAsync(default)
-                .AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+            ReadResult readResult = await streams.Remote.Input.ReadAsync(cancellationToken);
             totalRead += (int)readResult.Buffer.Length;
             isCompleted = readResult.IsCompleted;
             streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
@@ -2167,7 +2173,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer closes its reads while the endStream write is parked on the exhausted
     /// peer window, so that the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(120_000)]
+    [CancelAfter(30_000)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_during_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2197,7 +2203,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer closes its reads before the endStream write is attempted, so that
     /// the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(120_000)]
+    [CancelAfter(30_000)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_before_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2223,7 +2229,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer closes its reads and the output is then completed without an
     /// endStream write, so that the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(120_000)]
+    [CancelAfter(30_000)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_without_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2244,7 +2250,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer sent its StreamLast frame with an endStream write and closes its
     /// reads before the remote stream closes its writes, so that the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(120_000)]
+    [CancelAfter(30_000)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_after_its_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2429,7 +2435,9 @@ public class SlicTransportTests
     /// frame when another write holds the connection's write semaphore while parked on the connection-level pipe
     /// pause (PauseWriterThreshold reached).</summary>
     [Test]
-    public async Task Read_frames_loop_is_not_blocked_by_pong_write_when_a_write_is_parked_on_pipe_threshold()
+    [CancelAfter(30_000)]
+    public async Task Read_frames_loop_is_not_blocked_by_pong_write_when_a_write_is_parked_on_pipe_threshold(
+        CancellationToken cancellationToken)
     {
         // Arrange: small server-side PauseWriterThreshold so a server stream write fills the connection-level
         // outbound pipe and parks on FlushAsync while holding the write semaphore.
@@ -2440,12 +2448,12 @@ public class SlicTransportTests
 
         var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var acceptTask = listener.AcceptAsync(default);
+        var acceptTask = listener.AcceptAsync(cancellationToken);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
             listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
-        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        Task connectTask = duplexClientConnection.ConnectAsync(cancellationToken);
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
@@ -2453,11 +2461,12 @@ public class SlicTransportTests
 
         // Connect the multiplexed connection.
         await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
-        await multiplexedServerConnection.ConnectAsync(default);
+        await multiplexedServerConnection.ConnectAsync(cancellationToken);
         await ReadFrameAsync(reader);
 
         // Open a bidirectional stream (the first client bidirectional stream ID is 0) and accept it on the server.
-        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask =
+            multiplexedServerConnection.AcceptStreamAsync(cancellationToken);
         await WriteStreamFrameAsync(
             duplexClientConnection,
             FrameType.Stream,
@@ -2472,8 +2481,9 @@ public class SlicTransportTests
 
         // This write fills the outbound pipe past PauseWriterThreshold and parks on FlushAsync while holding the
         // write semaphore.
-        Task<WriteResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Task<WriteResult> serverWriteTask =
+            serverStream.Output.WriteAsync(new byte[4 * 1024], cancellationToken).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
         Assert.That(serverWriteTask.IsCompleted, Is.False);
 
         // Act: the Pong frame write that responds to this Ping frame can't make progress while the write semaphore
@@ -2482,19 +2492,16 @@ public class SlicTransportTests
 
         // Open a second stream (the next client bidirectional stream ID is 4) to verify that the read frames loop
         // still processes incoming frames.
-        ValueTask<IMultiplexedStream> nextAcceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> nextAcceptStreamTask =
+            multiplexedServerConnection.AcceptStreamAsync(cancellationToken);
         await WriteStreamFrameAsync(
             duplexClientConnection,
             FrameType.Stream,
             streamId: 4ul,
             (ref SliceEncoder encoder) => encoder.EncodeBool(false));
 
-        // Assert. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and
-        // dumped by the hang detection first; the timeout is only a fallback that fails this test instead of
-        // hanging the test run when hang detection is not enabled.
-        Assert.That(
-            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)),
-            Throws.Nothing);
+        // Assert
+        Assert.That(async () => await nextAcceptStreamTask, Throws.Nothing);
 
         // The parked write is still blocked while the read frames loop accepted the second stream above: reads
         // make progress independently of the stalled write (and its still-queued pong).
@@ -2508,7 +2515,8 @@ public class SlicTransportTests
     /// <summary>Verifies that the connection is aborted when a Ping frame is received while
     /// <see cref="SlicTransportOptions.MaxOutstandingPongs" /> Pong frames are already queued for sending.</summary>
     [Test]
-    public async Task Connection_is_aborted_when_max_outstanding_pongs_is_exceeded()
+    [CancelAfter(30_000)]
+    public async Task Connection_is_aborted_when_max_outstanding_pongs_is_exceeded(CancellationToken cancellationToken)
     {
         // Arrange: same parked-write arrangement as the previous test, plus a small MaxOutstandingPongs.
         IServiceCollection services = new ServiceCollection().AddSlicTest();
@@ -2522,12 +2530,12 @@ public class SlicTransportTests
 
         var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var acceptTask = listener.AcceptAsync(default);
+        var acceptTask = listener.AcceptAsync(cancellationToken);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
             listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
-        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        Task connectTask = duplexClientConnection.ConnectAsync(cancellationToken);
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
@@ -2535,11 +2543,12 @@ public class SlicTransportTests
 
         // Connect the multiplexed connection.
         await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
-        await multiplexedServerConnection.ConnectAsync(default);
+        await multiplexedServerConnection.ConnectAsync(cancellationToken);
         await ReadFrameAsync(reader);
 
         // Open a bidirectional stream (the first client bidirectional stream ID is 0) and accept it on the server.
-        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask =
+            multiplexedServerConnection.AcceptStreamAsync(cancellationToken);
         await WriteStreamFrameAsync(
             duplexClientConnection,
             FrameType.Stream,
@@ -2554,11 +2563,13 @@ public class SlicTransportTests
 
         // This write fills the outbound pipe past PauseWriterThreshold and parks on FlushAsync while holding the
         // write semaphore.
-        Task<WriteResult> serverWriteTask = serverStream.Output.WriteAsync(new byte[4 * 1024], default).AsTask();
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Task<WriteResult> serverWriteTask =
+            serverStream.Output.WriteAsync(new byte[4 * 1024], cancellationToken).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
         Assert.That(serverWriteTask.IsCompleted, Is.False);
 
-        ValueTask<IMultiplexedStream> nextAcceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> nextAcceptStreamTask =
+            multiplexedServerConnection.AcceptStreamAsync(cancellationToken);
 
         // Act: each Ping frame queues a Pong frame write that can't make progress while the write semaphore is
         // held; the fourth Ping frame exceeds MaxOutstandingPongs.
@@ -2567,11 +2578,8 @@ public class SlicTransportTests
             await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
         }
 
-        // Assert. The WaitAsync margin exceeds CI's --blame-hang-timeout (60 s) so that a hang is detected and
-        // dumped by the hang detection first; the timeout is only a fallback that fails this test instead of
-        // hanging the test run when hang detection is not enabled.
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await nextAcceptStreamTask.AsTask().WaitAsync(TimeSpan.FromMinutes(2)));
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await nextAcceptStreamTask);
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(
             exception.Message,
@@ -2591,7 +2599,8 @@ public class SlicTransportTests
     /// the read frames loop keeps reading until the peer shuts down the duplex connection, and the Pong write
     /// failure on the closed connection must be ignored.</summary>
     [Test]
-    public async Task Ping_received_after_local_close_does_not_fail_graceful_close()
+    [CancelAfter(30_000)]
+    public async Task Ping_received_after_local_close_does_not_fail_graceful_close(CancellationToken cancellationToken)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -2600,12 +2609,12 @@ public class SlicTransportTests
 
         var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var acceptTask = listener.AcceptAsync(default);
+        var acceptTask = listener.AcceptAsync(cancellationToken);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
             listener.TransportAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
-        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        Task connectTask = duplexClientConnection.ConnectAsync(cancellationToken);
         (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
         await using var _ = multiplexedServerConnection;
         await connectTask;
@@ -2613,26 +2622,25 @@ public class SlicTransportTests
 
         // Connect the multiplexed connection.
         await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
-        await multiplexedServerConnection.ConnectAsync(default);
+        await multiplexedServerConnection.ConnectAsync(cancellationToken);
         await ReadFrameAsync(reader);
 
         // Close the server connection; the read frames loop keeps reading until the client shuts down the duplex
         // connection.
-        Task closeTask = multiplexedServerConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Task closeTask =
+            multiplexedServerConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, cancellationToken);
 
         // Wait for the Close frame.
-        (FrameType frameType, ReadOnlySequence<byte> buffer) = await ReadFrameAsync(reader)
-            .WaitAsync(TimeSpan.FromMinutes(2));
+        (FrameType frameType, ReadOnlySequence<byte> buffer) =
+            await ReadFrameAsync(reader).WaitAsync(cancellationToken);
         Assert.That(frameType, Is.EqualTo(FrameType.Close));
 
         // Act: send a Ping frame on the closed connection, then shut down the duplex connection.
         await WriteFrameAsync(duplexClientConnection, FrameType.Ping, new PingBody(0L).Encode);
-        await duplexClientConnection.ShutdownWriteAsync(default);
+        await duplexClientConnection.ShutdownWriteAsync(cancellationToken);
 
-        // Assert: the graceful close completes successfully. The WaitAsync margin exceeds CI's --blame-hang-timeout
-        // (60 s) so that a hang is detected and dumped by the hang detection first; the timeout is only a fallback
-        // that fails this test instead of hanging the test run when hang detection is not enabled.
-        Assert.That(async () => await closeTask.WaitAsync(TimeSpan.FromMinutes(2)), Throws.Nothing);
+        // Assert: the graceful close completes successfully.
+        Assert.That(async () => await closeTask, Throws.Nothing);
     }
 
     [Test]
