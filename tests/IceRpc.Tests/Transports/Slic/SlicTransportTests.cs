@@ -19,6 +19,10 @@ namespace IceRpc.Tests.Transports.Slic;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportTests
 {
+    // Longer than CI's --blame-hang-timeout (60 s): a hang is dumped by the hang detection first, and the cancellation
+    // only fails the test when hang detection is not enabled.
+    private const int HangGuardTimeout = 120_000;
+
     private static IEnumerable<TestCaseData> InvalidConnectionFrames
     {
         get
@@ -1806,7 +1810,7 @@ public class SlicTransportTests
     /// <summary>Verifies that a read returning a canceled result with buffered data can be advanced with positions
     /// from the returned buffer, and that reading resumes correctly afterwards.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Canceled_read_with_buffered_data_then_resume_reading(
         [Values] bool useTryRead,
         CancellationToken cancellationToken)
@@ -1857,7 +1861,7 @@ public class SlicTransportTests
     /// returned by the canceled read: the total of the StreamWindowUpdate increments sent to the peer never exceeds
     /// the number of bytes the peer wrote on the stream.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Canceled_read_advance_does_not_corrupt_window_accounting(CancellationToken cancellationToken)
     {
         // Arrange: small server-side stream window so window updates are sent frequently (the window update
@@ -1963,7 +1967,7 @@ public class SlicTransportTests
     /// <summary>Verifies that completing a stream that was created but never started releases the stream-count
     /// semaphore permit acquired by CreateStreamAsync.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Completing_unstarted_stream_releases_the_stream_count_permit(
         [Values] bool bidirectional,
         CancellationToken cancellationToken)
@@ -2002,7 +2006,7 @@ public class SlicTransportTests
     /// written, completing the stream output still notifies the peer of the writes closure with a StreamWritesClosed
     /// frame.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Canceled_end_stream_write_does_not_lose_the_writes_closed_frame(
         CancellationToken cancellationToken)
     {
@@ -2057,7 +2061,7 @@ public class SlicTransportTests
     /// the peer observes a TruncatedData error, not a graceful end of stream that would pass off the truncated payload
     /// as complete.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Complete_after_canceled_write_closes_writes_abruptly(
         [Values] bool endStream,
         CancellationToken cancellationToken)
@@ -2112,7 +2116,7 @@ public class SlicTransportTests
     /// StreamWritesClosed frame after the StreamLast frame: the peer reads all the data and observes a graceful end
     /// of the stream.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task End_stream_write_canceled_after_frame_queued_preserves_graceful_peer_reads(
         CancellationToken cancellationToken)
     {
@@ -2173,7 +2177,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer closes its reads while the endStream write is parked on the exhausted
     /// peer window, so that the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_during_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2203,7 +2207,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer closes its reads before the endStream write is attempted, so that
     /// the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_before_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2229,7 +2233,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer closes its reads and the output is then completed without an
     /// endStream write, so that the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_without_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2250,7 +2254,7 @@ public class SlicTransportTests
     /// bidirectional stream is sent when the peer sent its StreamLast frame with an endStream write and closes its
     /// reads before the remote stream closes its writes, so that the peer's stream is released.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_after_its_end_stream_write(
         CancellationToken cancellationToken)
     {
@@ -2435,7 +2439,7 @@ public class SlicTransportTests
     /// frame when another write holds the connection's write semaphore while parked on the connection-level pipe
     /// pause (PauseWriterThreshold reached).</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Read_frames_loop_is_not_blocked_by_pong_write_when_a_write_is_parked_on_pipe_threshold(
         CancellationToken cancellationToken)
     {
@@ -2515,7 +2519,7 @@ public class SlicTransportTests
     /// <summary>Verifies that the connection is aborted when a Ping frame is received while
     /// <see cref="SlicTransportOptions.MaxOutstandingPongs" /> Pong frames are already queued for sending.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Connection_is_aborted_when_max_outstanding_pongs_is_exceeded(CancellationToken cancellationToken)
     {
         // Arrange: same parked-write arrangement as the previous test, plus a small MaxOutstandingPongs.
@@ -2599,7 +2603,7 @@ public class SlicTransportTests
     /// the read frames loop keeps reading until the peer shuts down the duplex connection, and the Pong write
     /// failure on the closed connection must be ignored.</summary>
     [Test]
-    [CancelAfter(30_000)]
+    [CancelAfter(HangGuardTimeout)]
     public async Task Ping_received_after_local_close_does_not_fail_graceful_close(CancellationToken cancellationToken)
     {
         // Arrange
