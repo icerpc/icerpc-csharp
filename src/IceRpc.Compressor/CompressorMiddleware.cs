@@ -79,7 +79,7 @@ public class CompressorMiddleware : IDispatcher
             compress.Value &&
             !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))
         {
-            response.Use(next => new CompressorPipeWriter(next, _compressionFormat, _compressionLevel));
+            response.Use(next => new CompressorStreamWriter(next, _compressionFormat, _compressionLevel));
 
             response.Fields = response.Fields.With(ResponseFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }

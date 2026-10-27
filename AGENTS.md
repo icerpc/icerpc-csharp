@@ -80,8 +80,7 @@ code in a way that reverses one of these decisions. The ones most likely to matt
   sanitize what they emit from them.
 - `cs::identifier` values are emitted verbatim, including in the collision checks that rename a synthetic name such as
   `features_` or `EncodedReturnValue_`; a bad identifier (a keyword, a stray `@`) fails at C# compile time by design.
-- Complete every `PipeReader` and `PipeWriter` with `Complete`, never `CompleteAsync`; a `Complete` implementation must
-  not block.
+- Complete every `PipeReader` with `Complete`, never `CompleteAsync`; a `Complete` implementation must not block.
 - Unknown wire values (enumerators, parameters, fields) are tolerated for forward compatibility, not rejected.
 - Limits are enforced systemically (decoder allocation budgets, frame size limits), not with a guard at each call site.
 - Don't add defensive code for paths that only fire when a documented contract is already violated.

@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Compression;
@@ -28,26 +29,29 @@ public class CompressorMiddlewareTests
             return new(response);
         });
         var sut = new CompressorMiddleware(dispatcher, compressionFormat);
-        var outStream = new MemoryStream();
-        var output = PipeWriter.Create(outStream);
+        var pipe = new Pipe();
+        var output = new PipeStreamWriter(pipe.Writer);
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
 
         // Act
         OutgoingResponse response = await sut.DispatchAsync(request);
 
         // Assert
-        PipeWriter payloadWriter = response.GetPayloadWriter(output);
-        await payloadWriter.WriteAsync(_payload);
+        IMultiplexedStreamWriter payloadWriter = response.GetPayloadWriter(output);
+        await payloadWriter.WriteAsync(new ReadOnlySequence<byte>(_payload), endStream: true, default);
+        await payloadWriter.CompleteAsync(default);
 
-        // Rewind the out stream and check that it was correctly compressed.
-        outStream.Seek(0, SeekOrigin.Begin);
+        Assert.That(output.IsEnded, Is.True);
+        var compressedStream = new MemoryStream();
+        await pipe.Reader.CopyToAsync(compressedStream);
+        pipe.Reader.Complete();
+        compressedStream.Seek(0, SeekOrigin.Begin);
         using Stream decompressedStream = compressionFormat == CompressionFormat.Brotli ?
-            new BrotliStream(outStream, CompressionMode.Decompress) :
-            new DeflateStream(outStream, CompressionMode.Decompress);
-        byte[] decompressedPayload = new byte[4096];
-        await decompressedStream.ReadAtLeastAsync(decompressedPayload, _payload.Length);
-        Assert.That(decompressedPayload, Is.EqualTo(_payload));
-        payloadWriter.Complete();
+            new BrotliStream(compressedStream, CompressionMode.Decompress) :
+            new DeflateStream(compressedStream, CompressionMode.Decompress);
+        var decompressed = new MemoryStream();
+        await decompressedStream.CopyToAsync(decompressed);
+        Assert.That(decompressed.ToArray(), Is.EqualTo(_payload));
     }
 
     /// <summary>Verifies that the compressor middleware does not install a payload writer interceptor if the request
@@ -61,10 +65,8 @@ public class CompressorMiddlewareTests
 
         OutgoingResponse response = await sut.DispatchAsync(request);
 
-        var pipe = new Pipe();
-        Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
-        pipe.Reader.Complete();
-        pipe.Writer.Complete();
+        var output = new PipeStreamWriter(new Pipe().Writer);
+        Assert.That(response.GetPayloadWriter(output), Is.EqualTo(output));
     }
 
     /// <summary>Verifies that the compress middleware does not install a payload writer interceptor if the response is
@@ -86,10 +88,8 @@ public class CompressorMiddlewareTests
 
         var response = await sut.DispatchAsync(request, default);
 
-        var pipe = new Pipe();
-        Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
-        pipe.Reader.Complete();
-        pipe.Writer.Complete();
+        var output = new PipeStreamWriter(new Pipe().Writer);
+        Assert.That(response.GetPayloadWriter(output), Is.EqualTo(output));
     }
 
     /// <summary>Verifies that the compressor middleware does not update the request payload when the compression

@@ -553,7 +553,7 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 if (stream.IsBidirectional)
                 {
-                    stream.Output.Complete();
+                    stream.Output.Abort();
                     stream.Input.Complete();
                 }
                 else if (stream.IsRemote)
@@ -562,7 +562,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 else
                 {
-                    stream.Output.Complete();
+                    stream.Output.Abort();
                 }
             }
 
@@ -771,7 +771,7 @@ internal class SlicConnection : IMultiplexedConnection
     }
 
     /// <summary>Writes a stream frame as a fire-and-forget operation. Used by sync code paths (e.g.
-    /// <see cref="SlicPipeReader.Complete"/>, <see cref="SlicPipeWriter.Complete"/>, window updates) that cannot
+    /// <see cref="SlicPipeReader.Complete"/>, <see cref="SlicStreamWriter.Abort"/>, window updates) that cannot
     /// await.</summary>
     /// <param name="stream">The stream to write the frame for.</param>
     /// <param name="frameType">The frame type.</param>
@@ -869,7 +869,7 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
     /// also be closed concurrently while it's in progress.</remarks>
-    internal async ValueTask<FlushResult> WriteStreamDataFrameAsync(
+    internal async ValueTask WriteStreamDataFrameAsync(
         SlicStream stream,
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
@@ -1002,8 +1002,6 @@ internal class SlicConnection : IMultiplexedConnection
             Debug.Assert(_isClosed);
             throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
-
-        return new FlushResult(isCanceled: false, isCompleted: false);
 
         void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
         {
@@ -1714,7 +1712,7 @@ internal class SlicConnection : IMultiplexedConnection
                 stream.Input.Complete();
                 if (isBidirectional)
                 {
-                    stream.Output.Complete();
+                    stream.Output.Abort();
                 }
             }
         }

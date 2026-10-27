@@ -169,7 +169,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // If we fail to send the Settings frame, we are in an abortive closure and we close Output to allow
                     // the peer to continue if it's waiting for us. This could happen when the cancellation token is
                     // canceled.
-                    _controlStream!.Output.CompleteOutput(success: false);
+                    _controlStream!.Output.Abort();
                     throw;
                 }
 
@@ -324,9 +324,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // abort this reading.
             await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
-            // It's safe to complete the output since write operations have been completed by the transport connection
-            // disposal.
-            _controlStream?.Output.Complete();
+            // The transport connection disposal already closed the writes, so this completion sends nothing: it only
+            // releases the output.
+            _controlStream?.Output.Abort();
 
             // It's safe to complete the input since read operations have been completed by the transport connection
             // disposal.
@@ -339,7 +339,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 stream.Input.Complete();
                 if (stream.IsBidirectional)
                 {
-                    stream.Output.Complete();
+                    stream.Output.Abort();
                 }
             }
 
@@ -435,7 +435,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     OnGoAway,
                     invocationCts);
 
-                PipeWriter payloadWriter;
+                IMultiplexedStreamWriter payloadWriter;
 
                 try
                 {
@@ -459,18 +459,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch
                 {
-                    stream.Output.CompleteOutput(success: false);
+                    stream.Output.Abort();
                     throw;
                 }
 
                 // From now on, we only use payloadWriter to write and we make sure to complete it.
 
                 bool hasContinuation = request.PayloadContinuation is not null;
-                FlushResult flushResult;
+                CopyResult copyResult;
 
                 try
                 {
-                    flushResult = await payloadWriter.CopyFromAsync(
+                    copyResult = await payloadWriter.CopyFromAsync(
                         request.Payload,
                         stream.WritesClosed,
                         endStream: !hasContinuation,
@@ -478,7 +478,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch
                 {
-                    payloadWriter.CompleteOutput(success: false);
+                    payloadWriter.Abort();
                     request.PayloadContinuation?.Complete();
                     throw;
                 }
@@ -487,12 +487,19 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     request.Payload.Complete();
                 }
 
-                if (flushResult.IsCompleted || flushResult.IsCanceled || !hasContinuation)
+                if (copyResult != CopyResult.Completed || !hasContinuation)
                 {
                     // The remote reader doesn't want more data, or the copying was canceled, or there is no
                     // continuation: we're done.
-                    payloadWriter.CompleteOutput(!flushResult.IsCanceled);
                     request.PayloadContinuation?.Complete();
+                    if (copyResult == CopyResult.Canceled)
+                    {
+                        payloadWriter.Abort();
+                    }
+                    else
+                    {
+                        await payloadWriter.CompleteAsync(invocationCts.Token).ConfigureAwait(false);
+                    }
                 }
                 else
                 {
@@ -613,7 +620,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 return (statusCode, errorMessage, fields, pipeReader);
             }
 
-            void EncodeHeader(PipeWriter streamOutput)
+            void EncodeHeader(IMultiplexedStreamWriter streamOutput)
             {
                 var encoder = new SliceEncoder(streamOutput);
 
@@ -713,14 +720,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     // Close the control stream to notify the peer that on our side, all the streams completed and that
                     // it can close the transport connection whenever it likes.
-                    _controlStream.Output.CompleteOutput(success: true);
+                    await _controlStream.Output.CompleteAsync(cts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
                     // If we fail to send the GoAway frame or some other failure occur (such as
                     // OperationCanceledException) we are in an abortive closure and we close Output to allow
                     // the peer to continue if it's waiting for us.
-                    _controlStream.Output.CompleteOutput(success: false);
+                    _controlStream.Output.Abort();
                     throw;
                 }
 
@@ -1073,7 +1080,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         IceRpcRequestHeader header;
 
         PipeReader? streamInput = stream.Input;
-        PipeWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
+        IMultiplexedStreamWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
         bool success = false;
 
         try
@@ -1138,10 +1145,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     Debug.Assert(streamOutput is not null);
                     EncodeHeader(response);
 
-                    PipeWriter payloadWriter = response.GetPayloadWriter(streamOutput);
-
-                    // Remains false if a copy throws or is canceled.
-                    bool payloadWriterSuccess = false;
+                    IMultiplexedStreamWriter payloadWriter = response.GetPayloadWriter(streamOutput);
 
                     try
                     {
@@ -1153,26 +1157,37 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // ignored.
                         bool hasContinuation = response.PayloadContinuation is not null;
 
-                        FlushResult flushResult = await payloadWriter.CopyFromAsync(
+                        CopyResult copyResult = await payloadWriter.CopyFromAsync(
                             response.Payload,
                             stream.WritesClosed,
                             endStream: !hasContinuation,
                             _disposedCts.Token).ConfigureAwait(false);
 
-                        if (!flushResult.IsCompleted && !flushResult.IsCanceled && hasContinuation)
+                        if (copyResult == CopyResult.Completed && hasContinuation)
                         {
-                            flushResult = await payloadWriter.CopyFromAsync(
+                            copyResult = await payloadWriter.CopyFromAsync(
                                 response.PayloadContinuation!,
                                 stream.WritesClosed,
                                 endStream: true,
                                 _disposedCts.Token).ConfigureAwait(false);
                         }
 
-                        payloadWriterSuccess = !flushResult.IsCanceled;
+                        if (copyResult == CopyResult.Canceled)
+                        {
+                            payloadWriter.Abort();
+                        }
+                        else
+                        {
+                            await payloadWriter.CompleteAsync(_disposedCts.Token).ConfigureAwait(false);
+                        }
+                    }
+                    catch
+                    {
+                        payloadWriter.Abort();
+                        throw;
                     }
                     finally
                     {
-                        payloadWriter.CompleteOutput(payloadWriterSuccess);
                         response.Payload.Complete();
                         response.PayloadContinuation?.Complete();
                     }
@@ -1218,7 +1233,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 // We always need to complete streamOutput when an exception is thrown. For example, we received an
                 // invalid request header that we could not decode.
-                streamOutput?.CompleteOutput(success: false);
+                streamOutput?.Abort();
                 streamInput?.Complete();
             }
             fieldsPipeReader?.Complete();
@@ -1333,7 +1348,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         IDictionary<TKey, OutgoingFieldValue> fields,
         EncodeAction<TKey> encodeKeyAction,
         ref SliceEncoder encoder,
-        PipeWriter output) where TKey : struct =>
+        IMultiplexedStreamWriter output) where TKey : struct =>
         encoder.EncodeDictionary(
             fields,
             encodeKeyAction,
@@ -1518,16 +1533,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private void ScheduleInactivityCheck() =>
         _inactivityTimeoutTimer.Change(_inactivityTimeout, Timeout.InfiniteTimeSpan);
 
-    private ValueTask<FlushResult> SendControlFrameAsync(
+    private ValueTask<WriteResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction encodeAction,
         CancellationToken cancellationToken)
     {
-        PipeWriter output = _controlStream!.Output;
+        IMultiplexedStreamWriter output = _controlStream!.Output;
 
         EncodeFrame(output);
 
-        return output.FlushAsync(cancellationToken); // Flush
+        // Flushes the frame.
+        return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: false, cancellationToken);
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {
@@ -1553,7 +1569,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     /// the invocation completes.</param>
     private void SendRequestPayloadContinuation(
         OutgoingRequest request,
-        PipeWriter payloadWriter,
+        IMultiplexedStreamWriter payloadWriter,
         Task writesClosed,
         Action<object?> onGoAway,
         CancellationToken cancellationToken)
@@ -1579,8 +1595,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         async Task PerformSendRequestPayloadContinuationAsync()
         {
-            bool success = false;
-
             try
             {
                 // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
@@ -1596,16 +1610,25 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // The cancellation of the InvokeAsync's cancellationToken cancels cts only until InvokeAsync's
                     // PerformInvokeAsync completes. Afterwards, the cancellation of InvokeAsync's cancellationToken has
                     // no effect on cts, so it doesn't cancel the copying of payloadContinuation.
-                    FlushResult flushResult = await payloadWriter.CopyFromAsync(
+                    CopyResult copyResult = await payloadWriter.CopyFromAsync(
                         payloadContinuation,
                         writesClosed,
                         endStream: true,
                         cts.Token).ConfigureAwait(false);
 
-                    success = !flushResult.IsCanceled;
+                    if (copyResult == CopyResult.Canceled)
+                    {
+                        payloadWriter.Abort();
+                    }
+                    else
+                    {
+                        await payloadWriter.CompleteAsync(cts.Token).ConfigureAwait(false);
+                    }
                 }
                 catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
                 {
+                    payloadWriter.Abort();
+
                     // Process/translate this exception primarily for the benefit of _taskExceptionObserver.
 
                     // Can be because cancellationToken was canceled by DisposeAsync or GoAway; that's fine.
@@ -1625,6 +1648,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         Debug.Assert(_goAwayCts.IsCancellationRequested);
                         throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
                     }
+                }
+                catch
+                {
+                    payloadWriter.Abort();
+                    throw;
                 }
             }
             catch (Exception exception) when (_taskExceptionObserver is not null)
@@ -1654,7 +1682,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             finally
             {
-                payloadWriter.CompleteOutput(success);
                 payloadContinuation.Complete();
                 DecrementDispatchInvocationCount();
             }

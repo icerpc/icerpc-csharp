@@ -90,7 +90,7 @@ public abstract class MultiplexedListenerConformanceTests
             await sut.Local.Output.WriteAsync(buffer);
 
             // Act
-            sut.Local.Output.Complete();
+            await sut.Local.Output.CompleteAsync(default);
         }
     }
 

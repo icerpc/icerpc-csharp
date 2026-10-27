@@ -22,11 +22,11 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
 
     public PipeReader Input => _input ?? _decoratee.Input;
 
-    public PipeWriter Output => _output ?? _decoratee.Output;
+    public IMultiplexedStreamWriter Output => _output ?? _decoratee.Output;
 
     private readonly IMultiplexedStream _decoratee;
     private readonly PipeReader? _input;
-    private readonly PipeWriter? _output;
+    private readonly IMultiplexedStreamWriter? _output;
 
     /// <summary>Constructs a multiplexed stream decorator.</summary>
     /// <param name="decoratee">The decoratee.</param>
@@ -42,7 +42,7 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
         }
         if (decoratee.IsBidirectional || !decoratee.IsRemote)
         {
-            _output = new OutputDecorator((ReadOnlySequencePipeWriter)decoratee.Output, onCompleted);
+            _output = new OutputDecorator(decoratee.Output, onCompleted);
         }
     }
 
@@ -97,53 +97,53 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
         }
     }
 
-    private class OutputDecorator : ReadOnlySequencePipeWriter
+    private class OutputDecorator : IMultiplexedStreamWriter
     {
-        public override bool CanGetUnflushedBytes => _decoratee.CanGetUnflushedBytes;
+        public long UnflushedBytes => _decoratee.UnflushedBytes;
 
-        public override long UnflushedBytes => _decoratee.UnflushedBytes;
-
-        private readonly ReadOnlySequencePipeWriter _decoratee;
+        private readonly IMultiplexedStreamWriter _decoratee;
         private bool _isCompleted;
         private readonly Action _onCompleted;
 
-        public override void Advance(int bytes) => _decoratee.Advance(bytes);
+        public void Advance(int count) => _decoratee.Advance(count);
 
-        // When leaveOpen is false, we use the default implementation of AsStream: we want the disposal of the stream
-        // to call Complete on this decorator.
-        public override Stream AsStream(bool leaveOpen = false) =>
-            leaveOpen ? _decoratee.AsStream(leaveOpen) : base.AsStream(leaveOpen);
-
-        public override void CancelPendingFlush() => _decoratee.CancelPendingFlush();
-
-        public override void Complete(Exception? exception = null)
+        public void Abort()
         {
             if (!_isCompleted)
             {
                 _isCompleted = true;
-                _decoratee.Complete(exception);
+                _decoratee.Abort();
                 _onCompleted();
             }
         }
 
-        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.FlushAsync(cancellationToken);
+        public async ValueTask CompleteAsync(CancellationToken cancellationToken)
+        {
+            if (!_isCompleted)
+            {
+                _isCompleted = true;
+                try
+                {
+                    await _decoratee.CompleteAsync(cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _onCompleted();
+                }
+            }
+        }
 
-        public override Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
+        public Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
 
-        public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
+        public Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-        public override ValueTask<FlushResult> WriteAsync(
-            ReadOnlyMemory<byte> source,
-            CancellationToken cancellationToken = default) => _decoratee.WriteAsync(source, cancellationToken);
-
-        public override ValueTask<FlushResult> WriteAsync(
+        public ValueTask<WriteResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool endStream,
-            CancellationToken cancellationToken = default) =>
+            CancellationToken cancellationToken) =>
             _decoratee.WriteAsync(source, endStream, cancellationToken);
 
-        internal OutputDecorator(ReadOnlySequencePipeWriter decoratee, Action onCompleted)
+        internal OutputDecorator(IMultiplexedStreamWriter decoratee, Action onCompleted)
         {
             _decoratee = decoratee;
             _onCompleted = onCompleted;

@@ -56,7 +56,7 @@ public class CompressorInterceptor : IInvoker
             compress.Value &&
             !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
-            request.Use(next => new CompressorPipeWriter(next, _compressionFormat, _compressionLevel));
+            request.Use(next => new CompressorStreamWriter(next, _compressionFormat, _compressionLevel));
 
             request.Fields = request.Fields.With(RequestFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }
