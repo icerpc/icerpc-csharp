@@ -47,8 +47,8 @@ internal class CompressorStreamWriter : IMultiplexedStreamWriter
         {
             _isCompleted = true;
 
-            // Aborting the decoratee first makes sure the disposal of the compression stream below can't write
-            // anything to the network: its trailer lands in _compressedPipe and is discarded.
+            // The disposal of the compression stream below can't write anything to the network: its trailer lands in
+            // _compressedPipe and is discarded with it.
             _decoratee.Abort();
             _compressionStream.Dispose();
 

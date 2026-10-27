@@ -54,6 +54,8 @@ public class CompressorMiddlewareTests
         Assert.That(decompressed.ToArray(), Is.EqualTo(_payload));
     }
 
+    /// <summary>Verifies that the compressor middleware does not install a payload writer interceptor if the request
+    /// does not contain the compress payload feature.</summary>
     [Test]
     public async Task Compressor_middleware_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
