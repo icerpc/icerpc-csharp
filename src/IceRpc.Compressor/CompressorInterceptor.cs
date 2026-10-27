@@ -56,7 +56,16 @@ public class CompressorInterceptor : IInvoker
             compress.Value &&
             !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
-            request.Use(next => new CompressorStreamWriter(next, _compressionFormat, _compressionLevel));
+            if (_compressionFormat == CompressionFormat.Brotli)
+            {
+                request.Use(next =>
+                    new StreamTransformWriter(next, stream => new BrotliStream(stream, _compressionLevel)));
+            }
+            else
+            {
+                request.Use(next =>
+                    new StreamTransformWriter(next, stream => new DeflateStream(stream, _compressionLevel)));
+            }
 
             request.Fields = request.Fields.With(RequestFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }

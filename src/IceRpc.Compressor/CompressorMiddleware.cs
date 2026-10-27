@@ -79,7 +79,16 @@ public class CompressorMiddleware : IDispatcher
             compress.Value &&
             !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))
         {
-            response.Use(next => new CompressorStreamWriter(next, _compressionFormat, _compressionLevel));
+            if (_compressionFormat == CompressionFormat.Brotli)
+            {
+                response.Use(next =>
+                    new StreamTransformWriter(next, stream => new BrotliStream(stream, _compressionLevel)));
+            }
+            else
+            {
+                response.Use(next =>
+                    new StreamTransformWriter(next, stream => new DeflateStream(stream, _compressionLevel)));
+            }
 
             response.Fields = response.Fields.With(ResponseFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }
