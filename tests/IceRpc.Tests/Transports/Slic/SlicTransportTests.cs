@@ -2056,7 +2056,9 @@ public class SlicTransportTests
     /// as complete.</summary>
     [Test]
     [CancelAfter(30_000)]
-    public async Task Complete_after_canceled_write_closes_writes_abruptly(CancellationToken cancellationToken)
+    public async Task Complete_after_canceled_write_closes_writes_abruptly(
+        [Values] bool endStream,
+        CancellationToken cancellationToken)
     {
         // Arrange: use a small peer window so it's easy to exhaust.
         IServiceCollection services = new ServiceCollection().AddSlicTest();
@@ -2074,9 +2076,11 @@ public class SlicTransportTests
 
         using var writeCts = new CancellationTokenSource();
 
-        // The next write blocks on AcquireSendCreditAsync because the peer window is exhausted; cancel it.
-        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(payload, writeCts.Token);
-        await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
+        // The next write can't complete because the peer's window is exhausted; cancel it.
+        ValueTask<WriteResult> writeTask = streams.Local.Output.WriteAsync(
+            new ReadOnlySequence<byte>(payload),
+            endStream,
+            writeCts.Token);
         Assert.That(writeTask.IsCompleted, Is.False);
         writeCts.Cancel();
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
