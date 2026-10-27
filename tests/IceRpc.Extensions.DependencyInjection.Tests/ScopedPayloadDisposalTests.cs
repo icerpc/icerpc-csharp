@@ -9,10 +9,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Extensions.DependencyInjection.Tests;
 
-/// <summary>Demonstrates the issue reported in #4424: the per-request DI scope is disposed by
-/// <see cref="DispatcherBuilder" /> as soon as the dispatcher returns its <see cref="OutgoingResponse" />, but the
-/// protocol connection only reads <c>response.Payload</c> afterwards. A payload that lazily pulls from a scoped
-/// service therefore hits an <see cref="ObjectDisposedException" /> mid-transmission.</summary>
+/// <summary>Demonstrates a limitation of the per-request DI scope: <see cref="DispatcherBuilder" /> disposes it as
+/// soon as the dispatcher returns its <see cref="OutgoingResponse" />, but the protocol connection only reads
+/// <c>response.Payload</c> afterwards. A payload that lazily pulls from a scoped service therefore hits an
+/// <see cref="ObjectDisposedException" /> mid-transmission.</summary>
 public sealed class ScopedPayloadDisposalTests
 {
     /// <summary>This test documents the limitation: a response payload that lazily pulls from a scoped service will
@@ -76,8 +76,7 @@ public sealed class ScopedPayloadDisposalTests
     }
 
     /// <summary>An <see cref="IDispatcher" /> mapped at <c>/test</c>. It captures the request's scoped
-    /// <see cref="IScopedHttpClient" /> and returns a response whose payload reads from it lazily — exactly the
-    /// pattern the audit calls out.</summary>
+    /// <see cref="IScopedHttpClient" /> and returns a response whose payload reads from it lazily.</summary>
     public sealed class StreamingService : IDispatcher
     {
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)

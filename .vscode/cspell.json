@@ -32,6 +32,7 @@
     "icerpc",
     "Idempotency",
     "jaegertracing",
+    "libmsquic",
     "localizable",
     "Memberwise",
     "meteo",

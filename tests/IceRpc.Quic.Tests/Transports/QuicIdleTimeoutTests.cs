@@ -25,8 +25,8 @@ public class QuicIdleTimeoutTests
     /// <summary>Verifies the QUIC connection is aborted by the idle timeout after remaining idle for more than idle
     /// timeout.</summary>
     /// <remarks>The behavior shown by this test is not desirable for IceRPC: we would prefer QUIC or IceRPC's QUIC
-    /// wrapper to keep this connection alive when there is an outstanding request.
-    /// See <see href="https://github.com/icerpc/icerpc-csharp/issues/3353" />.</remarks>
+    /// wrapper to keep this connection alive when there is an outstanding request. See
+    /// <see href="https://github.com/microsoft/msquic/issues/3880" />.</remarks>
     [Test]
     public async Task Quic_connection_idle_after_idle_timeout([Values] bool configureServer)
     {
