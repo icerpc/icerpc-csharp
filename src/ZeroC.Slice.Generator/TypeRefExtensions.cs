@@ -45,7 +45,7 @@ internal static class TypeRefExtensions
         }
 
         string csType = typeRef.Type.ToTypeString(currentNamespace) + "?";
-        string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, typeRef.UnwrapNonNullOptional("value"));
+        string encodeExpr = typeRef.Type.EncodeExpression(currentNamespace, typeRef.UnwrapOptionalElement("value"));
         return $"(ref SliceEncoder encoder, {csType} value) => {encodeExpr}";
     }
 
@@ -124,9 +124,15 @@ internal static class TypeRefExtensions
         return (isOptional && !ignoreOptional) ? $"{baseType}?" : baseType;
     }
 
-    /// <summary>Returns the expression that unwraps a non-null optional value for encoding. A custom type can map to
-    /// either a C# value type or a reference type, so it uses <c>??</c> instead of <c>!</c>.</summary>
+    /// <summary>Returns the expression that unwraps an optional value for encoding inside a null check on
+    /// <paramref name="param" />. A custom type can map to either a C# value type or a reference type, so it uses
+    /// <c>??</c> instead of relying on the null check.</summary>
     internal static string UnwrapNonNullOptional(this TypeRef typeRef, string param) =>
+        typeRef.Type is CustomType ? $"({param} ?? default!)" : typeRef.IsValueType ? $"{param}.Value" : param;
+
+    /// <summary>Returns the expression that unwraps an optional element for encoding in a lambda the encoder calls
+    /// only for non-null elements, which the compiler cannot see; hence the <c>!</c>.</summary>
+    internal static string UnwrapOptionalElement(this TypeRef typeRef, string param) =>
         typeRef.Type is CustomType ? $"({param} ?? default!)" : typeRef.IsValueType ? $"{param}!.Value" : $"{param}!";
 
     extension(TypeRef value)
