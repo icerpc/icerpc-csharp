@@ -76,8 +76,7 @@ public sealed class ScopedPayloadDisposalTests
     }
 
     /// <summary>An <see cref="IDispatcher" /> mapped at <c>/test</c>. It captures the request's scoped
-    /// <see cref="IScopedHttpClient" /> and returns a response whose payload reads from it lazily — exactly the
-    /// pattern the audit calls out.</summary>
+    /// <see cref="IScopedHttpClient" /> and returns a response whose payload reads from it lazily.</summary>
     public sealed class StreamingService : IDispatcher
     {
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)

@@ -612,7 +612,6 @@ public class SlicTransportTests
         // Assert
         if (acceptStreamTask.IsCompleted)
         {
-            // Unexpected.
             Assert.DoesNotThrowAsync(async () => await acceptStreamTask); // to display the cause of the failure.
             Assert.Fail("acceptStreamTask should not be completed");
         }
@@ -667,7 +666,7 @@ public class SlicTransportTests
         Assert.That(acceptStreamTask.IsCompleted, Is.True);
         if (nextAcceptStreamTask.IsCompleted)
         {
-            Assert.DoesNotThrowAsync(async () => await nextAcceptStreamTask);
+            Assert.DoesNotThrowAsync(async () => await nextAcceptStreamTask); // to display the cause of the failure.
             Assert.Fail("nextAcceptStreamTask should not be completed");
         }
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
