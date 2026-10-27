@@ -33,12 +33,12 @@ var response = new CodeGeneratorResponse
 };
 
 // The only parameter is internal_access, with the same name and meaning as for protoc's C# plug-in.
-string access = "public";
+string accessModifier = "public";
 foreach (string parameter in request.Parameter.Split(',', StringSplitOptions.RemoveEmptyEntries))
 {
     if (parameter == "internal_access")
     {
-        access = "internal";
+        accessModifier = "internal";
     }
     else
     {
@@ -84,9 +84,9 @@ using IceRpc.Protobuf.RpcMethods;
 
     foreach (ServiceDescriptor service in descriptor.Services)
     {
-        codeBlock.AddBlock(ClientGenerator.GenerateInterface(service, access));
-        codeBlock.AddBlock(ClientGenerator.GenerateClient(service, access));
-        codeBlock.AddBlock(ServiceGenerator.GenerateInterface(service, access));
+        codeBlock.AddBlock(ClientGenerator.GenerateInterface(service, accessModifier));
+        codeBlock.AddBlock(ClientGenerator.GenerateClient(service, accessModifier));
+        codeBlock.AddBlock(ServiceGenerator.GenerateInterface(service, accessModifier));
     }
 
     response.File.Add(

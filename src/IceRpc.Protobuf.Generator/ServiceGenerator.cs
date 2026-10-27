@@ -8,7 +8,7 @@ namespace IceRpc.Protobuf.Generator;
 
 internal class ServiceGenerator
 {
-    internal static CodeBlock GenerateInterface(ServiceDescriptor service, string access)
+    internal static CodeBlock GenerateInterface(ServiceDescriptor service, string accessModifier)
     {
         var methods = new CodeBlock();
         foreach (MethodDescriptor method in service.Methods)
@@ -22,7 +22,7 @@ internal class ServiceGenerator
 /// with IceRPC.</summary>
 /// <remarks>protoc-gen-icerpc-csharp generated this server-side interface.</remarks>
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
-{access} partial interface I{service.Name.ToProtocPascalCase()}Service
+{accessModifier} partial interface I{service.Name.ToProtocPascalCase()}Service
 {{
     {methods}
 }}";
