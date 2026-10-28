@@ -118,7 +118,7 @@
     <ItemGroup>
       <!--
         The inputs shared by every Proto file that change the generated code without touching a Proto file. Each
-        file's AdditionalOptions get their own record below.
+        file's Access and AdditionalOptions get their own record below.
       -->
       <_ProtocInputsCacheLine Include="protoc=$(ProtocBundledPluginVersion)" />
       <_ProtocInputsCacheLine Include="icerpc-csharp=$(ProtocIceRpcPluginVersion)" />

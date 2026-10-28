@@ -58,7 +58,7 @@ public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
             ];
 
             // The options record is the source's own inputs cache: the build rewrites it only when the source's
-            // AdditionalOptions change, so it is newer than the outputs exactly then.
+            // Access or AdditionalOptions change, so it is newer than the outputs exactly then.
             string[] inputs = [.. additionalInputs, Path.Combine(OutputDir, $"{fileName}.options")];
 
             bool upToDate = IsUpToDate(source.ItemSpec, outputs, dependOutput, inputs);
