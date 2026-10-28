@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports.Quic;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Quic;
 
-namespace IceRpc.Tests.Transports;
+namespace IceRpc.Transports.Quic.Tests;
 
 [NonParallelizable]
 public class QuicIdleTimeoutTests

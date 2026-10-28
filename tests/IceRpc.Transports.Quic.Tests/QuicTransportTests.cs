@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports;
 using IceRpc.Transports.Quic.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -10,7 +9,7 @@ using System.Net.Quic;
 using System.Net.Security;
 using System.Security.Authentication;
 
-namespace IceRpc.Tests.Transports;
+namespace IceRpc.Transports.Quic.Tests;
 
 [NonParallelizable]
 public class QuicTransportTests

@@ -1,14 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
-using IceRpc.Transports.Quic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-namespace IceRpc.Tests.Transports;
+namespace IceRpc.Transports.Quic.Tests;
 
 public static class QuicTransportServiceCollectionExtensions
 {
