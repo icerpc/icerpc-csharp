@@ -1,6 +1,6 @@
 name: Copilot Setup Steps
 
-# Prepares the environment of the Copilot coding agent. See
+# Prepares the environment of the Copilot cloud agent and Copilot code review. See
 # https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/customize-the-agent-environment
 on:
   workflow_dispatch:
