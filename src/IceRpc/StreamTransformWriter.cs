@@ -112,6 +112,9 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
             }
 
             _isCompleted = true;
+
+            // A no-op unless the endStream write returned early with WritesClosed: the trailing bytes it then writes
+            // land in _outputPipe and are discarded with it.
             _transformStream.Dispose();
 
             _inputPipe.Writer.Complete();
@@ -208,6 +211,9 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
         }
         else
         {
+            // The transform buffered its input without producing anything to send, so the decoratee can't observe
+            // the token for this chunk.
+            cancellationToken.ThrowIfCancellationRequested();
             return WriteResult.Written;
         }
     }
@@ -230,14 +236,16 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
         ReadOnlySequence<byte> source,
         CancellationToken cancellationToken)
     {
-        foreach (ReadOnlyMemory<byte> segment in source)
+        foreach (ReadOnlyMemory<byte> memory in source)
         {
-            for (int offset = 0; offset < segment.Length; offset += _maxChunkSize)
+            ReadOnlyMemory<byte> segment = memory;
+            while (!segment.IsEmpty)
             {
+                ReadOnlyMemory<byte> chunk = segment[..Math.Min(_maxChunkSize, segment.Length)];
+
                 // This write goes to _outputPipe, in memory: it can't block, so it doesn't need the token.
-                await _transformStream.WriteAsync(
-                    segment.Slice(offset, Math.Min(_maxChunkSize, segment.Length - offset)),
-                    CancellationToken.None).ConfigureAwait(false);
+                await _transformStream.WriteAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                segment = segment[chunk.Length..];
 
                 WriteResult result = await SendAsync(endStream: false, force: false, cancellationToken)
                     .ConfigureAwait(false);
