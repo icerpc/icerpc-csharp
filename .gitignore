@@ -9,6 +9,9 @@ generated/
 # dotnet test results
 TestResults/
 
+# Coverage report from the reportgenerator command in BUILDING.md
+tests/CodeCoverageReport/
+
 # Visual Studio
 .vs/
 *.user
