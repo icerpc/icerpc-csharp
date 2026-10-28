@@ -11,11 +11,10 @@ namespace IceRpc;
 /// <see cref="System.IO.Compression.BrotliStream" /> or a <c>CryptoStream</c>. The bytes written to this writer flow
 /// through the transform stream; the bytes the transform stream writes to its inner stream are sent to the decoratee.
 /// </summary>
-/// <remarks>The inner stream is an in-memory pipe: the writes of the transform stream, including those its disposal
-/// performs, never block. This writer reads the transformed bytes from this pipe and sends them to the decoratee with
-/// the caller's cancellation token. It flushes the transform stream after each <see cref="WriteAsync" /> call, so that
-/// the peer receives what the application wrote, and disposes it to obtain its trailing bytes when the stream ends.
-/// </remarks>
+/// <remarks>The transform stream must write synchronously, and only to the inner stream it is given. Each
+/// <see cref="WriteAsync" /> call flushes the transform stream and sends what this flush emits; a transform stream can
+/// keep part of its input until the stream ends. Ending the stream disposes the transform stream and sends its
+/// trailing bytes.</remarks>
 public sealed class StreamTransformWriter : IMultiplexedStreamWriter
 {
     /// <inheritdoc/>
@@ -172,13 +171,12 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
         if (endStream)
         {
             // Finishes the transform: this writes the trailing bytes into _outputPipe.
-            await _transformStream.DisposeAsync().ConfigureAwait(false);
+            _transformStream.Dispose();
         }
         else
         {
-            // Makes the transform stream emit the bytes it holds, so that the peer receives what the application
-            // wrote.
-            await _transformStream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            // Makes the transform stream emit the bytes it holds.
+            _transformStream.Flush();
         }
 
         // The last send always writes, with endStream when requested and to flush the decoratee otherwise.
@@ -242,9 +240,7 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
             while (!segment.IsEmpty)
             {
                 ReadOnlyMemory<byte> chunk = segment[..Math.Min(_maxChunkSize, segment.Length)];
-
-                // This write goes to _outputPipe, in memory: it can't block, so it doesn't need the token.
-                await _transformStream.WriteAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                _transformStream.Write(chunk.Span);
                 segment = segment[chunk.Length..];
 
                 WriteResult result = await SendAsync(endStream: false, force: false, cancellationToken)

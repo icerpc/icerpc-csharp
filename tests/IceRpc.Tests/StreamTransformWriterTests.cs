@@ -89,6 +89,32 @@ public class StreamTransformWriterTests
     }
 
     [Test]
+    public void Canceled_write_through_a_buffering_transform_stops_after_one_chunk()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        var decoratee = new PipeStreamWriter(pipe.Writer);
+        BufferingStream? transformStream = null;
+        var sut = new StreamTransformWriter(
+            decoratee,
+            stream => transformStream = new BufferingStream(stream),
+            maxChunkSize: 7);
+        byte[] payload = new byte[1000];
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.WriteAsync(new ReadOnlySequence<byte>(payload), endStream: false, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(transformStream!.WriteCount, Is.EqualTo(1));
+
+        // Cleanup
+        pipe.Reader.Complete();
+        sut.Abort();
+    }
+
+    [Test]
     public async Task End_stream_write_sends_the_trailing_bytes()
     {
         // Arrange
@@ -391,6 +417,9 @@ public class StreamTransformWriterTests
     /// <summary>A pass-through stream that holds the bytes written to it until it's flushed or disposed.</summary>
     private sealed class BufferingStream : WriteOnlyStream
     {
+        /// <summary>Gets the number of <see cref="Write(byte[], int, int)" /> calls.</summary>
+        public int WriteCount { get; private set; }
+
         private readonly MemoryStream _buffer = new();
 
         public BufferingStream(Stream inner)
@@ -405,7 +434,11 @@ public class StreamTransformWriterTests
             Inner.Flush();
         }
 
-        public override void Write(byte[] buffer, int offset, int count) => _buffer.Write(buffer, offset, count);
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            WriteCount++;
+            _buffer.Write(buffer, offset, count);
+        }
 
         protected override void Dispose(bool disposing)
         {
