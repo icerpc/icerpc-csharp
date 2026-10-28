@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Quic;
@@ -9,7 +8,7 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-namespace IceRpc.Tests.Transports;
+namespace IceRpc.Transports.Quic.Tests;
 
 /// <summary>Test SSL authentication with the QUIC transport.</summary>
 [NonParallelizable]

@@ -40,7 +40,7 @@
     <Project Path="tests/IceRpc.Logger.Tests/IceRpc.Logger.Tests.csproj" />
     <Project Path="tests/IceRpc.Metrics.Tests/IceRpc.Metrics.Tests.csproj" />
     <Project Path="tests/IceRpc.Protobuf.Tests/IceRpc.Protobuf.Tests.csproj" />
-    <Project Path="tests/IceRpc.Quic.Tests/IceRpc.Quic.Tests.csproj" />
+    <Project Path="tests/IceRpc.Transports.Quic.Tests/IceRpc.Transports.Quic.Tests.csproj" />
     <Project Path="tests/IceRpc.RequestContext.Tests/IceRpc.RequestContext.Tests.csproj" />
     <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
     <Project Path="tests/IceRpc.ServiceGenerator.Tests/IceRpc.ServiceGenerator.Tests.csproj" />
