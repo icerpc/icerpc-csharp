@@ -21,8 +21,7 @@ namespace IceRpc.Compressor;
 /// <seealso cref="CompressorDispatcherBuilderExtensions"/>
 public class CompressorMiddleware : IDispatcher
 {
-    private readonly CompressionFormat _compressionFormat;
-    private readonly CompressionLevel _compressionLevel;
+    private readonly Func<Stream, Stream> _compressionTransform;
     private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
     private readonly IDispatcher _next;
 
@@ -40,8 +39,9 @@ public class CompressorMiddleware : IDispatcher
         {
             throw new NotSupportedException($"The compression format '{compressionFormat}' is not supported.");
         }
-        _compressionFormat = compressionFormat;
-        _compressionLevel = compressionLevel;
+        _compressionTransform = compressionFormat == CompressionFormat.Brotli ?
+            stream => new BrotliStream(stream, compressionLevel) :
+            stream => new DeflateStream(stream, compressionLevel);
         _encodedCompressionFormatValue = new(new byte[] { (byte)compressionFormat });
     }
 
@@ -79,7 +79,7 @@ public class CompressorMiddleware : IDispatcher
             compress.Value &&
             !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))
         {
-            response.Use(next => new CompressorStreamWriter(next, _compressionFormat, _compressionLevel));
+            response.Use(next => new StreamTransformWriter(next, _compressionTransform));
 
             response.Fields = response.Fields.With(ResponseFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }

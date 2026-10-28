@@ -50,6 +50,7 @@ public abstract class OutgoingFrame
     /// <see cref="PayloadContinuation" />.</summary>
     /// <param name="payloadWriterInterceptor">The payload writer interceptor to install.</param>
     /// <returns>This outgoing frame.</returns>
+    /// <seealso cref="StreamTransformWriter" />
     public OutgoingFrame Use(Func<IMultiplexedStreamWriter, IMultiplexedStreamWriter> payloadWriterInterceptor)
     {
         if (!Protocol.SupportsPayloadWriterInterceptors)
