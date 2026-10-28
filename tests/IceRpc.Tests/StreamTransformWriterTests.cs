@@ -67,6 +67,28 @@ public class StreamTransformWriterTests
     }
 
     [Test]
+    public async Task Write_flushes_the_transform()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        var decoratee = new PipeStreamWriter(pipe.Writer);
+        var sut = new StreamTransformWriter(decoratee, stream => new BufferingStream(stream));
+        byte[] payload = Encoding.ASCII.GetBytes("payload");
+
+        // Act
+        WriteResult result = await sut.WriteAsync(new ReadOnlySequence<byte>(payload), endStream: false, default);
+
+        // Assert
+        Assert.That(result, Is.EqualTo(WriteResult.Written));
+        Assert.That(pipe.Reader.TryRead(out ReadResult readResult), Is.True);
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payload));
+
+        // Cleanup
+        pipe.Reader.Complete();
+        await sut.CompleteAsync(default);
+    }
+
+    [Test]
     public async Task End_stream_write_sends_the_trailing_bytes()
     {
         // Arrange
@@ -329,9 +351,8 @@ public class StreamTransformWriterTests
         }
     }
 
-    /// <summary>A write-only stream that passes the bytes through to its inner stream and writes a trailer when
-    /// disposed.</summary>
-    private sealed class TrailerStream : Stream
+    /// <summary>A write-only stream over an inner stream, which it disposes when disposed.</summary>
+    private abstract class WriteOnlyStream : Stream
     {
         public override bool CanRead => false;
 
@@ -341,20 +362,15 @@ public class StreamTransformWriterTests
 
         public override long Length => throw new NotSupportedException();
 
-        /// <summary>Gets the number of <see cref="Write(byte[], int, int)" /> calls.</summary>
-        public int WriteCount { get; private set; }
-
         public override long Position
         {
             get => throw new NotSupportedException();
             set => throw new NotSupportedException();
         }
 
-        private readonly Stream _inner;
+        protected Stream Inner { get; }
 
-        public TrailerStream(Stream inner) => _inner = inner;
-
-        public override void Flush() => _inner.Flush();
+        protected WriteOnlyStream(Stream inner) => Inner = inner;
 
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
@@ -362,18 +378,69 @@ public class StreamTransformWriterTests
 
         public override void SetLength(long value) => throw new NotSupportedException();
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Inner.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>A pass-through stream that holds the bytes written to it until it's flushed or disposed.</summary>
+    private sealed class BufferingStream : WriteOnlyStream
+    {
+        private readonly MemoryStream _buffer = new();
+
+        public BufferingStream(Stream inner)
+            : base(inner)
+        {
+        }
+
+        public override void Flush()
+        {
+            _buffer.WriteTo(Inner);
+            _buffer.SetLength(0);
+            Inner.Flush();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => _buffer.Write(buffer, offset, count);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Flush();
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>A pass-through stream that writes a trailer when disposed.</summary>
+    private sealed class TrailerStream : WriteOnlyStream
+    {
+        /// <summary>Gets the number of <see cref="Write(byte[], int, int)" /> calls.</summary>
+        public int WriteCount { get; private set; }
+
+        public TrailerStream(Stream inner)
+            : base(inner)
+        {
+        }
+
+        public override void Flush() => Inner.Flush();
+
         public override void Write(byte[] buffer, int offset, int count)
         {
             WriteCount++;
-            _inner.Write(buffer, offset, count);
+            Inner.Write(buffer, offset, count);
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                _inner.Write(_trailer, 0, _trailer.Length);
-                _inner.Dispose();
+                Inner.Write(_trailer, 0, _trailer.Length);
             }
             base.Dispose(disposing);
         }
