@@ -26,6 +26,5 @@ jobs:
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
 
-      # Restores the NuGet packages and builds the solution so the agent starts from a warm build.
-      - name: Build
-        run: dotnet build
+      - name: Restore
+        run: dotnet restore
