@@ -40,17 +40,23 @@ public class StreamTransformWriterTests
     }
 
     [Test]
-    public async Task Large_write_is_transformed_in_chunks()
+    public async Task Large_multi_segment_write_is_transformed_in_chunks()
     {
-        // Arrange: pauseWriterThreshold: 0 so that the writes to the pipe never block.
+        // Arrange: pauseWriterThreshold: 0 so that the writes to the pipes never block. The payload goes through a pipe
+        // to get a sequence of 4 KB segments.
         var pipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0));
         var decoratee = new PipeStreamWriter(pipe.Writer);
         TrailerStream? transformStream = null;
         var sut = new StreamTransformWriter(decoratee, stream => transformStream = new TrailerStream(stream));
         byte[] payload = Enumerable.Range(0, 400 * 1024).Select(i => (byte)i).ToArray();
+        var payloadPipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0));
+        payloadPipe.Writer.Write(payload);
+        await payloadPipe.Writer.FlushAsync();
+        payloadPipe.Reader.TryRead(out ReadResult payloadReadResult);
+        Assert.That(payloadReadResult.Buffer.IsSingleSegment, Is.False);
 
         // Act
-        WriteResult result = await sut.WriteAsync(new ReadOnlySequence<byte>(payload), endStream: false, default);
+        WriteResult result = await sut.WriteAsync(payloadReadResult.Buffer, endStream: false, default);
 
         // Assert
         Assert.That(result, Is.EqualTo(WriteResult.Written));
@@ -59,6 +65,9 @@ public class StreamTransformWriterTests
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payload));
 
         // Cleanup
+        payloadPipe.Reader.AdvanceTo(payloadReadResult.Buffer.End);
+        payloadPipe.Reader.Complete();
+        payloadPipe.Writer.Complete();
         pipe.Reader.Complete();
         await sut.CompleteAsync(default);
     }
