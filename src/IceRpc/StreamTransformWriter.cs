@@ -8,7 +8,8 @@ using System.IO.Pipelines;
 namespace IceRpc;
 
 /// <summary>Decorates an <see cref="IMultiplexedStreamWriter" /> with a <see cref="Stream" /> transform, such as a
-/// <see cref="System.IO.Compression.BrotliStream" /> or a <c>CryptoStream</c>. The bytes written to this writer flow
+/// <see cref="System.IO.Compression.BrotliStream" /> or a <see cref="System.Security.Cryptography.CryptoStream" />.
+/// The bytes written to this writer flow
 /// through the transform stream; the bytes the transform stream writes to its inner stream are sent to the decoratee.
 /// </summary>
 /// <remarks>The transform stream must write synchronously, and only to the inner stream it is given. Each
@@ -234,21 +235,20 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
         ReadOnlySequence<byte> source,
         CancellationToken cancellationToken)
     {
-        foreach (ReadOnlyMemory<byte> memory in source)
+        while (!source.IsEmpty)
         {
-            ReadOnlyMemory<byte> segment = memory;
-            while (!segment.IsEmpty)
+            ReadOnlySequence<byte> chunk = source.Slice(0, Math.Min(_maxChunkSize, source.Length));
+            foreach (ReadOnlyMemory<byte> memory in chunk)
             {
-                ReadOnlyMemory<byte> chunk = segment[..Math.Min(_maxChunkSize, segment.Length)];
-                _transformStream.Write(chunk.Span);
-                segment = segment[chunk.Length..];
+                _transformStream.Write(memory.Span);
+            }
+            source = source.Slice(chunk.End);
 
-                WriteResult result = await SendAsync(endStream: false, force: false, cancellationToken)
-                    .ConfigureAwait(false);
-                if (result != WriteResult.Written)
-                {
-                    return result;
-                }
+            WriteResult result = await SendAsync(endStream: false, force: false, cancellationToken)
+                .ConfigureAwait(false);
+            if (result != WriteResult.Written)
+            {
+                return result;
             }
         }
         return WriteResult.Written;
