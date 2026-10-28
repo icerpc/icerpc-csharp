@@ -51,6 +51,14 @@ You can also add Protobuf files to your project explicitly. For example:
 This adds `greeter.proto` to your project's Protobuf files even though this file is not in the project's home directory
 or any of its subdirectories.
 
+To set the metadata of a Protobuf file that is included by default, update this item. For example:
+
+```xml
+<ItemGroup>
+    <ProtoFile Update="greeter.proto" OutputDir="$(MSBuildProjectDirectory)/greeter"/>
+</ItemGroup>
+```
+
 The Protobuf search path is an aggregate of the `ProtoSearchPath` defined in your project (if any) and the
 `ProtoSearchPath` defined in NuGet packages referenced by your project.
 

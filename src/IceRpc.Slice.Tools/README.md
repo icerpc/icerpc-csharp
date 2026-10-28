@@ -51,6 +51,14 @@ You can also add Slice files to your project explicitly. For example:
 This adds `Greeter.slice` to your project's Slice files even though this file is not in the project's home directory or
 any of its subdirectories.
 
+To set the metadata of a Slice file that is included by default, update this item. For example:
+
+```xml
+<ItemGroup>
+    <SliceFile Update="Greeter.slice" OutputDir="$(MSBuildProjectDirectory)/greeter"/>
+</ItemGroup>
+```
+
 > Slice files must have a `.slice` extension.
 
 The Slice directories are an aggregate of the `SliceDirectory` defined in your project (if any) and the `SliceDirectory`
