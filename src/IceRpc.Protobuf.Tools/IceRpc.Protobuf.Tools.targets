@@ -111,10 +111,14 @@
           DependsOnTargets="_ComputeProtoOutputs"
           Condition="@(ProtoFile) != ''">
 
+    <Error
+      Text="Invalid Access metadata '%(ProtoFile.Access)' for Proto file '%(ProtoFile.Identity)': expected 'public' or 'internal'."
+      Condition="'%(ProtoFile.Access)' != 'public' And '%(ProtoFile.Access)' != 'internal'" />
+
     <ItemGroup>
       <!--
         The inputs shared by every Proto file that change the generated code without touching a Proto file. Each
-        file's AdditionalOptions get their own record below.
+        file's Access and AdditionalOptions get their own record below.
       -->
       <_ProtocInputsCacheLine Include="protoc=$(ProtocBundledPluginVersion)" />
       <_ProtocInputsCacheLine Include="icerpc-csharp=$(ProtocIceRpcPluginVersion)" />
@@ -139,13 +143,14 @@
     </ItemGroup>
 
     <!--
-      Each Proto file's own inputs cache, next to its dependency file: its AdditionalOptions, one per line, with the
-      same WriteOnlyWhenDifferent rule. A change makes that file, and only that file, out of date. The Condition skips
-      the empty batch MSBuild runs when _ComputeProtoOutputs was skipped, so the task load below fails first.
+      Each Proto file's own inputs cache, next to its dependency file: its Access and AdditionalOptions, one per line,
+      with the same WriteOnlyWhenDifferent rule. A change makes that file, and only that file, out of date. The
+      Condition skips the empty batch MSBuild runs when _ComputeProtoOutputs was skipped, so the task load below fails
+      first.
     -->
     <WriteLinesToFile
       File="%(_ProtoNamedFile.OutputDir)/%(_ProtoNamedFile.OutputFileName).options"
-      Lines="%(_ProtoNamedFile.AdditionalOptions)"
+      Lines="access=%(_ProtoNamedFile.Access);%(_ProtoNamedFile.AdditionalOptions)"
       Overwrite="true"
       WriteOnlyWhenDifferent="true"
       Condition="'%(_ProtoNamedFile.Identity)' != ''" />
@@ -154,6 +159,13 @@
     <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)" AdditionalInputs="@(_ProtocInput)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
+
+    <!-- Both code generators take the same option, so that the messages and the services agree on their access. -->
+    <ItemGroup>
+      <_ProtoFile Update="@(_ProtoFile)" Condition="'%(_ProtoFile.Access)' == 'internal'">
+        <AccessOptions>--csharp_opt=internal_access;--icerpc-csharp_opt=internal_access</AccessOptions>
+      </_ProtoFile>
+    </ItemGroup>
 
     <PropertyGroup>
        <!-- Parameter for the Build Telemetry plug-in -->
@@ -190,7 +202,7 @@
       SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
       ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
       Plugins="@(_ProtocCodeGenPlugin)"
-      AdditionalOptions="%(_ProtoFile.AdditionalOptions);--dependency_out=&quot;%(_ProtoFile.OutputDir)/%(_ProtoFile.OutputFileName).d&quot;"
+      AdditionalOptions="%(_ProtoFile.AccessOptions);%(_ProtoFile.AdditionalOptions);--dependency_out=&quot;%(_ProtoFile.OutputDir)/%(_ProtoFile.OutputFileName).d&quot;"
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />

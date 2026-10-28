@@ -6,6 +6,8 @@
     <!-- Missing XML comment for publicly visible type or member -->
     <NoWarn>CS1591</NoWarn>
     <TargetFramework>net11.0</TargetFramework>
+    <!-- The Proto files are listed below: AccessTests.proto needs its own metadata. -->
+    <EnableDefaultProtoFileItems>false</EnableDefaultProtoFileItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +22,11 @@
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="NUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProtoFile Include="*.proto" Exclude="AccessTests.proto" />
+    <ProtoFile Include="AccessTests.proto" Access="internal" />
   </ItemGroup>
 
   <ItemGroup>

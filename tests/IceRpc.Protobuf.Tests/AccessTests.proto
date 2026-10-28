@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+option csharp_namespace = "IceRpc.Protobuf.Tests";
+
+package icerpc.protobuf.tests;
+
+// Compiled with Access=internal, see IceRpc.Protobuf.Tests.csproj.
+service InternalWidget {
+    rpc Op(InternalMessage) returns (InternalMessage);
+}
+
+message InternalMessage {
+    string value = 1;
+}

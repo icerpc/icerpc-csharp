@@ -8,13 +8,13 @@ namespace IceRpc.Protobuf.Generator;
 
 internal class ClientGenerator
 {
-    internal static CodeBlock GenerateClient(ServiceDescriptor service)
+    internal static CodeBlock GenerateClient(ServiceDescriptor service, string accessModifier)
     {
         string clientName = $"{service.Name.ToProtocPascalCase()}Client";
 
         ContainerBuilder clientBuilder =
             new ContainerBuilder(
-                "public readonly partial record struct",
+                $"{accessModifier} readonly partial record struct",
                 $"{clientName} : I{service.Name.ToProtocPascalCase()}, IProtobufClient<{clientName}>")
             .AddComment(
                 "summary",
@@ -28,7 +28,7 @@ internal class ClientGenerator
         var body = new CodeBlock($@"
 /// <summary>Represents the default path for IceRPC services that implement Protobuf service
 /// <c>{service.FullName}</c>.</summary>
-public const string DefaultServicePath = ""/{service.FullName}"";
+{accessModifier} const string DefaultServicePath = ""/{service.FullName}"";
 
 /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
 /// client.</summary>
@@ -49,7 +49,7 @@ private static IceRpc.ServiceAddress _defaultServiceAddress =
 /// address with path <see cref=""DefaultServicePath"" />.</param>
 /// <param name=""encodeOptions"">The encode options, used to customize the encoding of request payloads.</param>
 [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-public {clientName}(
+{accessModifier} {clientName}(
     IceRpc.IInvoker invoker,
     IceRpc.ServiceAddress? serviceAddress = null,
     ProtobufEncodeOptions? encodeOptions = null)
@@ -64,7 +64,7 @@ public {clientName}(
 /// <param name=""serviceAddressUri"">A URI that represents a service address.</param>
 /// <param name=""encodeOptions"">The encode options, used to customize the encoding of request payloads.</param>
 [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-public {clientName}(
+{accessModifier} {clientName}(
     IceRpc.IInvoker invoker,
     System.Uri serviceAddressUri,
     ProtobufEncodeOptions? encodeOptions = null)
@@ -93,11 +93,11 @@ static {clientName} IProtobufClient<{clientName}>.Create(
         return clientBuilder.Build();
     }
 
-    internal static CodeBlock GenerateInterface(ServiceDescriptor service)
+    internal static CodeBlock GenerateInterface(ServiceDescriptor service, string accessModifier)
     {
         ContainerBuilder interfaceBuilder =
             new ContainerBuilder(
-                "public partial interface",
+                $"{accessModifier} partial interface",
                 $"I{service.Name.ToProtocPascalCase()}")
             .AddComment(
                 "remarks",
