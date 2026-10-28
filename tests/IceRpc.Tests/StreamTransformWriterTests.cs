@@ -42,22 +42,19 @@ public class StreamTransformWriterTests
     [Test]
     public async Task Large_write_is_transformed_in_chunks()
     {
-        // Arrange
-        var pipe = new Pipe();
+        // Arrange: pauseWriterThreshold: 0 so that the writes to the pipe never block.
+        var pipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0));
         var decoratee = new PipeStreamWriter(pipe.Writer);
         TrailerStream? transformStream = null;
-        var sut = new StreamTransformWriter(
-            decoratee,
-            stream => transformStream = new TrailerStream(stream),
-            maxChunkSize: 7);
-        byte[] payload = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
+        var sut = new StreamTransformWriter(decoratee, stream => transformStream = new TrailerStream(stream));
+        byte[] payload = Enumerable.Range(0, 100 * 1024).Select(i => (byte)i).ToArray();
 
         // Act
         WriteResult result = await sut.WriteAsync(new ReadOnlySequence<byte>(payload), endStream: false, default);
 
         // Assert
         Assert.That(result, Is.EqualTo(WriteResult.Written));
-        Assert.That(transformStream!.WriteCount, Is.EqualTo(143)); // 1000 bytes in chunks of 7
+        Assert.That(transformStream!.WriteCount, Is.EqualTo(4)); // 100 KB in chunks of 32 KB
         ReadResult readResult = await pipe.Reader.ReadAsync();
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payload));
 
@@ -95,11 +92,8 @@ public class StreamTransformWriterTests
         var pipe = new Pipe();
         var decoratee = new PipeStreamWriter(pipe.Writer);
         BufferingStream? transformStream = null;
-        var sut = new StreamTransformWriter(
-            decoratee,
-            stream => transformStream = new BufferingStream(stream),
-            maxChunkSize: 7);
-        byte[] payload = new byte[1000];
+        var sut = new StreamTransformWriter(decoratee, stream => transformStream = new BufferingStream(stream));
+        byte[] payload = new byte[100 * 1024];
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -237,21 +231,6 @@ public class StreamTransformWriterTests
         Assert.That(async () => await completeTask, Throws.InstanceOf<OperationCanceledException>());
         Assert.That(decoratee.IsCompleted, Is.True);
         Assert.That(decoratee.IsCompletedSuccessfully, Is.False);
-    }
-
-    [TestCase(0)]
-    [TestCase(-1)]
-    public void Construction_with_invalid_max_chunk_size_throws(int maxChunkSize)
-    {
-        var pipe = new Pipe();
-        var decoratee = new PipeStreamWriter(pipe.Writer);
-
-        Assert.That(
-            () => new StreamTransformWriter(decoratee, stream => new TrailerStream(stream), maxChunkSize),
-            Throws.InstanceOf<ArgumentOutOfRangeException>());
-
-        pipe.Writer.Complete();
-        pipe.Reader.Complete();
     }
 
     // A stream writer that throws IOException on every write once FailWrites is set.

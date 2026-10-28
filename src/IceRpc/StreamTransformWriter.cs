@@ -21,6 +21,11 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
     /// <inheritdoc/>
     public long UnflushedBytes => _inputPipe.Writer.UnflushedBytes;
 
+    // The number of bytes transformed before the bytes they produce are sent to the decoratee: bounds the transformed
+    // bytes held in memory, and lets a large write observe cancellation between chunks. A multiple of the 4 KB segment
+    // size of the payloads, so that no segment is split between two chunks.
+    private const int MaxChunkSize = 32 * 1024;
+
     private readonly IMultiplexedStreamWriter _decoratee;
 
     // Buffers the bytes written with the IBufferWriter<byte> methods until the next WriteAsync or CompleteAsync.
@@ -31,8 +36,6 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
     // Set once the transform is finished, by a WriteAsync call with endStream or by CompleteAsync.
     private bool _isEnded;
 
-    private readonly int _maxChunkSize;
-
     // Receives the bytes written by _transformStream; SendAsync sends them to _decoratee.
     private readonly Pipe _outputPipe;
 
@@ -41,19 +44,9 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
     /// <summary>Constructs a stream transform writer.</summary>
     /// <param name="decoratee">The writer that receives the transformed bytes.</param>
     /// <param name="transform">Creates the transform stream over a write-only, in-memory inner stream.</param>
-    /// <param name="maxChunkSize">The maximum number of bytes given to the transform stream in one write. The bytes it
-    /// produces are sent to the decoratee after each chunk, so this value bounds how many transformed bytes are held
-    /// in memory, and a large write observes cancellation between chunks. How many bytes a chunk produces is up to the
-    /// transform stream, which can buffer its input and emit it later.</param>
-    public StreamTransformWriter(
-        IMultiplexedStreamWriter decoratee,
-        Func<Stream, Stream> transform,
-        int maxChunkSize = 32 * 1024)
+    public StreamTransformWriter(IMultiplexedStreamWriter decoratee, Func<Stream, Stream> transform)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChunkSize);
-
         _decoratee = decoratee;
-        _maxChunkSize = maxChunkSize;
 
         // pauseWriterThreshold: 0 so that the writes to these in-memory pipes never block.
         _inputPipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
@@ -237,7 +230,7 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
     {
         while (!source.IsEmpty)
         {
-            ReadOnlySequence<byte> chunk = source.Slice(0, Math.Min(_maxChunkSize, source.Length));
+            ReadOnlySequence<byte> chunk = source.Slice(0, Math.Min(MaxChunkSize, source.Length));
             foreach (ReadOnlyMemory<byte> memory in chunk)
             {
                 _transformStream.Write(memory.Span);

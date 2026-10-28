@@ -36,13 +36,7 @@ public class CompressorInterceptor : IInvoker
         CompressionLevel compressionLevel = CompressionLevel.Fastest)
     {
         _next = next;
-        if (compressionFormat != CompressionFormat.Brotli && compressionFormat != CompressionFormat.Deflate)
-        {
-            throw new NotSupportedException($"The compression format '{compressionFormat}' is not supported.");
-        }
-        _compressionTransform = compressionFormat == CompressionFormat.Brotli ?
-            stream => new BrotliStream(stream, compressionLevel) :
-            stream => new DeflateStream(stream, compressionLevel);
+        _compressionTransform = CompressionTransform.Create(compressionFormat, compressionLevel);
         _encodedCompressionFormatValue = new(new byte[] { (byte)compressionFormat });
     }
 
