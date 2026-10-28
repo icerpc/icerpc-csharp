@@ -22,9 +22,10 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
     public long UnflushedBytes => _inputPipe.Writer.UnflushedBytes;
 
     // The number of bytes transformed before the bytes they produce are sent to the decoratee: bounds the transformed
-    // bytes held in memory, and lets a large write observe cancellation between chunks. A multiple of the 4 KB segment
-    // size of the payloads, so that no segment is split between two chunks.
-    private const int MaxChunkSize = 32 * 1024;
+    // bytes held in memory, and lets a large write observe cancellation between chunks. Each chunk is a single write to
+    // the transform stream: a compression stream typically compresses each write on its own, and compresses large
+    // writes better.
+    private const int MaxChunkSize = 128 * 1024;
 
     private readonly IMultiplexedStreamWriter _decoratee;
 
@@ -231,9 +232,16 @@ public sealed class StreamTransformWriter : IMultiplexedStreamWriter
         while (!source.IsEmpty)
         {
             ReadOnlySequence<byte> chunk = source.Slice(0, Math.Min(MaxChunkSize, source.Length));
-            foreach (ReadOnlyMemory<byte> memory in chunk)
+            if (chunk.IsSingleSegment)
             {
-                _transformStream.Write(memory.Span);
+                _transformStream.Write(chunk.FirstSpan);
+            }
+            else
+            {
+                using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent((int)chunk.Length);
+                Span<byte> span = memoryOwner.Memory.Span[0..(int)chunk.Length];
+                chunk.CopyTo(span);
+                _transformStream.Write(span);
             }
             source = source.Slice(chunk.End);
 

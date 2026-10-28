@@ -47,14 +47,14 @@ public class StreamTransformWriterTests
         var decoratee = new PipeStreamWriter(pipe.Writer);
         TrailerStream? transformStream = null;
         var sut = new StreamTransformWriter(decoratee, stream => transformStream = new TrailerStream(stream));
-        byte[] payload = Enumerable.Range(0, 100 * 1024).Select(i => (byte)i).ToArray();
+        byte[] payload = Enumerable.Range(0, 400 * 1024).Select(i => (byte)i).ToArray();
 
         // Act
         WriteResult result = await sut.WriteAsync(new ReadOnlySequence<byte>(payload), endStream: false, default);
 
         // Assert
         Assert.That(result, Is.EqualTo(WriteResult.Written));
-        Assert.That(transformStream!.WriteCount, Is.EqualTo(4)); // 100 KB in chunks of 32 KB
+        Assert.That(transformStream!.WriteCount, Is.EqualTo(4)); // 400 KB in chunks of 128 KB
         ReadResult readResult = await pipe.Reader.ReadAsync();
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payload));
 
@@ -93,7 +93,7 @@ public class StreamTransformWriterTests
         var decoratee = new PipeStreamWriter(pipe.Writer);
         BufferingStream? transformStream = null;
         var sut = new StreamTransformWriter(decoratee, stream => transformStream = new BufferingStream(stream));
-        byte[] payload = new byte[100 * 1024];
+        byte[] payload = new byte[400 * 1024];
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
