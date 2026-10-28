@@ -26,5 +26,6 @@ jobs:
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet
 
+      # Install dependencies only, as in GitHub's example; the agent builds the solution itself.
       - name: Restore
         run: dotnet restore
