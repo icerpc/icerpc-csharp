@@ -35,13 +35,12 @@ public class CompressorMiddleware : IDispatcher
         CompressionLevel compressionLevel = CompressionLevel.Fastest)
     {
         _next = next;
-        if (compressionFormat != CompressionFormat.Brotli && compressionFormat != CompressionFormat.Deflate)
+        _compressionTransform = compressionFormat switch
         {
-            throw new NotSupportedException($"The compression format '{compressionFormat}' is not supported.");
-        }
-        _compressionTransform = compressionFormat == CompressionFormat.Brotli ?
-            stream => new BrotliStream(stream, compressionLevel) :
-            stream => new DeflateStream(stream, compressionLevel);
+            CompressionFormat.Brotli => stream => new BrotliStream(stream, compressionLevel),
+            CompressionFormat.Deflate => stream => new DeflateStream(stream, compressionLevel),
+            _ => throw new NotSupportedException($"The compression format '{compressionFormat}' is not supported."),
+        };
         _encodedCompressionFormatValue = new(new byte[] { (byte)compressionFormat });
     }
 
