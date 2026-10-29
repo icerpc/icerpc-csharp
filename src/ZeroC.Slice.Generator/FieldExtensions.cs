@@ -97,15 +97,13 @@ internal static class FieldExtensions
         }
         else if (field.DataTypeIsOptional)
         {
+            // The cast gives the conditional expression a type when the decoded value is a C# value type. A custom type
+            // can map to one without IsValueType knowing, so every optional field gets the cast.
             string decodeExpr = field.DecodeField(currentNamespace);
-            if (field.DataType.IsValueType)
-            {
-                string csType = useIncomingType
-                    ? field.DataType.IncomingParameterTypeString(false, currentNamespace)
-                    : field.DataType.FieldTypeString(false, currentNamespace);
-                return $"bitSequenceReader.Read() ? ({csType}?){decodeExpr} : null";
-            }
-            return $"bitSequenceReader.Read() ? {decodeExpr} : null";
+            string csType = useIncomingType
+                ? field.DataType.IncomingParameterTypeString(false, currentNamespace)
+                : field.DataType.FieldTypeString(false, currentNamespace);
+            return $"bitSequenceReader.Read() ? ({csType}?){decodeExpr} : null";
         }
         else
         {
