@@ -97,8 +97,8 @@ internal static class FieldExtensions
         }
         else if (field.DataTypeIsOptional)
         {
-            // The cast gives the conditional expression a type when the decoded value is a C# value type. A custom type
-            // can map to one without IsValueType knowing, so every optional field gets the cast.
+            // The cast gives the conditional expression a type when the decoded value is a C# value type. A cs::type
+            // on a custom type, sequence, or dictionary can name one without IsValueType knowing.
             string decodeExpr = field.DecodeField(currentNamespace);
             string csType = useIncomingType
                 ? field.DataType.IncomingParameterTypeString(false, currentNamespace)
