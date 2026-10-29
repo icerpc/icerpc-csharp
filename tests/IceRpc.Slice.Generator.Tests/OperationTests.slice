@@ -83,7 +83,7 @@ interface MyOperationsA {
     opWithProxyParameter(service: PingableProxy)
     opWithProxyReturnValue() -> PingableProxy
 
-    // Optional custom type parameter and return value, with a custom type that maps to a C# value type
+    // TimeStamp maps to a C# value type (DateTime)
     opWithOptionalTimeStampParameterAndReturnValue(p: WellKnownTypes::TimeStamp?) -> WellKnownTypes::TimeStamp?
 
     opWithTrailingOptionalValues(p1: int32, p2: int32?, p3: int32, p4: int32?, p5: int32?)
