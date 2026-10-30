@@ -98,6 +98,15 @@ unique set of options results in a separate execution of the Slice compiler.
 | Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                                                                                                 |
 | PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                                                                         |
 
+You set this metadata on the `SliceFile` item. For a Slice file included by default, use `Update`. For example, to
+include `Greeter.slice` in your NuGet package:
+
+```xml
+<ItemGroup>
+    <SliceFile Update="Greeter.slice" Pack="true"/>
+</ItemGroup>
+```
+
 ## Generated code and NuGet packages
 
 You need to reference the following NuGet packages to compile the generated C# code:

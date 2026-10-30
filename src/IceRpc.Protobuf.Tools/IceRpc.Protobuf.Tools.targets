@@ -49,18 +49,11 @@
   </ItemGroup>
 
   <!--
-    When EnableDefaultItems property is true, *.proto files are included as "None" items. We remove them here, to
-    include them as "ProtoFile" items later.
+    The SDK includes the *.proto files as "None" items. We remove them because the .props already includes them as
+    "ProtoFile" items.
   -->
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <None Remove="**/*.proto" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-    <ProtoFile
-      Condition="'$(EnableDefaultProtoFileItems)' == 'true'"
-      Include="**/*.proto"
-      Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
-    />
   </ItemGroup>
 
   <!--
