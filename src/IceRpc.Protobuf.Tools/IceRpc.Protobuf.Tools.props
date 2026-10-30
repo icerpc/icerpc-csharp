@@ -79,11 +79,6 @@
     </ProtoFile>
   </ItemDefinitionGroup>
 
-  <!--
-    The default items are defined in the .props so that a ProtoFile Update or Remove in the project file applies to
-    them. The conditions can test properties set later, in the project file or in a .targets, because MSBuild evaluates
-    all properties before any item.
-  -->
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <ProtoFile
       Condition="'$(EnableDefaultProtoFileItems)' == 'true'"

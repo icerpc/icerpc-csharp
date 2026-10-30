@@ -50,8 +50,7 @@
   </ItemGroup>
 
   <!--
-    When EnableDefaultItems property is true, *.slice files are included as "None" items. We remove them here: the SDK
-    adds the default "None" items after a package's .props is imported, so this can't live next to the default
+    The SDK includes the *.slice files as "None" items. We remove them because the .props already includes them as
     "SliceFile" items.
   -->
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">

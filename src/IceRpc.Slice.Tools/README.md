@@ -51,14 +51,6 @@ You can also add Slice files to your project explicitly. For example:
 This adds `Greeter.slice` to your project's Slice files even though this file is not in the project's home directory or
 any of its subdirectories.
 
-To set the metadata of a Slice file that is included by default, update this item. For example:
-
-```xml
-<ItemGroup>
-    <SliceFile Update="Greeter.slice" OutputDir="$(MSBuildProjectDirectory)/greeter"/>
-</ItemGroup>
-```
-
 > Slice files must have a `.slice` extension.
 
 The Slice directories are an aggregate of the `SliceDirectory` defined in your project (if any) and the `SliceDirectory`
@@ -105,6 +97,15 @@ unique set of options results in a separate execution of the Slice compiler.
 | OutputDir         | generated | Sets the output directory for the generated code.                                                                                                                                                 |
 | Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                                                                                                 |
 | PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                                                                         |
+
+You set this metadata on the `SliceFile` item. For a Slice file included by default, use `Update`. For example, to
+include `Greeter.slice` in your NuGet package:
+
+```xml
+<ItemGroup>
+    <SliceFile Update="Greeter.slice" Pack="true"/>
+</ItemGroup>
+```
 
 ## Generated code and NuGet packages
 
