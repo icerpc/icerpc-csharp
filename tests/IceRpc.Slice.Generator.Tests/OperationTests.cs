@@ -17,6 +17,15 @@ namespace IceRpc.Slice.Generator.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public partial class OperationTests
 {
+    private static IEnumerable<DateTime?> OptionalTimeStampSource
+    {
+        get
+        {
+            yield return DateTime.UnixEpoch;
+            yield return null;
+        }
+    }
+
     [Test]
     public void Operation_without_parameters_and_void_return()
     {
@@ -121,6 +130,20 @@ public partial class OperationTests
 
         // Assert
         Assert.That(r, Is.EqualTo(arg));
+    }
+
+    [TestCaseSource(nameof(OptionalTimeStampSource))]
+    public async Task Operation_with_optional_custom_type_parameter_and_return_value(DateTime? p)
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MyOperationsAService());
+        var proxy = new MyOperationsAProxy(invoker);
+
+        // Act
+        DateTime? r = await proxy.OpWithOptionalTimeStampParameterAndReturnValueAsync(p);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(p));
     }
 
     [Test]
@@ -991,6 +1014,11 @@ public partial class OperationTests
         public ValueTask<PingableProxy> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
+
+        public ValueTask<DateTime?> OpWithOptionalTimeStampParameterAndReturnValueAsync(
+            DateTime? p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask OpWithTrailingOptionalValuesAsync(int p1, int? p2, int p3, int? p4, int? p5, IFeatureCollection features, CancellationToken cancellationToken) => default;
 
