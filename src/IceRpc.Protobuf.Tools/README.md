@@ -76,6 +76,15 @@ once per Proto file.
 | Pack              | `false`   | Specifies whether or not to include the items (Proto files) in the NuGet package.                                                                |
 | PackagePath       | protobuf  | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                        |
 
+You set this metadata on the `ProtoFile` item. For a Proto file included by default, use `Update`. For example, to
+include `greeter.proto` in your NuGet package:
+
+```xml
+<ItemGroup>
+    <ProtoFile Update="greeter.proto" Pack="true"/>
+</ItemGroup>
+```
+
 ## Incremental builds
 
 The build runs `protoc` only for the Proto files whose generated code is missing or out of date. A Proto file is
