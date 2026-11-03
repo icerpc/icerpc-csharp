@@ -77,4 +77,12 @@
       <PackagePath>protobuf</PackagePath>
     </ProtoFile>
   </ItemDefinitionGroup>
+
+  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+    <ProtoFile
+      Condition="'$(EnableDefaultProtoFileItems)' == 'true'"
+      Include="**/*.proto"
+      Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
+    />
+  </ItemGroup>
 </Project>
