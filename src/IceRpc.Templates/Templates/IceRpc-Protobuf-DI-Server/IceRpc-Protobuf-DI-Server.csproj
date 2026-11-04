@@ -26,6 +26,9 @@
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.globalconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ProtoFile Update="**/*.proto" Access="internal" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

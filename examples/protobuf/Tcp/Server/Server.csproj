@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProtoFile Include="../proto/visitor_center/greeter.proto" />
+    <ProtoFile Include="../proto/visitor_center/greeter.proto" Access="internal" />
     <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
     <PackageReference Include="IceRpc.Protobuf.Tools" PrivateAssets="All" />
     <PackageReference Include="IceRpc" />

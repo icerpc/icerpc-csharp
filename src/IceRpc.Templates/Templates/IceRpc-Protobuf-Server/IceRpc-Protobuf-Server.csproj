@@ -25,6 +25,9 @@
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.globalconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ProtoFile Update="**/*.proto" Access="internal" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Copy the test certificates to the output directory. -->
     <None Update="certs\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
