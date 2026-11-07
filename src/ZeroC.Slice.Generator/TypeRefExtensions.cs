@@ -10,15 +10,8 @@ internal static class TypeRefExtensions
 {
     /// <summary>Generates decode expression for a type reference. When the TypeRef has a cs::type attribute,
     /// it is passed through as the concrete type for dictionary/sequence factory construction.</summary>
-    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace)
-    {
-        if (typeRef.Type is DictionaryType or SequenceType
-            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr)
-        {
-            return typeRef.Type.DecodeExpression(currentNamespace, concreteType: csTypeAttr.Args[0]);
-        }
-        return typeRef.Type.DecodeExpression(currentNamespace);
-    }
+    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace) =>
+        typeRef.Type.DecodeExpression(currentNamespace, typeRef.ConcreteCollectionType);
 
     /// <summary>Generates encode expression for a type reference.</summary>
     internal static string EncodeExpression(
@@ -34,6 +27,15 @@ internal static class TypeRefExtensions
         string baseType = typeRef.Type.ToTypeString(currentNamespace);
         return isOptional ? $"{baseType}?" : baseType;
     }
+
+    /// <summary>Returns a decode lambda for a type reference. When the TypeRef has a cs::type attribute, it is passed
+    /// through as the concrete type for dictionary/sequence factory construction.</summary>
+    internal static string GetDecodeLambda(
+        this TypeRef typeRef,
+        bool isOptional,
+        string currentNamespace,
+        bool withCast = false) =>
+        typeRef.Type.GetDecodeLambda(isOptional, currentNamespace, withCast, typeRef.ConcreteCollectionType);
 
     /// <summary>Returns an encode lambda for a type reference. For optional types, the lambda parameter is nullable
     /// and the value expression uses the appropriate null-forgiving pattern based on the type.</summary>
@@ -137,6 +139,14 @@ internal static class TypeRefExtensions
 
     extension(TypeRef value)
     {
+        /// <summary>Gets the concrete C# type specified by the cs::type attribute of this sequence or dictionary type
+        /// reference, or null when there is no such attribute.</summary>
+        internal string? ConcreteCollectionType =>
+            value.Type is DictionaryType or SequenceType
+                && value.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr
+                ? csTypeAttr.Args[0]
+                : null;
+
         /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
         internal int? FixedSize => value.Type switch
         {

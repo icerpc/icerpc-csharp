@@ -401,9 +401,8 @@ internal static class OperationExtensions
     /// <summary>Returns a decode lambda for an optional stream element with a one bit bit-sequence.</summary>
     internal static string GetStreamOfOptionalDecodeLambda(Field streamField, string currentNamespace)
     {
-        IType elemType = streamField.DataType.Type;
-        string csType = elemType.ToTypeString(currentNamespace);
-        string decodeExpr = elemType.DecodeExpression(currentNamespace);
+        string csType = streamField.DataType.Type.ToTypeString(currentNamespace);
+        string decodeExpr = streamField.DataType.DecodeExpression(currentNamespace);
         return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}?){decodeExpr} : null";
     }
 }

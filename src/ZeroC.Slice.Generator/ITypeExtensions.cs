@@ -29,8 +29,8 @@ internal static class ITypeExtensions
 
         static string DecodeDictionary(DictionaryType dict, string currentNamespace, string? concreteType)
         {
-            CodeBlock keyDecodeLambda = dict.KeyType.Type.GetDecodeLambda(isOptional: false, currentNamespace);
-            CodeBlock valueDecodeLambda = dict.ValueType.Type.GetDecodeLambda(
+            CodeBlock keyDecodeLambda = dict.KeyType.GetDecodeLambda(isOptional: false, currentNamespace);
+            CodeBlock valueDecodeLambda = dict.ValueType.GetDecodeLambda(
                 dict.ValueTypeIsOptional,
                 currentNamespace,
                 withCast: true);
@@ -85,7 +85,7 @@ internal static class ITypeExtensions
             string method = seq.ElementTypeIsOptional
                 ? "decoder.DecodeSequenceOfOptionals"
                 : "decoder.DecodeSequence";
-            CodeBlock decodeLambda = elemType.GetDecodeLambda(seq.ElementTypeIsOptional, currentNamespace);
+            CodeBlock decodeLambda = seq.ElementType.GetDecodeLambda(seq.ElementTypeIsOptional, currentNamespace);
 
             if (concreteType is not null)
             {
@@ -120,13 +120,12 @@ internal static class ITypeExtensions
         // marker.
         static string ResultDecodeLambda(TypeRef typeRef, bool isOptional, string currentNamespace)
         {
-            IType type = typeRef.Type;
             if (!isOptional)
             {
-                return type.GetDecodeLambda(isOptional: false, currentNamespace, withCast: true);
+                return typeRef.GetDecodeLambda(isOptional: false, currentNamespace, withCast: true);
             }
-            string csType = type.ToTypeString(currentNamespace);
-            string decodeExpr = type.DecodeExpression(currentNamespace);
+            string csType = typeRef.Type.ToTypeString(currentNamespace);
+            string decodeExpr = typeRef.DecodeExpression(currentNamespace);
             return $"(ref SliceDecoder decoder) => decoder.DecodeBool() ? ({csType}?){decodeExpr} : null";
         }
     }
@@ -221,14 +220,16 @@ internal static class ITypeExtensions
 
     /// <summary>Returns a decode lambda for a type. When <paramref name="withCast"/> is true, a cast to the field
     /// type is added for sequence and dictionary types. This is needed when decoding in a generic context (e.g.,
-    /// dictionary values, result types) where C# cannot implicitly convert nested generic types.</summary>
+    /// dictionary values, result types) where C# cannot implicitly convert nested generic types.
+    /// <paramref name="concreteType"/> is the concrete type override from a cs::type attribute, if any.</summary>
     internal static string GetDecodeLambda(
         this IType type,
         bool isOptional,
         string currentNamespace,
-        bool withCast = false)
+        bool withCast = false,
+        string? concreteType = null)
     {
-        string decodeExpr = type.DecodeExpression(currentNamespace);
+        string decodeExpr = type.DecodeExpression(currentNamespace, concreteType);
 
         // For dict/seq in generic contexts (withCast), use a single combined cast that includes ? if optional.
         // Without withCast, dict/seq get no cast here — the caller handles it (e.g., nested sequence cast).
