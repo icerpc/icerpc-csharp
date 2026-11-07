@@ -107,8 +107,9 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    [TestCaseSource(nameof(NotRetryableStatusCodeSource))]
-    public async Task No_retry_status_code(StatusCode statusCode)
+    public async Task No_retry_status_code(
+        [ValueSource(nameof(NotRetryableStatusCodeSource))] StatusCode statusCode,
+        [Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         int attempts = 0;
@@ -123,10 +124,14 @@ public sealed class RetryInterceptorTests
                     ""));
         });
 
-        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(new Uri($"{protocol}://host1/path?alt-server=host2"));
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+
+        // The interceptor retries on another replica only when the request carries a server address feature with a
+        // remaining server address. The connection cache installs this feature in a real pipeline.
+        request.Features = request.Features.With<IServerAddressFeature>(new ServerAddressFeature(serviceAddress));
 
         // Act
         IncomingResponse response = await sut.InvokeAsync(request, default);
