@@ -85,7 +85,10 @@ internal static class ITypeExtensions
             string method = seq.ElementTypeIsOptional
                 ? "decoder.DecodeSequenceOfOptionals"
                 : "decoder.DecodeSequence";
-            CodeBlock decodeLambda = seq.ElementType.GetDecodeLambda(seq.ElementTypeIsOptional, currentNamespace);
+            CodeBlock decodeLambda = seq.ElementType.GetDecodeLambda(
+                seq.ElementTypeIsOptional,
+                currentNamespace,
+                withCast: true);
 
             if (concreteType is not null)
             {
@@ -105,13 +108,8 @@ internal static class ITypeExtensions
                     """;
             }
 
-            // For nested sequences, cast the result so C# can convert T[][] to IList<T>[].
-            string nestedCast = elemType is SequenceType
-                ? $"({seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[])"
-                : "";
-
             return $$"""
-                {{nestedCast}}{{method}}(
+                {{method}}(
                     {{decodeLambda.Indent()}})
                 """;
         }
@@ -220,7 +218,7 @@ internal static class ITypeExtensions
 
     /// <summary>Returns a decode lambda for a type. When <paramref name="withCast"/> is true, a cast to the field
     /// type is added for sequence and dictionary types. This is needed when decoding in a generic context (e.g.,
-    /// dictionary values, result types) where C# cannot implicitly convert nested generic types.
+    /// sequence elements, dictionary values, result types) where C# cannot implicitly convert nested generic types.
     /// <paramref name="concreteType"/> is the concrete type override from a cs::type attribute, if any.</summary>
     internal static string GetDecodeLambda(
         this IType type,
@@ -232,7 +230,6 @@ internal static class ITypeExtensions
         string decodeExpr = type.DecodeExpression(currentNamespace, concreteType);
 
         // For dict/seq in generic contexts (withCast), use a single combined cast that includes ? if optional.
-        // Without withCast, dict/seq get no cast here — the caller handles it (e.g., nested sequence cast).
         if (withCast && type is DictionaryType or SequenceType)
         {
             string csType = type.ToTypeString(currentNamespace);
