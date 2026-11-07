@@ -29,6 +29,7 @@ public sealed class RetryInterceptorTests
     public static IEnumerable<StatusCode> NotRetryableStatusCodeSource { get; } = new StatusCode[]
     {
         StatusCode.ApplicationError,
+        StatusCode.NotFound,
         StatusCode.NotImplemented,
         StatusCode.InternalError,
         StatusCode.InvalidData,
@@ -36,30 +37,6 @@ public sealed class RetryInterceptorTests
         StatusCode.DeadlineExceeded,
         StatusCode.Unauthorized,
     };
-
-    public static IEnumerable<TestCaseData> RetryWithOtherReplicaSource
-    {
-        get
-        {
-            yield return new TestCaseData(
-                Protocol.IceRpc,
-                new InlineInvoker((request, cancel) =>
-                    Task.FromResult(new IncomingResponse(
-                        request,
-                        FakeConnectionContext.Instance,
-                        StatusCode.Unavailable,
-                        "error message")))).SetName("Retry_with_other_replica(icerpc, StatusCode.Unavailable)");
-
-            yield return new TestCaseData(
-                Protocol.Ice,
-                new InlineInvoker((request, cancel) =>
-                    Task.FromResult(new IncomingResponse(
-                        request,
-                        FakeConnectionContext.Instance,
-                        StatusCode.NotFound,
-                        "error message")))).SetName("Retry_with_other_replica(ice, StatusCode.NotFound)");
-        }
-    }
 
     [Test]
     public async Task Log_retry()
@@ -228,13 +205,12 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    [TestCaseSource(nameof(RetryWithOtherReplicaSource))]
-    public async Task Retry_with_other_replica(Protocol protocol, IInvoker next)
+    public async Task Retry_with_other_replica()
     {
         // Arrange
-        var serverAddress1 = new ServerAddress(new Uri($"{protocol.Name}://host1"));
-        var serverAddress2 = new ServerAddress(new Uri($"{protocol.Name}://host2"));
-        var serverAddress3 = new ServerAddress(new Uri($"{protocol.Name}://host3"));
+        var serverAddress1 = new ServerAddress(new Uri("icerpc://host1"));
+        var serverAddress2 = new ServerAddress(new Uri("icerpc://host2"));
+        var serverAddress3 = new ServerAddress(new Uri("icerpc://host3"));
 
         await using var connection1 = new ClientConnection(serverAddress1);
         await using var connection2 = new ClientConnection(serverAddress2);
@@ -252,7 +228,7 @@ public sealed class RetryInterceptorTests
         };
 
         var serverAddresses = new List<ServerAddress>();
-        var invoker = new InlineInvoker(async (request, cancellationToken) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
             {
@@ -264,14 +240,12 @@ public sealed class RetryInterceptorTests
                 serverAddresses.Add(serverAddress);
                 if (serverAddress == serviceAddress.AltServerAddresses[1])
                 {
-                    return new IncomingResponse(
-                        request,
-                        request.Protocol == Protocol.IceRpc ? FakeConnectionContext.Instance : FakeConnectionContext.Instance,
-                        StatusCode.Ok);
+                    return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
                 }
             }
 
-            return await next.InvokeAsync(request, cancellationToken);
+            return Task.FromResult(
+                new IncomingResponse(request, FakeConnectionContext.Instance, StatusCode.Unavailable, "error message"));
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 }, NullLogger.Instance);

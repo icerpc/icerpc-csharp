@@ -25,8 +25,6 @@ namespace IceRpc.Retry;
 /// <list type="bullet">
 /// <item><description>The status code carried by the response is <see cref="StatusCode.Unavailable"
 /// />.</description></item>
-/// <item><description>The status code carried by the response is <see cref="StatusCode.NotFound" /> and the
-/// protocol is ice.</description></item>
 /// <item><description>The request failed with an <see cref="IceRpcException" /> with one of the following error:
 /// <list type="bullet">
 /// <item><description>The error code is <see cref="IceRpcError.InvocationCanceled" />.</description></item>
@@ -35,9 +33,9 @@ namespace IceRpc.Retry;
 /// field.</description></item>
 /// </list></description></item>
 /// </list>
-/// <para>If the status code carried by the response is <see cref="StatusCode.Unavailable" /> or <see
-/// cref="StatusCode.NotFound" /> (with the ice protocol), the address of the server is removed from the set of
-/// server addresses to retry on. This ensures the request won't be retried on the unavailable server.</para></remarks>
+/// <para>If the status code carried by the response is <see cref="StatusCode.Unavailable" />, the address of the
+/// server is removed from the set of server addresses to retry on. This ensures the request won't be retried on the
+/// unavailable server.</para></remarks>
 /// <seealso cref="RetryPipelineExtensions"/>
 /// <seealso cref="RetryInvokerBuilderExtensions"/>
 public class RetryInterceptor : IInvoker
@@ -89,8 +87,7 @@ public class RetryInterceptor : IInvoker
 
                         response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-                        if (response.StatusCode == StatusCode.Unavailable ||
-                            (response.Protocol == Protocol.Ice && response.StatusCode == StatusCode.NotFound))
+                        if (response.StatusCode == StatusCode.Unavailable)
                         {
                             retryWithOtherReplica = true;
                         }
