@@ -595,7 +595,11 @@ internal class SlicConnection : IMultiplexedConnection
     internal SlicConnection(
         IDuplexConnection duplexConnection,
         MultiplexedConnectionOptions options,
-        SlicTransportOptions slicOptions,
+        TimeSpan idleTimeout,
+        int initialStreamWindowSize,
+        int maxOutstandingPongs,
+        int maxStreamFrameSize,
+        int pauseWriterThreshold,
         bool isServer)
     {
         IsServer = isServer;
@@ -605,11 +609,11 @@ internal class SlicConnection : IMultiplexedConnection
         _maxBidirectionalStreams = options.MaxBidirectionalStreams;
         _maxUnidirectionalStreams = options.MaxUnidirectionalStreams;
 
-        InitialStreamWindowSize = slicOptions.InitialStreamWindowSize;
-        PauseWriterThreshold = slicOptions.PauseWriterThreshold;
-        _localIdleTimeout = slicOptions.IdleTimeout;
-        _maxOutstandingPongs = slicOptions.MaxOutstandingPongs;
-        _maxStreamFrameSize = slicOptions.MaxStreamFrameSize;
+        InitialStreamWindowSize = initialStreamWindowSize;
+        PauseWriterThreshold = pauseWriterThreshold;
+        _localIdleTimeout = idleTimeout;
+        _maxOutstandingPongs = maxOutstandingPongs;
+        _maxStreamFrameSize = maxStreamFrameSize;
 
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
         {

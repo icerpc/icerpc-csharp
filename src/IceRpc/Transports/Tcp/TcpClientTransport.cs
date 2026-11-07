@@ -2,6 +2,7 @@
 
 using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tcp.Internal;
+using System.Net;
 using System.Net.Security;
 
 namespace IceRpc.Transports.Tcp;
@@ -20,7 +21,10 @@ public class TcpClientTransport : IDuplexClientTransport
         _ => throw new NotSupportedException($"The TCP client transport does not support transport '{transportName}'.")
     };
 
-    private readonly TcpClientTransportOptions _options;
+    private readonly IPEndPoint? _localNetworkAddress;
+    private readonly bool _noDelay;
+    private readonly int? _receiveBufferSize;
+    private readonly int? _sendBufferSize;
 
     /// <summary>Constructs a <see cref="TcpClientTransport" />.</summary>
     public TcpClientTransport()
@@ -30,7 +34,13 @@ public class TcpClientTransport : IDuplexClientTransport
 
     /// <summary>Constructs a <see cref="TcpClientTransport" />.</summary>
     /// <param name="options">The transport options.</param>
-    public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
+    public TcpClientTransport(TcpClientTransportOptions options)
+    {
+        _localNetworkAddress = options.LocalNetworkAddress;
+        _noDelay = options.NoDelay;
+        _receiveBufferSize = options.ReceiveBufferSize;
+        _sendBufferSize = options.SendBufferSize;
+    }
 
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
@@ -77,6 +87,9 @@ public class TcpClientTransport : IDuplexClientTransport
             clientAuthenticationOptions,
             options.Pool,
             options.MinSegmentSize,
-            _options);
+            _localNetworkAddress,
+            _noDelay,
+            _receiveBufferSize,
+            _sendBufferSize);
     }
 }

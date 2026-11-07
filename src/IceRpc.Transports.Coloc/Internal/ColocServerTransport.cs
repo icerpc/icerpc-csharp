@@ -11,8 +11,10 @@ internal class ColocServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string DefaultName => ColocTransport.Name;
 
+    private readonly int _listenBacklog;
     private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
-    private readonly ColocTransportOptions _options;
+    private readonly int _pauseWriterThreshold;
+    private readonly int _resumeWriterThreshold;
 
     /// <inheritdoc/>
     public IListener<IDuplexConnection> Listen(
@@ -41,9 +43,11 @@ internal class ColocServerTransport : IDuplexServerTransport
 
         var listener = new ColocListener(
             transportAddress,
-            onDispose: OnDispose,
-            colocTransportOptions: _options,
-            duplexConnectionOptions: options);
+            OnDispose,
+            options,
+            _listenBacklog,
+            _pauseWriterThreshold,
+            _resumeWriterThreshold);
 
         if (!_listeners.TryAdd(key, listener))
         {
@@ -61,7 +65,9 @@ internal class ColocServerTransport : IDuplexServerTransport
         ConcurrentDictionary<(string Host, ushort Port), ColocListener> listeners,
         ColocTransportOptions options)
     {
+        _listenBacklog = options.ListenBacklog;
         _listeners = listeners;
-        _options = options;
+        _pauseWriterThreshold = options.PauseWriterThreshold;
+        _resumeWriterThreshold = options.ResumeWriterThreshold;
     }
 }

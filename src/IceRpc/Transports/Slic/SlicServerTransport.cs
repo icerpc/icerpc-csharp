@@ -12,15 +12,23 @@ public class SlicServerTransport : IMultiplexedServerTransport
     public string DefaultName => _duplexServerTransport.DefaultName;
 
     private readonly IDuplexServerTransport _duplexServerTransport;
-    private readonly SlicTransportOptions _slicTransportOptions;
+    private readonly TimeSpan _idleTimeout;
+    private readonly int _initialStreamWindowSize;
+    private readonly int _maxOutstandingPongs;
+    private readonly int _maxStreamFrameSize;
+    private readonly int _pauseWriterThreshold;
 
     /// <summary>Constructs a Slic server transport.</summary>
     /// <param name="options">The options to configure the transport.</param>
     /// <param name="duplexServerTransport">The duplex server transport.</param>
     public SlicServerTransport(SlicTransportOptions options, IDuplexServerTransport duplexServerTransport)
     {
-        _slicTransportOptions = options;
         _duplexServerTransport = duplexServerTransport;
+        _idleTimeout = options.IdleTimeout;
+        _initialStreamWindowSize = options.InitialStreamWindowSize;
+        _maxOutstandingPongs = options.MaxOutstandingPongs;
+        _maxStreamFrameSize = options.MaxStreamFrameSize;
+        _pauseWriterThreshold = options.PauseWriterThreshold;
     }
 
     /// <summary>Constructs a Slic server transport.</summary>
@@ -45,5 +53,9 @@ public class SlicServerTransport : IMultiplexedServerTransport
                 },
                 serverAuthenticationOptions),
             options,
-            _slicTransportOptions);
+            _idleTimeout,
+            _initialStreamWindowSize,
+            _maxOutstandingPongs,
+            _maxStreamFrameSize,
+            _pauseWriterThreshold);
 }

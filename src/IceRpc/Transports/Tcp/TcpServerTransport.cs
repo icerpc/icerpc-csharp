@@ -11,7 +11,10 @@ public class TcpServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string DefaultName => "tcp";
 
-    private readonly TcpServerTransportOptions _options;
+    private readonly int _listenBacklog;
+    private readonly bool _noDelay;
+    private readonly int? _receiveBufferSize;
+    private readonly int? _sendBufferSize;
 
     /// <summary>Constructs a <see cref="TcpServerTransport" />.</summary>
     public TcpServerTransport()
@@ -21,7 +24,13 @@ public class TcpServerTransport : IDuplexServerTransport
 
     /// <summary>Constructs a <see cref="TcpServerTransport" />.</summary>
     /// <param name="options">The transport options.</param>
-    public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
+    public TcpServerTransport(TcpServerTransportOptions options)
+    {
+        _listenBacklog = options.ListenBacklog;
+        _noDelay = options.NoDelay;
+        _receiveBufferSize = options.ReceiveBufferSize;
+        _sendBufferSize = options.SendBufferSize;
+    }
 
     /// <inheritdoc/>
     public IListener<IDuplexConnection> Listen(
@@ -59,6 +68,13 @@ public class TcpServerTransport : IDuplexServerTransport
                 nameof(transportAddress));
         }
 
-        return new TcpListener(transportAddress, options, serverAuthenticationOptions, _options);
+        return new TcpListener(
+            transportAddress,
+            options,
+            serverAuthenticationOptions,
+            _listenBacklog,
+            _noDelay,
+            _receiveBufferSize,
+            _sendBufferSize);
     }
 }

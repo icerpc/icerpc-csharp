@@ -69,7 +69,10 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         TransportAddress transportAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions,
-        TcpServerTransportOptions tcpOptions)
+        int listenBacklog,
+        bool noDelay,
+        int? receiveBufferSize,
+        int? sendBufferSize)
     {
         if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
         {
@@ -92,10 +95,10 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         try
         {
             _socket.ExclusiveAddressUse = true;
-            _socket.Configure(tcpOptions);
+            _socket.Configure(noDelay, receiveBufferSize, sendBufferSize);
             _socket.Bind(address);
             address = (IPEndPoint)_socket.LocalEndPoint!;
-            _socket.Listen(tcpOptions.ListenBacklog);
+            _socket.Listen(listenBacklog);
         }
         catch (SocketException exception)
         {
