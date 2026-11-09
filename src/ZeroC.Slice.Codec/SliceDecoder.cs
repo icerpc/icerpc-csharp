@@ -369,13 +369,16 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
-    /// <param name="tag">The tag.</param>
+    /// <param name="tag">The tag, a non-negative integer.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tagged field.</param>
     /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
+    /// <exception cref="InvalidDataException">Thrown when the encoded data holds a negative tag other than the tag
+    /// end marker.</exception>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
     /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc)
     {
+        Debug.Assert(tag >= 0, $"{nameof(tag)} must be greater than or equal to 0.");
         int requestedTag = tag;
 
         while (true)
@@ -393,6 +396,10 @@ public ref partial struct SliceDecoder
             {
                 _reader.Rewind(_reader.Consumed - startPos); // rewind
                 break; // while
+            }
+            else if (tag < 0)
+            {
+                throw new InvalidDataException($"Invalid tag '{tag}' in tagged field header.");
             }
             else
             {
@@ -462,13 +469,20 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Skips the remaining tagged fields.</summary>
+    /// <exception cref="InvalidDataException">Thrown when the encoded data holds a negative tag other than the tag
+    /// end marker.</exception>
     public void SkipTagged()
     {
         while (true)
         {
-            if (DecodeVarInt32() == SliceDefinitions.TagEndMarker)
+            int tag = DecodeVarInt32();
+            if (tag == SliceDefinitions.TagEndMarker)
             {
                 break; // while
+            }
+            else if (tag < 0)
+            {
+                throw new InvalidDataException($"Invalid tag '{tag}' in tagged field header.");
             }
 
             // Skip tagged value
