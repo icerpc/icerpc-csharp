@@ -1,10 +1,20 @@
 name: Setup .NET
 description: "Setup .NET and install libmsquic"
 
+inputs:
+  cache:
+    description: >-
+      Whether to restore and save the NuGet global packages folder. The cached folder can hold the packages that
+      build/publish-local-packages.sh published, so a job that must restore the IceRpc packages from a NuGet feed
+      sets it to false.
+    required: false
+    default: "true"
+
 runs:
   using: "composite"
   steps:
-    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    - if: inputs.cache == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
