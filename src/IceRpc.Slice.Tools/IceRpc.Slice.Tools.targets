@@ -141,6 +141,10 @@
       <_SlicecInputsCacheLine Include="@(_SliceReferenceFile->'reference|%(FullPath)')" />
     </ItemGroup>
 
+    <!--
+      WriteOnlyWhenDifferent moves the file's timestamp only when a value changes; as an input of Slicec, it then makes
+      the stamp out of date.
+    -->
     <WriteLinesToFile
       File="$(IntermediateOutputPath)slicec.inputs.cache"
       Lines="@(_SlicecInputsCacheLine)"
