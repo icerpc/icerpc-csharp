@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using NUnit.Framework;
+
 namespace IceRpc.Tests.Common;
 
 /// <summary>A property bag used to configure a <see cref="TransportOperations{T}" />. The enum template parameter is
@@ -63,6 +65,7 @@ public class TransportOperations<T> where T : struct, Enum
     private readonly Dictionary<T, TaskCompletionSource> _calledOperationsTcsMap = new();
     private T _holdOperations;
     private readonly Dictionary<T, TaskCompletionSource> _holdOperationsTcsMap = new();
+    private readonly string _testName = TestContext.CurrentContext.Test.FullName;
 
     /// <summary>Gets a task which can be awaited to wait for the given operation to be called. The task must be
     /// obtained before the operation is called. It can't be obtained again until the operation is called.</summary>
@@ -100,10 +103,18 @@ public class TransportOperations<T> where T : struct, Enum
 
     internal async Task CallAsync(T operation, Func<Task> callAsyncFunc, CancellationToken cancellationToken)
     {
-        await CheckAsync(operation, cancellationToken);
-        await callAsyncFunc();
-        // Check again hold/failure in case the configuration was changed after the completion of the operation.
-        await CheckAsync(operation, cancellationToken);
+        try
+        {
+            await CheckAsync(operation, cancellationToken);
+            await callAsyncFunc();
+            // Check again hold/failure in case the configuration was changed after the completion of the operation.
+            await CheckAsync(operation, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            TagException(exception);
+            throw;
+        }
     }
 
     internal async Task<TResult> CallAsync<TResult>(
@@ -111,11 +122,19 @@ public class TransportOperations<T> where T : struct, Enum
         Func<Task<TResult>> callAsyncFunc,
         CancellationToken cancellationToken)
     {
-        await CheckAsync(operation, cancellationToken);
-        TResult result = await callAsyncFunc();
-        // Check again hold/failure in case the configuration was changed after the completion of the operation.
-        await CheckAsync(operation, cancellationToken);
-        return result;
+        try
+        {
+            await CheckAsync(operation, cancellationToken);
+            TResult result = await callAsyncFunc();
+            // Check again hold/failure in case the configuration was changed after the completion of the operation.
+            await CheckAsync(operation, cancellationToken);
+            return result;
+        }
+        catch (Exception exception)
+        {
+            TagException(exception);
+            throw;
+        }
     }
 
     internal async ValueTask CallAsync(
@@ -183,6 +202,10 @@ public class TransportOperations<T> where T : struct, Enum
             tcs.TrySetException(new OperationNotCalledException(operation.ToString()));
         }
     }
+
+    // Records the test that created this instance in the exception. A faulted task that a test leaves unobserved
+    // surfaces in CommonSetUpFixture.OneTimeTearDown, long after the test ran.
+    private void TagException(Exception exception) => exception.Data[CommonSetUpFixture.TestNameKey] = _testName;
 }
 
 /// <summary>The exception that fails a task returned by <see cref="TransportOperations{T}.GetCalledTask" /> when the

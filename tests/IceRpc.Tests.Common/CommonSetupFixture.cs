@@ -7,6 +7,10 @@ namespace IceRpc.Tests.Common;
 /// <summary>A test fixture that is responsible for the common shared setup.</summary>
 public sealed class CommonSetUpFixture
 {
+    /// <summary>The key of the <see cref="Exception.Data" /> entry that holds the full name of the test that triggered
+    /// the exception.</summary>
+    internal const string TestNameKey = "IceRpc.Tests.TestName";
+
     private static readonly EventHandler<UnobservedTaskExceptionEventArgs> _handler = HandleUnobservedTaskException;
 
     // Ignore UTE when the stack trace starts with
@@ -41,7 +45,8 @@ public sealed class CommonSetUpFixture
             Console.Error.WriteLine($"Tests triggered {_unobservedTaskExceptions.Count} unobserved task exceptions");
             foreach ((object? sender, Exception exception) in _unobservedTaskExceptions)
             {
-                Console.Error.WriteLine($"\n+++ Unobserved task exception {sender}:\n{exception}");
+                string test = exception.Data[TestNameKey] is string name ? $" from test {name}" : "";
+                Console.Error.WriteLine($"\n+++ Unobserved task exception {sender}{test}:\n{exception}");
             }
             Assert.Fail($"Tests triggered {_unobservedTaskExceptions.Count} unobserved task exceptions");
         }
