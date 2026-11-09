@@ -280,7 +280,7 @@ public ref partial struct IceDecoder
 
     /// <summary>Decodes a tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
-    /// <param name="tag">The tag.</param>
+    /// <param name="tag">The tag, a non-negative integer.</param>
     /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
     /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
@@ -288,6 +288,7 @@ public ref partial struct IceDecoder
     /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
     {
+        Debug.Assert(tag >= 0, $"{nameof(tag)} must be greater than or equal to 0.");
         if (DecodeTagHeader(tag, tagFormat))
         {
             if (tagFormat == TagFormat.VSize)

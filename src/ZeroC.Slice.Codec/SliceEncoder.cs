@@ -245,11 +245,13 @@ public ref partial struct SliceEncoder
     /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
     /// encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag.</param>
+    /// <param name="tag">The tag, a non-negative integer.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
     public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
     {
+        Debug.Assert(tag >= 0, $"{nameof(tag)} must be greater than or equal to 0.");
+
         EncodeVarInt32(tag); // the key
         Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
         int startPos = EncodedByteCount;
@@ -260,12 +262,13 @@ public ref partial struct SliceEncoder
     /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
     /// encoding the value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag.</param>
+    /// <param name="tag">The tag, a non-negative integer.</param>
     /// <param name="size">The number of bytes needed to encode the value.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
     public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
     {
+        Debug.Assert(tag >= 0, $"{nameof(tag)} must be greater than or equal to 0.");
         if (size <= 0)
         {
             throw new ArgumentException("Invalid size value, size must be greater than 0.", nameof(size));

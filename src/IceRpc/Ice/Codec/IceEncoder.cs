@@ -173,12 +173,13 @@ public ref partial struct IceEncoder
     /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
     /// encoding the value. This method always uses the VSize tag format.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag.</param>
+    /// <param name="tag">The tag, a non-negative integer.</param>
     /// <param name="size">The number of bytes needed to encode the value.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
     public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
     {
+        Debug.Assert(tag >= 0, $"{nameof(tag)} must be greater than or equal to 0.");
         if (size <= 0)
         {
             throw new ArgumentException("Invalid size value, size must be greater than zero.", nameof(size));
@@ -202,7 +203,7 @@ public ref partial struct IceEncoder
     /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is not known before
     /// encoding this value. T can be a proxy such as IceObjectProxy? and therefore nullable.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag.</param>
+    /// <param name="tag">The tag, a non-negative integer.</param>
     /// <param name="tagFormat">The tag format. Must not be <see cref="TagFormat.VSize" /> or
     /// <see cref="TagFormat.Class" />.</param>
     /// <param name="v">The value to encode.</param>
@@ -215,6 +216,7 @@ public ref partial struct IceEncoder
         T v,
         EncodeAction<T> encodeAction)
     {
+        Debug.Assert(tag >= 0, $"{nameof(tag)} must be greater than or equal to 0.");
         switch (tagFormat)
         {
             case TagFormat.F1:
