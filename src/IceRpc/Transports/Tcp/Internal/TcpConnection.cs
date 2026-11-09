@@ -311,7 +311,10 @@ internal class TcpClientConnection : TcpConnection
         SslClientAuthenticationOptions? authenticationOptions,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        TcpClientTransportOptions options)
+        IPEndPoint? localNetworkAddress,
+        bool noDelay,
+        int? receiveBufferSize,
+        int? sendBufferSize)
         : base(authenticationOptions is not null ? pool.Rent(minimumSegmentSize) : null)
     {
         _address = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
@@ -328,12 +331,12 @@ internal class TcpClientConnection : TcpConnection
 
         try
         {
-            if (options.LocalNetworkAddress is IPEndPoint localNetworkAddress)
+            if (localNetworkAddress is not null)
             {
                 Socket.Bind(localNetworkAddress);
             }
 
-            Socket.Configure(options);
+            Socket.Configure(noDelay, receiveBufferSize, sendBufferSize);
         }
         catch (SocketException exception)
         {

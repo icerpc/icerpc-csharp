@@ -42,8 +42,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     internal QuicMultiplexedListener(
         TransportAddress transportAddress,
         MultiplexedConnectionOptions options,
-        QuicServerTransportOptions quicTransportOptions,
-        SslServerAuthenticationOptions serverAuthenticationOptions)
+        SslServerAuthenticationOptions serverAuthenticationOptions,
+        int listenBacklog,
+        TimeSpan idleTimeout,
+        QuicReceiveWindowSizes initialReceiveWindowSizes)
     {
         if (!IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress))
         {
@@ -62,9 +64,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
             HandshakeTimeout = options.HandshakeTimeout,
-            IdleTimeout = quicTransportOptions.IdleTimeout,
+            IdleTimeout = idleTimeout,
             KeepAliveInterval = Timeout.InfiniteTimeSpan, // the server doesn't send PING frames
-            InitialReceiveWindowSizes = quicTransportOptions.InitialReceiveWindowSizes,
+            InitialReceiveWindowSizes = initialReceiveWindowSizes,
             ServerAuthenticationOptions = serverAuthenticationOptions,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
@@ -77,7 +79,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 new QuicListenerOptions
                 {
                     ListenEndPoint = new IPEndPoint(ipAddress, transportAddress.Port),
-                    ListenBacklog = quicTransportOptions.ListenBacklog,
+                    ListenBacklog = listenBacklog,
                     ApplicationProtocols = serverAuthenticationOptions.ApplicationProtocols,
                     ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },

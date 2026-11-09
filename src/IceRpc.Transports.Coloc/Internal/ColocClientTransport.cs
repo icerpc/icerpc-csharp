@@ -18,7 +18,8 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new NotSupportedException($"The Coloc client transport does not support transport '{transportName}'.");
 
     private readonly ConcurrentDictionary<(string Host, ushort Port), ColocListener> _listeners;
-    private readonly ColocTransportOptions _options;
+    private readonly int _pauseWriterThreshold;
+    private readonly int _resumeWriterThreshold;
 
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
@@ -46,8 +47,8 @@ internal class ColocClientTransport : IDuplexClientTransport
         var localPipe = new Pipe(new PipeOptions(
             pool: duplexConnectionOptions.Pool,
             minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
-            pauseWriterThreshold: _options.PauseWriterThreshold,
-            resumeWriterThreshold: _options.ResumeWriterThreshold,
+            pauseWriterThreshold: _pauseWriterThreshold,
+            resumeWriterThreshold: _resumeWriterThreshold,
             useSynchronizationContext: false));
         return new ClientColocConnection(transportAddress, localPipe, ConnectAsync);
 
@@ -75,6 +76,7 @@ internal class ColocClientTransport : IDuplexClientTransport
         ColocTransportOptions options)
     {
         _listeners = listeners;
-        _options = options;
+        _pauseWriterThreshold = options.PauseWriterThreshold;
+        _resumeWriterThreshold = options.ResumeWriterThreshold;
     }
 }

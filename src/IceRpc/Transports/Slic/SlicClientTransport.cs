@@ -15,7 +15,11 @@ public class SlicClientTransport : IMultiplexedClientTransport
     public bool IsSslRequired(string? transportName) => _duplexClientTransport.IsSslRequired(transportName);
 
     private readonly IDuplexClientTransport _duplexClientTransport;
-    private readonly SlicTransportOptions _slicTransportOptions;
+    private readonly TimeSpan _idleTimeout;
+    private readonly int _initialStreamWindowSize;
+    private readonly int _maxOutstandingPongs;
+    private readonly int _maxStreamFrameSize;
+    private readonly int _pauseWriterThreshold;
 
     /// <summary>Constructs a Slic client transport.</summary>
     /// <param name="options">The options to configure the Slic transport.</param>
@@ -23,7 +27,11 @@ public class SlicClientTransport : IMultiplexedClientTransport
     public SlicClientTransport(SlicTransportOptions options, IDuplexClientTransport duplexClientTransport)
     {
         _duplexClientTransport = duplexClientTransport;
-        _slicTransportOptions = options;
+        _idleTimeout = options.IdleTimeout;
+        _initialStreamWindowSize = options.InitialStreamWindowSize;
+        _maxOutstandingPongs = options.MaxOutstandingPongs;
+        _maxStreamFrameSize = options.MaxStreamFrameSize;
+        _pauseWriterThreshold = options.PauseWriterThreshold;
     }
 
     /// <summary>Constructs a Slic client transport.</summary>
@@ -48,6 +56,10 @@ public class SlicClientTransport : IMultiplexedClientTransport
                 },
                 clientAuthenticationOptions),
             options,
-            _slicTransportOptions,
+            _idleTimeout,
+            _initialStreamWindowSize,
+            _maxOutstandingPongs,
+            _maxStreamFrameSize,
+            _pauseWriterThreshold,
             isServer: false);
 }

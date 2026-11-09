@@ -16,11 +16,18 @@ public class QuicServerTransport : IMultiplexedServerTransport
     /// <inheritdoc/>
     public string DefaultName => "quic";
 
-    private readonly QuicServerTransportOptions _quicOptions;
+    private readonly TimeSpan _idleTimeout;
+    private readonly QuicReceiveWindowSizes _initialReceiveWindowSizes;
+    private readonly int _listenBacklog;
 
     /// <summary>Constructs a QUIC server transport.</summary>
     /// <param name="options">The options to configure the transport.</param>
-    public QuicServerTransport(QuicServerTransportOptions options) => _quicOptions = options;
+    public QuicServerTransport(QuicServerTransportOptions options)
+    {
+        _idleTimeout = options.IdleTimeout;
+        _initialReceiveWindowSizes = options.InitialReceiveWindowSizes;
+        _listenBacklog = options.ListenBacklog;
+    }
 
     /// <summary>Constructs a QUIC server transport.</summary>
     public QuicServerTransport()
@@ -67,6 +74,12 @@ public class QuicServerTransport : IMultiplexedServerTransport
                 nameof(serverAuthenticationOptions));
         }
 
-        return new QuicMultiplexedListener(transportAddress, options, _quicOptions, serverAuthenticationOptions);
+        return new QuicMultiplexedListener(
+            transportAddress,
+            options,
+            serverAuthenticationOptions,
+            _listenBacklog,
+            _idleTimeout,
+            _initialReceiveWindowSizes);
     }
 }

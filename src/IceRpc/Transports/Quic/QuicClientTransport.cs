@@ -22,11 +22,20 @@ public class QuicClientTransport : IMultiplexedClientTransport
     public bool IsSslRequired(string? transportName) => transportName is null or "quic" ? true :
         throw new NotSupportedException($"The QUIC client transport does not support transport '{transportName}'.");
 
-    private readonly QuicClientTransportOptions _quicTransportOptions;
+    private readonly TimeSpan _idleTimeout;
+    private readonly QuicReceiveWindowSizes _initialReceiveWindowSizes;
+    private readonly TimeSpan _keepAliveInterval;
+    private readonly IPEndPoint? _localNetworkAddress;
 
     /// <summary>Constructs a QUIC client transport.</summary>
     /// <param name="options">The options to configure the QUIC client transport.</param>
-    public QuicClientTransport(QuicClientTransportOptions options) => _quicTransportOptions = options;
+    public QuicClientTransport(QuicClientTransportOptions options)
+    {
+        _idleTimeout = options.IdleTimeout;
+        _initialReceiveWindowSizes = options.InitialReceiveWindowSizes;
+        _keepAliveInterval = options.KeepAliveInterval;
+        _localNetworkAddress = options.LocalNetworkAddress;
+    }
 
     /// <summary>Constructs a QUIC client transport.</summary>
     public QuicClientTransport()
@@ -86,10 +95,10 @@ public class QuicClientTransport : IMultiplexedClientTransport
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
             HandshakeTimeout = options.HandshakeTimeout,
-            IdleTimeout = _quicTransportOptions.IdleTimeout,
-            InitialReceiveWindowSizes = _quicTransportOptions.InitialReceiveWindowSizes,
-            KeepAliveInterval = _quicTransportOptions.KeepAliveInterval,
-            LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
+            IdleTimeout = _idleTimeout,
+            InitialReceiveWindowSizes = _initialReceiveWindowSizes,
+            KeepAliveInterval = _keepAliveInterval,
+            LocalEndPoint = _localNetworkAddress,
             RemoteEndPoint = endPoint,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams

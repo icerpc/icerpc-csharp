@@ -119,8 +119,10 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
     internal ColocListener(
         TransportAddress transportAddress,
         Action<ColocListener> onDispose,
-        ColocTransportOptions colocTransportOptions,
-        DuplexConnectionOptions duplexConnectionOptions)
+        DuplexConnectionOptions duplexConnectionOptions,
+        int listenBacklog,
+        int pauseWriterThreshold,
+        int resumeWriterThreshold)
     {
         TransportAddress = transportAddress;
 
@@ -129,14 +131,14 @@ internal class ColocListener : IListener<IDuplexConnection>, IDisposable
         _pipeOptions = new PipeOptions(
             pool: duplexConnectionOptions.Pool,
             minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
-            pauseWriterThreshold: colocTransportOptions.PauseWriterThreshold,
-            resumeWriterThreshold: colocTransportOptions.ResumeWriterThreshold,
+            pauseWriterThreshold: pauseWriterThreshold,
+            resumeWriterThreshold: resumeWriterThreshold,
             useSynchronizationContext: false);
 
         // Create a bounded channel with a capacity that matches the listen backlog, and with
         // the default concurrency settings that allow multiple reader and writers.
         _channel = Channel.CreateBounded<ConnectRequest>(
-            new BoundedChannelOptions(colocTransportOptions.ListenBacklog));
+            new BoundedChannelOptions(listenBacklog));
     }
 
     /// <summary>Queue client connection establishment requests from the client.</summary>
