@@ -24,6 +24,7 @@
     <_IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</_IceRpcOSArch>
     <_SliceGeneratorScriptExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.bat</_SliceGeneratorScriptExtension>
     <_SliceGeneratorScriptExtension Condition="!$([MSBuild]::IsOSPlatform('Windows'))">.sh</_SliceGeneratorScriptExtension>
+    <_SlicecExecutableExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.exe</_SlicecExecutableExtension>
   </PropertyGroup>
 
   <Choose>

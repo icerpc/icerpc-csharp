@@ -117,7 +117,52 @@
     <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" Condition="@(SliceFile) == ''" />
   </Target>
 
-  <Target Name="Slicec" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+  <!--
+    Computes the inputs of the Slicec target. Slicec compiles all the Slice files when any input changes: a Slice file
+    can use definitions from any other, and slicec reports errors and warnings only when it runs.
+
+    The generated files are inputs, not outputs: the generators don't rewrite a file whose content is unchanged, so
+    its timestamp can't show that slicec ran. The stamp file is the output instead, and a missing or edited generated
+    file makes Slicec run again.
+  -->
+  <Target Name="_ComputeSlicecInputs" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+    <ItemGroup>
+      <_SliceReferenceFile
+        Include="$([MSBuild]::EnsureTrailingSlash('%(SliceDirectory.FullPath)'))**/*.slice"
+        Condition="'%(SliceDirectory.Identity)' != ''" />
+
+      <!--
+        The inputs that change the generated code without changing the timestamp of an input file: the Slice files
+        and the reference files themselves (a file added with an old timestamp, or removed), and each Slice file's
+        options.
+      -->
+      <_SlicecInputsCacheLine
+        Include="@(_SliceFile->'%(FullPath)|%(OutputDir)|%(Generators)|%(AdditionalOptions)')" />
+      <_SlicecInputsCacheLine Include="@(_SliceReferenceFile->'reference|%(FullPath)')" />
+    </ItemGroup>
+
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)slicec.inputs.cache"
+      Lines="@(_SlicecInputsCacheLine)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+
+    <ItemGroup>
+      <_SlicecInput Include="@(_SliceFile->'%(FullPath)')" />
+      <_SlicecInput Include="@(_SliceReferenceFile)" />
+      <_SlicecInput Include="$(IntermediateOutputPath)slicec.inputs.cache" />
+      <_SlicecInput Include="$(_SliceCPath)/slicec$(_SlicecExecutableExtension)" />
+      <_SlicecInput Include="$(_ZeroCSliceGeneratorPath)*.dll;$(_IceRpcSliceGeneratorPath)*.dll" />
+      <_SlicecInput Include="%(_SliceFile.GeneratedPath)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="Slicec"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="_ComputeSlicecInputs"
+          Condition="@(SliceFile) != ''"
+          Inputs="@(_SlicecInput)"
+          Outputs="$(IntermediateOutputPath)slicec.stamp">
     <MakeDir Directories="%(_SliceFile.OutputDir)" />
 
     <SlicecTask
@@ -130,9 +175,12 @@
       Sources="@(_SliceFile)"
     />
 
+    <Touch Files="$(IntermediateOutputPath)slicec.stamp" AlwaysCreate="true" />
+
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
-      running the Slicec target so that default includes are already processed.
+      running the Slicec target so that default includes are already processed. MSBuild applies this ItemGroup even
+      when it skips the target as up to date.
 
       The Exclude is required to avoid including generated files twice for projects that have EnableDefaultItems,
       when the generated files already exists and match the default includes patterns, or for projects that
@@ -166,6 +214,7 @@
     <Delete Files="%(_SliceFile.GeneratedPath)" />
     <Delete Files="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
     <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" />
+    <Delete Files="$(IntermediateOutputPath)slicec.inputs.cache;$(IntermediateOutputPath)slicec.stamp" />
   </Target>
 
   <!-- Package SliceFile items -->
