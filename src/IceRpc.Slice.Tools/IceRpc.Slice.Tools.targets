@@ -130,12 +130,17 @@
       <_SliceReferenceFile
         Include="$([MSBuild]::EnsureTrailingSlash('%(SliceDirectory.FullPath)'))**/*.slice"
         Condition="'%(SliceDirectory.Identity)' != ''" />
+      <!-- slicec also accepts a Slice file as a reference. -->
+      <_SliceReferenceFile
+        Include="%(SliceDirectory.FullPath)"
+        Condition="'%(SliceDirectory.Identity)' != '' And $([System.IO.File]::Exists('%(SliceDirectory.FullPath)'))" />
 
       <!--
-        The inputs that change the generated code without changing the timestamp of an input file: the Slice files
-        and the reference files themselves (a file added with an old timestamp, or removed), and each Slice file's
-        options.
+        The inputs that change the generated code without changing the timestamp of an input file: the slicec version
+        (another slicec can replace it with an older timestamp), the Slice files and the reference files themselves (a
+        file added with an old timestamp, or removed), and each Slice file's options.
       -->
+      <_SlicecInputsCacheLine Include="slicec|$(SlicecVersion)" />
       <_SlicecInputsCacheLine
         Include="@(_SliceFile->'%(FullPath)|%(OutputDir)|%(Generators)|%(AdditionalOptions)')" />
       <_SlicecInputsCacheLine Include="@(_SliceReferenceFile->'reference|%(FullPath)')" />
