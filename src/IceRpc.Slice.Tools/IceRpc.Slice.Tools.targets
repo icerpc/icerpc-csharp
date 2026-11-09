@@ -175,6 +175,10 @@
       Sources="@(_SliceFile)"
     />
 
+    <!--
+      The stamp records the last successful slicec run, and the up-to-date check compares every input with it. A failed
+      run stops the target before this point, so the next build runs slicec again.
+    -->
     <Touch Files="$(IntermediateOutputPath)slicec.stamp" AlwaysCreate="true" />
 
     <!--
