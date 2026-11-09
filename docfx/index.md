@@ -12,19 +12,24 @@ layout: landing
 | [IceRpc.Extensions.DependencyInjection] | Provides APIs related to Dependency Injection.                                                                                                     |
 | [IceRpc.Features]                       | Provides the feature collection API and the core request features.                                                                                 |
 | [IceRpc.Ice]                            | Provides Ice-specific APIs, for interop with Ice applications.                                                                                     |
+| [IceRpc.Ice.Codec]                      | Supports encoding/decoding structured data to/from bytes in the Ice format.                                                                        |
+| [IceRpc.Ice.Operations]                 | Provides extension methods used by the generated code for Ice.                                                                                     |
 | [IceRpc.Locator]                        | Provides the locator interceptor. This interceptor enables interop with Ice servers registered with a locator such as IceGrid.                     |
 | [IceRpc.Logger]                         | Provides the logger interceptor and middleware, for logging requests and responses to an ILogger.                                                  |
 | [IceRpc.Metrics]                        | Provides the metrics interceptor and middleware.                                                                                                   |
 | [IceRpc.Protobuf]                       | Provides support for the IceRPC + Protobuf integration.                                                                                            |
+| [IceRpc.Protobuf.RpcMethods]            | Provides extension methods used by the generated code for Protobuf.                                                                                |
 | [IceRpc.RequestContext]                 | Provides the request context interceptor and middleware.                                                                                           |
 | [IceRpc.Retry]                          | Provides the retry interceptor.                                                                                                                    |
 | [IceRpc.Slice]                          | Provides support for the IceRPC + Slice integration. The Slice compiler generates code for Slice interfaces that relies on these APIs.      |
+| [IceRpc.Slice.Operations]               | Provides extension methods used by the generated code for Slice.                                                                                   |
 | [IceRpc.Telemetry]                      | Provides the telemetry interceptor and middleware; they add [OpenTelemetry] support to IceRPC.                                                     |
 | [IceRpc.Transports]                     | Provides the duplex and multiplexed transport abstractions.                                                                                        |
 | [IceRpc.Transports.Coloc]               | Provides the coloc duplex transport. It implements the duplex transport abstractions for "colocated" communications within the same address space. |
 | [IceRpc.Transports.Quic]                | Provides the QUIC multiplexed transport. It implements the multiplexed transport abstractions using QUIC.                                          |
 | [IceRpc.Transports.Slic]                | Provides the Slic multiplexing adapter. Slic implements the multiplexed transport abstractions over the duplex transport abstractions.             |
 | [IceRpc.Transports.Tcp]                 | Provides the TCP duplex transport. It implements the duplex transport abstractions using plain TCP and TCP + SSL.                                  |
+| [ZeroC.Slice]                           | Provides shared Slice types such as `Result<TSuccess, TFailure>`.                                                                                  |
 | [ZeroC.Slice.Codec]                     | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler generates code that relies on these APIs.  |
 
 [IceRpc]: reference/IceRpc.yml
@@ -33,13 +38,17 @@ layout: landing
 [IceRpc.Extensions.DependencyInjection]: reference/IceRpc.Extensions.DependencyInjection.yml
 [IceRpc.Features]: reference/IceRpc.Features.yml
 [IceRpc.Ice]: reference/IceRpc.Ice.yml
+[IceRpc.Ice.Codec]: reference/IceRpc.Ice.Codec.yml
+[IceRpc.Ice.Operations]: reference/IceRpc.Ice.Operations.yml
 [IceRpc.Locator]: reference/IceRpc.Locator.yml
 [IceRpc.Logger]: reference/IceRpc.Logger.yml
 [IceRpc.Metrics]: reference/IceRpc.Metrics.yml
 [IceRpc.Protobuf]: reference/IceRpc.Protobuf.yml
+[IceRpc.Protobuf.RpcMethods]: reference/IceRpc.Protobuf.RpcMethods.yml
 [IceRpc.RequestContext]: reference/IceRpc.RequestContext.yml
 [IceRpc.Retry]: reference/IceRpc.Retry.yml
 [IceRpc.Slice]: reference/IceRpc.Slice.yml
+[IceRpc.Slice.Operations]: reference/IceRpc.Slice.Operations.yml
 [IceRpc.Telemetry]: reference/IceRpc.Telemetry.yml
 [IceRpc.Transports]: reference/IceRpc.Transports.yml
 [IceRpc.Transports.Coloc]: reference/IceRpc.Transports.Coloc.yml
@@ -47,4 +56,5 @@ layout: landing
 [IceRpc.Transports.Slic]: reference/IceRpc.Transports.Slic.yml
 [IceRpc.Transports.Tcp]: reference/IceRpc.Transports.Tcp.yml
 [OpenTelemetry]: https://opentelemetry.io
+[ZeroC.Slice]: reference/ZeroC.Slice.yml
 [ZeroC.Slice.Codec]: reference/ZeroC.Slice.Codec.yml
