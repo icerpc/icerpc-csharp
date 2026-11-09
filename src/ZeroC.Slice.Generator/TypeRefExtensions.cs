@@ -8,11 +8,6 @@ namespace ZeroC.Slice.Generator;
 /// <summary>C#-specific extension methods for <see cref="TypeRef"/>.</summary>
 internal static class TypeRefExtensions
 {
-    /// <summary>Generates decode expression for a type reference. When the TypeRef has a cs::type attribute,
-    /// it is passed through as the concrete type for dictionary/sequence factory construction.</summary>
-    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace) =>
-        typeRef.Type.DecodeExpression(currentNamespace, typeRef.ConcreteCollectionType);
-
     /// <summary>Generates encode expression for a type reference.</summary>
     internal static string EncodeExpression(
         this TypeRef typeRef,
@@ -27,15 +22,6 @@ internal static class TypeRefExtensions
         string baseType = typeRef.Type.ToTypeString(currentNamespace);
         return isOptional ? $"{baseType}?" : baseType;
     }
-
-    /// <summary>Returns a decode lambda for a type reference. When the TypeRef has a cs::type attribute, it is passed
-    /// through as the concrete type for dictionary/sequence factory construction.</summary>
-    internal static string GetDecodeLambda(
-        this TypeRef typeRef,
-        bool isOptional,
-        string currentNamespace,
-        bool withCast = false) =>
-        typeRef.Type.GetDecodeLambda(isOptional, currentNamespace, withCast, typeRef.ConcreteCollectionType);
 
     /// <summary>Returns an encode lambda for a type reference. For optional types, the lambda parameter is nullable
     /// and the value expression uses the appropriate null-forgiving pattern based on the type.</summary>
@@ -73,14 +59,10 @@ internal static class TypeRefExtensions
     /// dictionaries map to <c>Dictionary&lt;K,V&gt;</c>. Respects cs::type attribute.</summary>
     internal static string IncomingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
     {
-        string baseType = typeRef.Type switch
+        string baseType = typeRef.ConcreteCollectionType ?? typeRef.Type switch
         {
-            SequenceType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
-                attr.Args[0],
             SequenceType seq =>
                 $"{seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[]",
-            DictionaryType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
-                attr.Args[0],
             DictionaryType dict =>
                 $"global::System.Collections.Generic.Dictionary<{dict.KeyType.FieldTypeString(false, currentNamespace)}, {dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace)}>",
             _ => typeRef.Type.ToTypeString(currentNamespace),
