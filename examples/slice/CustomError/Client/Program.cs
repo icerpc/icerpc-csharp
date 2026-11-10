@@ -19,7 +19,7 @@ string[] names = ["", "jimmy", "billy bob", "alice", Environment.UserName];
 
 foreach (string name in names)
 {
-    // Passing the cancellation token explicitly works around a .NET 11 RC1 compiler bug (CS8655 on the switch below).
+    // Passing the cancellation token explicitly works around a .NET 11 compiler bug (CS8655 on the switch below).
     // See https://github.com/dotnet/roslyn/issues/85852.
     Result<string, GreeterError> result = await greeter.GreetAsync(name, cancellationToken: CancellationToken.None);
 
