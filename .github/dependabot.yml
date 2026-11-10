@@ -1,13 +1,18 @@
 version: 2
 updates:
   - package-ecosystem: "nuget"
-    directory: "/"
+    # "/" covers IceRpc.slnx. Each example is a separate solution in its own directory.
+    directories: ["/", "/examples/*/*"]
     schedule:
       interval: monthly
     cooldown:
       default-days: 7
     ignore:
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      # The examples use the nightly IceRPC packages.
+      - dependency-name: "IceRpc*"
+      # The version range of the Slice tools is the range supported by IceRpc.Ice.
+      - dependency-name: "ZeroC.Ice.Slice.Tools"
     groups:
       nuget:
         patterns: ["*"]
