@@ -105,27 +105,39 @@ public class SequenceDecodingTests
     }
 
     [Test]
-    public void Decode_nested_custom_sequence_fields()
+    public void Decode_nested_custom_collection_fields()
     {
         // Arrange
-        int[][] nested = [[1, 2], [3]];
-        var inDictionary = new Dictionary<string, int[]> { ["a"] = [4, 5] };
+        int[][] sequenceOfSequences = [[1, 2], [3]];
+        var dictionaryOfSequences = new Dictionary<string, int[]> { ["a"] = [4, 5] };
+        Dictionary<int, int>[] sequenceOfDictionaries = [new() { [6] = 7 }];
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
-        encoder.EncodeSequence(nested, (ref SliceEncoder encoder, int[] value) => encoder.EncodeSequence(value));
+        encoder.EncodeSequence(
+            sequenceOfSequences,
+            (ref SliceEncoder encoder, int[] value) => encoder.EncodeSequence(value));
         encoder.EncodeDictionary(
-            inDictionary,
+            dictionaryOfSequences,
             (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
             (ref SliceEncoder encoder, int[] value) => encoder.EncodeSequence(value));
+        encoder.EncodeSequence(
+            sequenceOfDictionaries,
+            (ref SliceEncoder encoder, Dictionary<int, int> value) => encoder.EncodeDictionary(
+                value,
+                (ref SliceEncoder encoder, int key) => encoder.EncodeInt32(key),
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value)));
         var decoder = new SliceDecoder(buffer.WrittenMemory);
 
         // Act
-        var sut = new NestedCustomInt32S(ref decoder);
+        var sut = new NestedCustomCollections(ref decoder);
 
         // Assert
-        Assert.That(sut.Nested, Is.EqualTo(nested).And.All.InstanceOf<List<int>>());
-        Assert.That(sut.InDictionary, Is.EqualTo(inDictionary));
-        Assert.That(sut.InDictionary.Values, Is.All.InstanceOf<List<int>>());
+        Assert.That(sut.SequenceOfCustomSequences, Is.EqualTo(sequenceOfSequences).And.All.InstanceOf<List<int>>());
+        Assert.That(sut.DictionaryOfCustomSequences, Is.EqualTo(dictionaryOfSequences));
+        Assert.That(sut.DictionaryOfCustomSequences.Values, Is.All.InstanceOf<List<int>>());
+        Assert.That(
+            sut.SequenceOfCustomDictionaries,
+            Is.EqualTo(sequenceOfDictionaries).And.All.InstanceOf<CustomDictionary<int, int>>());
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }

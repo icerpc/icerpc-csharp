@@ -57,5 +57,4 @@ struct CustomCollectionResults {
     r1: Result<string, [cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>>
     r2: Result<[cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>?, string>
     r3: Result<string, [cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>?>
-    r4: Result<[cs::type("global::System.Collections.Generic.Dictionary<int, int>")] Dictionary<int32, int32>, string>
 }
