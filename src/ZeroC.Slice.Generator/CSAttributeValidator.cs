@@ -190,6 +190,23 @@ internal static class CsAttributeValidator
             _ => Target.TypeRef,
         };
         ValidateAttributes(typeRef.Attributes, source, target, diagnostics);
+
+        switch (typeRef.Type)
+        {
+            case SequenceType sequence:
+                ValidateTypeRef(sequence.ElementType, source, diagnostics);
+                break;
+
+            case DictionaryType dictionary:
+                ValidateTypeRef(dictionary.KeyType, source, diagnostics);
+                ValidateTypeRef(dictionary.ValueType, source, diagnostics);
+                break;
+
+            case ResultType result:
+                ValidateTypeRef(result.SuccessType, source, diagnostics);
+                ValidateTypeRef(result.FailureType, source, diagnostics);
+                break;
+        }
     }
 
     private static void ValidateAttributes(
