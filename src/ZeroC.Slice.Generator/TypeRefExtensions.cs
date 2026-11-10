@@ -8,18 +8,6 @@ namespace ZeroC.Slice.Generator;
 /// <summary>C#-specific extension methods for <see cref="TypeRef"/>.</summary>
 internal static class TypeRefExtensions
 {
-    /// <summary>Generates decode expression for a type reference. When the TypeRef has a cs::type attribute,
-    /// it is passed through as the concrete type for dictionary/sequence factory construction.</summary>
-    internal static string DecodeExpression(this TypeRef typeRef, string currentNamespace)
-    {
-        if (typeRef.Type is DictionaryType or SequenceType
-            && typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr)
-        {
-            return typeRef.Type.DecodeExpression(currentNamespace, concreteType: csTypeAttr.Args[0]);
-        }
-        return typeRef.Type.DecodeExpression(currentNamespace);
-    }
-
     /// <summary>Generates encode expression for a type reference.</summary>
     internal static string EncodeExpression(
         this TypeRef typeRef,
@@ -71,14 +59,10 @@ internal static class TypeRefExtensions
     /// dictionaries map to <c>Dictionary&lt;K,V&gt;</c>. Respects cs::type attribute.</summary>
     internal static string IncomingParameterTypeString(this TypeRef typeRef, bool isOptional, string currentNamespace)
     {
-        string baseType = typeRef.Type switch
+        string baseType = typeRef.ConcreteCollectionType ?? typeRef.Type switch
         {
-            SequenceType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
-                attr.Args[0],
             SequenceType seq =>
                 $"{seq.ElementType.FieldTypeString(seq.ElementTypeIsOptional, currentNamespace)}[]",
-            DictionaryType _ when typeRef.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute attr =>
-                attr.Args[0],
             DictionaryType dict =>
                 $"global::System.Collections.Generic.Dictionary<{dict.KeyType.FieldTypeString(false, currentNamespace)}, {dict.ValueType.FieldTypeString(dict.ValueTypeIsOptional, currentNamespace)}>",
             _ => typeRef.Type.ToTypeString(currentNamespace),
@@ -137,6 +121,14 @@ internal static class TypeRefExtensions
 
     extension(TypeRef value)
     {
+        /// <summary>Gets the concrete C# type specified by the cs::type attribute of this sequence or dictionary type
+        /// reference, or null when there is no such attribute.</summary>
+        internal string? ConcreteCollectionType =>
+            value.Type is DictionaryType or SequenceType
+                && value.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr
+                ? csTypeAttr.Args[0]
+                : null;
+
         /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
         internal int? FixedSize => value.Type switch
         {

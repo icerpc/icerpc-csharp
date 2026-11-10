@@ -13,3 +13,10 @@ compact struct CustomBoolS {
 compact struct CustomOptInt32S {
     value: [cs::type("global::System.Collections.Generic.List<int?>")] Sequence<int32?>
 }
+
+compact struct NestedCustomCollections {
+    sequenceOfCustomSequences: Sequence<[cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>>
+    dictionaryOfCustomSequences:
+        Dictionary<string, [cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>>
+    sequenceOfCustomDictionaries: Sequence<[cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>>
+}

@@ -47,3 +47,14 @@ struct OptionalCustomTypeResults {
     r4: Result<string, WellKnownTypes::Uri?>
     r5: Result<CustomType?, string>
 }
+
+compact struct CustomSequenceResultHolder {
+    value: Result<[cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>, string>
+}
+
+// Just to test that the generated code compiles.
+struct CustomCollectionResults {
+    r1: Result<string, [cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>>
+    r2: Result<[cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>?, string>
+    r3: Result<string, [cs::type("global::System.Collections.Generic.List<int>")] Sequence<int32>?>
+}
