@@ -220,14 +220,19 @@ public class SlicTransportTests
         :
             async () =>
             {
-                _ = AcceptAsync();
-                _ = await sut.Client.ConnectAsync(default);
-
-                async Task AcceptAsync()
+                using var acceptCts = new CancellationTokenSource();
+                Task acceptTask = sut.AcceptAsync(acceptCts.Token);
+                try
                 {
+                    _ = await sut.Client.ConnectAsync(default);
+                }
+                finally
+                {
+                    // The server connection can't be disposed while its ConnectAsync is in progress.
+                    acceptCts.Cancel();
                     try
                     {
-                        await sut.AcceptAsync();
+                        await acceptTask;
                     }
                     catch
                     {
@@ -365,14 +370,19 @@ public class SlicTransportTests
         :
             async () =>
             {
-                _ = AcceptAsync();
-                _ = await sut.Client.ConnectAsync(connectCts.Token);
-
-                async Task AcceptAsync()
+                using var acceptCts = new CancellationTokenSource();
+                Task acceptTask = sut.AcceptAsync(acceptCts.Token);
+                try
                 {
+                    _ = await sut.Client.ConnectAsync(connectCts.Token);
+                }
+                finally
+                {
+                    // The server connection can't be disposed while its ConnectAsync is in progress.
+                    acceptCts.Cancel();
                     try
                     {
-                        await sut.AcceptAsync();
+                        await acceptTask;
                     }
                     catch
                     {
