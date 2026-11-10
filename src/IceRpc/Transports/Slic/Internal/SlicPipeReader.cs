@@ -55,8 +55,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // Forcefully close the stream reads if reads were not already gracefully closed by ReadAsync or TryRead.
-            _stream.CloseReads(graceful: false);
+            // Abort the stream reads unless ReadAsync or TryRead already closed reads.
+            _stream.AbortReads();
 
             CompleteReads(exception: null);
 
@@ -227,7 +227,7 @@ internal class SlicPipeReader : PipeReader
         {
             // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
             // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
-            _stream.CloseReads(graceful: true);
+            _stream.CloseReads();
         }
 
         // Cache the read result returned to the application: AdvanceTo computes the consumed and examined offsets

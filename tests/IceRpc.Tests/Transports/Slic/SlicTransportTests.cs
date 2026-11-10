@@ -1105,8 +1105,8 @@ public class SlicTransportTests
             (ref SliceEncoder encoder) => encoder.EncodeBool(false));
         IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
 
-        // Consume all the stream data to gracefully close reads; the StreamReadsClosed frame is deferred until the
-        // closure of writes.
+        // Consume all the stream data to close reads; the StreamReadsClosed frame is deferred until the closure of
+        // writes.
         ReadResult readResult = await acceptedStream.Input.ReadAsync(default);
         Assert.That(readResult.IsCompleted, Is.True);
         acceptedStream.Input.AdvanceTo(readResult.Buffer.End);
@@ -2847,8 +2847,8 @@ public class SlicTransportTests
         }
         await clientStream.Output.CompleteAsync(default);
 
-        // The server consumes the request: reads are gracefully closed and the StreamReadsClosed frame is deferred
-        // until the closure of writes.
+        // The server consumes the request: reads are closed and the StreamReadsClosed frame is deferred until the
+        // closure of writes.
         IMultiplexedStream serverStream = await sut.Server.AcceptStreamAsync(cancellationToken);
         ReadResult readResult;
         do
