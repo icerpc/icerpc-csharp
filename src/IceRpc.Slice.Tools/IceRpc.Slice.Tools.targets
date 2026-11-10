@@ -56,12 +56,6 @@
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <None Remove="**/*.slice" />
   </ItemGroup>
-  <!--
-    The manifest tracking every output produced by the most recent slicec run is stored at
-    $(IntermediateOutputPath)slicec.outputs.txt - this gives each configuration/TargetFramework its own copy
-    so parallel multi-target inner builds don't race on a shared file. $(IntermediateOutputPath) is only
-    available after the SDK targets are imported, so we reference it inline (not via a top-level property).
-  -->
 
   <!--
     Computes the _SliceFile items: the Slice files to compile, each with the code generators to run on it and the
