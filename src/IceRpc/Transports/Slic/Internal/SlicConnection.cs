@@ -1772,9 +1772,10 @@ internal class SlicConnection : IMultiplexedConnection
         _closedCts.Cancel();
         _acceptStreamChannel.Writer.TryComplete(exception);
 
+        // Close streams.
         foreach (SlicStream stream in _streams.Values)
         {
-            stream.Abort(exception);
+            stream.Close(exception);
         }
 
         return true;

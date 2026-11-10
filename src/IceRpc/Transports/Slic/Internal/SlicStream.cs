@@ -96,22 +96,6 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Aborts the read and write sides of the stream and notifies the stream <see cref="Input" /> and <see
-    /// cref="Output" /> of the reads and writes closure.</summary>
-    internal void Abort(Exception exception)
-    {
-        if (TrySetReadsClosed())
-        {
-            Debug.Assert(_inputPipeReader is not null);
-            _inputPipeReader.CompleteReads(exception);
-        }
-        if (TrySetWritesClosed())
-        {
-            Debug.Assert(_outputWriter is not null);
-            _outputWriter.CompleteWrites(exception);
-        }
-    }
-
     /// <summary>Closes the read-side of the stream abruptly, unless reads are already closed. It's only called by
     /// <see cref="SlicPipeReader.Complete" />.</summary>
     internal void AbortReads()
@@ -219,6 +203,22 @@ internal class SlicStream : IMultiplexedStream
     /// window.</remarks>
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputWriter!.AcquireSendCreditAsync(cancellationToken);
+
+    /// <summary>Closes the read and write sides of the stream and notifies the stream <see cref="Input" /> and <see
+    /// cref="Output" /> of the reads and writes closure.</summary>
+    internal void Close(Exception closeException)
+    {
+        if (TrySetReadsClosed())
+        {
+            Debug.Assert(_inputPipeReader is not null);
+            _inputPipeReader.CompleteReads(closeException);
+        }
+        if (TrySetWritesClosed())
+        {
+            Debug.Assert(_outputWriter is not null);
+            _outputWriter.CompleteWrites(closeException);
+        }
+    }
 
     /// <summary>Closes the read-side of the stream after the peer ended it with a <see cref="FrameType.StreamLast" />
     /// frame. A local stream calls it when it receives this frame; a remote stream calls it from
