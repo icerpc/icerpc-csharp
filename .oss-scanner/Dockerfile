@@ -5,7 +5,7 @@
 # compilers are fetched here.
 #
 # /src is the checkout, with the IceRpc.slnx solution (sources and tests) built in the Debug configuration: no
-# optimization, and Debug.Assert enabled. The tests turn a failed Debug.Assert into a test failure. Run a test
+# optimization, and Debug.Assert enabled. Most test projects turn a failed Debug.Assert into a test failure. Run a test
 # project with, for example, `dotnet test tests/IceRpc.Tests --filter "FullyQualifiedName~IceRpcProtocolConnection"`.
 #
 # The examples, the project templates' generated projects, and the docfx examples are not built: they restore IceRPC

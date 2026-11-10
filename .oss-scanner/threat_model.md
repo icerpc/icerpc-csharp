@@ -6,15 +6,25 @@ IceRPC is an RPC framework for .NET. It implements two RPC protocols:
   own multiplexing layer, over TCP with or without TLS.
 - **ice**, the protocol of ZeroC Ice, over TCP with or without TLS, for interoperability with Ice applications.
 
-Requests and responses carry payloads in one of three encodings: the Slice encoding (`ZeroC.Slice.Codec`), the Ice
-encoding (`src/IceRpc/Ice/Codec`), and Protobuf (`IceRpc.Protobuf`, with Google.Protobuf as the message parser). The
-encoding and decoding code is generated at build time: from `.slice` files by slicec with `IceRpc.Slice.Generator`,
-from `.proto` files by protoc with `IceRpc.Protobuf.Generator`, and from `.ice` files by slice2cs, the Slice compiler
-of ZeroC Ice 3.8, from the `ZeroC.Ice.Slice.Tools` package. `IceRpc.ServiceGenerator`, a C# source generator,
-implements the dispatch of service classes.
+Both protocols carry request and response payloads as streams of bytes, in an encoding the application chooses.
+IceRPC provides three payload encodings: Slice (`ZeroC.Slice.Codec` and `IceRpc.Slice`), Ice (`src/IceRpc/Ice/Codec`
+and `IceRpc.Ice`), and Protobuf (`IceRpc.Protobuf`, with Google.Protobuf as the message parser).
+
+The build generates C# code from the IDL files:
+
+- `.slice` files: slicec runs `ZeroC.Slice.Generator`, which generates the types with their encoding and decoding
+  code, and `IceRpc.Slice.Generator`, which generates the proxies and services with the encoding and decoding of
+  operation arguments and return values.
+- `.proto` files: protoc generates the messages with their serialization code, and runs `IceRpc.Protobuf.Generator`,
+  which generates the clients and services.
+- `.ice` files: slice2cs, the Slice compiler of ZeroC Ice 3.8, from the `ZeroC.Ice.Slice.Tools` package, generates
+  the types, proxies and services.
+
+`IceRpc.ServiceGenerator`, a C# source generator, implements the dispatch of service classes.
 
 Interceptors and middleware (`IceRpc.Compressor`, `IceRpc.Deadline`, `IceRpc.Locator`, `IceRpc.RequestContext`,
-`IceRpc.Retry`, `IceRpc.Telemetry`, ...) process the fields and payloads of requests and responses.
+`IceRpc.Retry`, `IceRpc.Telemetry`, ...) decorate invocations and dispatches. A few decode a field or decompress a
+payload received from the peer.
 
 `SECURITY.md` lists the supported versions. This scan targets `main`; fixes are backported to the supported release
 branches.
@@ -24,35 +34,41 @@ branches.
 The attacker is a remote peer that can connect to an IceRPC server, or a server that an IceRPC client connects to:
 responses, protocol frames and transport frames sent by a server are as untrusted as requests sent by a client. TLS
 authenticates the peer only when the application requires and verifies a certificate, and a malicious peer can hold a
-valid one. On a plain (non-TLS) connection, the attacker can also sit on the network path.
+valid one.
 
-In order of exposure:
+IceRPC is layered: a transport carries the frames of a protocol, a protocol carries requests and responses, and the
+application encodes their payloads independently of both. Each layer is an attack surface of its own; in order of
+exposure:
 
-- **The transports**: Slic framing, stream management and flow control in `src/IceRpc/Transports/Slic`, which a peer
-  reaches before any authentication beyond TLS; the TCP transport and the server's handling of new connections in
-  `src/IceRpc/Transports/Tcp` and `src/IceRpc/Server.cs`; the QUIC transport's adaptation of `System.Net.Quic` streams
-  in `src/IceRpc/Transports/Quic`.
-- **The protocols**: `src/IceRpc/Internal/IceRpcProtocolConnection.cs` (settings, request and response headers, fields,
-  go away) and `src/IceRpc/Internal/IceProtocolConnection.cs` (frame prologue, request and reply headers, validate
-  connection, close connection, idle timeout in `IceDuplexConnectionDecorator.cs`). Both track dispatches, invocations
-  and streams across connection shutdown and disposal, where races between a peer's frames and local shutdown are
-  the most likely to hide bugs.
-- **The encodings**: the decoders run on payloads, headers and fields received from the peer. In the Slice encoding,
-  `ZeroC.Slice.Codec/SliceDecoder.cs` and `SliceDecoderExtensions.cs`, the stream decoding in
-  `IceRpc.Slice/Operations/PipeReaderExtensions.cs`, and the code that `IceRpc.Slice.Generator` generates. In the Ice
-  encoding, `src/IceRpc/Ice/Codec` (classes and class graphs, sliced classes and exceptions, tagged values, proxies
-  and the server addresses they carry) and the code generated from `.ice` files. In Protobuf, the length-prefixed
-  message framing in `IceRpc.Protobuf/RpcMethods`. The decoders of both Slice and Ice reinterpret memory in a few
-  places (`MemoryMarshal.Cast`, `Unsafe.As`) to decode sequences of fixed-size types.
-- **Interceptors and middleware** that decode peer-controlled fields or payloads: compression (`IceRpc.Compressor`),
-  deadlines, request context, telemetry trace context, and locator responses (`IceRpc.Locator`), which come from a
-  locator server.
-
-Each decoder enforces its own budget, configured through a feature or the connection options: `MaxIceFrameSize` (1 MB)
-and `MaxIceRpcHeaderSize` (16,383 bytes) in `ConnectionOptions`, `MaxStreamFrameSize` in `SlicTransportOptions`,
-`MaxSegmentSize` (1 MB) and `MaxCollectionAllocation` (8 MB) in `ISliceFeature`, `MaxPayloadSize` (1 MB),
-`MaxCollectionAllocation` and `MaxDepth` (100) in `IIceFeature`, and `MaxMessageLength` (1 MB) in `IProtobufFeature`.
-`MaxDispatches` and the maximum numbers of icerpc streams bound concurrency per connection.
+- **The transports**: Slic framing, stream management and flow control in `src/IceRpc/Transports/Slic`; the TCP
+  transport and the server's handling of new connections in `src/IceRpc/Transports/Tcp` and `src/IceRpc/Server.cs`;
+  the QUIC transport's adaptation of `System.Net.Quic` streams in `src/IceRpc/Transports/Quic`. Slic encodes its
+  frames with a small subset of the Slice encoding, and limits their size with `MaxStreamFrameSize` in
+  `SlicTransportOptions`.
+- **The protocols** treat payloads as opaque streams of bytes. `src/IceRpc/Internal/IceRpcProtocolConnection.cs`
+  (`Settings` and `GoAway` control frames, request and response headers with their fields) encodes its frames with a
+  small subset of the Slice encoding. `src/IceRpc/Internal/IceProtocolConnection.cs` (`Request`, `RequestBatch`,
+  `Reply`, `ValidateConnection` and `CloseConnection` frames, each starting with a prologue) encodes its frames with
+  a subset of the Ice encoding; `IceDuplexConnectionDecorator.cs` implements its idle timeout. Both track dispatches,
+  invocations and streams across connection shutdown and disposal, where races between a peer's frames and local
+  shutdown are the most likely to hide bugs. `ConnectionOptions` holds their limits: `MaxIceRpcHeaderSize` (16,383
+  bytes), `MaxIceFrameSize` (1 MB), and `MaxDispatches` and the maximum numbers of icerpc streams, which bound
+  concurrency per connection.
+- **The payload encodings** are independent of the protocols: with icerpc or ice, the application encodes a payload
+  with Slice, Ice, Protobuf, or an encoding of its own, such as JSON. Each decoder enforces its own budget,
+  configured through a feature:
+  - Slice: `ZeroC.Slice.Codec/SliceDecoder.cs` and `SliceDecoderExtensions.cs`, the stream decoding in
+    `IceRpc.Slice/Operations/PipeReaderExtensions.cs`, and the code generated from `.slice` files. The budget is
+    `MaxSegmentSize` (1 MB) and `MaxCollectionAllocation` (8 MB) in `ISliceFeature`.
+  - Ice: `src/IceRpc/Ice/Codec` (classes and class graphs, sliced classes and exceptions, tagged values, proxies and
+    the server addresses they carry) and the code generated from `.ice` files. The budget is `MaxPayloadSize` (1 MB),
+    `MaxCollectionAllocation` (8 MB) and `MaxDepth` (100) in `IIceFeature`.
+  - Protobuf: the length-prefixed message framing in `IceRpc.Protobuf/RpcMethods`. The budget is `MaxMessageLength`
+    (1 MB) in `IProtobufFeature`.
+- **Interceptors and middleware** are an attack surface only where they read input from the peer. The deadline,
+  request context and telemetry middleware each decode a request field. The compressor interceptor and middleware
+  (`IceRpc.Compressor`) decode the compression format field and decompress the payload. The locator interceptor
+  (`IceRpc.Locator`) uses the proxies that a locator server returns.
 
 ## What is trusted
 
@@ -92,30 +108,34 @@ project instead. Useful starting points:
   `tests/IceRpc.Protobuf.Tests`.
 
 Most test projects install a trace listener (`tests/IceRpc.Tests.Common/AssertTraceListener.cs`) that turns a failed
-`Debug.Assert` into a test failure.
+`Debug.Assert` into a test failure. The codec test projects, `tests/ZeroC.Slice.Codec.Tests` and
+`tests/IceRpc.Ice.Codec.Tests`, do not: there, a failed `Debug.Assert` terminates the test host process.
 
 ## How we rate severity
 
 IceRPC is managed code, so we rate by what a remote peer can do under the attacker model above:
 
-- **Critical**: remote code execution; reading or corrupting memory outside the decoded buffer (for example through
-  the `MemoryMarshal` and `Unsafe` code); a client that reaches a service or dispatches a request that the
-  application's routing or middleware should have refused; a TLS connection established without the certificate
-  validation the application configured.
-- **High**: a crafted frame or payload that terminates the process (an unhandled exception on a thread-pool thread, a
-  stack overflow), or that makes a server stop accepting connections or dispatching requests for other clients.
+- **Critical**: arbitrary code execution, where the peer runs code of its choosing and not an operation that a
+  service exposes; reading or corrupting memory outside the decoded buffer; data from another connection or request
+  sent to a peer, such as the stale content of a pooled buffer; a client that reaches a service or dispatches a
+  request that the application's routing or middleware should have refused; a TLS connection established without
+  the certificate validation the application configured.
+- **High**: a crafted frame or payload that terminates the process (an unhandled exception, such as one that escapes
+  a timer callback, or a stack overflow), or that makes a server stop accepting connections or dispatching requests
+  for other clients.
 - **Medium**: resource exhaustion that small input can cause and that the configured limits do not bound, such as an
   allocation sized by a count that is not checked against the bytes remaining or the decoder's budget; a connection,
   stream or dispatch slot that a peer can leak so that it is never released; a hang of `ShutdownAsync` or
   `DisposeAsync` that a peer can cause beyond the configured timeouts.
 - **Low**: denial of service that needs a large amount of traffic or a limit the application disabled or left
   unset, such as opening many connections while `ServerOptions.MaxConnections` is unlimited (the default); problems
-  confined to the connection or request the attacker sent; information disclosure into the application's own logs.
+  confined to the connection or request the attacker sent; internal details of the application sent to a peer, such
+  as a stack trace.
 
 A peer that sends malformed input gets an exception or an error response (`InvalidDataException`,
 `IceRpcException`, `DispatchException` with `StatusCode.InvalidData`), or its connection aborted; that is the expected
 behavior, not a finding. A check whose absence only changes which exception or status code the peer gets is not a
-finding.
+finding. Neither is information that IceRPC writes to the application's own logs.
 
 The image is a Debug build: a `Debug.Assert` failure shows that a check is missing, but the rating depends on what a
 Release build, where asserts are compiled out, does without it.
@@ -140,8 +160,6 @@ Also dismissed after triage:
 - When a service throws an exception other than `DispatchException`, the error message sent to the peer includes the
   exception's type and message, but not its stack trace. Applications are expected not to let arbitrary exceptions
   escape their services.
-- With the ice protocol, the `ObjectNotExist` and `FacetNotExist` replies map to `StatusCode.NotFound`, and a client
-  may retry a request that got this status on another replica. Ice applications rely on this behavior.
 - With the ice protocol, a peer that sends an unsupported frame after the connection sent `CloseConnection` and has no
   pending dispatch or invocation gets its connection closed as if the shutdown completed normally.
 
