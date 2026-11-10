@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Collections.Generic;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
@@ -54,6 +55,25 @@ public class ResultTests
         Result<string, int?> expected = Result.FromFailure(failureValue);
         Assert.That(holder.Value, Is.EqualTo(expected));
 
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
+    public void Decode_result_with_custom_sequence_success_type()
+    {
+        // Arrange
+        int[] expected = [1, 2, 3];
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer);
+        new CustomSequenceResultHolder(Result.FromSuccess<IList<int>>(expected)).Encode(ref encoder);
+        var decoder = new SliceDecoder(buffer.WrittenMemory);
+
+        // Act
+        var holder = new CustomSequenceResultHolder(ref decoder);
+
+        // Assert
+        IList<int>? value = holder.Value is Success<IList<int>> success ? success.Value : null;
+        Assert.That(value, Is.EqualTo(expected).And.InstanceOf<List<int>>());
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
 }
