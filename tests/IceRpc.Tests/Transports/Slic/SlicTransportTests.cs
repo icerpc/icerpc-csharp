@@ -162,14 +162,10 @@ public class SlicTransportTests
         Assert.That(async () => await sut.Client.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
     }
 
-    [TestCase(false, false, DuplexTransportOperations.Connect)]
-    [TestCase(false, false, DuplexTransportOperations.Read)]
-    [TestCase(false, true, DuplexTransportOperations.Connect)]
-    [TestCase(true, false, DuplexTransportOperations.Connect)]
-    [TestCase(true, false, DuplexTransportOperations.Read)]
-    [TestCase(true, true, DuplexTransportOperations.Connect)]
-    public async Task Connect_exception_handling_on_transport_failure(
-        bool serverSide,
+    [TestCase(false, DuplexTransportOperations.Connect)]
+    [TestCase(false, DuplexTransportOperations.Read)]
+    [TestCase(true, DuplexTransportOperations.Connect)]
+    public async Task Connect_exception_handling_on_client_transport_failure(
         bool authenticationException,
         DuplexTransportOperations operation)
     {
@@ -181,63 +177,82 @@ public class SlicTransportTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .AddTestDuplexTransportDecorator(
-                clientOperationsOptions: new()
-                {
-                    Fail = serverSide ? DuplexTransportOperations.None : operation,
-                    FailureException = exception
-                },
-                serverOperationsOptions: new()
-                {
-                    Fail = serverSide ? operation : DuplexTransportOperations.None,
-                    FailureException = exception
-                })
+                clientOperationsOptions: new() { Fail = operation, FailureException = exception })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
-        Func<Task> connectCall = serverSide ?
-            async () =>
+        using var acceptCts = new CancellationTokenSource();
+        Task acceptTask = sut.AcceptAsync(acceptCts.Token);
+
+        // Act
+        Exception? caughtException;
+        try
+        {
+            caughtException = Assert.CatchAsync(async () => await sut.Client.ConnectAsync(default));
+        }
+        finally
+        {
+            // acceptTask runs the server connection's ConnectAsync. Let it complete: the teardown disposes this
+            // connection, and IMultiplexedConnection forbids that while ConnectAsync is in progress.
+            acceptCts.Cancel();
+            try
             {
-                using var clientConnectTcs = new CancellationTokenSource();
-                Task connectTask = sut.Client.ConnectAsync(clientConnectTcs.Token);
-                try
-                {
-                    await sut.AcceptAsync();
-                }
-                finally
-                {
-                    try
-                    {
-                        clientConnectTcs.Cancel();
-                        await connectTask;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Prevents unobserved task exceptions.
-                    }
-                }
+                await acceptTask;
             }
-        :
-            async () =>
+            catch
             {
-                _ = AcceptAsync();
-                _ = await sut.Client.ConnectAsync(default);
+                // Prevents unobserved task exceptions.
+            }
+        }
 
-                async Task AcceptAsync()
-                {
-                    try
-                    {
-                        await sut.AcceptAsync();
-                    }
-                    catch
-                    {
-                        // Prevents unobserved task exceptions.
-                    }
-                }
-            };
+        // Assert
+        Assert.That(caughtException, Is.EqualTo(exception));
+    }
 
-        // Act/Assert
-        Exception? caughtException = Assert.CatchAsync(() => connectCall());
+    [TestCase(false, DuplexTransportOperations.Connect)]
+    [TestCase(false, DuplexTransportOperations.Read)]
+    [TestCase(true, DuplexTransportOperations.Connect)]
+    public async Task Connect_exception_handling_on_server_transport_failure(
+        bool authenticationException,
+        DuplexTransportOperations operation)
+    {
+        // Arrange
+        Exception exception = authenticationException ?
+            new AuthenticationException() :
+            new IceRpcException(IceRpcError.ConnectionRefused);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(
+                serverOperationsOptions: new() { Fail = operation, FailureException = exception })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+
+        using var clientConnectCts = new CancellationTokenSource();
+        Task clientConnectTask = sut.Client.ConnectAsync(clientConnectCts.Token);
+
+        // Act
+        Exception? caughtException;
+        try
+        {
+            caughtException = Assert.CatchAsync(async () => await sut.AcceptAsync());
+        }
+        finally
+        {
+            clientConnectCts.Cancel();
+            try
+            {
+                await clientConnectTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Prevents unobserved task exceptions.
+            }
+        }
+
+        // Assert
         Assert.That(caughtException, Is.EqualTo(exception));
     }
 
@@ -321,71 +336,89 @@ public class SlicTransportTests
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    [TestCase(false, DuplexTransportOperations.Connect)]
-    [TestCase(false, DuplexTransportOperations.Read)]
-    [TestCase(false, DuplexTransportOperations.Write)]
-    [TestCase(true, DuplexTransportOperations.Connect)]
-    [TestCase(true, DuplexTransportOperations.Read)]
-    public async Task Connect_cancellation_on_transport_hang(bool serverSide, DuplexTransportOperations operation)
+    [TestCase(DuplexTransportOperations.Connect)]
+    [TestCase(DuplexTransportOperations.Read)]
+    [TestCase(DuplexTransportOperations.Write)]
+    public async Task Connect_cancellation_on_client_transport_hang(DuplexTransportOperations operation)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransportDecorator(
-                clientOperationsOptions: new() { Hold = serverSide ? DuplexTransportOperations.None : operation },
-                serverOperationsOptions: new() { Hold = serverSide ? operation : DuplexTransportOperations.None })
+            .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { Hold = operation })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         using var connectCts = new CancellationTokenSource(100);
+        using var acceptCts = new CancellationTokenSource();
+        Task acceptTask = sut.AcceptAsync(acceptCts.Token);
 
-        Func<Task> connectCall = serverSide ?
-            async () =>
+        // Act
+        Exception? caughtException;
+        try
+        {
+            caughtException = Assert.CatchAsync(async () => await sut.Client.ConnectAsync(connectCts.Token));
+        }
+        finally
+        {
+            // acceptTask runs the server connection's ConnectAsync. Let it complete: the teardown disposes this
+            // connection, and IMultiplexedConnection forbids that while ConnectAsync is in progress.
+            acceptCts.Cancel();
+            try
             {
-                using var clientConnectTcs = new CancellationTokenSource();
-                Task connectTask = sut.Client.ConnectAsync(clientConnectTcs.Token);
-                try
-                {
-                    await sut.AcceptAsync(connectCts.Token);
-                }
-                finally
-                {
-                    try
-                    {
-                        clientConnectTcs.Cancel();
-                        await connectTask;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Prevents unobserved task exceptions.
-                    }
-                }
+                await acceptTask;
             }
-        :
-            async () =>
+            catch
             {
-                _ = AcceptAsync();
-                _ = await sut.Client.ConnectAsync(connectCts.Token);
+                // Prevents unobserved task exceptions.
+            }
+        }
 
-                async Task AcceptAsync()
-                {
-                    try
-                    {
-                        await sut.AcceptAsync();
-                    }
-                    catch
-                    {
-                        // Prevents unobserved task exceptions.
-                    }
-                }
-            };
-
-        // Act/Assert
+        // Assert
         Assert.That(
-            () => connectCall(),
-            Throws.InstanceOf<OperationCanceledException>().With.Property(
-                "CancellationToken").EqualTo(connectCts.Token));
+            caughtException,
+            Is.InstanceOf<OperationCanceledException>().With.Property("CancellationToken").EqualTo(connectCts.Token));
+    }
+
+    [TestCase(DuplexTransportOperations.Connect)]
+    [TestCase(DuplexTransportOperations.Read)]
+    public async Task Connect_cancellation_on_server_transport_hang(DuplexTransportOperations operation)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(serverOperationsOptions: new() { Hold = operation })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+
+        using var connectCts = new CancellationTokenSource(100);
+        using var clientConnectCts = new CancellationTokenSource();
+        Task clientConnectTask = sut.Client.ConnectAsync(clientConnectCts.Token);
+
+        // Act
+        Exception? caughtException;
+        try
+        {
+            caughtException = Assert.CatchAsync(async () => await sut.AcceptAsync(connectCts.Token));
+        }
+        finally
+        {
+            clientConnectCts.Cancel();
+            try
+            {
+                await clientConnectTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Prevents unobserved task exceptions.
+            }
+        }
+
+        // Assert
+        Assert.That(
+            caughtException,
+            Is.InstanceOf<OperationCanceledException>().With.Property("CancellationToken").EqualTo(connectCts.Token));
     }
 
     [Test]
