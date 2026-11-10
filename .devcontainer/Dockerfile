@@ -16,7 +16,7 @@ RUN set -eux \
 RUN set -eux \
     && curl https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh -L \
     && chmod +x dotnet-install.sh \
-    && ./dotnet-install.sh -v latest -c 11.0 -q preview
+    && ./dotnet-install.sh -v latest -c 11.0
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
