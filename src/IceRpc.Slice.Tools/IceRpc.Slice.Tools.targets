@@ -56,20 +56,12 @@
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <None Remove="**/*.slice" />
   </ItemGroup>
+
   <!--
-    The manifest tracking every output produced by the most recent slicec run is stored at
-    $(IntermediateOutputPath)slicec.outputs.txt - this gives each configuration/TargetFramework its own copy
-    so parallel multi-target inner builds don't race on a shared file. $(IntermediateOutputPath) is only
-    available after the SDK targets are imported, so we reference it inline (not via a top-level property).
+    Computes the _SliceFile items: the Slice files to compile, each with the code generators to run on it and the
+    paths of the files these generators produce.
   -->
   <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
-    <PropertyGroup>
-      <!-- Options of the build-telemetry generator; the generator entries are added per Slice file below. -->
-      <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion)</_BuildTelemetryOptions>
-      <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
-      <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">,debug$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
-      <_BuildTelemetryOptions Condition="'$(CI)' == 'true'">,ci$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
-    </PropertyGroup>
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
@@ -79,10 +71,6 @@
       <_SliceFile Condition="'%(IceRpc)' == 'true'">
         <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
         <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
-        <BuildTelemetryGenerators>,generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion)</BuildTelemetryGenerators>
-      </_SliceFile>
-      <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true'">
-        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion)%(_SliceFile.BuildTelemetryGenerators),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</Generators>
       </_SliceFile>
       <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
       <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'">
@@ -117,7 +105,35 @@
     <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" Condition="@(SliceFile) == ''" />
   </Target>
 
-  <Target Name="Slicec" BeforeTargets="CoreCompile" DependsOnTargets="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+  <!--
+    Adds the build-telemetry generator to the _SliceFile items of a real build. BuildingProject is true only in a real
+    build, so the design-time builds of an IDE don't send reports. The check is not in _ComputeSliceFiles because
+    MSBuild runs a target at most once per build: a Rebuild runs _ComputeSliceFiles during Clean, before
+    BuildingProject is set, and reuses its items for the build that follows.
+  -->
+  <Target Name="_AddSliceBuildTelemetryGenerator"
+          DependsOnTargets="_ComputeSliceFiles"
+          Condition="@(SliceFile) != '' And '$(IceRpcBuildTelemetry)' == 'true' And '$(BuildingProject)' == 'true'">
+    <PropertyGroup>
+      <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDebug)' == 'true'">,debug$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
+      <_BuildTelemetryOptions Condition="'$(CI)' == 'true'">,ci$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
+    </PropertyGroup>
+    <ItemGroup>
+      <_SliceFile Condition="'%(IceRpc)' == 'true'">
+        <BuildTelemetryGenerators>,generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion)</BuildTelemetryGenerators>
+      </_SliceFile>
+      <_SliceFile>
+        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion)%(_SliceFile.BuildTelemetryGenerators),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</Generators>
+      </_SliceFile>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="Slicec"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="_ComputeSliceFiles;_AddSliceBuildTelemetryGenerator"
+          Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(_SliceFile.OutputDir)" />
 
     <SlicecTask
