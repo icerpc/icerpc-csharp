@@ -3,7 +3,6 @@
 syntax = "proto3";
 
 package igloo;
-option csharp_namespace = "Igloo";
 
 message ChangeSetPointRequest {
     float set_point = 1;
