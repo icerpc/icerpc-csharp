@@ -29,7 +29,7 @@
     <ProjectReference Include="../../src/IceRpc.ServiceGenerator/IceRpc.ServiceGenerator.csproj" OutputItemType="Analyzer" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <!-- Reference the built-in Slice files -->
-    <SliceDirectory Include="../../slice" />
+    <SliceReference Include="../../slice" />
 
     <PackageReference Include="ZeroC.Ice.Slice.Tools" PrivateAssets="all" />
   </ItemGroup>

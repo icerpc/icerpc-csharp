@@ -136,10 +136,15 @@
           Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(_SliceFile.OutputDir)" />
 
+    <!--
+      SliceDirectory is the former name of SliceReference. NuGet packages built for an earlier version declare their
+      references with SliceDirectory in their buildTransitive props, and dropping these references would make slicec
+      fail on the types they define.
+    -->
     <SlicecTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="%(_SliceFile.OutputDir)"
-      References="@(SliceDirectory->'%(FullPath)')"
+      References="@(SliceReference->'%(FullPath)');@(SliceDirectory->'%(FullPath)')"
       ToolsPath="$(_SliceCPath)"
       Generators="%(_SliceFile.Generators)"
       AdditionalOptions="%(_SliceFile.AdditionalOptions)"
