@@ -88,9 +88,6 @@ For example, if you pack Slice files into the `slice` directory of your NuGet pa
 </ItemGroup>
 ```
 
-> IceRpc.Slice.Tools versions earlier than 0.7.0 read only `SliceDirectory`. If your package must also work with these
-> versions, declare its Slice references with `SliceDirectory` instead.
-
 The [ZeroC.Slice.Codec][zeroc-slice-codec] NuGet package follows this pattern and provides definitions for common Slice
 types such as `WellKnownTypes::Duration`, `WellKnownTypes::TimeStamp` and `WellKnownTypes::Uri`.
 
