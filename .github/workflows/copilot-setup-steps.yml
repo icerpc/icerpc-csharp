@@ -8,10 +8,12 @@ on:
     paths:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/setup-dotnet/**
+      - global.json
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/setup-dotnet/**
+      - global.json
 
 jobs:
   # Copilot only runs a job with this exact name.
