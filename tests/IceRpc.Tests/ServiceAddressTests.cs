@@ -266,7 +266,9 @@ public class ServiceAddressTests
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
             ("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@/? %23", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@/?%20%23"),
-            ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@? %23", "/identity", "%7F%E2%82%AC$%25/!$'()*+,:;=@?%20%23"),
+            ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@? %23",
+             "/identity",
+             "%7F%E2%82%AC$%25/!$'()*+,:;=@?%20%23"),
             (@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!", ""), // \ becomes / another syntax for empty port
             ("icerpc://host.zeroc.com:/identity", "/identity", ""),
             ("icerpc://host.zeroc.com/identity?transport=100", "/identity", ""),

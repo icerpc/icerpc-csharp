@@ -10,7 +10,8 @@ namespace IceRpc.Internal;
 /// path segment or fragment.</summary>
 /// <remarks>The canonical form leaves unescaped exactly the characters RFC 3986 allows in the URI component, and
 /// percent-encodes every other byte of the UTF-8 string with uppercase hex digits. Each string has exactly one
-/// encoding, and RFC 3986 normalization leaves this encoding unchanged.</remarks>
+/// encoding, which case normalization and percent-encoding normalization (RFC 3986 section 6.2.2) leave unchanged.
+/// </remarks>
 internal static class PercentEncoding
 {
     /// <summary>Gets the characters that a URI path segment contains unescaped: the RFC 3986 <c>pchar</c>

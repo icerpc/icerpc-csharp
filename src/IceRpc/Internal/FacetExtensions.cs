@@ -46,6 +46,9 @@ internal static class FacetExtensions
     internal static IList<string> ToFacet(this string fragment) =>
         fragment.Length == 0 ? [] : new List<string> { DecodeFragment(fragment) };
 
+    /// <summary>Decodes a non-empty fragment into the facet string.</summary>
+    /// <exception cref="FormatException">Thrown when <paramref name="fragment" /> is not percent-encoded in the
+    /// canonical form produced by <see cref="ToFragment" />.</exception>
     private static string DecodeFragment(string fragment) =>
         PercentEncoding.TryDecode(fragment, PercentEncoding.FragmentChars, out string facet) ? facet :
             throw new FormatException(

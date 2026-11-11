@@ -66,6 +66,8 @@ public class IdentityTests
     [TestCase("/a%zz")] // not hex digits
     [TestCase("/%FF")] // escaped bytes that are not UTF-8
     [TestCase("/%C3")] // truncated UTF-8 sequence
+    [TestCase("/%C0%AF")] // overlong UTF-8 encoding of '/'
+    [TestCase("/%ED%A0%80")] // UTF-8 encoding of a surrogate code point
     [TestCase("/a[b]")] // character that is not valid unescaped in a path segment
     [TestCase("/a b")]
     [TestCase("/a#b")]
