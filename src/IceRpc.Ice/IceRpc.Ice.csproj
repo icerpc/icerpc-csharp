@@ -24,7 +24,8 @@
                       ExactVersion="true"
                       PrivateAssets="compile;runtime"
                       OutputItemType="Analyzer" />
-    <PackageReference Include="ZeroC.Ice.Slice.Tools" PrivateAssets="all" />
+    <!-- A package dependency, not a private reference: it enforces the supported version range of the Slice tools. -->
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" />
 
     <PackageReference Include="StyleCop.Analyzers">
       <PrivateAssets>all</PrivateAssets>
