@@ -40,6 +40,10 @@ included in `ProtoFile`. You can prevent this auto-inclusion of `.proto` files b
 [`EnableDefaultItems`][default-items] or `EnableDefaultProtoFileItems` to `false`. The default value of these properties
 is `true`.
 
+A `.proto` file included by default must not be included again with `Include`: the build reports duplicate `ProtoFile`
+items as an error. Use `Update` to set the metadata of such a file, or set `EnableDefaultProtoFileItems` to `false` to
+list all your Protobuf files explicitly.
+
 You can also add Protobuf files to your project explicitly. For example:
 
 ```xml
