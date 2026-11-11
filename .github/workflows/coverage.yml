@@ -30,7 +30,7 @@ jobs:
           format: cobertura
 
       - name: ReportGenerator
-        uses: danielpalme/ReportGenerator-GitHub-Action@d3ebf1f760f7d8ab92cc44d9bcfee7ad73722a31 # v5.5.11
+        uses: danielpalme/ReportGenerator-GitHub-Action@861674232075b2c6bd1405a04c4bb9b150653e81 # v5.5.12
         with:
           reports: tests/*/TestResults/*/coverage.cobertura.xml
           targetdir: coveragereport
