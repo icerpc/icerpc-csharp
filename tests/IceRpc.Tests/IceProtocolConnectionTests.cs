@@ -169,6 +169,44 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
+    /// <summary>Verifies that the dispatch of an ice request receives the path and the fragment of the service address
+    /// unchanged.</summary>
+    [TestCase("/a:b", "")]
+    [TestCase("/c@t/!$&'()*+,;=:@", "f/a:b?")]
+    [TestCase("/%2F%20/%E2%82%AC", "%23%20%E2%82%AC")]
+    public async Task Dispatch_receives_the_path_and_fragment_of_the_service_address(string path, string fragment)
+    {
+        // Arrange
+        string? dispatchPath = null;
+        string? dispatchFragment = null;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            dispatchPath = request.Path;
+            dispatchFragment = request.Fragment;
+            return new(new OutgoingResponse(request));
+        });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress.Ice { Path = path, Fragment = fragment })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Ok));
+        Assert.That(dispatchPath, Is.EqualTo(path));
+        Assert.That(dispatchFragment, Is.EqualTo(fragment));
+    }
+
     /// <summary>Verifies that a StatusCode dispatched by the server is encoded as a ReplyStatus and decoded back to
     /// the expected StatusCode by the client.</summary>
     [Test]

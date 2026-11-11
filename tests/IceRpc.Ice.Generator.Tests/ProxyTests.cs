@@ -47,6 +47,9 @@ public partial class ProxyTests
     [TestCase("ice://opaque/cat/name?transport=opaque&e=1.0&t=99&v=1234", null)]
     [TestCase("ice:/cat/name?adapter-id=foo", null)]
     [TestCase("ice:/cat/name", null)]
+    [TestCase("ice:/c@t/a:b#f/a:b?", null)]
+    [TestCase("icerpc://host:1000/c@t/a:b!$&'()*+,;=", null)]
+    [TestCase("icerpc://host:1000/%2F%20/%E2%82%AC", null)]
     // cSpell:enable
     public void Decode_proxy(ServiceAddress value, ServiceAddress? expected)
     {
@@ -101,10 +104,24 @@ public partial class ProxyTests
             },
             Throws.TypeOf<FormatException>());
 
+    [Test]
+    public void Encode_proxy_with_null_identity_fails() =>
+        Assert.That(
+            () =>
+            {
+                var bufferWriter = new MemoryBufferWriter(new byte[256]);
+                var encoder = new IceEncoder(bufferWriter);
+                encoder.EncodeIceObjectProxy(
+                    new IceObjectProxy(InvalidInvoker.Instance, new Uri("icerpc://host:10000")));
+            },
+            Throws.TypeOf<ArgumentException>());
+
     // we have to use icerpc since these paths are not valid for ice
-    [TestCase("icerpc://host:10000")]
     [TestCase("icerpc://host:10000/foo/")]
-    public void Encode_proxy_with_null_identity_fails(ServiceAddress serviceAddress) =>
+    [TestCase("icerpc://host:10000//foo")]
+    [TestCase("icerpc://host:10000/a/b/c")]
+    [TestCase("icerpc://host:10000/a%3Ab")]
+    public void Encode_proxy_with_a_path_that_is_not_an_identity_path_fails(ServiceAddress serviceAddress) =>
         Assert.That(
             () =>
             {
@@ -112,7 +129,7 @@ public partial class ProxyTests
                 var encoder = new IceEncoder(bufferWriter);
                 encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
             },
-            Throws.TypeOf<ArgumentException>());
+            Throws.TypeOf<FormatException>());
 
     [Test]
     public async Task Downcast_proxy_with_as_async_succeeds()
