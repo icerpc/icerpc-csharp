@@ -24,9 +24,7 @@
                       ExactVersion="true"
                       PrivateAssets="compile;runtime"
                       OutputItemType="Analyzer" />
-    <!-- No PrivateAssets="all": the IceRpc.Ice package depends on the Slice tools package to enforce the version range
-         it supports. A project that references IceRpc.Ice gets no asset from this dependency, since the Slice tools
-         package has only build assets, which are private by default. -->
+    <!-- A package dependency, not a private reference: it enforces the supported version range of the Slice tools. -->
     <PackageReference Include="ZeroC.Ice.Slice.Tools" />
 
     <PackageReference Include="StyleCop.Analyzers">
