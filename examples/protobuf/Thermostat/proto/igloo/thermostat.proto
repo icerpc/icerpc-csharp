@@ -3,7 +3,6 @@
 syntax = "proto3";
 
 package igloo;
-option csharp_namespace = "Igloo";
 
 import "google/protobuf/empty.proto";
 import "reading.proto";

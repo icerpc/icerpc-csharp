@@ -16,7 +16,6 @@ C#.
 syntax = "proto3";
 
 package visitor_center;
-option csharp_namespace = "VisitorCenter";
 
 // Represents a simple greeter.
 service Greeter {

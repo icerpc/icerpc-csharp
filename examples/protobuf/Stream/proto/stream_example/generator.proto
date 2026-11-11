@@ -3,7 +3,6 @@
 syntax = "proto3";
 
 package stream_example;
-option csharp_namespace = "StreamExample";
 
 import "google/protobuf/empty.proto";
 
