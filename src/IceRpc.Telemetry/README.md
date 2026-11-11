@@ -24,7 +24,7 @@ the following tags, named after the OpenTelemetry [semantic conventions for RPC 
 | `icerpc.path`          | The path of the service address.                                                           | The path carried by the request.             | `/greeter`                                   |
 | `rpc.status_code`      | The status code carried by the response.                                                   | The status code sent to the caller.          | `Ok`, `DeadlineExceeded`                     |
 | `error.type`           | A status code other than `Ok`, or the full name of the exception thrown by the invocation. | A status code that reports a server failure. | `DeadlineExceeded`, `IceRpc.IceRpcException` |
-| `network.peer.address` | The IP address of the server.                                                              | The IP address of the client.                | `10.1.2.80`                                  |
+| `network.peer.address` | The IP address of the server.                                                              | The IP address of the client.                | `10.1.2.80`, `::ffff:10.1.2.80`              |
 | `network.peer.port`    | The port of the server.                                                                    | The port of the client.                      | `4062`                                       |
 | `icerpc.canceled`      | `true` when the invocation was canceled.                                                   | `true` when the dispatch was canceled.       | `true`                                       |
 
