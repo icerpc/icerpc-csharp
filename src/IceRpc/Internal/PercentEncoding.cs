@@ -14,8 +14,8 @@ namespace IceRpc.Internal;
 /// </remarks>
 internal static class PercentEncoding
 {
-    /// <summary>Gets the characters that a URI path segment contains unescaped: the RFC 3986 <c>pchar</c>
-    /// characters other than <c>%</c>.</summary>
+    /// <summary>Gets the characters that a URI path segment contains unescaped: the unreserved characters, the
+    /// sub-delimiters, <c>:</c> and <c>@</c> (RFC 3986 section 3.3).</summary>
     internal static SearchValues<char> PathSegmentChars { get; } =
         SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!$&'()*+,;=:@");
 
