@@ -1,8 +1,16 @@
 version: 2
+
+# Dependabot's proxy blocks a feed that is only listed in a nuget.config file, such as the examples' nightly feed.
+registries:
+  icerpc-nightly:
+    type: nuget-feed
+    url: https://download.zeroc.com/nexus/repository/nuget-nightly/
+
 updates:
   - package-ecosystem: "nuget"
     # "/" covers IceRpc.slnx. Each example is a separate solution in its own directory.
     directories: ["/", "/examples/*/*"]
+    registries: ["icerpc-nightly"]
     schedule:
       interval: monthly
     cooldown:
