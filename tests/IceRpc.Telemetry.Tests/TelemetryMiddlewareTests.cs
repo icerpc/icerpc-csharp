@@ -44,12 +44,110 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(dispatchActivity.OperationName, Is.EqualTo($"{request.Path}/{request.Operation}"));
         Assert.That(dispatchActivity.Tags, Is.Not.Null);
         var tags = dispatchActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
-        Assert.That(tags.ContainsKey("rpc.system"), Is.True);
-        Assert.That(tags["rpc.system"], Is.EqualTo("icerpc"));
-        Assert.That(tags.ContainsKey("rpc.service"), Is.True);
-        Assert.That(tags["rpc.service"], Is.EqualTo(request.Path));
-        Assert.That(tags.ContainsKey("rpc.method"), Is.True);
-        Assert.That(tags["rpc.method"], Is.EqualTo(request.Operation));
+        Assert.That(tags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
+        Assert.That(tags, Does.ContainKey("rpc.method").WithValue(request.Operation));
+        Assert.That(tags, Does.ContainKey("icerpc.path").WithValue(request.Path));
+    }
+
+    /// <summary>Verifies that a sampler sees the tags that identify the request.</summary>
+    [Test]
+    public async Task Dispatch_activity_sampler_sees_request_tags()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+
+        Dictionary<string, object?>? samplerTags = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => ReferenceEquals(source, activitySource),
+            Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
+            {
+                samplerTags = activityOptions.Tags?.ToDictionary(entry => entry.Key, entry => entry.Value);
+                return ActivitySamplingResult.AllData;
+            }
+        };
+        ActivitySource.AddActivityListener(activityListener);
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Operation = "Op",
+            Path = "/path"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Assert
+        Assert.That(samplerTags, Is.Not.Null);
+        Assert.That(samplerTags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
+        Assert.That(samplerTags, Does.ContainKey("rpc.method").WithValue("Op"));
+        Assert.That(samplerTags, Does.ContainKey("icerpc.path").WithValue("/path"));
+    }
+
+    /// <summary>Verifies that the middleware starts a dispatch activity and restores its context from the
+    /// <see cref="RequestFieldKey.TraceContext" /> field when no listener samples the activities of the activity
+    /// source.</summary>
+    [Test]
+    public async Task Dispatch_activity_restores_trace_context_without_listener()
+    {
+        // Arrange
+        Activity? dispatchActivity = null;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            dispatchActivity = Activity.Current;
+            return new(new OutgoingResponse(request));
+        });
+
+        string? encodedActivityId;
+        PipeReader encodedTraceContext = EncodeTraceContext();
+
+        PipeReader EncodeTraceContext()
+        {
+            // Encode the parent activity context in a separate scope: this activity must not be running when the
+            // middleware dispatches the request.
+            using var encodedActivity = new Activity("/hello/Op");
+            encodedActivity.Start();
+            encodedActivityId = encodedActivity.Id;
+
+            var pipe = new Pipe();
+            var encoder = new SliceEncoder(pipe.Writer);
+            TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
+            pipe.Writer.Complete();
+
+            return pipe.Reader;
+        }
+
+        using var activitySource = new ActivitySource("Test Activity Source");
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        encodedTraceContext.TryRead(out ReadResult readResult);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+            {
+                [RequestFieldKey.TraceContext] = readResult.Buffer
+            },
+            Operation = "Op",
+            Path = "/path"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Cleanup
+        encodedTraceContext.Complete();
+
+        // Assert
+        Assert.That(dispatchActivity, Is.Not.Null);
+        Assert.That(dispatchActivity!.OperationName, Is.EqualTo("/path/Op"));
+        Assert.That(dispatchActivity.ParentId, Is.EqualTo(encodedActivityId));
+        var tags = dispatchActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
+        Assert.That(tags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
+        Assert.That(tags, Does.ContainKey("rpc.method").WithValue("Op"));
+        Assert.That(tags, Does.ContainKey("icerpc.path").WithValue("/path"));
     }
 
     /// <summary>Verifies that the dispatch activity context is restored from the
@@ -414,7 +512,7 @@ public sealed class TelemetryMiddlewareTests
     }
 
     /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the dispatch
-    /// activity status unset and records the status code.</summary>
+    /// activity status unset and records the status code and the network address of the client.</summary>
     [Test]
     public async Task Dispatch_activity_records_ok_response()
     {
@@ -442,6 +540,8 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
         Assert.That(outcome.StatusDescription, Is.Null);
         Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue("Ok"));
+        Assert.That(outcome.Tags, Does.ContainKey("network.peer.address").WithValue("10.10.10.10"));
+        Assert.That(outcome.Tags, Does.ContainKey("network.peer.port").WithValue(11000));
         Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 

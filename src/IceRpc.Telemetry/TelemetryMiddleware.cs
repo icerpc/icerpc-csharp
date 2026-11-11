@@ -12,17 +12,24 @@ namespace IceRpc.Telemetry;
 /// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The middleware restores the parent invocation
 /// activity from the request <see cref="RequestFieldKey.TraceContext" /> field before starting the dispatch activity.
 /// </summary>
-/// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
-/// of the dispatch. The <c>rpc.status_code</c> tag holds the status code of the response returned by the dispatch.
-/// When the dispatch throws an exception, this tag holds the status code of the failure response the caller receives,
-/// given by <see cref="DispatchException.FromException" />. A status code that reports a problem with the request
-/// (<see cref="StatusCode.ApplicationError" />, <see cref="StatusCode.NotFound" />,
+/// <remarks>The middleware creates an activity only for a request that uses the icerpc protocol. The name of this
+/// activity is <c>{path}/{operation}</c>, and its tags are:
+/// <list type="bullet">
+/// <item><description><c>rpc.system.name</c>: <c>icerpc</c>.</description></item>
+/// <item><description><c>rpc.method</c>: the operation name.</description></item>
+/// <item><description><c>icerpc.path</c>: the path carried by the request.</description></item>
+/// <item><description><c>rpc.status_code</c>: the status code sent to the caller.</description></item>
+/// <item><description><c>error.type</c>: a status code that reports a server failure.</description></item>
+/// <item><description><c>network.peer.address</c> and <c>network.peer.port</c>: the IP address and the port of the
+/// client.</description></item>
+/// <item><description><c>icerpc.canceled</c>: <see langword="true" /> when the dispatch was canceled.
+/// </description></item>
+/// </list>
+/// An activity with an <c>error.type</c> tag has the <see cref="ActivityStatusCode.Error" /> status; the status of any
+/// other activity is unset. The <see cref="StatusCode.ApplicationError" />, <see cref="StatusCode.NotFound" />,
 /// <see cref="StatusCode.InvalidData" />, <see cref="StatusCode.TruncatedPayload" /> and
-/// <see cref="StatusCode.Unauthorized" />) leaves the activity status unset. Any other failure status code sets the
-/// activity status to <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure. A
-/// cancellation by the token passed to <see cref="DispatchAsync" /> is not a failure: the <c>icerpc.canceled</c> tag
-/// is set to <see langword="true" />, the activity status stays unset, and the <c>rpc.status_code</c> tag is not set
-/// since the caller receives no response.</remarks>
+/// <see cref="StatusCode.Unauthorized" /> status codes report a problem with the request, not a server failure.
+/// </remarks>
 /// <seealso cref="TelemetryRouterExtensions" />
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryMiddleware : IDispatcher
@@ -44,11 +51,9 @@ public class TelemetryMiddleware : IDispatcher
     {
         if (request.Protocol.HasFields)
         {
-            string name = $"{request.Path}/{request.Operation}";
-            using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Server) ?? new Activity(name);
-            activity.AddTag("rpc.system", "icerpc");
-            activity.AddTag("rpc.service", request.Path);
-            activity.AddTag("rpc.method", request.Operation);
+            using Activity activity =
+                _activitySource.CreateRequestActivity(ActivityKind.Server, request.Path, request.Operation);
+            activity.SetNetworkPeer(request.ConnectionContext);
             if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
             {
                 RestoreActivityContext(buffer, activity);

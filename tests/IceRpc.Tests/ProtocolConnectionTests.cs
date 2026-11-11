@@ -793,6 +793,32 @@ public sealed class ProtocolConnectionTests
         _ = await responseTask;
     }
 
+    /// <summary>Verifies that the response returned by an invocation carries the transport connection information of
+    /// the connection, including the response of a oneway request, which the peer doesn't send.</summary>
+    [Test]
+    [TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    public async Task Response_carries_transport_connection_information(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> connectTask =
+            sut.Client.ConnectAsync();
+        await sut.AcceptAsync();
+        (TransportConnectionInformation connectionInformation, _) = await connectTask;
+
+        using var request = new OutgoingRequest(new ServiceAddress(protocol)) { IsOneway = isOneway };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.ConnectionContext.TransportConnectionInformation, Is.EqualTo(connectionInformation));
+    }
+
     [Test]
     [TestCaseSource(nameof(Protocols))]
     public async Task Receive_payload(Protocol protocol)

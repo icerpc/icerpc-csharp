@@ -43,13 +43,89 @@ public sealed class TelemetryInterceptorTests
         Assert.That(invocationActivity.OperationName, Is.EqualTo($"{request.ServiceAddress.Path}/{request.Operation}"));
         Assert.That(invocationActivity.Tags, Is.Not.Null);
         var tags = invocationActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
-        Assert.That(tags.ContainsKey("rpc.system"), Is.True);
-        Assert.That(tags["rpc.system"], Is.EqualTo("icerpc"));
-        Assert.That(tags.ContainsKey("rpc.service"), Is.True);
-        Assert.That(tags["rpc.service"], Is.EqualTo(request.ServiceAddress.Path));
-        Assert.That(tags.ContainsKey("rpc.method"), Is.True);
-        Assert.That(tags["rpc.method"], Is.EqualTo(request.Operation));
+        Assert.That(tags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
+        Assert.That(tags, Does.ContainKey("rpc.method").WithValue(request.Operation));
+        Assert.That(tags, Does.ContainKey("icerpc.path").WithValue(request.ServiceAddress.Path));
         Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.True);
+    }
+
+    /// <summary>Verifies that a sampler sees the tags that identify the request.</summary>
+    [Test]
+    public async Task Invocation_activity_sampler_sees_request_tags()
+    {
+        // Arrange
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+
+        Dictionary<string, object?>? samplerTags = null;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => ReferenceEquals(source, activitySource),
+            Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
+            {
+                samplerTags = activityOptions.Tags?.ToDictionary(entry => entry.Key, entry => entry.Value);
+                return ActivitySamplingResult.AllData;
+            }
+        };
+        ActivitySource.AddActivityListener(activityListener);
+
+        var sut = new TelemetryInterceptor(invoker, activitySource);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(samplerTags, Is.Not.Null);
+        Assert.That(samplerTags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
+        Assert.That(samplerTags, Does.ContainKey("rpc.method").WithValue("Op"));
+        Assert.That(samplerTags, Does.ContainKey("icerpc.path").WithValue("/path"));
+    }
+
+    /// <summary>Verifies that the interceptor starts an invocation activity and encodes its context in the
+    /// <see cref="RequestFieldKey.TraceContext" /> field when no listener samples the activities of the activity
+    /// source.</summary>
+    [Test]
+    public async Task Invocation_activity_propagates_trace_context_without_listener()
+    {
+        // Arrange
+        Activity? invocationActivity = null;
+        Activity? decodedActivity = null;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            invocationActivity = Activity.Current;
+            decodedActivity = DecodeTraceContextField(request.Fields, "/op");
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
+        });
+
+        using var activitySource = new ActivitySource("Test Activity Source");
+        var sut = new TelemetryInterceptor(invoker, activitySource);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+
+        // Start an activity to make it the current activity.
+        using var testActivity = new Activity("TestActivity");
+        testActivity.Start();
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(invocationActivity, Is.Not.Null);
+        Assert.That(invocationActivity!.OperationName, Is.EqualTo("/path/Op"));
+        Assert.That(invocationActivity.ParentId, Is.EqualTo(testActivity.Id));
+        var tags = invocationActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
+        Assert.That(tags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
+        Assert.That(tags, Does.ContainKey("rpc.method").WithValue("Op"));
+        Assert.That(tags, Does.ContainKey("icerpc.path").WithValue("/path"));
+        Assert.That(decodedActivity, Is.Not.Null);
+        Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity.Id));
     }
 
     /// <summary>Verifies that the invocation activity context is encoded as a field with the
@@ -255,6 +331,8 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome.StatusDescription, Is.EqualTo(exception.Message));
         Assert.That(outcome.Tags, Does.ContainKey("error.type").WithValue(exception.GetType().FullName));
         Assert.That(outcome.Tags, Does.Not.ContainKey("rpc.status_code"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("network.peer.address"));
+        Assert.That(outcome.Tags, Does.Not.ContainKey("network.peer.port"));
         Assert.That(outcome.Tags, Does.Not.ContainKey("icerpc.canceled"));
     }
 
@@ -298,7 +376,7 @@ public sealed class TelemetryInterceptorTests
     }
 
     /// <summary>Verifies that a response with the <see cref="StatusCode.Ok" /> status code leaves the invocation
-    /// activity status unset and records the status code.</summary>
+    /// activity status unset and records the status code and the network address of the server.</summary>
     [Test]
     public async Task Invocation_activity_records_ok_response()
     {
@@ -326,6 +404,8 @@ public sealed class TelemetryInterceptorTests
         Assert.That(outcome!.Status, Is.EqualTo(ActivityStatusCode.Unset));
         Assert.That(outcome.StatusDescription, Is.Null);
         Assert.That(outcome.Tags, Does.ContainKey("rpc.status_code").WithValue("Ok"));
+        Assert.That(outcome.Tags, Does.ContainKey("network.peer.address").WithValue("10.10.10.10"));
+        Assert.That(outcome.Tags, Does.ContainKey("network.peer.port").WithValue(11000));
         Assert.That(outcome.Tags, Does.Not.ContainKey("error.type"));
     }
 
