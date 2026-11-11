@@ -36,10 +36,10 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends libmsquic; \
     rm -rf /var/lib/apt/lists/*
 
-# The .NET 11 SDK. Ubuntu does not package .NET previews. CI installs the latest 11.0 preview
-# (.github/actions/setup-dotnet); the version is pinned here, so that a new preview does not break the scanner's
-# periodic rebuilds without anyone noticing. Update it to the SDK that CI builds with.
-ARG DOTNET_SDK_VERSION=11.0.100-rc.3.26522.148
+# The .NET 11 SDK. CI installs the latest 11.0 SDK (.github/actions/setup-dotnet); the version is pinned here, so
+# that a new SDK release does not break the scanner's periodic rebuilds without anyone noticing. Update it to the SDK
+# that CI builds with.
+ARG DOTNET_SDK_VERSION=11.0.100
 RUN set -eux; \
     curl -fsSL -o /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh; \
     bash /tmp/dotnet-install.sh --version "$DOTNET_SDK_VERSION" --install-dir "$DOTNET_ROOT"; \
