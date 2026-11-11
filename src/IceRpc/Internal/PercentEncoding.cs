@@ -9,9 +9,9 @@ namespace IceRpc.Internal;
 /// <summary>Converts the strings of Ice identities and facets to and from the canonical percent-encoded form of a URI
 /// path segment or fragment.</summary>
 /// <remarks>The canonical form leaves unescaped exactly the characters RFC 3986 allows in the URI component, and
-/// percent-encodes every other byte of the UTF-8 string with uppercase hex digits. Each string has exactly one
-/// encoding, which case normalization and percent-encoding normalization (RFC 3986 section 6.2.2) leave unchanged.
-/// </remarks>
+/// percent-encodes every other byte of the UTF-8 string with uppercase hex digits. A string has a single canonical
+/// form, and a URI parser that normalizes (RFC 3986 section 6.2.2) does not alter this form: the hex digits are
+/// already uppercase, and no unreserved character is escaped.</remarks>
 internal static class PercentEncoding
 {
     /// <summary>Gets the characters that a URI path segment contains unescaped: the unreserved characters, the
@@ -23,6 +23,8 @@ internal static class PercentEncoding
     /// <c>/</c> and <c>?</c>.</summary>
     internal static SearchValues<char> FragmentChars { get; } =
         SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!$&'()*+,;=:@/?");
+
+    private const string HexDigits = "0123456789ABCDEF";
 
     /// <summary>Percent-encodes a string in canonical form.</summary>
     /// <param name="value">The string to encode.</param>
@@ -103,6 +105,4 @@ internal static class PercentEncoding
         decoded = Encoding.UTF8.GetString(bytes);
         return true;
     }
-
-    private const string HexDigits = "0123456789ABCDEF";
 }

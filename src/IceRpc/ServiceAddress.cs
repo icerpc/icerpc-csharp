@@ -239,6 +239,9 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             _fragment = fragment;
         }
 
+        /// <summary>Checks if <paramref name="fragment" /> is the fragment of an Ice facet.</summary>
+        private static void CheckFragment(string fragment) => _ = fragment.ToFacet();
+
         /// <summary>Checks if a path is the path of an Ice identity.</summary>
         /// <remarks>The default path <c>/</c> is valid: sending a request to the null identity is in itself ok. With
         /// an Ice server, it results in a dispatch exception with status code <see cref="StatusCode.NotFound" />.
@@ -697,9 +700,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         }
         return altServerAddresses;
     }
-
-    /// <summary>Checks if <paramref name="fragment" /> is the fragment of an Ice facet.</summary>
-    private static void CheckFragment(string fragment) => _ = fragment.ToFacet();
 
     private static bool IsValid(string s, SearchValues<char> invalidChars)
     {

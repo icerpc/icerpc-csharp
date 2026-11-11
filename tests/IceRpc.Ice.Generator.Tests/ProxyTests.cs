@@ -129,7 +129,7 @@ public partial class ProxyTests
                 var encoder = new IceEncoder(bufferWriter);
                 encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
             },
-            Throws.TypeOf<FormatException>());
+            Throws.TypeOf<ArgumentException>());
 
     [Test]
     public async Task Downcast_proxy_with_as_async_succeeds()
