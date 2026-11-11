@@ -2206,9 +2206,9 @@ public class SlicTransportTests
         Assert.That(totalRead, Is.EqualTo(payload.Length));
     }
 
-    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
-    /// bidirectional stream is sent when the peer closes its reads while the endStream write is parked on the exhausted
-    /// peer window, so that the peer's stream is released.</summary>
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the closure of reads on a remote bidirectional
+    /// stream is sent when the peer closes its reads while the endStream write is parked on the exhausted peer window,
+    /// so that the peer's stream is released.</summary>
     [Test]
     [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_during_end_stream_write(
@@ -2236,9 +2236,9 @@ public class SlicTransportTests
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
     }
 
-    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
-    /// bidirectional stream is sent when the peer closes its reads before the endStream write is attempted, so that
-    /// the peer's stream is released.</summary>
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the closure of reads on a remote bidirectional
+    /// stream is sent when the peer closes its reads before the endStream write is attempted, so that the peer's stream
+    /// is released.</summary>
     [Test]
     [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_before_end_stream_write(
@@ -2262,9 +2262,9 @@ public class SlicTransportTests
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
     }
 
-    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
-    /// bidirectional stream is sent when the peer closes its reads and the output is then completed without an
-    /// endStream write, so that the peer's stream is released.</summary>
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the closure of reads on a remote bidirectional
+    /// stream is sent when the peer closes its reads and the output is then completed without an endStream write, so
+    /// that the peer's stream is released.</summary>
     [Test]
     [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_without_end_stream_write(
@@ -2283,9 +2283,9 @@ public class SlicTransportTests
         await CompleteServerOutputAndAssertClientStreamReleasedAsync(sut, serverStream, cancellationToken);
     }
 
-    /// <summary>Verifies that the StreamReadsClosed frame deferred by the graceful closure of reads on a remote
-    /// bidirectional stream is sent when the peer sent its StreamLast frame with an endStream write and closes its
-    /// reads before the remote stream closes its writes, so that the peer's stream is released.</summary>
+    /// <summary>Verifies that the StreamReadsClosed frame deferred by the closure of reads on a remote bidirectional
+    /// stream is sent when the peer sent its StreamLast frame with an endStream write and closes its reads before the
+    /// remote stream closes its writes, so that the peer's stream is released.</summary>
     [Test]
     [CancelAfter(HangGuardTimeout)]
     public async Task Deferred_reads_closed_frame_is_sent_when_peer_closes_reads_after_its_end_stream_write(

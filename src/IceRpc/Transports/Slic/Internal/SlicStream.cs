@@ -100,7 +100,12 @@ internal class SlicStream : IMultiplexedStream
     /// <see cref="SlicPipeReader.Complete" />.</summary>
     internal void AbortReads()
     {
-        if (IsStarted && !_state.HasFlag(State.ReadsClosed))
+        if (_state.HasFlag(State.ReadsClosed))
+        {
+            return;
+        }
+
+        if (IsStarted)
         {
             if (IsRemote)
             {
@@ -130,6 +135,7 @@ internal class SlicStream : IMultiplexedStream
         }
         else
         {
+            // The peer knows nothing about an unstarted stream, so its reads are closed right away.
             TrySetReadsClosed();
         }
     }
