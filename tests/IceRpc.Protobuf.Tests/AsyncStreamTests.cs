@@ -89,7 +89,7 @@ public class AsyncStreamTests
 
         stream.Dispose();
 
-        Assert.ThrowsAsync<ObjectDisposedException>(async () => await moveNext);
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await moveNext);
 
         await enumerator.DisposeAsync();
         pipe.Writer.Complete();

@@ -97,9 +97,9 @@ public sealed partial class ProtocolBridgingTests
             Assert.That(await targetService.OnewayArgument.Task, Is.EqualTo(42));
             targetService.OnewayArgument = new TaskCompletionSource<int>();
 
-            Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
+            await Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
 
-            var dispatchException = Assert.ThrowsAsync<DispatchException>(
+            var dispatchException = await Assert.ThrowsAsync<DispatchException>(
                 () => proxy.OpNotFoundExceptionAsync());
 
             Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.NotFound));

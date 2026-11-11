@@ -268,7 +268,7 @@ public abstract class DuplexConnectionConformanceTests
         disposedPeer.Dispose();
 
         // Act/Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await readFrom.ReadAsync(new byte[1], default));
         Assert.That(
             exception!.IceRpcError,

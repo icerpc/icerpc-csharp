@@ -58,7 +58,7 @@ public sealed partial class ExceptionTests
 
     [Test]
     [TestCaseSource(nameof(SliceDispatchThrowsMultipleExceptionsSource))]
-    public void Slice_operation_throws_exception_with_multiple_exceptions_in_specification(
+    public async Task Slice_operation_throws_exception_with_multiple_exceptions_in_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
@@ -68,7 +68,7 @@ public sealed partial class ExceptionTests
         Type expectedType = (throwException is MyException or EmptyException) &&
             expectedStatusCode == StatusCode.ApplicationError ? throwException.GetType() : typeof(DispatchException);
 
-        var exception = Assert.ThrowsAsync(
+        var exception = await Assert.ThrowsAsync(
             expectedType,
             () => proxy.OpThrowsMultipleExceptionsAsync());
 
@@ -81,7 +81,7 @@ public sealed partial class ExceptionTests
 
     [Test]
     [TestCaseSource(nameof(SliceDispatchThrowsMyExceptionSource))]
-    public void Slice_operation_throws_exception_with_my_exception_specification(
+    public async Task Slice_operation_throws_exception_with_my_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
@@ -91,7 +91,7 @@ public sealed partial class ExceptionTests
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
 
-        var exception = Assert.ThrowsAsync(
+        var exception = await Assert.ThrowsAsync(
                 expectedType,
                 () => proxy.OpThrowsMyExceptionAsync());
 
@@ -104,48 +104,48 @@ public sealed partial class ExceptionTests
 
     [Test]
     [TestCaseSource(nameof(SliceDispatchThrowsNothingSource))]
-    public void Slice_operation_throws_exception_with_no_exception_specification(
+    public async Task Slice_operation_throws_exception_with_no_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
         var proxy = new IceExceptionOperationsProxy(invoker);
 
-        DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
+        DispatchException? exception = await Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
     [Test]
-    public void Slice_operation_throws_invalid_data_when_exception_not_in_specification()
+    public async Task Slice_operation_throws_invalid_data_when_exception_not_in_specification()
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new EmptyException()));
         var proxy = new AltIceExceptionOperationsProxy(invoker);
 
         InvalidDataException? exception =
-            Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMultipleExceptionsAsync());
+            await Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMultipleExceptionsAsync());
         Assert.That(exception.InnerException, Is.InstanceOf<EmptyException>());
     }
 
     [Test]
-    public void Slice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
+    public async Task Slice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(1, 2)));
         var proxy = new AltIceExceptionOperationsProxy(invoker);
 
         InvalidDataException? exception =
-            Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMyExceptionAsync());
+            await Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMyExceptionAsync());
         Assert.That(exception.InnerException, Is.InstanceOf<MyException>());
     }
 
     /// <summary>Verifies that the user can define a custom message that uses the exception fields.</summary>
     [Test]
-    public void Slice_exception_can_have_custom_message()
+    public async Task Slice_exception_can_have_custom_message()
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(5, 6)));
         var proxy = new IceExceptionOperationsProxy(invoker);
 
-        var exception = Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
+        var exception = await Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
         Assert.That(exception.Message, Is.EqualTo("MyException: i=5, j=6"));
     }
 

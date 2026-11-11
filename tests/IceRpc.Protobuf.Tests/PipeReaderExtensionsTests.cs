@@ -38,7 +38,7 @@ public partial class PipeReaderExtensionsTests
     }
 
     [Test]
-    public void Read_message_throws_invalid_data_exception_when_max_message_length_is_exceeded()
+    public async Task Read_message_throws_invalid_data_exception_when_max_message_length_is_exceeded()
     {
         // Arrange
         // A StringValue with 1024 ASCII chars encodes to 1027 bytes; 1026 is one byte short of the limit.
@@ -46,7 +46,7 @@ public partial class PipeReaderExtensionsTests
         var pipeReader = stringValue.EncodeAsLengthPrefixedMessage(new PipeOptions(pauseWriterThreshold: 0));
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidDataException>(async () =>
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipeReader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1026,
@@ -56,7 +56,7 @@ public partial class PipeReaderExtensionsTests
     }
 
     [Test]
-    public void Decode_message_throws_invalid_data_exception_when_payload_has_trailing_bytes()
+    public async Task Decode_message_throws_invalid_data_exception_when_payload_has_trailing_bytes()
     {
         // Arrange
         var pipe = new Pipe();
@@ -65,7 +65,7 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidDataException>(async () =>
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
@@ -75,7 +75,7 @@ public partial class PipeReaderExtensionsTests
     }
 
     [Test]
-    public void Decode_message_throws_invalid_data_exception_when_payload_has_concatenated_messages()
+    public async Task Decode_message_throws_invalid_data_exception_when_payload_has_concatenated_messages()
     {
         // Arrange
         var pipe = new Pipe();
@@ -84,7 +84,7 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidDataException>(async () =>
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
@@ -97,7 +97,7 @@ public partial class PipeReaderExtensionsTests
     /// <see cref="NotSupportedException" />. The message is well-formed Protobuf, but IceRPC doesn't
     /// decompress it. The protocol layer maps this to <c>StatusCode.NotSupported</c>.</summary>
     [Test]
-    public void Decode_message_throws_not_supported_exception_for_compressed_flag()
+    public async Task Decode_message_throws_not_supported_exception_for_compressed_flag()
     {
         // Arrange
         var pipe = new Pipe();
@@ -105,7 +105,7 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        Assert.ThrowsAsync<NotSupportedException>(async () =>
+        await Assert.ThrowsAsync<NotSupportedException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
@@ -119,7 +119,7 @@ public partial class PipeReaderExtensionsTests
     /// silently accepted as if uncompressed.</summary>
     [TestCase((byte)2)]
     [TestCase((byte)0xFF)]
-    public void Decode_message_throws_invalid_data_exception_for_reserved_compression_flag(byte compressionFlag)
+    public async Task Decode_message_throws_invalid_data_exception_for_reserved_compression_flag(byte compressionFlag)
     {
         // Arrange
         var pipe = new Pipe();
@@ -127,7 +127,7 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidDataException>(async () =>
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
@@ -140,7 +140,7 @@ public partial class PipeReaderExtensionsTests
     /// in the unsigned 32-bit envelope) is rejected as <see cref="InvalidDataException" /> before reaching
     /// <c>ReadAtLeastAsync</c>, which only accepts an int-sized length.</summary>
     [Test]
-    public void Decode_message_throws_invalid_data_exception_for_message_length_exceeding_int32_max()
+    public async Task Decode_message_throws_invalid_data_exception_for_message_length_exceeding_int32_max()
     {
         // Arrange
         var pipe = new Pipe();
@@ -148,7 +148,7 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidDataException>(async () =>
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
@@ -164,7 +164,7 @@ public partial class PipeReaderExtensionsTests
     /// <see cref="InvalidDataException" /> so the protocol layer maps it to <c>StatusCode.InvalidData</c>.
     /// </summary>
     [Test]
-    public void Decode_message_throws_invalid_data_exception_for_envelope_length_overrun()
+    public async Task Decode_message_throws_invalid_data_exception_for_envelope_length_overrun()
     {
         // Arrange: serialize a valid StringValue, claim one extra byte in the envelope length, and append a
         // single 0xFF — a varint with the continuation bit set and no follow-up byte, which Protobuf treats
@@ -178,7 +178,7 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(async () =>
+        InvalidDataException? exception = await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,

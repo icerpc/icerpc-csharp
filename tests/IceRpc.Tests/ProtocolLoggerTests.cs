@@ -113,7 +113,7 @@ public sealed class ProtocolLoggerTests
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
 
         // Act
-        Assert.ThrowsAsync<IceRpcException>(async () => await clientConnection.ConnectAsync(default));
+        await Assert.ThrowsAsync<IceRpcException>(async () => await clientConnection.ConnectAsync(default));
 
         // Assert
         Assert.That(serverLoggerFactory.Logger, Is.Not.Null);
@@ -171,7 +171,7 @@ public sealed class ProtocolLoggerTests
         await clientConnection.DisposeAsync();
 
         // Assert
-        Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
+        await Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
         Assert.That(serverLoggerFactory.Logger, Is.Not.Null);
 
         TestLoggerEntry? entry;

@@ -14,7 +14,7 @@ public class IncomingResponseTests
         IActivator.FromAssembly(typeof(IncomingResponseTests).Assembly);
 
     [Test]
-    public void Decoded_dispatch_exception_from_incoming_void_response_has_convert_to_internal_error_set_to_true()
+    public async Task Decoded_dispatch_exception_from_incoming_void_response_has_convert_to_internal_error_set_to_true()
     {
         // Arrange
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -25,14 +25,14 @@ public class IncomingResponseTests
             "deadline expired");
 
         // Act/Assert
-        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
+        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeVoidReturnValueAsync(request, InvalidProxy.Instance, _defaultActivator));
         Assert.That(decodedException, Is.Not.Null);
         Assert.That(decodedException!.ConvertToInternalError, Is.True);
     }
 
     [Test]
-    public void Decoded_dispatch_exception_from_incoming_response_has_convert_to_internal_error_set_to_true()
+    public async Task Decoded_dispatch_exception_from_incoming_response_has_convert_to_internal_error_set_to_true()
     {
         // Arrange
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -43,7 +43,7 @@ public class IncomingResponseTests
             "deadline expired");
 
         // Act/Assert
-        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
+        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeReturnValueAsync(
                 request,
                 InvalidProxy.Instance,

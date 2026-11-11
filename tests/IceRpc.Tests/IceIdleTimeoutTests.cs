@@ -111,13 +111,13 @@ public class IceIdleTimeoutTests
         if (serverShutdownRequested.IsCompleted)
         {
             // Unexpected
-            Assert.DoesNotThrowAsync(async () => await sut.Server.ShutdownAsync()); // to retrieve the error
+            await Assert.DoesNotThrowAsync(async () => await sut.Server.ShutdownAsync()); // to retrieve the error
             Assert.Fail("serverShutdownRequested completed unexpectedly.");
         }
         if (clientShutdownRequested.IsCompleted)
         {
             // Unexpected
-            Assert.DoesNotThrowAsync(async () => await sut.Client.ShutdownAsync()); // to retrieve the error
+            await Assert.DoesNotThrowAsync(async () => await sut.Client.ShutdownAsync()); // to retrieve the error
             Assert.Fail("clientShutdownRequested completed unexpectedly.");
         }
 

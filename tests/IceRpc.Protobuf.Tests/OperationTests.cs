@@ -263,7 +263,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public void Unary_rpc_throws_dispatch_exception()
+    public async Task Unary_rpc_throws_dispatch_exception()
     {
         // Arrange
         var invoker = new ColocInvoker(new InlineDispatcher(
@@ -278,14 +278,14 @@ public partial class OperationTests
         };
 
         // Act//Assert
-        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
+        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await client.UnaryOpAsync(message));
         Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
         Assert.That(decodedException.ConvertToInternalError, Is.True);
     }
 
     [Test]
-    public void Server_streaming_rpc_throws_dispatch_exception()
+    public async Task Server_streaming_rpc_throws_dispatch_exception()
     {
         // Arrange
         var invoker = new ColocInvoker(new InlineDispatcher(
@@ -294,7 +294,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(invoker);
 
         // Act//Assert
-        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
+        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await client.ServerStreamingOpAsync(new Empty()));
         Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
         Assert.That(decodedException.ConvertToInternalError, Is.True);
@@ -336,7 +336,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public void Unary_rpc_completes_request_and_response_payloads_upon_failure()
+    public async Task Unary_rpc_completes_request_and_response_payloads_upon_failure()
     {
         // Arrange
         PayloadPipeReaderDecorator? requestPayload = null;
@@ -365,7 +365,7 @@ public partial class OperationTests
         };
 
         // Act//Assert
-        Assert.ThrowsAsync<DispatchException>(async () => await client.UnaryOpAsync(message));
+        await Assert.ThrowsAsync<DispatchException>(async () => await client.UnaryOpAsync(message));
         Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
         Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
     }
@@ -418,7 +418,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public void Client_streaming_rpc_completes_request_and_response_payloads_upon_failure()
+    public async Task Client_streaming_rpc_completes_request_and_response_payloads_upon_failure()
     {
         // Arrange
         PayloadPipeReaderDecorator? requestPayload = null;
@@ -443,7 +443,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(pipeline);
 
         // Act/Assert
-        Assert.ThrowsAsync<DispatchException>(async () => await client.ClientStreamingOpAsync(GetDataAsync()));
+        await Assert.ThrowsAsync<DispatchException>(async () => await client.ClientStreamingOpAsync(GetDataAsync()));
         Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
         Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
 
@@ -498,7 +498,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public void Server_streaming_rpc_completes_request_and_response_payloads_upon_failure()
+    public async Task Server_streaming_rpc_completes_request_and_response_payloads_upon_failure()
     {
         // Arrange
         PayloadPipeReaderDecorator? requestPayload = null;
@@ -521,7 +521,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(pipeline);
 
         // Act/Assert
-        Assert.ThrowsAsync<DispatchException>(async () => await client.ServerStreamingOpAsync(new Empty()));
+        await Assert.ThrowsAsync<DispatchException>(async () => await client.ServerStreamingOpAsync(new Empty()));
         Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
         Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
     }
@@ -581,7 +581,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public void Bidi_streaming_rpc_completes_request_and_response_payloads_upon_failure()
+    public async Task Bidi_streaming_rpc_completes_request_and_response_payloads_upon_failure()
     {
         // Arrange
         PayloadPipeReaderDecorator? requestPayload = null;
@@ -606,7 +606,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(pipeline);
 
         // Act
-        Assert.ThrowsAsync<DispatchException>(async () => await client.BidiStreamingOpAsync(GetDataAsync()));
+        await Assert.ThrowsAsync<DispatchException>(async () => await client.BidiStreamingOpAsync(GetDataAsync()));
         Assert.That(requestPayload!.Completed.IsCompletedSuccessfully, Is.True);
         Assert.That(responsePayload!.Completed.IsCompletedSuccessfully, Is.True);
 

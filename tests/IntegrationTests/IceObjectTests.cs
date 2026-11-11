@@ -35,7 +35,7 @@ public partial class IceObjectTests
         Assert.That(await proxy.IceIsAAsync("::Ice::Object"), Is.True);
         Assert.That(await proxy.IceIsAAsync("::IceRpc::IntegrationTests::Pingable"), Is.True);
         Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
-        Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
+        await Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
     [Service]
