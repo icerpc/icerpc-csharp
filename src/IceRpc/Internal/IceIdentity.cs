@@ -8,43 +8,53 @@ internal readonly partial record struct IceIdentity
     /// <returns>The identity converted into a path string.</returns>
     public override readonly string ToString() => ToPath();
 
-    /// <summary>Parses a path into an identity, including the null/empty identity.</summary>
-    /// <param name="path">The path (percent escaped).</param>
+    /// <summary>Parses a path into an identity, including the null identity.</summary>
+    /// <param name="path">The path: <c>/</c> for the null identity, <c>/name</c>, or <c>/category/name</c>, with each
+    /// segment percent-encoded in the canonical form produced by <see cref="ToPath" />.</param>
     /// <returns>The corresponding identity.</returns>
+    /// <exception cref="FormatException">Thrown when <paramref name="path" /> is not the path of an identity.
+    /// </exception>
     internal static IceIdentity Parse(string path)
     {
+        if (path == "/")
+        {
+            return new("", "");
+        }
+
         if (path.Length == 0 || path[0] != '/')
         {
-            throw new ArgumentException("path must start with a /", nameof(path));
+            throw new FormatException($"Invalid identity path '{path}': the path must start with '/'.");
         }
 
-        string workingPath = path[1..]; // removes leading /.
+        ReadOnlySpan<char> segments = path.AsSpan(1);
+        int slash = segments.IndexOf('/');
+        ReadOnlySpan<char> categorySegment = slash == -1 ? [] : segments[..slash];
+        ReadOnlySpan<char> nameSegment = slash == -1 ? segments : segments[(slash + 1)..];
 
-        int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
-
-        string name;
-        string category = "";
-
-        if (firstSlash == -1)
+        if (nameSegment.Contains('/'))
         {
-            // Name only
-            name = Uri.UnescapeDataString(workingPath);
+            throw new FormatException(
+                $"Invalid identity path '{path}': the path must have the form '/name' or '/category/name'.");
         }
-        else
+
+        if (nameSegment.IsEmpty || (slash != -1 && categorySegment.IsEmpty))
         {
-            if (firstSlash != workingPath.LastIndexOf('/', StringComparison.Ordinal))
-            {
-                throw new FormatException($"Too many slashes in path '{path}'.");
-            }
-
-            name = Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]);
-            category = Uri.UnescapeDataString(workingPath[0..firstSlash]);
+            throw new FormatException($"Invalid identity path '{path}': the path contains an empty segment.");
         }
 
-        return name.Length == 0 ? new("", "") : new(name, category);
+        if (!PercentEncoding.TryDecode(nameSegment, PercentEncoding.PathSegmentChars, out string name) ||
+            !PercentEncoding.TryDecode(categorySegment, PercentEncoding.PathSegmentChars, out string category))
+        {
+            throw new FormatException(
+                $"Invalid identity path '{path}': each segment must percent-encode, with uppercase hex digits, the UTF-8 bytes of exactly the characters that are not valid in a URI path segment.");
+        }
+
+        return new(name, category);
     }
 
     /// <summary>Converts this identity into a path.</summary>
+    /// <returns><c>/</c> for the null identity, or <c>/name</c> or <c>/category/name</c>, with each segment
+    /// percent-encoded in canonical form.</returns>
     internal readonly string ToPath()
     {
         if (Name.Length == 0)
@@ -52,8 +62,9 @@ internal readonly partial record struct IceIdentity
             return "/";
         }
 
+        string name = PercentEncoding.Encode(Name, PercentEncoding.PathSegmentChars);
         return Category.Length > 0 ?
-            $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
-            $"/{Uri.EscapeDataString(Name)}";
+            $"/{PercentEncoding.Encode(Category, PercentEncoding.PathSegmentChars)}/{name}" :
+            $"/{name}";
     }
 }

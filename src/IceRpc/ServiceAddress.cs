@@ -52,18 +52,13 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     throw new InvalidOperationException(
                         $"Cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty.");
                 }
-                else if (_path.StartsWith("//", StringComparison.Ordinal))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot clear {nameof(ServerAddress)} when {nameof(Path)} starts with '//'.");
-                }
                 _serverAddress = value;
             }
         }
 
         /// <summary>Gets or initializes the path of this service address.</summary>
-        /// <value>The path of this service address, <c>/category/name</c> or <c>/name</c> for an Ice identity.
-        /// Defaults to <c>/</c>.</value>
+        /// <value>The path of this service address, the path of an Ice identity: <c>/category/name</c> or
+        /// <c>/name</c>, in the form returned by <c>Identity.ToPath</c>. Defaults to <c>/</c>.</value>
         public string Path
         {
             get => _path;
@@ -77,11 +72,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 catch (FormatException exception)
                 {
                     throw new ArgumentException("Invalid path.", nameof(value), exception);
-                }
-                if (_serverAddress is null && value.StartsWith("//", StringComparison.Ordinal))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot set a {nameof(Path)} that starts with '//' on a service address without a server address.");
                 }
                 _path = value;
             }
@@ -115,8 +105,9 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         }
 
         /// <summary>Gets or initializes the fragment.</summary>
-        /// <value>The fragment of this service address, which corresponds to the Ice facet. Defaults to an empty
-        /// string.</value>
+        /// <value>The fragment of this service address, which corresponds to the Ice facet. It percent-encodes the
+        /// UTF-8 bytes of exactly the characters of the facet that are not valid in a URI fragment, with uppercase
+        /// hex digits. Defaults to an empty string.</value>
         public string Fragment
         {
             get => _fragment;
@@ -248,20 +239,14 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             _fragment = fragment;
         }
 
-        /// <summary>Checks if a path is a valid URI absolute path with at most two segments, the category and the
-        /// name of an Ice identity.</summary>
+        /// <summary>Checks if <paramref name="fragment" /> is the fragment of an Ice facet.</summary>
+        private static void CheckFragment(string fragment) => _ = fragment.ToFacet();
+
+        /// <summary>Checks if a path is the path of an Ice identity.</summary>
         /// <remarks>The default path <c>/</c> is valid: sending a request to the null identity is in itself ok. With
         /// an Ice server, it results in a dispatch exception with status code <see cref="StatusCode.NotFound" />.
         /// </remarks>
-        private static void CheckIcePath(string path)
-        {
-            CheckPath(path);
-            int firstSlash = path.IndexOf('/', 1, StringComparison.Ordinal);
-            if (firstSlash != -1 && firstSlash != path.LastIndexOf('/', StringComparison.Ordinal))
-            {
-                throw new FormatException($"Too many slashes in path '{path}'.");
-            }
-        }
+        private static void CheckIcePath(string path) => _ = IceIdentity.Parse(path);
 
         /// <summary>Percent-encodes only the characters that are not valid in a URI query parameter value:
         /// characters outside the printable ASCII range <c>\x21..\x7E</c>, the characters that are invalid in a
@@ -551,7 +536,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
     // The characters that are not valid in a query parameter value, plus '%'.
     private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&\\^`{|}");
-    private static readonly SearchValues<char> _notValidInFragment = SearchValues.Create("\"<>\\^`{|}");
     private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?\\^`{|}");
 
     private readonly object? _value;
@@ -715,18 +699,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             }
         }
         return altServerAddresses;
-    }
-
-    /// <summary>Checks if <paramref name="fragment" /> is a properly escaped URI fragment, i.e. it contains only
-    /// unreserved characters, reserved characters, and '%'.</summary>
-    /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
-    private static void CheckFragment(string fragment)
-    {
-        if (!IsValid(fragment, _notValidInFragment))
-        {
-            throw new FormatException(
-                $"Invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters, and '%'.");
-        }
     }
 
     private static bool IsValid(string s, SearchValues<char> invalidChars)

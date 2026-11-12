@@ -45,7 +45,19 @@ public static class IceProxyIceEncoderExtensions
         // - a sequence of server addresses (can be empty)
         // - an adapter ID string present only when the sequence of server addresses is empty
 
-        var identity = Identity.Parse(value.Path);
+        Identity identity;
+        try
+        {
+            identity = Identity.Parse(value.Path);
+        }
+        catch (FormatException exception)
+        {
+            throw new ArgumentException(
+                $"Cannot encode a service address with path '{value.Path}', which is not the path of an Ice identity.",
+                nameof(value),
+                exception);
+        }
+
         if (identity.Name.Length == 0)
         {
             throw new ArgumentException(

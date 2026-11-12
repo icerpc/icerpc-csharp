@@ -212,6 +212,19 @@ public class ServiceAddressTests
             "ice://host/s1/s2/s3",          // too many slashes in path
             "icerpc:////identity",          // path starts with // without a server address
             "ice:////identity",             // path starts with // without a server address
+            "ice://host//identity",         // empty category
+            "ice://host/cat/",              // empty name
+            "ice://host//",                 // empty category and name
+            "ice:/a%3Ab",                   // escaped character that is valid unescaped in a path segment
+            "ice:/a%2fb",                   // lowercase hex digits
+            "ice:/a[b]",                    // character that is not valid unescaped in a path segment
+            "ice:/%FF",                     // escaped bytes that are not UTF-8
+            "ice:/identity#a%3Ab",          // escaped character that is valid unescaped in a fragment
+            "ice:/identity#a%2Fb",          // escaped character that is valid unescaped in a fragment
+            "ice:/identity#a%2fb",          // lowercase hex digits
+            "ice:/identity#a[b]",           // character that is not valid unescaped in a fragment
+            "ice:/identity#a#b",            // character that is not valid unescaped in a fragment
+            "ice:/identity#%FF",            // escaped bytes that are not UTF-8
             "ice:/path?alt-server=foo",     // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
             "ice:/path?adapter-id=foo&foo", // extra parameter
@@ -227,14 +240,13 @@ public class ServiceAddressTests
             ("icerpc:", "/", ""),
             ("ice:", "/", ""),
             ("ice://host.zeroc.com/identity#facet", "/identity", "facet"),
-            ("ice://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x"),
+            ("ice://host.zeroc.com/identity#facet/?!$x", "/identity", "facet/?!$x"),
             ("ice://host.zeroc.com/identity#", "/identity", ""),
-            ("ice://host.zeroc.com/identity#%24%23f", "/identity", "%24%23f"),
+            ("ice://host.zeroc.com/identity#$%23f", "/identity", "$%23f"),
             ("ice://host.zeroc.com/identity?xyz=false", "/identity", ""),
             ("ice://host.zeroc.com/identity?xyz=true", "/identity", ""),
-            ("ice://host/cat/", "/cat/", ""),
+            ("ice://host/cat:1/a@b", "/cat:1/a@b", ""),
             ("ice://host/", "/", ""),
-            ("ice://host//", "//", ""),
             ("ice:/path?adapter-id=foo", "/path", ""),
             ("icerpc://host.zeroc.com", "/", ""),
             ("icerpc://host.zeroc.com:1000/category/name", "/category/name", ""),
@@ -253,9 +265,10 @@ public class ServiceAddressTests
             ("ice:/location/identity#facet", "/location/identity", "facet"),
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
-            ("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F"),
-            ("ice://host.zeroc.com/foo##", "/foo", "#"),
-            ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!$'()*+,:;=@[]%20%2F"),
+            ("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@/? %23", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@/?%20%23"),
+            ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@? %23",
+             "/identity",
+             "%7F%E2%82%AC$%25/!$'()*+,:;=@?%20%23"),
             (@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!", ""), // \ becomes / another syntax for empty port
             ("icerpc://host.zeroc.com:/identity", "/identity", ""),
             ("icerpc://host.zeroc.com/identity?transport=100", "/identity", ""),
@@ -350,21 +363,19 @@ public class ServiceAddressTests
     }
 
     /// <summary>Verifies that the path of a service address without a server address cannot start with //.</summary>
-    [TestCase("icerpc")]
-    [TestCase("ice")]
-    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address(string protocol)
+    [Test]
+    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address()
     {
-        var serviceAddress = new ServiceAddress(Protocol.Parse(protocol));
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         Assert.That(() => serviceAddress with { Path = "//foo" }, Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the server address cannot be cleared when the path starts with //.</summary>
-    [TestCase("icerpc://localhost//foo")]
-    [TestCase("ice://localhost//foo")]
-    public void Cannot_clear_server_address_when_path_starts_with_double_slash(Uri uri)
+    [Test]
+    public void Cannot_clear_server_address_when_path_starts_with_double_slash()
     {
-        var serviceAddress = new ServiceAddress(uri);
+        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost//foo"));
 
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
     }
@@ -432,18 +443,23 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.ServerAddress, Is.Null);
     }
 
-    [Test]
-    public void Invalid_fragment_throws_exception()
+    [TestCase("foo<")]
+    [TestCase("a%3Ab")]
+    [TestCase("a%2fb")]
+    public void Invalid_fragment_throws_exception(string fragment)
     {
         // Arrange
         var serviceAddress = new ServiceAddress.Ice();
 
         // Act/Assert
-        Assert.That(() => serviceAddress with { Fragment = "foo<" }, Throws.ArgumentException);
+        Assert.That(() => serviceAddress with { Fragment = fragment }, Throws.ArgumentException);
     }
 
     [TestCase("icerpc", "/foo<")]
     [TestCase("ice", "/a/b/c")]
+    [TestCase("ice", "//foo")]
+    [TestCase("ice", "/cat/")]
+    [TestCase("ice", "/a%3Ab")]
     public void Invalid_path_throws_exception(string protocol, string path)
     {
         // Arrange
