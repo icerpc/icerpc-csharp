@@ -85,7 +85,7 @@ public class ServerTests
 
         await connection1.ConnectAsync();
 
-        var exception = Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
+        var exception = await Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
         Assert.That(
             exception!.IceRpcError,
             serverAddress.Protocol == Protocol.Ice ?
@@ -192,7 +192,7 @@ public class ServerTests
         var completedConnectTask = await Task.WhenAny(connectTask1, connectTask2, connectTask3);
 
         // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
+        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
         connectCts.Cancel();
 

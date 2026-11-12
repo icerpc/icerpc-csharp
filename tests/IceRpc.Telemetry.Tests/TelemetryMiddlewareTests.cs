@@ -393,7 +393,7 @@ public sealed class TelemetryMiddlewareTests
     /// failure response the caller receives, marks the dispatch activity as failed before it stops when this status
     /// code reports a server failure, and that the exception propagates unchanged.</summary>
     [TestCaseSource(nameof(ServerErrorExceptions))]
-    public void Dispatch_activity_records_server_error_exception(
+    public async Task Dispatch_activity_records_server_error_exception(
         Exception exception,
         string expectedStatusCode,
         string expectedErrorType,
@@ -420,7 +420,7 @@ public sealed class TelemetryMiddlewareTests
         };
 
         // Act
-        Exception? thrownException = Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
+        Exception? thrownException = await Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));
@@ -436,7 +436,7 @@ public sealed class TelemetryMiddlewareTests
     /// reports a problem with the request records this status code but leaves the dispatch activity status unset, like
     /// the equivalent response.</summary>
     [TestCaseSource(nameof(RequestErrorExceptions))]
-    public void Dispatch_activity_records_request_error_exception(Exception exception, string expectedStatusCode)
+    public async Task Dispatch_activity_records_request_error_exception(Exception exception, string expectedStatusCode)
     {
         // Arrange
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
@@ -459,7 +459,7 @@ public sealed class TelemetryMiddlewareTests
         };
 
         // Act
-        Exception? thrownException = Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
+        Exception? thrownException = await Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));

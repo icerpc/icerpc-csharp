@@ -300,7 +300,7 @@ public sealed class TelemetryInterceptorTests
     /// stops, and that the exception propagates unchanged. This includes a cancellation by a token other than the
     /// token passed to the interceptor.</summary>
     [TestCaseSource(nameof(InvocationExceptions))]
-    public void Invocation_activity_records_exception(Exception exception)
+    public async Task Invocation_activity_records_exception(Exception exception)
     {
         // Arrange
         var invoker = new InlineInvoker(async (request, cancellationToken) =>
@@ -322,7 +322,7 @@ public sealed class TelemetryInterceptorTests
         };
 
         // Act
-        Exception? thrownException = Assert.CatchAsync(async () => await sut.InvokeAsync(request, default));
+        Exception? thrownException = await Assert.CatchAsync(async () => await sut.InvokeAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));

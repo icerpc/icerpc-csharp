@@ -14,7 +14,7 @@ public sealed class DeadlineInterceptorTests
 {
     /// <summary>Verifies that the invocation throws TimeoutException when the invocation deadline expires.</summary>
     [Test]
-    public void Invocation_fails_after_the_deadline_expires()
+    public async Task Invocation_fails_after_the_deadline_expires()
     {
         // Arrange
         CancellationToken? token = null;
@@ -35,7 +35,7 @@ public sealed class DeadlineInterceptorTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, CancellationToken.None));
+        await Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, CancellationToken.None));
 
         // Assert
         Assert.That(hasDeadline, Is.True);
@@ -160,7 +160,7 @@ public sealed class DeadlineInterceptorTests
     }
 
     [Test]
-    public void Deadline_interceptor_can_enforce_application_deadline()
+    public async Task Deadline_interceptor_can_enforce_application_deadline()
     {
         // Arrange
         var invoker = new InlineInvoker(async (request, cancellationToken) =>
@@ -183,7 +183,7 @@ public sealed class DeadlineInterceptorTests
         using var tokenSource = new CancellationTokenSource();
 
         // Act/Assert
-        Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
+        await Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
     }
 
     /// <summary>Verifies that the interceptor encodes and enforces the same UTC instant regardless of the

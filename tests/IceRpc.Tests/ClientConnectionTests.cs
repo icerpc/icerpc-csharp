@@ -207,7 +207,7 @@ public class ClientConnectionTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act/Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
+        await Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
         server.Listen();
         Assert.That(async () => await connection!.ConnectAsync(), Throws.Nothing);
     }

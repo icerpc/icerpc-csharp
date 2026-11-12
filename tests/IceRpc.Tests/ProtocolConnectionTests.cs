@@ -684,7 +684,7 @@ public sealed class ProtocolConnectionTests
         _ = sut.Client.DisposeAsync().AsTask();
 
         // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
+        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 

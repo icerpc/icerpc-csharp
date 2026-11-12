@@ -218,7 +218,7 @@ public abstract class MultiplexedStreamConformanceTests
         await clientServerConnection.Server.CloseAsync(closeError, default);
 
         // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
+        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
         Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
@@ -255,7 +255,7 @@ public abstract class MultiplexedStreamConformanceTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Remote.Input.ReadAsync());
         Assert.That(
             exception?.IceRpcError,
