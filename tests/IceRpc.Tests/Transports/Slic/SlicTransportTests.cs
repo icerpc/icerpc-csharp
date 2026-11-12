@@ -186,7 +186,7 @@ public class SlicTransportTests
         Task acceptTask = sut.AcceptAsync(acceptCts.Token);
 
         // Act
-        Exception? caughtException;
+        Exception caughtException;
         try
         {
             caughtException = await Assert.CatchAsync(async () => await sut.Client.ConnectAsync(default));
@@ -234,7 +234,7 @@ public class SlicTransportTests
         Task clientConnectTask = sut.Client.ConnectAsync(clientConnectCts.Token);
 
         // Act
-        Exception? caughtException;
+        Exception caughtException;
         try
         {
             caughtException = await Assert.CatchAsync(async () => await sut.AcceptAsync());
@@ -293,9 +293,9 @@ public class SlicTransportTests
         }
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.IceRpcError),
             $"The test failed with an unexpected IceRpcError {exception}");
 
@@ -354,7 +354,7 @@ public class SlicTransportTests
         Task acceptTask = sut.AcceptAsync(acceptCts.Token);
 
         // Act
-        Exception? caughtException;
+        Exception caughtException;
         try
         {
             caughtException = await Assert.CatchAsync(async () => await sut.Client.ConnectAsync(connectCts.Token));
@@ -397,7 +397,7 @@ public class SlicTransportTests
         Task clientConnectTask = sut.Client.ConnectAsync(clientConnectCts.Token);
 
         // Act
-        Exception? caughtException;
+        Exception caughtException;
         try
         {
             caughtException = await Assert.CatchAsync(async () => await sut.AcceptAsync(connectCts.Token));
@@ -534,8 +534,8 @@ public class SlicTransportTests
         await WriteFrameAsync(duplexServerConnection, FrameType.Version, new VersionBody(new ulong[] { 3, 1 }).Encode);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
     }
 
@@ -789,8 +789,8 @@ public class SlicTransportTests
         await protocolAction(duplexClientConnection);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(exception.InnerException?.Message, Is.EqualTo(expectedErrorMessage));
     }
@@ -827,10 +827,10 @@ public class SlicTransportTests
         _ = await stream.Output.WriteAsync(new byte[1], default);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Server.AcceptStreamAsync(default));
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.IceRpcError),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -883,9 +883,9 @@ public class SlicTransportTests
             });
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await multiplexedServerConnection.ConnectAsync(default));
-        Assert.That(exception!.InnerException, Is.InstanceOf<InvalidDataException>());
+        Assert.That(exception.InnerException, Is.InstanceOf<InvalidDataException>());
         Assert.That(exception.InnerException!.Message, Does.Contain("cannot exceed"));
     }
 
@@ -952,8 +952,8 @@ public class SlicTransportTests
             (ref SliceEncoder encoder) => new StreamWindowUpdateBody(1).Encode(ref encoder));
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(
             exception.InnerException?.Message,
@@ -1006,8 +1006,8 @@ public class SlicTransportTests
             (ref SliceEncoder encoder) => new StreamWindowUpdateBody(1).Encode(ref encoder));
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(
             exception.InnerException?.Message,
@@ -1058,8 +1058,8 @@ public class SlicTransportTests
             (ref SliceEncoder encoder) => new StreamWindowUpdateBody(0).Encode(ref encoder));
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
         Assert.That(
             exception.InnerException?.Message,
@@ -1398,9 +1398,9 @@ public class SlicTransportTests
         await WriteOversizedFrameAsync(duplexClientConnection, frameType, 16_384);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await multiplexedServerConnection.ConnectAsync(default));
-        Assert.That(exception!.InnerException, Is.InstanceOf<InvalidDataException>());
+        Assert.That(exception.InnerException, Is.InstanceOf<InvalidDataException>());
         Assert.That(
             exception.InnerException!.Message,
             Does.Contain("exceeds the maximum allowed size"));
@@ -2617,8 +2617,8 @@ public class SlicTransportTests
         }
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await nextAcceptStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await nextAcceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
         Assert.That(
             exception.Message,
             Is.EqualTo("Received a Ping frame while 3 Pong frames are already queued for sending."));

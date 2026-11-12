@@ -10,9 +10,9 @@ public class ServerOptionsTests
     [TestCase(int.MinValue)]
     public void MaxConnections_rejects_negative_values(int value)
     {
-        ArgumentOutOfRangeException? exception = Assert.Throws<ArgumentOutOfRangeException>(
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(
             () => _ = new ServerOptions { MaxConnections = value });
-        Assert.That(exception!.ActualValue, Is.EqualTo(value));
+        Assert.That(exception.ActualValue, Is.EqualTo(value));
     }
 
     [TestCase(0)]
@@ -20,8 +20,8 @@ public class ServerOptionsTests
     [TestCase(int.MinValue)]
     public void MaxPendingConnections_rejects_non_positive_values(int value)
     {
-        ArgumentOutOfRangeException? exception = Assert.Throws<ArgumentOutOfRangeException>(
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(
             () => _ = new ServerOptions { MaxPendingConnections = value });
-        Assert.That(exception!.ActualValue, Is.EqualTo(value));
+        Assert.That(exception.ActualValue, Is.EqualTo(value));
     }
 }

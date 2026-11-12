@@ -47,7 +47,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // The client typically closes the transport connection after receiving AuthenticationException, and the
         // server then fails with an IceRpcException. Some TLS implementations instead report the client's alert as an
         // AuthenticationException during the server handshake.
-        Exception? exception = await Assert.CatchAsync(
+        Exception exception = await Assert.CatchAsync(
             async () =>
             {
                 sut.Client.Dispose();

@@ -278,7 +278,7 @@ public partial class OperationTests
         };
 
         // Act//Assert
-        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
+        DispatchException decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await client.UnaryOpAsync(message));
         Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
         Assert.That(decodedException.ConvertToInternalError, Is.True);
@@ -294,7 +294,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(invoker);
 
         // Act//Assert
-        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
+        DispatchException decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await client.ServerStreamingOpAsync(new Empty()));
         Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
         Assert.That(decodedException.ConvertToInternalError, Is.True);

@@ -268,10 +268,10 @@ public abstract class DuplexConnectionConformanceTests
         disposedPeer.Dispose();
 
         // Act/Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await readFrom.ReadAsync(new byte[1], default));
         Assert.That(
-            exception!.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }

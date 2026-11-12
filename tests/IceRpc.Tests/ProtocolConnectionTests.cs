@@ -684,8 +684,8 @@ public sealed class ProtocolConnectionTests
         _ = sut.Client.DisposeAsync().AsTask();
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see cref="IceRpcException" />.

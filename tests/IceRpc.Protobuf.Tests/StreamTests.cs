@@ -38,7 +38,7 @@ public class StreamTests
         using IAsyncStream<InputMessage> values = payload.ToAsyncStream(InputMessage.Parser, 16 * 1024);
 
         // Act
-        OperationCanceledException? exception = await Assert.ThrowsAsync<OperationCanceledException>(
+        OperationCanceledException exception = await Assert.ThrowsAsync<OperationCanceledException>(
             async () =>
             {
                 await foreach (InputMessage value in values.WithCancellation(cts.Token))
@@ -52,7 +52,7 @@ public class StreamTests
             });
 
         // Assert
-        Assert.That(exception!.CancellationToken, Is.EqualTo(cts.Token));
+        Assert.That(exception.CancellationToken, Is.EqualTo(cts.Token));
         Assert.That(count, Is.EqualTo(2)); // read 2 elements before cancellation
         // The iterator's finally completes the pipe reader with no exception.
         Assert.That(await payload.Completed, Is.Null);
@@ -106,9 +106,9 @@ public class StreamTests
         // We must await moveNextAwaitable before the enumerator's implicit DisposeAsync runs at end of scope:
         // async iterators forbid concurrent MoveNextAsync/DisposeAsync calls, and would throw
         // NotSupportedException if the in-flight MoveNextAsync hasn't completed yet.
-        OperationCanceledException? exception = await Assert.ThrowsAsync<OperationCanceledException>(
+        OperationCanceledException exception = await Assert.ThrowsAsync<OperationCanceledException>(
             async () => await moveNextAwaitable);
-        Assert.That(exception!.CancellationToken, Is.EqualTo(cts.Token));
+        Assert.That(exception.CancellationToken, Is.EqualTo(cts.Token));
         // The iterator's finally completes the pipe reader with no exception.
         Assert.That(await payload.Completed, Is.Null);
 
@@ -305,7 +305,7 @@ public class StreamTests
         payload.AdvanceTo(readResult.Buffer.End);
 
         // Act/Assert
-        Exception? throwException = await Assert.ThrowsAsync<Exception>(async () => await payload.ReadAsync());
+        Exception throwException = await Assert.ThrowsAsync<Exception>(async () => await payload.ReadAsync());
         Assert.That(throwException, Is.EqualTo(exception));
 
         // Cleanup

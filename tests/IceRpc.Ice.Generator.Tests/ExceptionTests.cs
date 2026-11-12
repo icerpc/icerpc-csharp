@@ -68,14 +68,13 @@ public sealed partial class ExceptionTests
         Type expectedType = (throwException is MyException or EmptyException) &&
             expectedStatusCode == StatusCode.ApplicationError ? throwException.GetType() : typeof(DispatchException);
 
-        var exception = await Assert.ThrowsAsync(
+        Exception exception = await Assert.ThrowsAsync(
             expectedType,
             () => proxy.OpThrowsMultipleExceptionsAsync());
 
-        Assert.That(exception, Is.Not.Null);
         if (expectedStatusCode != StatusCode.ApplicationError)
         {
-            Assert.That(((DispatchException)exception!).StatusCode, Is.EqualTo(expectedStatusCode));
+            Assert.That(((DispatchException)exception).StatusCode, Is.EqualTo(expectedStatusCode));
         }
     }
 
@@ -91,14 +90,13 @@ public sealed partial class ExceptionTests
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
 
-        var exception = await Assert.ThrowsAsync(
+        Exception exception = await Assert.ThrowsAsync(
                 expectedType,
                 () => proxy.OpThrowsMyExceptionAsync());
 
-        Assert.That(exception, Is.Not.Null);
         if (expectedStatusCode != StatusCode.ApplicationError)
         {
-            Assert.That(((DispatchException)exception!).StatusCode, Is.EqualTo(expectedStatusCode));
+            Assert.That(((DispatchException)exception).StatusCode, Is.EqualTo(expectedStatusCode));
         }
     }
 
@@ -111,9 +109,8 @@ public sealed partial class ExceptionTests
         var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
         var proxy = new IceExceptionOperationsProxy(invoker);
 
-        DispatchException? exception = await Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
+        DispatchException exception = await Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
+        Assert.That(exception.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
     [Test]
@@ -122,7 +119,7 @@ public sealed partial class ExceptionTests
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new EmptyException()));
         var proxy = new AltIceExceptionOperationsProxy(invoker);
 
-        InvalidDataException? exception =
+        InvalidDataException exception =
             await Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMultipleExceptionsAsync());
         Assert.That(exception.InnerException, Is.InstanceOf<EmptyException>());
     }
@@ -133,7 +130,7 @@ public sealed partial class ExceptionTests
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(1, 2)));
         var proxy = new AltIceExceptionOperationsProxy(invoker);
 
-        InvalidDataException? exception =
+        InvalidDataException exception =
             await Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMyExceptionAsync());
         Assert.That(exception.InnerException, Is.InstanceOf<MyException>());
     }
@@ -145,7 +142,7 @@ public sealed partial class ExceptionTests
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(5, 6)));
         var proxy = new IceExceptionOperationsProxy(invoker);
 
-        var exception = await Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
+        MyException exception = await Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
         Assert.That(exception.Message, Is.EqualTo("MyException: i=5, j=6"));
     }
 

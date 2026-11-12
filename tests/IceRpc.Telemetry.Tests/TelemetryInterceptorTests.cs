@@ -322,7 +322,7 @@ public sealed class TelemetryInterceptorTests
         };
 
         // Act
-        Exception? thrownException = await Assert.CatchAsync(async () => await sut.InvokeAsync(request, default));
+        Exception thrownException = await Assert.CatchAsync(async () => await sut.InvokeAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));

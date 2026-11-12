@@ -152,12 +152,12 @@ public abstract class DuplexListenerConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
 
         // If using SSL and the listener is disposed during the SSL handshake this fails with ConnectionAborted error
         // otherwise it fails with ConnectionRefused.
         Assert.That(
-            exception!.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionRefused).Or.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
 
@@ -176,10 +176,10 @@ public abstract class DuplexListenerConformanceTests
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
         // Act/Assert
-        IceRpcException? exception = Assert.Throws<IceRpcException>(
+        IceRpcException exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(listener.TransportAddress, new DuplexConnectionOptions(), null));
         Assert.That(
-            exception!.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.AddressInUse),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
