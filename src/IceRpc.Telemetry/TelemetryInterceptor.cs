@@ -11,12 +11,22 @@ namespace IceRpc.Telemetry;
 /// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The activity context is written in the
 /// request <see cref="RequestFieldKey.TraceContext" /> field and can be restored on the server-side by installing the
 /// <see cref="TelemetryMiddleware" />.</summary>
-/// <remarks>The activities are only created for requests using the icerpc protocol. The activity records the outcome
-/// of the invocation. When the invocation returns a response, the <c>rpc.status_code</c> tag holds its status code.
-/// When the status code is not <see cref="StatusCode.Ok" /> or the invocation throws an exception, the activity
-/// status is <see cref="ActivityStatusCode.Error" /> and the <c>error.type</c> tag identifies the failure. A
-/// cancellation by the token passed to <see cref="InvokeAsync" /> is not a failure: the <c>icerpc.canceled</c> tag is
-/// set to <see langword="true" /> and the activity status stays unset.</remarks>
+/// <remarks>The interceptor creates an activity only for a request that uses the icerpc protocol. The name of this
+/// activity is <c>{path}/{operation}</c>, and its tags are:
+/// <list type="bullet">
+/// <item><description><c>rpc.system.name</c>: <c>icerpc</c>.</description></item>
+/// <item><description><c>rpc.method</c>: the operation name.</description></item>
+/// <item><description><c>icerpc.path</c>: the path of the service address.</description></item>
+/// <item><description><c>rpc.status_code</c>: the status code carried by the response.</description></item>
+/// <item><description><c>error.type</c>: a status code other than <see cref="StatusCode.Ok" />, or the full name of
+/// the exception thrown by the invocation.</description></item>
+/// <item><description><c>network.peer.address</c> and <c>network.peer.port</c>: the IP address and the port of the
+/// server.</description></item>
+/// <item><description><c>icerpc.canceled</c>: <see langword="true" /> when the invocation was canceled.
+/// </description></item>
+/// </list>
+/// An activity with an <c>error.type</c> tag has the <see cref="ActivityStatusCode.Error" /> status; the status of any
+/// other activity is unset.</remarks>
 /// <seealso cref="TelemetryPipelineExtensions"/>
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryInterceptor : IInvoker
@@ -44,17 +54,17 @@ public class TelemetryInterceptor : IInvoker
     {
         if (request.Protocol.HasFields)
         {
-            string name = $"{request.ServiceAddress.Path}/{request.Operation}";
-            using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
+            using Activity activity = _activitySource.CreateRequestActivity(
+                ActivityKind.Client,
+                request.ServiceAddress.Path,
+                request.Operation);
             activity.SetIdFormat(ActivityIdFormat.W3C);
-            activity.AddTag("rpc.system", "icerpc");
-            activity.AddTag("rpc.service", request.ServiceAddress.Path);
-            activity.AddTag("rpc.method", request.Operation);
             activity.Start();
             request.Fields = request.Fields.With(RequestFieldKey.TraceContext, activity, WriteActivityContext);
             try
             {
                 IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                activity.SetNetworkPeer(response.ConnectionContext);
                 activity.SetTag("rpc.status_code", response.StatusCode.ToString());
                 if (response.StatusCode != StatusCode.Ok)
                 {
