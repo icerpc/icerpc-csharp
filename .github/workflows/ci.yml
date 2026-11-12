@@ -54,3 +54,22 @@ jobs:
       - name: Build DocFX Examples
         run: dotnet build docfx/examples/Examples.slnx
         shell: bash
+
+  # On a release branch, the examples must build with the published IceRpc packages, since that is what a user who
+  # checks out the branch gets. build_and_test builds them against the locally published packages, which hide a
+  # package version that is not published yet. On main, the examples are meant to track the local build.
+  build_examples_with_published_packages:
+    if: endsWith(github.base_ref || github.ref_name, '.x')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet
+        with:
+          cache: false
+      - name: Build Examples
+        run: |
+          for solution in examples/*/*/*.slnx; do dotnet build "$solution"; done
+        shell: bash
