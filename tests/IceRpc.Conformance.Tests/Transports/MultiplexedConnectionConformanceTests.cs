@@ -120,8 +120,8 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Client.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
-        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     [Test]
