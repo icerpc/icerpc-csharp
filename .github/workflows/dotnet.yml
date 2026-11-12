@@ -21,5 +21,11 @@ jobs:
       - name: Build
         run: dotnet build
 
-      - name: Run dotnet format
-        run: dotnet format --verify-no-changes
+      # The build already reports analyzer diagnostics as errors. dotnet format's analyzers pass is skipped because it
+      # ignores diagnostic suppressors such as NUnit.Analyzers' nullable suppressor, and fails on code that builds
+      # cleanly: https://github.com/dotnet/sdk/issues/50978
+      - name: Check whitespace formatting
+        run: dotnet format whitespace --verify-no-changes
+
+      - name: Check code style
+        run: dotnet format style --verify-no-changes
