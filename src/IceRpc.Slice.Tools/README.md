@@ -40,10 +40,6 @@ included in `SliceFile`. You can prevent this auto-inclusion of `.slice` files b
 [`EnableDefaultItems`][default-items] or `EnableDefaultSliceFileItems` to `false`. The default value of these properties
 is `true`.
 
-A `.slice` file included by default must not be included again with `Include`: the build reports duplicate `SliceFile`
-items as an error. Use `Update` to set the metadata of such a file, or set `EnableDefaultSliceFileItems` to `false` to
-list all your Slice files explicitly.
-
 You can also add Slice files to your project explicitly. For example:
 
 ```xml

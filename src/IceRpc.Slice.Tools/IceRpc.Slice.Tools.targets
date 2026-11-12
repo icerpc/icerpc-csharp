@@ -73,7 +73,7 @@
     </ItemGroup>
 
     <Error
-      Text="Duplicate 'SliceFile' items were included. IceRpc.Slice.Tools includes the '.slice' files in your project directory as 'SliceFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultSliceFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateSliceFile->'%(Identity)', '; ')"
+      Text="Duplicate 'SliceFile' items were included. IceRpc.Slice.Tools includes the '.slice' files in your project directory as 'SliceFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultSliceFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateSliceFile, '; ')"
       Condition="'@(_DuplicateSliceFile)' != ''"
       ContinueOnError="$(ContinueOnError)" />
 

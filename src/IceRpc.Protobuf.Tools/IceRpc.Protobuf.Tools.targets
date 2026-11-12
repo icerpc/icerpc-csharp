@@ -72,7 +72,7 @@
     </ItemGroup>
 
     <Error
-      Text="Duplicate 'ProtoFile' items were included. IceRpc.Protobuf.Tools includes the '.proto' files in your project directory as 'ProtoFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultProtoFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateProtoFile->'%(Identity)', '; ')"
+      Text="Duplicate 'ProtoFile' items were included. IceRpc.Protobuf.Tools includes the '.proto' files in your project directory as 'ProtoFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultProtoFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateProtoFile, '; ')"
       Condition="'@(_DuplicateProtoFile)' != ''"
       ContinueOnError="$(ContinueOnError)" />
 
@@ -129,7 +129,7 @@
 
   <Target Name="ProtoCompile"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="_CheckForDuplicateProtoFiles;_ComputeProtoOutputs"
+          DependsOnTargets="_ComputeProtoOutputs"
           Condition="@(ProtoFile) != ''">
 
     <Error
