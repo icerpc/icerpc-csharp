@@ -29,7 +29,7 @@
       OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated"
       LinkBase="Transports/Slic/Internal"
     />
-    <SliceDirectory Include="../../slice/IceRpc/" />
+    <SliceReference Include="../../slice/IceRpc/" />
 
     <SliceCompile
       Include="../../slice/Ice/OperationMode.ice;../../slice/Ice/ReplyStatus.ice"

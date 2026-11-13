@@ -5,7 +5,6 @@
     <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <SliceDirectory Include="../A" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" PrivateAssets="all" />
     <ProjectReference Include="../A/A.csproj" />
     <PackageReference Include="coverlet.collector">

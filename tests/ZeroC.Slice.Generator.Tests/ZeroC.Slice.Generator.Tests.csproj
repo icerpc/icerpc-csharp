@@ -33,7 +33,7 @@
     <ProjectReference Include="../../src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
     <!-- Reference the built-in Slice files -->
-    <SliceDirectory Include="../../slice" />
+    <SliceReference Include="../../slice" />
   </ItemGroup>
   <Import Project="../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

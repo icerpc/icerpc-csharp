@@ -24,7 +24,7 @@
     <ProjectReference Include="../../src/IceRpc.Compressor/IceRpc.Compressor.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <!-- Reference the built-in Slice files -->
-    <SliceDirectory Include="../../slice" />
+    <SliceReference Include="../../slice" />
   </ItemGroup>
 
   <PropertyGroup>

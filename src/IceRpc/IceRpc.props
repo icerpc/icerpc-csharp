@@ -2,6 +2,6 @@
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice" />
+    <SliceReference Include="$(MSBuildThisFileDirectory)../slice" />
   </ItemGroup>
 </Project>
