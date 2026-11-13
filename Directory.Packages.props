@@ -8,7 +8,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 
     <!-- The version of Google.Protobuf and Google.Protobuf.Tools NuGet packages. -->
-    <GoogleProtobufVersion>3.36.1</GoogleProtobufVersion>
+    <GoogleProtobufVersion>3.36.2</GoogleProtobufVersion>
     <!-- The protoc version is the Google.Protobuf package version without the leading "3." (e.g. "3.35.0" → "35.0"),
          used to download the ARM64 protoc binaries in IceRpc.Protobuf.Tools. -->
     <ProtobufVersion>$([System.String]::Copy('$(GoogleProtobufVersion)').Substring(2))</ProtobufVersion>
@@ -49,9 +49,9 @@
 
     <!-- Test SDK -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="NUnit" Version="4.6.1" />
-    <PackageVersion Include="NUnit.Analyzers" Version="4.14.0" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.0" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
   </ItemGroup>
 </Project>
