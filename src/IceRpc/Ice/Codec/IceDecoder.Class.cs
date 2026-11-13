@@ -10,7 +10,7 @@ using static IceRpc.Ice.Codec.Internal.IceEncodingDefinitions;
 
 namespace IceRpc.Ice.Codec;
 
-/// <summary>Provides methods to decode data encoded with Ice.</summary>
+/// <content>Provides methods to decode classes and exceptions encoded with Ice.</content>
 public ref partial struct IceDecoder
 {
     /// <summary>Decodes a class instance.</summary>
