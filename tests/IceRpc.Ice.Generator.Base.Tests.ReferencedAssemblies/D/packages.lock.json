@@ -31,26 +31,26 @@
       "a": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.6.1, )"
+          "IceRpc": "[0.6.2, )"
         }
       },
       "b": {
         "type": "Project",
         "dependencies": {
-          "A": "[0.6.1, )"
+          "A": "[0.6.2, )"
         }
       },
       "c": {
         "type": "Project",
         "dependencies": {
-          "A": "[0.6.1, )"
+          "A": "[0.6.2, )"
         }
       },
       "icerpc": {
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )",
-          "ZeroC.Slice.Codec": "[0.6.1, )"
+          "ZeroC.Slice.Codec": "[0.6.2, )"
         }
       },
       "zeroc.slice.codec": {

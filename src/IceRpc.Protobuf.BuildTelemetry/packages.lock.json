@@ -12,15 +12,15 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.11, )",
-          "ZeroC.Slice.Codec": "[0.6.1, )"
+          "ZeroC.Slice.Codec": "[0.6.2, )"
         }
       },
       "icerpc.protobuf": {
         "type": "Project",
         "dependencies": {
           "Google.Protobuf": "[3.36.1, )",
-          "IceRpc": "[0.6.1, )",
-          "IceRpc.ServiceGenerator": "[0.6.1, )"
+          "IceRpc": "[0.6.2, )",
+          "IceRpc.ServiceGenerator": "[0.6.2, )"
         }
       },
       "icerpc.servicegenerator": {
