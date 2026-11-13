@@ -27,7 +27,7 @@ The Slice compiler accepts two main inputs:
 - the Slice files to compile into C# code (the Slice files)
 - the reference Slice files, and directories that contain reference Slice files (the Slice references)
 
-The Slice compiler parses the reference Slice files, including the Slice files found recursively in the referenced
+The Slice compiler parses the reference Slice files, including any Slice files found recursively in the referenced
 directories, but does not generate code for them. They typically contain definitions referenced by the source Slice
 files.
 
