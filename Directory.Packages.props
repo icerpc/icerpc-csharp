@@ -15,9 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Analyzers -->
-    <!-- The 1.2 beta version is required for supporting the latest language features.
-         See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
-    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.3.180" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 
     <!-- The service generator runs inside the C# compiler, so use a Microsoft.CodeAnalysis.CSharp version no newer

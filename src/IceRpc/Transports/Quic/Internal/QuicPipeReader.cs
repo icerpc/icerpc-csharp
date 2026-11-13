@@ -63,12 +63,12 @@ internal class QuicPipeReader : PipeReader
         // attempting to read while another read is in progress.
     }
 
-    public override async Task CopyToAsync(PipeWriter writer, CancellationToken cancellationToken)
+    public override async Task CopyToAsync(PipeWriter destination, CancellationToken cancellationToken)
     {
         _throwIfConnectionClosedOrDisposed();
         try
         {
-            await _pipeReader.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
+            await _pipeReader.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
         {

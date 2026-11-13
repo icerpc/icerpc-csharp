@@ -17,7 +17,7 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     private Task? _disposeTask;
     private readonly Pipe _pipe;
 
-    public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+    public void Advance(int count) => _pipe.Writer.Advance(count);
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync()

@@ -267,15 +267,15 @@ public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
 
     private class OptionalTransportServerAddressComparer : ServerAddressComparer
     {
-        public override bool Equals(ServerAddress lhs, ServerAddress rhs) =>
-            lhs.Protocol == rhs.Protocol &&
-            lhs.Host == rhs.Host &&
-            lhs.Port == rhs.Port &&
-            (lhs.Transport == rhs.Transport || lhs.Transport is null || rhs.Transport is null) &&
-            lhs.Params.DictionaryEqual(rhs.Params);
+        public override bool Equals(ServerAddress x, ServerAddress y) =>
+            x.Protocol == y.Protocol &&
+            x.Host == y.Host &&
+            x.Port == y.Port &&
+            (x.Transport == y.Transport || x.Transport is null || y.Transport is null) &&
+            x.Params.DictionaryEqual(y.Params);
 
-        public override int GetHashCode(ServerAddress serverAddress) =>
-            HashCode.Combine(serverAddress.Protocol, serverAddress.Host, serverAddress.Port, serverAddress.Params.Count);
+        public override int GetHashCode(ServerAddress obj) =>
+            HashCode.Combine(obj.Protocol, obj.Host, obj.Port, obj.Params.Count);
     }
 }
 
