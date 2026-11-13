@@ -33,7 +33,7 @@ public sealed partial class ExceptionTests
         }
     }
 
-    private static IEnumerable<TestCaseData> SliceDispatchThrowsNothingSource
+    private static IEnumerable<TestCaseData> IceDispatchThrowsNothingSource
     {
         get
         {
@@ -50,7 +50,7 @@ public sealed partial class ExceptionTests
 
     [Test]
     [TestCaseSource(nameof(ExceptionsInMultipleExceptionsSpecificationSource))]
-    public async Task Slice_operation_with_multiple_exceptions_throws_exception_in_specification(
+    public async Task Ice_operation_with_multiple_exceptions_throws_exception_in_specification(
         Exception throwException)
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
@@ -60,7 +60,7 @@ public sealed partial class ExceptionTests
     }
 
     [Test]
-    public async Task Slice_operation_with_multiple_exceptions_throws_internal_error_for_unspecified_exception()
+    public async Task Ice_operation_with_multiple_exceptions_throws_internal_error_for_unspecified_exception()
     {
         var invoker = new ColocInvoker(
             new IceExceptionOperationsService(new MyExceptionWithTaggedFields(5, 12, 13, 28)));
@@ -73,7 +73,7 @@ public sealed partial class ExceptionTests
 
     [Test]
     [TestCaseSource(nameof(ExceptionsInMyExceptionSpecificationSource))]
-    public async Task Slice_operation_with_my_exception_throws_exception_in_specification(
+    public async Task Ice_operation_with_my_exception_throws_exception_in_specification(
         Exception throwException)
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(throwException));
@@ -83,7 +83,7 @@ public sealed partial class ExceptionTests
     }
 
     [Test]
-    public async Task Slice_operation_with_my_exception_throws_internal_error_for_unspecified_exception()
+    public async Task Ice_operation_with_my_exception_throws_internal_error_for_unspecified_exception()
     {
         var invoker = new ColocInvoker(
             new IceExceptionOperationsService(new MyExceptionWithTaggedFields(5, 12, 13, 28)));
@@ -95,8 +95,8 @@ public sealed partial class ExceptionTests
     }
 
     [Test]
-    [TestCaseSource(nameof(SliceDispatchThrowsNothingSource))]
-    public async Task Slice_operation_throws_exception_with_no_exception_specification(
+    [TestCaseSource(nameof(IceDispatchThrowsNothingSource))]
+    public async Task Ice_operation_throws_exception_with_no_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
@@ -109,7 +109,7 @@ public sealed partial class ExceptionTests
     }
 
     [Test]
-    public async Task Slice_operation_throws_invalid_data_when_exception_not_in_specification()
+    public async Task Ice_operation_throws_invalid_data_when_exception_not_in_specification()
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new EmptyException()));
         var proxy = new AltIceExceptionOperationsProxy(invoker);
@@ -120,7 +120,7 @@ public sealed partial class ExceptionTests
     }
 
     [Test]
-    public async Task Slice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
+    public async Task Ice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(1, 2)));
         var proxy = new AltIceExceptionOperationsProxy(invoker);
@@ -132,7 +132,7 @@ public sealed partial class ExceptionTests
 
     /// <summary>Verifies that the user can define a custom message that uses the exception fields.</summary>
     [Test]
-    public async Task Slice_exception_can_have_custom_message()
+    public async Task Ice_exception_can_have_custom_message()
     {
         var invoker = new ColocInvoker(new IceExceptionOperationsService(new MyException(5, 6)));
         var proxy = new IceExceptionOperationsProxy(invoker);
