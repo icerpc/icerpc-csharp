@@ -4,9 +4,9 @@
     "net10.0": {
       "Google.Protobuf": {
         "type": "Direct",
-        "requested": "[3.36.1, )",
-        "resolved": "3.36.1",
-        "contentHash": "77AqPEoaY1ODE+syYBHti0jXiwQq0J/fUr/fRyYhNlc9oKtH5dZZEr/OLKtdKNVG83PRnCYB2r8B80ZrObzOGQ=="
+        "requested": "[3.36.2, )",
+        "resolved": "3.36.2",
+        "contentHash": "Ci1q1iJg74qAE5riTA2FbMS0wPbpruPQI/JQ9DrAsRo2VsSxgt1e/pmxGxgrci+pXJEgrSYg2vPl8rrStZkclQ=="
       },
       "icerpc": {
         "type": "Project",
@@ -18,7 +18,7 @@
       "icerpc.protobuf": {
         "type": "Project",
         "dependencies": {
-          "Google.Protobuf": "[3.36.1, )",
+          "Google.Protobuf": "[3.36.2, )",
           "IceRpc": "[0.6.2, )",
           "IceRpc.ServiceGenerator": "[0.6.2, )"
         }
