@@ -225,7 +225,7 @@ dotnet_diagnostic.SA1413.severity = none
 dotnet_diagnostic.SA1414.severity = none
 
 # SA1504: All accessors should be single-line or multi-line
-# We use an expression-bodied get accessor with a multi-line set accessor.
+# We treat accessors as independent methods: each one is single-line or multi-line on its own.
 dotnet_diagnostic.SA1504.severity = none
 
 # SA1512: Single-line comments should not be followed by blank line
