@@ -420,7 +420,7 @@ public sealed class TelemetryMiddlewareTests
         };
 
         // Act
-        Exception? thrownException = await Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
+        Exception thrownException = await Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));
@@ -459,7 +459,7 @@ public sealed class TelemetryMiddlewareTests
         };
 
         // Act
-        Exception? thrownException = await Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
+        Exception thrownException = await Assert.CatchAsync(async () => await sut.DispatchAsync(request, default));
 
         // Assert
         Assert.That(thrownException, Is.SameAs(exception));

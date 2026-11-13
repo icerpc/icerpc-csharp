@@ -25,10 +25,9 @@ public class IncomingResponseTests
             "deadline expired");
 
         // Act/Assert
-        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
+        DispatchException decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeVoidReturnValueAsync(request, InvalidProxy.Instance, _defaultActivator));
-        Assert.That(decodedException, Is.Not.Null);
-        Assert.That(decodedException!.ConvertToInternalError, Is.True);
+        Assert.That(decodedException.ConvertToInternalError, Is.True);
     }
 
     [Test]
@@ -43,13 +42,12 @@ public class IncomingResponseTests
             "deadline expired");
 
         // Act/Assert
-        DispatchException? decodedException = await Assert.ThrowsAsync<DispatchException>(
+        DispatchException decodedException = await Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeReturnValueAsync(
                 request,
                 InvalidProxy.Instance,
                 (ref IceDecoder decoder) => decoder.DecodeInt(),
                 _defaultActivator));
-        Assert.That(decodedException, Is.Not.Null);
-        Assert.That(decodedException!.ConvertToInternalError, Is.True);
+        Assert.That(decodedException.ConvertToInternalError, Is.True);
     }
 }

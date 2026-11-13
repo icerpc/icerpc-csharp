@@ -324,7 +324,7 @@ public sealed class IceProtocolConnectionTests
             };
 
         // Act/Assert
-        Exception? caughtException = await Assert.CatchAsync(() => connectCall());
+        Exception caughtException = await Assert.CatchAsync(() => connectCall());
         Assert.That(caughtException, Is.EqualTo(exception));
     }
 

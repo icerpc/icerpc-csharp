@@ -218,8 +218,8 @@ public abstract class MultiplexedStreamConformanceTests
         await clientServerConnection.Server.CloseAsync(closeError, default);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
-        Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     [Test]
@@ -255,10 +255,10 @@ public abstract class MultiplexedStreamConformanceTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Remote.Input.ReadAsync());
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.TruncatedData),
             $"The test failed with an unexpected IceRpcError {exception}");
     }

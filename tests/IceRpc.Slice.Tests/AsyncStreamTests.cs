@@ -175,9 +175,9 @@ public class AsyncStreamTests
 
         cts.Cancel();
 
-        OperationCanceledException? exception = await Assert.ThrowsAsync<OperationCanceledException>(
+        OperationCanceledException exception = await Assert.ThrowsAsync<OperationCanceledException>(
             async () => await moveNext);
-        Assert.That(exception!.CancellationToken, Is.EqualTo(cts.Token));
+        Assert.That(exception.CancellationToken, Is.EqualTo(cts.Token));
 
         await enumerator.DisposeAsync();
         stream.Dispose();

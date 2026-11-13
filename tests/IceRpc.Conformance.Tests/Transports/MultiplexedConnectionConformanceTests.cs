@@ -120,8 +120,8 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Client.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     [Test]
@@ -262,9 +262,9 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(createStreamTask.IsCompleted, Is.False);
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
 
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await createStreamTask);
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await createStreamTask);
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.OperationAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -288,15 +288,13 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Server.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
-        IceRpcException? exception;
-
-        exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             () => sut.Client.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
 
         exception = await Assert.ThrowsAsync<IceRpcException>(
             () => sut.Client.CreateStreamAsync(true, default).AsTask());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
@@ -319,13 +317,10 @@ public abstract class MultiplexedConnectionConformanceTests
         await disposedConnection.DisposeAsync();
 
         // Assert
-
-        IceRpcException? exception;
-
         await Assert.ThrowsAsync<ObjectDisposedException>(
             () => disposedConnection.CreateStreamAsync(true, default).AsTask());
 
-        exception = await Assert.ThrowsAsync<IceRpcException>(async () =>
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () =>
             {
                 // It can take few writes for the peer to detect the connection closure.
                 while (true)
@@ -337,7 +332,7 @@ public abstract class MultiplexedConnectionConformanceTests
             });
 
         Assert.That(
-            exception!.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -398,16 +393,16 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await streams.Local.Output.WriteAsync(_oneBytePayload));
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
 
         exception = await Assert.ThrowsAsync<IceRpcException>(async () => await streams.Local.Input.ReadAsync());
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -433,17 +428,17 @@ public abstract class MultiplexedConnectionConformanceTests
             async () => await sut.Client.AcceptStreamAsync(default),
             Throws.InstanceOf<ObjectDisposedException>());
 
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await streams.Local.Output.WriteAsync(_oneBytePayload));
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
 
         exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await streams.Local.Input.ReadAsync());
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -472,9 +467,9 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(async () => await acceptStreamTask, Throws.TypeOf<ObjectDisposedException>());
         Assert.That(async () => await createStreamTask, Throws.TypeOf<ObjectDisposedException>());
 
-        var exception = await Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.OperationAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -491,10 +486,10 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Server.AcceptStreamAsync(default));
         Assert.That(
-            exception?.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
@@ -802,8 +797,8 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Server.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
@@ -836,9 +831,9 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Server.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await stream2CreateStreamTask);
-        Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
+        Assert.That(exception.IceRpcError, Is.EqualTo(expectedIceRpcError));
 
         // The connection is closed: a graceful completion of the output would fail.
         stream1.Input.Complete();

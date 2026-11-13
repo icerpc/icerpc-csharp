@@ -178,13 +178,13 @@ public partial class PipeReaderExtensionsTests
         pipe.Writer.Complete();
 
         // Act & Assert
-        InvalidDataException? exception = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+        InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await pipe.Reader.DecodeProtobufMessageAsync(
                 StringValue.Parser,
                 maxMessageLength: 1024,
                 acceptEmptyPayload: false,
                 CancellationToken.None));
-        Assert.That(exception!.InnerException, Is.InstanceOf<InvalidProtocolBufferException>());
+        Assert.That(exception.InnerException, Is.InstanceOf<InvalidProtocolBufferException>());
         pipe.Reader.Complete();
     }
 

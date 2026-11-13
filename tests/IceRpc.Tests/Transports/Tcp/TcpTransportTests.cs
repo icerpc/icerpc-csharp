@@ -481,10 +481,10 @@ public class TcpTransportTests
         clientConnection.Dispose();
 
         // Act/Assert
-        IceRpcException? exception = await Assert.ThrowsAsync<IceRpcException>(
+        IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(
             async () => await serverConnection.ConnectAsync(default));
         Assert.That(
-            exception!.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }

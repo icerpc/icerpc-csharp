@@ -99,10 +99,10 @@ public sealed partial class ProtocolBridgingTests
 
             await Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
 
-            var dispatchException = await Assert.ThrowsAsync<DispatchException>(
+            DispatchException dispatchException = await Assert.ThrowsAsync<DispatchException>(
                 () => proxy.OpNotFoundExceptionAsync());
 
-            Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.NotFound));
+            Assert.That(dispatchException.StatusCode, Is.EqualTo(StatusCode.NotFound));
 
             ProtocolBridgingTestProxy? newProxy = await proxy.OpNewProxyAsync();
             Assert.That(newProxy, Is.Not.Null);

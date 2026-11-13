@@ -179,13 +179,13 @@ public abstract class MultiplexedListenerConformanceTests
         var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
 
         // Act/Assert
-        IceRpcException? exception = Assert.Throws<IceRpcException>(
+        IceRpcException exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(
                 listener.TransportAddress,
                 new MultiplexedConnectionOptions(),
                 provider.GetService<SslServerAuthenticationOptions>()));
         Assert.That(
-            exception!.IceRpcError,
+            exception.IceRpcError,
             Is.EqualTo(IceRpcError.AddressInUse),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
