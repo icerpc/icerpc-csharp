@@ -184,6 +184,10 @@ dotnet_diagnostic.SA1127.severity = none
 # SA1129: Do not use default value type constructor
 dotnet_diagnostic.SA1129.severity = none
 
+# SA1143: Conditional expressions must be formatted consistently
+# We keep the ? and : operators at the end of the line.
+dotnet_diagnostic.SA1143.severity = none
+
 # SA1200: A C# using directive is placed outside of a namespace element
 dotnet_diagnostic.SA1200.severity = none
 
@@ -219,6 +223,10 @@ dotnet_diagnostic.SA1413.severity = none
 
 # SA1414: Tuple types in signatures should have element names
 dotnet_diagnostic.SA1414.severity = none
+
+# SA1504: All accessors should be single-line or multi-line
+# We treat accessors as independent methods: each one is single-line or multi-line on its own.
+dotnet_diagnostic.SA1504.severity = none
 
 # SA1512: Single-line comments should not be followed by blank line
 dotnet_diagnostic.SA1512.severity = none
@@ -265,3 +273,7 @@ dotnet_diagnostic.SA0001.severity = none
 
 # SA1633: A C# code file is missing a standard file header.
 dotnet_diagnostic.SA1633.severity = none
+
+# SA1634: The file header should contain a copyright tag.
+# Template projects have no file headers, and StyleCop reads a leading XML doc comment as one.
+dotnet_diagnostic.SA1634.severity = none

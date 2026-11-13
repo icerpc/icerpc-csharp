@@ -3,7 +3,7 @@
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-/// <summary>Provides helper methods to create the authentication options used by the examples.</summary>
+/// <content>Provides helper methods to create the authentication options used by the examples.</content>
 internal static partial class Program
 {
     /// <summary>Creates client authentication options that trust only the specified root CA.</summary>

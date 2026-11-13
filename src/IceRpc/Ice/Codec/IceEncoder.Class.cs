@@ -8,7 +8,7 @@ using static IceRpc.Ice.Codec.Internal.IceEncodingDefinitions;
 
 namespace IceRpc.Ice.Codec;
 
-/// <summary>Provides methods to encode data with Ice.</summary>
+/// <content>Provides methods to encode classes and exceptions with Ice.</content>
 public ref partial struct IceEncoder
 {
     /// <summary>Encodes a class instance, or <see langword="null" />.</summary>
