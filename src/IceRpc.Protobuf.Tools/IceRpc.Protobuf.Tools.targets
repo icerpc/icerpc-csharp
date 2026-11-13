@@ -57,6 +57,33 @@
   </ItemGroup>
 
   <!--
+    Like the .NET SDK does for duplicate Compile items (NETSDK1022), reject a file listed more than once, typically an
+    explicit Include of a file that is already a default item. Design-time builds continue on errors and use the
+    deduplicated items, as the SDK does, so that the project still gets IntelliSense while the error is reported.
+    Unlike the SDK, which compares item specs, this compares full paths: "./a.proto" or "sub/b.proto" names the same
+    file as the default item "a.proto" or "sub\b.proto".
+  -->
+  <Target Name="_CheckForDuplicateProtoFiles"
+          Condition="'$(EnableDefaultItems)' == 'true' And '$(EnableDefaultProtoFileItems)' == 'true'">
+    <ItemGroup>
+      <_ProtoFileFullPath Include="@(ProtoFile->'%(FullPath)')" />
+      <_DuplicateProtoFile Include="%(_ProtoFileFullPath.Identity)"
+                           Condition="'@(_ProtoFileFullPath->Count())' &gt; 1" />
+    </ItemGroup>
+
+    <Error
+      Text="Duplicate 'ProtoFile' items were included. IceRpc.Protobuf.Tools includes the '.proto' files in your project directory as 'ProtoFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultProtoFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateProtoFile, '; ')"
+      Condition="'@(_DuplicateProtoFile)' != ''"
+      ContinueOnError="$(ContinueOnError)" />
+
+    <ItemGroup Condition="'$(DesignTimeBuild)' == 'true' And '@(_DuplicateProtoFile)' != ''">
+      <_DeduplicatedProtoFile Include="@(_ProtoFileFullPath->Distinct())" />
+      <ProtoFile Remove="@(ProtoFile)" />
+      <ProtoFile Include="@(_DeduplicatedProtoFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!--
     This target must not run the up-to-date check: Rebuild runs Clean then Build in the same project instance, so a
     check made before Clean would mark as current the outputs Clean is about to delete. ProtoCompile keeps its own
     _ProtoFile item because a task <Output> appends to an existing item.
@@ -64,6 +91,7 @@
     In a source build the task assembly doesn't exist until IceRpc.Protobuf.Tools is built, hence the Exists check.
   -->
   <Target Name="_ComputeProtoOutputs"
+          DependsOnTargets="_CheckForDuplicateProtoFiles"
           Condition="@(ProtoFile) != '' And Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
     <OutputFileNamesTask Sources="@(ProtoFile)">
       <Output ItemName="_ProtoNamedFile" TaskParameter="ComputedSources" />

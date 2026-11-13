@@ -58,10 +58,37 @@
   </ItemGroup>
 
   <!--
+    Like the .NET SDK does for duplicate Compile items (NETSDK1022), reject a file listed more than once, typically an
+    explicit Include of a file that is already a default item. Design-time builds continue on errors and use the
+    deduplicated items, as the SDK does, so that the project still gets IntelliSense while the error is reported.
+    Unlike the SDK, which compares item specs, this compares full paths: "./a.slice" or "sub/b.slice" names the same
+    file as the default item "a.slice" or "sub\b.slice".
+  -->
+  <Target Name="_CheckForDuplicateSliceFiles"
+          Condition="'$(EnableDefaultItems)' == 'true' And '$(EnableDefaultSliceFileItems)' == 'true'">
+    <ItemGroup>
+      <_SliceFileFullPath Include="@(SliceFile->'%(FullPath)')" />
+      <_DuplicateSliceFile Include="%(_SliceFileFullPath.Identity)"
+                           Condition="'@(_SliceFileFullPath->Count())' &gt; 1" />
+    </ItemGroup>
+
+    <Error
+      Text="Duplicate 'SliceFile' items were included. IceRpc.Slice.Tools includes the '.slice' files in your project directory as 'SliceFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultSliceFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateSliceFile, '; ')"
+      Condition="'@(_DuplicateSliceFile)' != ''"
+      ContinueOnError="$(ContinueOnError)" />
+
+    <ItemGroup Condition="'$(DesignTimeBuild)' == 'true' And '@(_DuplicateSliceFile)' != ''">
+      <_DeduplicatedSliceFile Include="@(_SliceFileFullPath->Distinct())" />
+      <SliceFile Remove="@(SliceFile)" />
+      <SliceFile Include="@(_DeduplicatedSliceFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!--
     Computes the _SliceFile items: the Slice files to compile, each with the code generators to run on it and the
     paths of the files these generators produce.
   -->
-  <Target Name="_ComputeSliceFiles" Condition="@(SliceFile) != ''">
+  <Target Name="_ComputeSliceFiles" DependsOnTargets="_CheckForDuplicateSliceFiles" Condition="@(SliceFile) != ''">
     <ItemGroup>
       <_SliceFile Include="@(SliceFile)" />
       <_SliceFile>
