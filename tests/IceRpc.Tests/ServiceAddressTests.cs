@@ -164,6 +164,10 @@ public class ServiceAddressTests
                 AltServerAddresses = [new ServerAddress { Host = "::2", Port = 10000 }]
             };
 
+            // Parsing accepts the brackets of an alt-server IPv6 host in any spelling; ToString escapes them.
+            var serviceAddressWithParsedIPv6AltServers = new ServiceAddress(
+                new Uri("ice://host/foo?alt-server=[::2]:10000,%5b::3%5d"));
+
             return
             [
                 (serviceAddressWithTransport, "icerpc://host1/?transport=tcp&alt-server=host2"),
@@ -172,7 +176,8 @@ public class ServiceAddressTests
                     "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"),
                 (serviceAddressWithAdapterId, "ice:/foo?adapter-id=my%20adapter"),
                 (serviceAddressWithBracketsInAdapterId, "ice:/foo?adapter-id=x%5By%5D"),
-                (serviceAddressWithIPv6AltServer, "icerpc://[::1]/foo?alt-server=%5B::2%5D:10000")
+                (serviceAddressWithIPv6AltServer, "icerpc://[::1]/foo?alt-server=%5B::2%5D:10000"),
+                (serviceAddressWithParsedIPv6AltServers, "ice://host/foo?alt-server=%5B::2%5D:10000,%5B::3%5D")
             ];
         }
     }
