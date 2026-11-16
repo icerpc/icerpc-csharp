@@ -17,7 +17,7 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     private readonly Pipe _pipe;
     private readonly SequenceCoupler _sequenceCoupler = new();
 
-    public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+    public void Advance(int count) => _pipe.Writer.Advance(count);
 
     public void Dispose()
     {

@@ -11,9 +11,9 @@ internal sealed class InvokerBuilder : IInvokerBuilder
 
     private readonly Pipeline _pipeline = new();
 
-    public IInvokerBuilder Into(IInvoker invoker)
+    public IInvokerBuilder Into(IInvoker lastInvoker)
     {
-        _ = _pipeline.Into(invoker);
+        _ = _pipeline.Into(lastInvoker);
         _isIntoCalled = true;
         return this;
     }

@@ -23,7 +23,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
         TransportAddress transportAddress,
-        DuplexConnectionOptions duplexConnectionOptions,
+        DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
         if (clientAuthenticationOptions is not null)
@@ -44,8 +44,8 @@ internal class ColocClientTransport : IDuplexClientTransport
         }
 
         var localPipe = new Pipe(new PipeOptions(
-            pool: duplexConnectionOptions.Pool,
-            minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
+            pool: options.Pool,
+            minimumSegmentSize: options.MinSegmentSize,
             pauseWriterThreshold: _options.PauseWriterThreshold,
             resumeWriterThreshold: _options.ResumeWriterThreshold,
             useSynchronizationContext: false));

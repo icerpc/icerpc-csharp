@@ -16,7 +16,7 @@ internal partial class ThermoBridge : IThermoHomeService
     private readonly ThermoFacade _thermoFacade;
 
     public ValueTask<Empty> ReportAsync(
-        IAsyncStream<Reading> readings,
+        IAsyncStream<Reading> stream,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
@@ -32,7 +32,7 @@ internal partial class ThermoBridge : IThermoHomeService
         // Notify the ThermoFacade its device is connected. We let the async-iteration over readings execute in the
         // background. This call transfers the ownership of the readings stream to the ThermoFacade, which will
         // dispose it when done.
-        _ = _thermoFacade.PublishAsync(readings);
+        _ = _thermoFacade.PublishAsync(stream);
         return new(new Empty());
     }
 

@@ -13,7 +13,7 @@ namespace StreamServer;
 internal partial class RandomGenerator : IGeneratorService
 {
     public ValueTask<IAsyncEnumerable<GenerateResponse>> GenerateNumbersAsync(
-        Empty args,
+        Empty message,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
