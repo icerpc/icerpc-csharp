@@ -29,8 +29,9 @@ public class ProxyTests
     [TestCase("ice:/hello?adapter-id=user@host", null)] // '@'
     [TestCase("ice:/hello?adapter-id=a=b,c(d)", null)] // '=', ',', '(', ')'
 
-    // no round-trip here: the URI parser keeps the `%` as is, while the decoder escapes it into `%25`.
-    [TestCase("ice:/hello?adapter-id=foo%bar", "ice:/hello?adapter-id=foo%25bar")]
+    // no round-trip here: the URI parser normalizes %ba into %BA and keeps it as is, since 0xBA alone is not UTF-8,
+    // while the decoder escapes the `%` into `%25`.
+    [TestCase("ice:/hello?adapter-id=foo%bar", "ice:/hello?adapter-id=foo%25BAr")]
     public void Encode_decode_proxy(ServiceAddress? value, ServiceAddress? expectedValue)
     {
         var buffer = new byte[256];

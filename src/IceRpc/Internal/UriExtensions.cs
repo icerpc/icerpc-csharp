@@ -8,7 +8,8 @@ namespace IceRpc.Internal;
 internal static class UriExtensions
 {
     /// <summary>Parses the query portion of a URI into a dictionary of name/value. The value of the alt-server
-    /// and transport parameters, if set, are returned separately.</summary>
+    /// and transport parameters, if set, are returned separately. Each value is returned with its percent-encoding
+    /// normalized as described in RFC 3986 section 6.2.2.</summary>
     /// <exception cref="FormatException">Thrown when a parameter name is empty, or when a parameter other than
     /// alt-server appears more than once.</exception>
     internal static (ImmutableDictionary<string, string> QueryParams, string? AltServerValue, string? TransportValue) ParseQuery(
@@ -29,7 +30,7 @@ internal static class UriExtensions
             {
                 int equalPos = p.IndexOf('=', StringComparison.Ordinal);
                 string name = equalPos == -1 ? p : p[..equalPos];
-                string value = equalPos == -1 ? "" : p[(equalPos + 1)..];
+                string value = equalPos == -1 ? "" : UriNormalization.NormalizePercentEncoding(p[(equalPos + 1)..]);
 
                 if (name == "alt-server")
                 {

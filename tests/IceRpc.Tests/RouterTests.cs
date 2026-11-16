@@ -87,6 +87,25 @@ public class RouterTests
         Assert.Throws<FormatException>(() => router.Mount("foo", NotFoundDispatcher.Instance));
     }
 
+    /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> and
+    /// <see cref="Router.Mount(string, IDispatcher)" /> reject a path that is not normalized, with a message that
+    /// names the normalized path.</summary>
+    [TestCase("/%41", "/A")]
+    [TestCase("/a%3ab", "/a%3Ab")]
+    [TestCase("/a/./b", "/a/b")]
+    [TestCase("/a/b/..", "/a/")]
+    public void Mapping_or_mounting_a_path_that_is_not_normalized_fails(string path, string normalizedPath)
+    {
+        var router = new Router();
+
+        Assert.That(
+            () => router.Map(path, NotFoundDispatcher.Instance),
+            Throws.TypeOf<FormatException>().With.Message.Contains($"'{normalizedPath}'"));
+        Assert.That(
+            () => router.Mount(path, NotFoundDispatcher.Instance),
+            Throws.TypeOf<FormatException>().With.Message.Contains($"'{normalizedPath}'"));
+    }
+
     /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)" />
     /// is selected for dispatch requests with a path starting with the given prefix.</summary>
     /// <param name="prefix">The prefix to mount the dispatcher.</param>

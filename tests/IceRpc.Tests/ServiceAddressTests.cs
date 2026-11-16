@@ -230,12 +230,12 @@ public class ServiceAddressTests
             "ice://host/cat/",              // empty name
             "ice://host//",                 // empty category and name
             "ice:/a%3Ab",                   // escaped character that is valid unescaped in a path segment
-            "ice:/a%2fb",                   // lowercase hex digits
-            "ice:/a[b]",                    // character that is not valid unescaped in a path segment
+            "ice:/a%3ab",                   // escaped character that is valid unescaped in a path segment
+            "ice:/a[b]",                   // character that is not valid unescaped in a path segment
             "ice:/%FF",                     // escaped bytes that are not UTF-8
             "ice:/identity#a%3Ab",          // escaped character that is valid unescaped in a fragment
             "ice:/identity#a%2Fb",          // escaped character that is valid unescaped in a fragment
-            "ice:/identity#a%2fb",          // lowercase hex digits
+            "ice:/identity#a%2fb",          // escaped character that is valid unescaped in a fragment
             "ice:/identity#a[b]",           // character that is not valid unescaped in a fragment
             "ice:/identity#a#b",            // character that is not valid unescaped in a fragment
             "ice:/identity#%FF",            // escaped bytes that are not UTF-8
@@ -277,6 +277,15 @@ public class ServiceAddressTests
              "/identity",
              ""),
             ("icerpc://host/a%5Bb%5D", "/a%5Bb%5D", ""),
+            // Normalization (RFC 3986 section 6.2.2)
+            ("icerpc://host/a%3ab%5b%5d", "/a%3Ab%5B%5D", ""),
+            ("icerpc://host/%41%7e", "/A~", ""),
+            ("icerpc://host/a/./b/../c", "/a/c", ""),
+            ("icerpc:/a/./b/../c", "/a/c", ""),
+            ("icerpc:/a/b/..", "/a/", ""),
+            ("ice:/a%2fb", "/a%2Fb", ""),
+            ("ice:/./cat/../x", "/x", ""),
+            ("ice:/identity#a%5bb%5d", "/identity", "a%5Bb%5D"),
             ("ice://[::1]/identity?alt-server=%5B::2%5D?z=%5B0%5D", "/identity", ""),
             ("ice:/location/identity#facet", "/location/identity", "facet"),
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
@@ -487,10 +496,16 @@ public class ServiceAddressTests
 
     [TestCase("icerpc", "/foo<")]
     [TestCase("icerpc", "/a[b]")]
+    [TestCase("icerpc", "/a%3ab")]
+    [TestCase("icerpc", "/%41")]
+    [TestCase("icerpc", "/a/./b")]
+    [TestCase("icerpc", "/a/..")]
     [TestCase("ice", "/a/b/c")]
     [TestCase("ice", "//foo")]
     [TestCase("ice", "/cat/")]
     [TestCase("ice", "/a%3Ab")]
+    [TestCase("ice", "/.")]
+    [TestCase("ice", "/../name")]
     public void Invalid_path_throws_exception(string protocol, string path)
     {
         // Arrange

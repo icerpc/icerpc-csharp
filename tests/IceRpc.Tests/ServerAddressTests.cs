@@ -79,6 +79,11 @@ public class ServerAddressTests
              10000,
              null,
              new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
+            (new Uri("ice://host:10000?xyz=a%3ab%5b%41%7e"), // normalized percent-encoding (RFC 3986 section 6.2.2)
+             "host",
+             10000,
+             null,
+             new Dictionary<string, string> { ["xyz"] = "a%3Ab%5BA~" }),
             (new Uri("IceRpc://host:10000"), "host", 10000, null, null),
         };
 
@@ -270,6 +275,8 @@ public class ServerAddressTests
     [TestCase("name", "valu,e")] // cSpell:disable-line
     [TestCase("name", "valu[e")] // cSpell:disable-line
     [TestCase("name", "valu]e")] // cSpell:disable-line
+    [TestCase("name", "a%3ab")] // lowercase hex digits
+    [TestCase("name", "%41")] // escaped unreserved character
     [TestCase("na$me", "value")]
     [TestCase("na,me", "value")]
     [TestCase("name%23", "value")]
