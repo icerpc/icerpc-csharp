@@ -347,6 +347,12 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
             init
             {
+                // Checked first, since the error of CheckPath for /.//foo would suggest //foo instead.
+                if (_serverAddress is null && StartsWithDoubleSlash(value))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot set a {nameof(Path)} that starts with '//', once normalized, on a service address without a server address.");
+                }
                 try
                 {
                     CheckPath(value);
@@ -354,11 +360,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 catch (FormatException exception)
                 {
                     throw new ArgumentException("Invalid path.", nameof(value), exception);
-                }
-                if (_serverAddress is null && value.StartsWith("//", StringComparison.Ordinal))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot set a {nameof(Path)} that starts with '//' on a service address without a server address.");
                 }
                 _path = value;
             }
@@ -749,6 +750,13 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
     }
 
+    /// <summary>Returns whether a path starts with <c>//</c> once normalized. A service address without a server
+    /// address cannot have such a path: its URI would read the first segment as a host. A URI without an authority
+    /// can only spell such a path with a dot segment, as in <c>icerpc:/.//foo</c>.</summary>
+    private static bool StartsWithDoubleSlash(string path) =>
+        path.StartsWith('/', StringComparison.Ordinal) &&
+        UriNormalization.NormalizePath(path).StartsWith("//", StringComparison.Ordinal);
+
     /// <summary>Parses a service address URI into its components.</summary>
     /// <returns>The path, the server addresses, the query parameters other than alt-server and transport, and the
     /// fragment without its leading <c>#</c>. With an authority, an ice main server address also carries the query
@@ -841,10 +849,15 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         }
         else
         {
-            if (!path.StartsWith('/', StringComparison.Ordinal) ||
-                path.StartsWith("//", StringComparison.Ordinal))
+            if (!path.StartsWith('/', StringComparison.Ordinal))
             {
                 throw new ArgumentException($"Invalid path in service address URI '{uri}'.", nameof(uri));
+            }
+            if (StartsWithDoubleSlash(path))
+            {
+                throw new ArgumentException(
+                    $"Invalid path in service address URI '{uri}': the path of a service address without a server address cannot start with '//', once normalized.",
+                    nameof(uri));
             }
 
             if (altServerValue is not null || transport is not null)

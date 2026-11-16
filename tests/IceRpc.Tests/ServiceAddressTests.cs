@@ -410,14 +410,27 @@ public class ServiceAddressTests
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
     }
 
-    /// <summary>Verifies that the path of a service address without a server address cannot start with //.</summary>
-    [Test]
-    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address()
+    /// <summary>Verifies that the path of a service address without a server address cannot start with //, including
+    /// once normalized.</summary>
+    [TestCase("//foo")]
+    [TestCase("/.//foo")]
+    [TestCase("/..//foo")]
+    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address(string path)
     {
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
-        Assert.That(() => serviceAddress with { Path = "//foo" }, Throws.InvalidOperationException);
+        Assert.That(() => serviceAddress with { Path = path }, Throws.InvalidOperationException);
     }
+
+    /// <summary>Verifies that a URI without a server address whose path starts with // once normalized, such as the
+    /// /.//foo spelling of the path //foo, is rejected because the path needs a server address.</summary>
+    [TestCase("icerpc:/.//foo")]
+    [TestCase("icerpc:/..//foo")]
+    [TestCase("icerpc:////foo")]
+    public void Uri_without_server_address_cannot_have_a_double_slash_path(Uri uri) =>
+        Assert.That(
+            () => new ServiceAddress(uri),
+            Throws.ArgumentException.With.Message.Contains("without a server address"));
 
     /// <summary>Verifies that the server address cannot be cleared when the path starts with //.</summary>
     [Test]
