@@ -208,7 +208,7 @@ public class ServiceAddressTests
             "icerpc://host/path?alt-server=host2:99999", // invalid alt-server port
             "icerpc://host/path?alt-server=host2:x", // invalid alt-server port
             "icerpc://host/path?alt-server=[bad", // invalid alt-server host
-            "icerpc://host/path?alt-server=%5Bbad", // invalid alt-server host
+            "icerpc://host/path?alt-server=%5B::1", // invalid alt-server host
             "icerpc://host/a[b]",           // character that is not valid unescaped in a path
             "ice://host/path?foo=[0]",      // invalid character in server address parameter value
             "ice://host/path?alt-server=host2?foo=[0]", // invalid character in server address parameter value

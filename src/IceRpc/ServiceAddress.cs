@@ -862,7 +862,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
         // An alt-server entry writes the brackets of an IPv6 host as %5B and %5D, while the Uri constructor parses
         // only the bracketed spelling of the host. Only a leading %5B opens a host: a %5B elsewhere in the entry
-        // belongs to a parameter value, which must stay percent-encoded. ParseQuery already uppercased the hex digits.
+        // belongs to a parameter value, which must stay percent-encoded. ParseQuery already converted the hex digits
+        // to uppercase.
         static string RestoreIPv6HostBrackets(string altServer)
         {
             if (altServer.StartsWith("%5B", StringComparison.Ordinal))

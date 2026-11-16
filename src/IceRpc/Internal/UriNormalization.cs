@@ -37,8 +37,9 @@ internal static class UriNormalization
         return true;
     }
 
-    /// <summary>Normalizes the percent-encoding of a URI component: uppercases the hex digits of each percent-escape,
-    /// and decodes each percent-escape of an unreserved character (RFC 3986 sections 6.2.2.1 and 6.2.2.2).</summary>
+    /// <summary>Normalizes the percent-encoding of a URI component: converts the hex digits of each percent-escape to
+    /// uppercase, and decodes each percent-escape of an unreserved character (RFC 3986 sections 6.2.2.1 and 6.2.2.2).
+    /// </summary>
     /// <param name="value">The URI component.</param>
     /// <returns>The normalized component, or <paramref name="value" /> itself when it is already normalized. A
     /// <c>%</c> that is not followed by two hex digits is kept as is.</returns>
