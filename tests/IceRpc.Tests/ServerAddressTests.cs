@@ -277,6 +277,8 @@ public class ServerAddressTests
     [TestCase("name", "valu]e")] // cSpell:disable-line
     [TestCase("name", "a%3ab")] // lowercase hex digits
     [TestCase("name", "%41")] // escaped unreserved character
+    [TestCase("name", "a%")] // '%' that does not start a percent-escape
+    [TestCase("name", "%4%31")] // '%' that does not start a percent-escape
     [TestCase("na$me", "value")]
     [TestCase("na,me", "value")]
     [TestCase("name%23", "value")]

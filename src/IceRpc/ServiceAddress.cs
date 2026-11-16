@@ -254,7 +254,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
             // The canonical percent-encoding enforced by IceIdentity.Parse is already normalized, but a segment
             // such as '.' is a dot segment that a URI parser removes.
-            CheckPathIsNormalized(path);
+            if (UriNormalization.NormalizePath(path) != path)
+            {
+                throw new FormatException(
+                    $"Invalid identity path '{path}': a segment of the path cannot be '.' or '..'.");
+            }
         }
 
         /// <summary>Percent-encodes only the characters that are not valid in a URI query parameter value:
@@ -646,8 +650,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
     }
 
     /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path in normalized form, i.e.
-    /// that it starts with a <c>/</c>, contains only unreserved characters, <c>%</c>, and reserved characters other
-    /// than <c>?</c>, <c>#</c>, <c>[</c> and <c>]</c>, and is normalized as described in RFC 3986 section 6.2.2.
+    /// that it starts with a <c>/</c>, contains only unreserved characters, percent-escapes, and reserved characters
+    /// other than <c>?</c>, <c>#</c>, <c>[</c> and <c>]</c>, and is normalized as described in RFC 3986 section 6.2.2.
     /// </summary>
     /// <param name="path">The path to check.</param>
     /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
@@ -661,15 +665,10 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new FormatException(
                 $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?', '#', '[' and ']'.");
         }
-        CheckPathIsNormalized(path);
-    }
-
-    /// <summary>Checks that a path that starts with <c>/</c> is normalized as described in RFC 3986 section 6.2.2:
-    /// the hex digits of its percent-escapes are uppercase, it does not percent-escape an unreserved character, and it
-    /// has no dot segment.</summary>
-    /// <exception cref="FormatException">Thrown when the path is not normalized.</exception>
-    private static void CheckPathIsNormalized(string path)
-    {
+        if (!UriNormalization.IsPercentEncoded(path))
+        {
+            throw new FormatException($"Invalid path '{path}'; each '%' must be followed by two hex digits.");
+        }
         string normalizedPath = UriNormalization.NormalizePath(path);
         if (normalizedPath != path)
         {
@@ -766,8 +765,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new ArgumentException($"Cannot create an {protocol} service address from URI '{uri}'.", nameof(uri));
         }
 
-        // The AbsolutePath is empty for a URI such as "icerpc:"
-        string path = uri.AbsolutePath.Length > 0 ? UriNormalization.NormalizePath(uri.AbsolutePath) : "/";
+        // The AbsolutePath is empty for a URI such as "icerpc:", and does not start with '/' for a URI such as
+        // "icerpc:foo"; such a path is kept as is and rejected below.
+        string path = uri.AbsolutePath.Length == 0 ? "/" :
+            uri.AbsolutePath.StartsWith('/', StringComparison.Ordinal) ?
+                UriNormalization.NormalizePath(uri.AbsolutePath) : uri.AbsolutePath;
         string fragment = uri.Fragment.Length > 0 ? UriNormalization.NormalizePercentEncoding(uri.Fragment[1..]) : "";
 
         ImmutableDictionary<string, string> queryParams;

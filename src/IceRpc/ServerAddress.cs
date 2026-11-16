@@ -211,8 +211,8 @@ public readonly record struct ServerAddress
     public Uri ToUri() => new(ToString(), UriKind.Absolute);
 
     /// <summary>Checks that the parameter names are valid names other than <c>alt-server</c> and <c>transport</c>, and
-    /// that the parameter values contain only unreserved characters, <c>%</c>, and reserved characters other than
-    /// <c>#</c>, <c>$</c>, <c>&#38;</c>, <c>,</c>, <c>[</c> and <c>]</c>, with a normalized percent-encoding.
+    /// that the parameter values contain only unreserved characters, percent-escapes, and reserved characters other
+    /// than <c>#</c>, <c>$</c>, <c>&#38;</c>, <c>,</c>, <c>[</c> and <c>]</c>, with a normalized percent-encoding.
     /// </summary>
     /// <exception cref="FormatException">Thrown when a parameter name or value is invalid.</exception>
     private static void CheckParams(ImmutableDictionary<string, string> @params)
@@ -223,7 +223,7 @@ public readonly record struct ServerAddress
             {
                 throw new FormatException($"Invalid parameter name '{name}'.");
             }
-            if (!IsValidParamValue(value))
+            if (!IsValidParamValue(value) || !UriNormalization.IsPercentEncoded(value))
             {
                 throw new FormatException($"Invalid parameter value '{value}'.");
             }

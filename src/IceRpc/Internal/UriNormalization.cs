@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 
 namespace IceRpc.Internal;
@@ -16,6 +17,25 @@ internal static class UriNormalization
 
     private static readonly SearchValues<char> _unreservedChars =
         SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~");
+
+    /// <summary>Checks that each <c>%</c> of a URI component starts a percent-escape, i.e. is followed by two hex
+    /// digits.</summary>
+    /// <param name="value">The URI component.</param>
+    /// <returns><see langword="true" /> when every <c>%</c> starts a percent-escape; otherwise,
+    /// <see langword="false" />.</returns>
+    internal static bool IsPercentEncoded(string value)
+    {
+        for (int index = value.IndexOf('%', StringComparison.Ordinal);
+            index != -1;
+            index = value.IndexOf('%', index + 3, StringComparison.Ordinal))
+        {
+            if (index + 2 >= value.Length || HexValue(value[index + 1]) == -1 || HexValue(value[index + 2]) == -1)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /// <summary>Normalizes the percent-encoding of a URI component: uppercases the hex digits of each percent-escape,
     /// and decodes each percent-escape of an unreserved character (RFC 3986 sections 6.2.2.1 and 6.2.2.2).</summary>
@@ -61,7 +81,7 @@ internal static class UriNormalization
 
     /// <summary>Normalizes an absolute URI path: normalizes its percent-encoding, then removes its dot segments
     /// (RFC 3986 sections 6.2.2.2 and 6.2.2.3).</summary>
-    /// <param name="path">The path, which starts with a <c>/</c>.</param>
+    /// <param name="path">The path, which must start with a <c>/</c>.</param>
     /// <returns>The normalized path, or <paramref name="path" /> itself when it is already normalized.</returns>
     internal static string NormalizePath(string path) => RemoveDotSegments(NormalizePercentEncoding(path));
 
@@ -69,6 +89,8 @@ internal static class UriNormalization
     /// remove_dot_segments algorithm of RFC 3986 section 5.2.4.</summary>
     private static string RemoveDotSegments(string path)
     {
+        Debug.Assert(path.StartsWith('/', StringComparison.Ordinal));
+
         // A dot segment necessarily starts right after a '/'.
         if (!path.Contains("/.", StringComparison.Ordinal))
         {
@@ -77,8 +99,6 @@ internal static class UriNormalization
 
         string[] segments = path.Split('/');
         var output = new List<string>(segments.Length);
-
-        // segments[0] is the empty string before the leading '/'.
         for (int i = 1; i < segments.Length; ++i)
         {
             string segment = segments[i];

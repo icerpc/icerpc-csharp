@@ -198,6 +198,8 @@ public class ServiceAddressTests
             "icerpc://host/path?alt-server=/foo", // alt-server cannot have a path
             "icerpc://host/path?alt-server=icerpc://host", // alt-server cannot have a scheme
             "icerpc:path",                  // bad path
+            "icerpc:path/.foo",             // bad path
+            "ice:path/../foo",              // bad path
             "icerpc:/host/path#fragment",   // bad fragment
             "icerpc:/path#fragment",        // bad fragment
             "icerpc://user@host/path",      // bad user info
@@ -500,6 +502,9 @@ public class ServiceAddressTests
     [TestCase("icerpc", "/%41")]
     [TestCase("icerpc", "/a/./b")]
     [TestCase("icerpc", "/a/..")]
+    [TestCase("icerpc", "/%")]
+    [TestCase("icerpc", "/a%4")]
+    [TestCase("icerpc", "/%4%31")]
     [TestCase("ice", "/a/b/c")]
     [TestCase("ice", "//foo")]
     [TestCase("ice", "/cat/")]
