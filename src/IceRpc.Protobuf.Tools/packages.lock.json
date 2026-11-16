@@ -4,9 +4,9 @@
     "net10.0": {
       "Google.Protobuf.Tools": {
         "type": "Direct",
-        "requested": "[3.36.1, )",
-        "resolved": "3.36.1",
-        "contentHash": "AQMvgG5nqR1nqTja5bkksfx6MuzMMOEINp3n+Pv0EA/SgocyhuRDGabv19IlkfOL4bnL5FkCosJCEjumgxogAA=="
+        "requested": "[3.36.2, )",
+        "resolved": "3.36.2",
+        "contentHash": "NBVZBXcHIztsG0r/9IlkMWv16krc0wlZp1l0cgi5K538eIw7xakkb7RLqcFK4CeUioVu7TUEy8OMIjc8uVLUqg=="
       },
       "Microsoft.Build.Framework": {
         "type": "Direct",
