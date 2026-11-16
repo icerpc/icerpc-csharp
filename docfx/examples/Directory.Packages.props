@@ -23,8 +23,8 @@
     <PackageVersion Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
     <PackageVersion Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" />
     <PackageVersion Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
   </ItemGroup>
 </Project>
