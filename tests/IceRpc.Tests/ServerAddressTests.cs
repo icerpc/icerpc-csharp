@@ -122,6 +122,7 @@ public class ServerAddressTests
     [TestCase("ice://host:10000?foo=bar&foo=baz")] // duplicate parameter
     [TestCase("ice://host:10000?foo=bar$baz")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo=bar,baz")] // invalid character in parameter value
+    [TestCase("ice://host:10000?foo=[0]")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo$bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000?foo,bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000? =bar")] // invalid character in parameter name
@@ -230,7 +231,7 @@ public class ServerAddressTests
     /// <param name="name">The name of the server address parameter to set.</param>
     /// <param name="value">The value of the server address parameter to set.</param>
     [TestCase("name", "value")]
-    [TestCase("My-name_2.0", "value%25[]@!")]
+    [TestCase("My-name_2.0", "value%25%5B%5D@!")]
     public void Setting_the_server_address_params(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("ice://localhost"));
@@ -267,6 +268,8 @@ public class ServerAddressTests
     [TestCase("name", "valu&e")] // cSpell:disable-line
     [TestCase("name", "valu$e")] // cSpell:disable-line
     [TestCase("name", "valu,e")] // cSpell:disable-line
+    [TestCase("name", "valu[e")] // cSpell:disable-line
+    [TestCase("name", "valu]e")] // cSpell:disable-line
     [TestCase("na$me", "value")]
     [TestCase("na,me", "value")]
     [TestCase("name%23", "value")]

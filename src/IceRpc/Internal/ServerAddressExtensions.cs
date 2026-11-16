@@ -13,18 +13,17 @@ internal static class ServerAddressExtensions
     /// <param name="serverAddress">The server address to append.</param>
     /// <param name="path">The path of the server address URI. Use this parameter to start building a service address
     /// URI.</param>
-    /// <param name="includeScheme">When <see langword="true" />, first appends the server address protocol followed by
-    /// ://.</param>
-    /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.</param>
+    /// <param name="altServer">When <see langword="true" />, appends the server address as an entry of the value of an
+    /// alt-server query parameter: without the scheme, with <c>$</c> as the parameter separator, and with the brackets
+    /// of an IPv6 host percent-encoded, since RFC 3986 allows brackets only around the host of the authority.</param>
     /// <returns>The string builder <paramref name="sb" />.</returns>
     internal static StringBuilder AppendServerAddress(
         this StringBuilder sb,
         ServerAddress serverAddress,
         string path = "",
-        bool includeScheme = true,
-        char paramSeparator = '&')
+        bool altServer = false)
     {
-        if (includeScheme)
+        if (!altServer)
         {
             sb.Append(serverAddress.Protocol);
             sb.Append("://");
@@ -32,9 +31,9 @@ internal static class ServerAddressExtensions
 
         if (serverAddress.Host.Contains(':', StringComparison.Ordinal))
         {
-            sb.Append('[');
+            sb.Append(altServer ? "%5B" : "[");
             sb.Append(serverAddress.Host);
-            sb.Append(']');
+            sb.Append(altServer ? "%5D" : "]");
         }
         else
         {
@@ -68,7 +67,7 @@ internal static class ServerAddressExtensions
             }
             else
             {
-                sb.Append(paramSeparator);
+                sb.Append(altServer ? '$' : '&');
             }
             sb.Append(name);
             if (value.Length > 0)

@@ -389,6 +389,18 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     nameof(uri));
             }
 
+            try
+            {
+                CheckPath(path);
+            }
+            catch (FormatException exception)
+            {
+                throw new ArgumentException(
+                    $"Cannot create an icerpc service address from URI '{uri}'.",
+                    nameof(uri),
+                    exception);
+            }
+
             _path = path;
             _serverAddress = serverAddress;
             _altServerAddresses = altServerAddresses;
@@ -535,8 +547,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
     private const char LastValidChar = '\x7E';
 
     // The characters that are not valid in a query parameter value, plus '%'.
-    private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&\\^`{|}");
-    private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?\\^`{|}");
+    private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&[\\]^`{|}");
+    private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?[\\]^`{|}");
 
     private readonly object? _value;
 
@@ -622,16 +634,17 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
     /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts
     /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, and reserved characters other than
-    /// <c>?</c> and <c>#</c>.</summary>
+    /// <c>?</c>, <c>#</c>, <c>[</c> and <c>]</c>.</summary>
     /// <param name="path">The path to check.</param>
     /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
-    /// <remarks>The absolute path of a URI with a supported protocol satisfies these requirements.</remarks>
+    /// <remarks>RFC 3986 allows <c>[</c> and <c>]</c> only around an IPv6 host: a path writes them as <c>%5B</c> and
+    /// <c>%5D</c>.</remarks>
     internal static void CheckPath(string path)
     {
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
-                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
+                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?', '#', '[' and ']'.");
         }
     }
 
@@ -670,7 +683,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 {
                     sb.Append(',');
                 }
-                sb.AppendServerAddress(altServerAddresses[i], path: "", includeScheme: false, paramSeparator: '$');
+                sb.AppendServerAddress(altServerAddresses[i], altServer: true);
             }
         }
         return firstOption;
@@ -783,7 +796,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     // address.
                     try
                     {
-                        var altUri = new Uri($"{uri.Scheme}://{serverAddressStr}".Replace('$', '&'));
+                        var altUri = new Uri(
+                            $"{uri.Scheme}://{RestoreIPv6HostBrackets(serverAddressStr)}".Replace('$', '&'));
                         altServerAddresses = altServerAddresses.Add(new ServerAddress(altUri));
                     }
                     catch (Exception exception) when (exception is UriFormatException or ArgumentException)
@@ -813,6 +827,22 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         }
 
         return (path, serverAddress, altServerAddresses, queryParams, fragment);
+
+        // An alt-server entry writes the brackets of an IPv6 host as %5B and %5D, while the Uri constructor parses
+        // only the bracketed spelling of the host. Only a leading %5B opens a host: a %5B elsewhere in the entry
+        // belongs to a parameter value, which must stay percent-encoded.
+        static string RestoreIPv6HostBrackets(string altServer)
+        {
+            if (altServer.StartsWith("%5B", StringComparison.OrdinalIgnoreCase))
+            {
+                int end = altServer.IndexOf("%5D", 3, StringComparison.OrdinalIgnoreCase);
+                if (end != -1)
+                {
+                    return $"[{altServer[3..end]}]{altServer[(end + 3)..]}";
+                }
+            }
+            return altServer;
+        }
     }
 
     private ServiceAddress(object value) => _value = value;

@@ -71,7 +71,7 @@ public readonly record struct ServerAddress
     /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
     /// An icerpc server address has no parameters.</value>
     /// <remarks>A parameter name consists of one or more ASCII letters, digits, <c>-</c>, <c>_</c> and <c>.</c>. A
-    /// parameter value is percent-escaped, and does not contain <c>$</c> or <c>,</c>.</remarks>
+    /// parameter value is percent-escaped, and does not contain <c>$</c>, <c>,</c>, <c>[</c> or <c>]</c>.</remarks>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -96,8 +96,9 @@ public readonly record struct ServerAddress
     private const char LastValidChar = '\x7E';
 
     // Any server address can become an alt server address of a service address, and the string form of a service
-    // address separates its alt server addresses with ',' and the parameters of each one with '$'.
-    private static readonly SearchValues<char> _notValidInParamValue = SearchValues.Create("\"<>#$&,\\^`{|}");
+    // address separates its alt server addresses with ',' and the parameters of each one with '$'. RFC 3986 allows
+    // '[' and ']' only around an IPv6 host.
+    private static readonly SearchValues<char> _notValidInParamValue = SearchValues.Create("\"<>#$&,[\\]^`{|}");
 
     private static readonly SearchValues<char> _validInName =
         SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.");
@@ -208,7 +209,7 @@ public readonly record struct ServerAddress
 
     /// <summary>Checks that the parameter names are valid names other than <c>alt-server</c> and <c>transport</c>, and
     /// that the parameter values contain only unreserved characters, <c>%</c>, and reserved characters other than
-    /// <c>#</c>, <c>$</c>, <c>&#38;</c> and <c>,</c>.</summary>
+    /// <c>#</c>, <c>$</c>, <c>&#38;</c>, <c>,</c>, <c>[</c> and <c>]</c>.</summary>
     /// <exception cref="FormatException">Thrown when a parameter name or value is invalid.</exception>
     private static void CheckParams(ImmutableDictionary<string, string> @params)
     {

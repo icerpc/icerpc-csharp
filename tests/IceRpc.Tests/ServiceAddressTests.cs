@@ -155,6 +155,14 @@ public class ServiceAddressTests
 
             // Service address with an adapter ID that needs escaping
             var serviceAddressWithAdapterId = new ServiceAddress.Ice { Path = "/foo", AdapterId = "my adapter" };
+            var serviceAddressWithBracketsInAdapterId = new ServiceAddress.Ice { Path = "/foo", AdapterId = "x[y]" };
+
+            var serviceAddressWithIPv6AltServer = new ServiceAddress(Protocol.IceRpc)
+            {
+                ServerAddress = new ServerAddress { Host = "::1" },
+                Path = "/foo",
+                AltServerAddresses = [new ServerAddress { Host = "::2", Port = 10000 }]
+            };
 
             return
             [
@@ -162,7 +170,9 @@ public class ServiceAddressTests
                 (
                     serviceAddressWithAltServerAddresses,
                     "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"),
-                (serviceAddressWithAdapterId, "ice:/foo?adapter-id=my%20adapter")
+                (serviceAddressWithAdapterId, "ice:/foo?adapter-id=my%20adapter"),
+                (serviceAddressWithBracketsInAdapterId, "ice:/foo?adapter-id=x%5By%5D"),
+                (serviceAddressWithIPv6AltServer, "icerpc://[::1]/foo?alt-server=%5B::2%5D:10000")
             ];
         }
     }
@@ -196,6 +206,10 @@ public class ServiceAddressTests
             "icerpc://host/path?alt-server=host2:99999", // invalid alt-server port
             "icerpc://host/path?alt-server=host2:x", // invalid alt-server port
             "icerpc://host/path?alt-server=[bad", // invalid alt-server host
+            "icerpc://host/path?alt-server=%5Bbad", // invalid alt-server host
+            "icerpc://host/a[b]",           // character that is not valid unescaped in a path
+            "ice://host/path?foo=[0]",      // invalid character in server address parameter value
+            "ice://host/path?alt-server=host2?foo=[0]", // invalid character in server address parameter value
             "icerpc:/path?foo=bar",         // icerpc service address parameter
             "icerpc:/path?transport=tcp",   // transport without a server address
             "ice:/path?transport=tcp",      // transport without a server address
@@ -262,6 +276,8 @@ public class ServiceAddressTests
             ("icerpc://[::1]:10000/identity?alt-server=host1:10000&alt-server=host2,host3&alt-server=[::2]",
              "/identity",
              ""),
+            ("icerpc://host/a%5Bb%5D", "/a%5Bb%5D", ""),
+            ("ice://[::1]/identity?alt-server=%5B::2%5D?z=%5B0%5D", "/identity", ""),
             ("ice:/location/identity#facet", "/location/identity", "facet"),
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
@@ -302,6 +318,20 @@ public class ServiceAddressTests
         {
             new ServerAddress { Host = "host1", Port = 10001 },
             new ServerAddress { Host = "host2", Port = 10002 },
+        },
+        ["icerpc://localhost/path?alt-server=%5B::1%5D:10001,%5b::2%5d,[::3]"] = new ServerAddress[]
+        {
+            new ServerAddress { Host = "::1", Port = 10001 },
+            new ServerAddress { Host = "::2" },
+            new ServerAddress { Host = "::3" },
+        },
+        ["ice://localhost/path?alt-server=%5B::1%5D?z=%5B0%5D"] = new ServerAddress[]
+        {
+            new ServerAddress(Protocol.Ice)
+            {
+                Host = "::1",
+                Params = ImmutableDictionary<string, string>.Empty.Add("z", "%5B0%5D")
+            },
         },
     };
 
@@ -456,6 +486,7 @@ public class ServiceAddressTests
     }
 
     [TestCase("icerpc", "/foo<")]
+    [TestCase("icerpc", "/a[b]")]
     [TestCase("ice", "/a/b/c")]
     [TestCase("ice", "//foo")]
     [TestCase("ice", "/cat/")]
