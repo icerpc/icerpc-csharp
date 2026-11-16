@@ -6,11 +6,12 @@ using System.Text;
 
 namespace IceRpc.Internal;
 
-/// <summary>Normalizes the components of a URI as described in RFC 3986 section 6.2.2, so that equivalent URIs have
-/// the same string form.</summary>
+/// <summary>Computes the normalized form of URI components, as described in RFC 3986 section 6.2.2. An address
+/// accepts only normalized components, so that equivalent URIs have the same string form; it never rewrites a
+/// component, and its error messages name the normalized form instead.</summary>
 /// <remarks><see cref="Uri" /> decodes the percent-escapes of unreserved characters, and removes the dot segments of
 /// a URI with an authority, but it keeps the case of the hex digits of the other percent-escapes and keeps the dot
-/// segments of a URI without an authority.</remarks>
+/// segments of a URI without an authority: an address created from such a URI is rejected.</remarks>
 internal static class UriNormalization
 {
     private const string HexDigits = "0123456789ABCDEF";

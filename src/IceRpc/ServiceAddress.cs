@@ -339,8 +339,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         /// <value>The path of this service address. Defaults to <c>/</c>.</value>
         /// <remarks>The path is normalized as described in RFC 3986 section 6.2.2: the hex digits of a percent-escape
         /// are uppercase, an unreserved character is not percent-escaped, and the path has no <c>.</c> or <c>..</c>
-        /// segment. A service address created from a URI normalizes its path, while this init accessor rejects a path
-        /// that is not normalized.</remarks>
+        /// segment. Neither this init accessor nor the URI constructor accepts a path that is not normalized.
+        /// </remarks>
         public string Path
         {
             get => _path;
@@ -765,12 +765,9 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new ArgumentException($"Cannot create an {protocol} service address from URI '{uri}'.", nameof(uri));
         }
 
-        // The AbsolutePath is empty for a URI such as "icerpc:", and does not start with '/' for a URI such as
-        // "icerpc:foo"; such a path is kept as is and rejected below.
-        string path = uri.AbsolutePath.Length == 0 ? "/" :
-            uri.AbsolutePath.StartsWith('/', StringComparison.Ordinal) ?
-                UriNormalization.NormalizePath(uri.AbsolutePath) : uri.AbsolutePath;
-        string fragment = uri.Fragment.Length > 0 ? UriNormalization.NormalizePercentEncoding(uri.Fragment[1..]) : "";
+        // The AbsolutePath is empty for a URI such as "icerpc:"
+        string path = uri.AbsolutePath.Length > 0 ? uri.AbsolutePath : "/";
+        string fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "";
 
         ImmutableDictionary<string, string> queryParams;
         string? altServerValue;
@@ -862,13 +859,12 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
         // An alt-server entry writes the brackets of an IPv6 host as %5B and %5D, while the Uri constructor parses
         // only the bracketed spelling of the host. Only a leading %5B opens a host: a %5B elsewhere in the entry
-        // belongs to a parameter value, which must stay percent-encoded. ParseQuery already converted the hex digits
-        // to uppercase.
+        // belongs to a parameter value, which must stay percent-encoded.
         static string RestoreIPv6HostBrackets(string altServer)
         {
-            if (altServer.StartsWith("%5B", StringComparison.Ordinal))
+            if (altServer.StartsWith("%5B", StringComparison.OrdinalIgnoreCase))
             {
-                int end = altServer.IndexOf("%5D", 3, StringComparison.Ordinal);
+                int end = altServer.IndexOf("%5D", 3, StringComparison.OrdinalIgnoreCase);
                 if (end != -1)
                 {
                     return $"[{altServer[3..end]}]{altServer[(end + 3)..]}";

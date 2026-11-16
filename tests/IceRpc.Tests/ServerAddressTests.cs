@@ -79,7 +79,7 @@ public class ServerAddressTests
              10000,
              null,
              new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
-            (new Uri("ice://host:10000?xyz=a%3ab%5b%41%7e"), // normalized percent-encoding (RFC 3986 section 6.2.2)
+            (new Uri("ice://host:10000?xyz=a%3Ab%5B%41%7e"), // System.Uri decodes the escapes of unreserved characters
              "host",
              10000,
              null,
@@ -128,6 +128,7 @@ public class ServerAddressTests
     [TestCase("ice://host:10000?foo=bar$baz")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo=bar,baz")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo=[0]")] // invalid character in parameter value
+    [TestCase("ice://host:10000?foo=a%3ab")] // lowercase hex digits in parameter value
     [TestCase("ice://host:10000?foo$bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000?foo,bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000? =bar")] // invalid character in parameter name

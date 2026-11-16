@@ -73,8 +73,8 @@ public readonly record struct ServerAddress
     /// <remarks>A parameter name consists of one or more ASCII letters, digits, <c>-</c>, <c>_</c> and <c>.</c>. A
     /// parameter value is percent-escaped, and does not contain <c>$</c>, <c>,</c>, <c>[</c> or <c>]</c>. Its
     /// percent-encoding is normalized as described in RFC 3986 section 6.2.2: the hex digits of a percent-escape are
-    /// uppercase, and an unreserved character is not percent-escaped. A server address created from a URI normalizes
-    /// its parameter values, while this init accessor rejects a value that is not normalized.</remarks>
+    /// uppercase, and an unreserved character is not percent-escaped. Neither this init accessor nor the URI
+    /// constructor accepts a value that is not normalized.</remarks>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
