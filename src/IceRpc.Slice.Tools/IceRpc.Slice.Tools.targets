@@ -166,7 +166,7 @@
     <SlicecTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="%(_SliceFile.OutputDir)"
-      References="@(SliceDirectory->'%(FullPath)')"
+      References="@(SliceReference->'%(FullPath)')"
       ToolsPath="$(_SliceCPath)"
       Generators="%(_SliceFile.Generators)"
       AdditionalOptions="%(_SliceFile.AdditionalOptions)"
