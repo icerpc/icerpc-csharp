@@ -89,21 +89,21 @@ public class RouterTests
 
     /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> and
     /// <see cref="Router.Mount(string, IDispatcher)" /> reject a path that is not normalized, with a message that
-    /// names the normalized path.</summary>
-    [TestCase("/%41", "/A")]
-    [TestCase("/a%3ab", "/a%3Ab")]
-    [TestCase("/a/./b", "/a/b")]
-    [TestCase("/a/b/..", "/a/")]
-    public void Mapping_or_mounting_a_path_that_is_not_normalized_fails(string path, string normalizedPath)
+    /// states the rule the path breaks.</summary>
+    [TestCase("/%41", "must not be percent-escaped")]
+    [TestCase("/a%3ab", "must be uppercase")]
+    [TestCase("/a/./b", "cannot be '.' or '..'")]
+    [TestCase("/a/b/..", "cannot be '.' or '..'")]
+    public void Mapping_or_mounting_a_path_that_is_not_normalized_fails(string path, string expectedRule)
     {
         var router = new Router();
 
         Assert.That(
             () => router.Map(path, NotFoundDispatcher.Instance),
-            Throws.TypeOf<FormatException>().With.Message.Contains($"'{normalizedPath}'"));
+            Throws.TypeOf<FormatException>().With.Message.Contains(expectedRule));
         Assert.That(
             () => router.Mount(path, NotFoundDispatcher.Instance),
-            Throws.TypeOf<FormatException>().With.Message.Contains($"'{normalizedPath}'"));
+            Throws.TypeOf<FormatException>().With.Message.Contains(expectedRule));
     }
 
     /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)" />

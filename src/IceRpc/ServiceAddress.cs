@@ -171,7 +171,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 // Without an authority, the query holds service address parameters; adapter-id is the only one.
                 foreach ((string name, string value) in queryParams)
                 {
-                    if (name != "adapter-id" || value.Length == 0)
+                    if (name != "adapter-id" || value.Length == 0 || value.AsSpan().ContainsAny('[', ']'))
                     {
                         throw new ArgumentException(
                             $"Invalid service address parameter '{name}' in URI '{uri}'.",
@@ -254,7 +254,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
             // The canonical percent-encoding enforced by IceIdentity.Parse is already normalized, but a segment
             // such as '.' is a dot segment that a URI parser removes.
-            if (UriNormalization.NormalizePath(path) != path)
+            if (UriNormalization.HasDotSegment(path))
             {
                 throw new FormatException(
                     $"Invalid identity path '{path}': a segment of the path cannot be '.' or '..'.");
@@ -347,12 +347,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
             init
             {
-                // Checked first, since the error of CheckPath for /.//foo would suggest //foo instead.
-                if (_serverAddress is null && StartsWithDoubleSlash(value))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot set a {nameof(Path)} that starts with '//', once normalized, on a service address without a server address.");
-                }
                 try
                 {
                     CheckPath(value);
@@ -360,6 +354,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 catch (FormatException exception)
                 {
                     throw new ArgumentException("Invalid path.", nameof(value), exception);
+                }
+                if (_serverAddress is null && value.StartsWith("//", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot set a {nameof(Path)} that starts with '//' on a service address without a server address.");
                 }
                 _path = value;
             }
@@ -666,15 +665,18 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new FormatException(
                 $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?', '#', '[' and ']'.");
         }
-        if (!UriNormalization.IsPercentEncoded(path))
+        if (UriNormalization.HasStrayPercent(path))
         {
             throw new FormatException($"Invalid path '{path}'; each '%' must be followed by two hex digits.");
         }
-        string normalizedPath = UriNormalization.NormalizePath(path);
-        if (normalizedPath != path)
+        if (UriNormalization.HasNonNormalizedPercentEscape(path))
         {
             throw new FormatException(
-                $"Invalid path '{path}'; the path is not normalized as described in RFC 3986 section 6.2.2: use '{normalizedPath}' instead.");
+                $"Invalid path '{path}'; the hex digits of a percent-escape must be uppercase, and an unreserved character must not be percent-escaped.");
+        }
+        if (UriNormalization.HasDotSegment(path))
+        {
+            throw new FormatException($"Invalid path '{path}'; a segment of the path cannot be '.' or '..'.");
         }
     }
 
@@ -750,13 +752,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
     }
 
-    /// <summary>Returns whether a path starts with <c>//</c> once normalized. A service address without a server
-    /// address cannot have such a path: its URI would read the first segment as a host. A URI without an authority
-    /// can only spell such a path with a dot segment, as in <c>icerpc:/.//foo</c>.</summary>
-    private static bool StartsWithDoubleSlash(string path) =>
-        path.StartsWith('/', StringComparison.Ordinal) &&
-        UriNormalization.NormalizePath(path).StartsWith("//", StringComparison.Ordinal);
-
     /// <summary>Parses a service address URI into its components.</summary>
     /// <returns>The path, the server addresses, the query parameters other than alt-server and transport, and the
     /// fragment without its leading <c>#</c>. With an authority, an ice main server address also carries the query
@@ -773,7 +768,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new ArgumentException($"Cannot create an {protocol} service address from URI '{uri}'.", nameof(uri));
         }
 
-        // The AbsolutePath is empty for a URI such as "icerpc:"
+        // The AbsolutePath is empty for a URI such as "icerpc:".
         string path = uri.AbsolutePath.Length > 0 ? uri.AbsolutePath : "/";
         string fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "";
 
@@ -853,10 +848,10 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             {
                 throw new ArgumentException($"Invalid path in service address URI '{uri}'.", nameof(uri));
             }
-            if (StartsWithDoubleSlash(path))
+            if (path.StartsWith("//", StringComparison.Ordinal))
             {
                 throw new ArgumentException(
-                    $"Invalid path in service address URI '{uri}': the path of a service address without a server address cannot start with '//', once normalized.",
+                    $"Invalid path in service address URI '{uri}': the path of a service address without a server address cannot start with '//'.",
                     nameof(uri));
             }
 
@@ -875,9 +870,9 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         // belongs to a parameter value, which must stay percent-encoded.
         static string RestoreIPv6HostBrackets(string altServer)
         {
-            if (altServer.StartsWith("%5B", StringComparison.OrdinalIgnoreCase))
+            if (altServer.StartsWith("%5B", StringComparison.Ordinal))
             {
-                int end = altServer.IndexOf("%5D", 3, StringComparison.OrdinalIgnoreCase);
+                int end = altServer.IndexOf("%5D", 3, StringComparison.Ordinal);
                 if (end != -1)
                 {
                     return $"[{altServer[3..end]}]{altServer[(end + 3)..]}";

@@ -223,15 +223,14 @@ public readonly record struct ServerAddress
             {
                 throw new FormatException($"Invalid parameter name '{name}'.");
             }
-            if (!IsValidParamValue(value) || !UriNormalization.IsPercentEncoded(value))
+            if (!IsValidParamValue(value) || UriNormalization.HasStrayPercent(value))
             {
                 throw new FormatException($"Invalid parameter value '{value}'.");
             }
-            string normalizedValue = UriNormalization.NormalizePercentEncoding(value);
-            if (normalizedValue != value)
+            if (UriNormalization.HasNonNormalizedPercentEscape(value))
             {
                 throw new FormatException(
-                    $"Invalid parameter value '{value}'; the value is not normalized as described in RFC 3986 section 6.2.2: use '{normalizedValue}' instead.");
+                    $"Invalid parameter value '{value}'; the hex digits of a percent-escape must be uppercase, and an unreserved character must not be percent-escaped.");
             }
         }
     }

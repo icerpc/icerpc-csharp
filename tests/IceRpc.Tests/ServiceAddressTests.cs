@@ -164,9 +164,9 @@ public class ServiceAddressTests
                 AltServerAddresses = [new ServerAddress { Host = "::2", Port = 10000 }]
             };
 
-            // Parsing accepts the brackets of an alt-server IPv6 host in any spelling; ToString escapes them.
+            // Parsing accepts the brackets of an alt-server IPv6 host in either spelling; ToString escapes them.
             var serviceAddressWithParsedIPv6AltServers = new ServiceAddress(
-                new Uri("ice://host/foo?alt-server=[::2]:10000,%5b::3%5d"));
+                new Uri("ice://host/foo?alt-server=[::2]:10000,%5B::3%5D"));
 
             return
             [
@@ -214,6 +214,7 @@ public class ServiceAddressTests
             "icerpc://host/path?alt-server=host2:x", // invalid alt-server port
             "icerpc://host/path?alt-server=[bad", // invalid alt-server host
             "icerpc://host/path?alt-server=%5B::1", // invalid alt-server host
+            "icerpc://host/path?alt-server=%5b::1%5d", // lowercase hex digits in alt-server host brackets
             "icerpc://host/a[b]",           // character that is not valid unescaped in a path
             "ice://host/path?foo=[0]",      // invalid character in server address parameter value
             "ice://host/path?alt-server=host2?foo=[0]", // invalid character in server address parameter value
@@ -230,6 +231,7 @@ public class ServiceAddressTests
             "ice://host/path?foo$bar=baz",  // invalid character in server address parameter name
             "ice://host/path?=bar",         // empty parameter name
             "ice:/path?adapter-id=foo&adapter-id=bar", // duplicate adapter-id
+            "ice:/path?adapter-id=x[y]",    // character that is not valid unescaped in an adapter-id
             "ice://host/s1/s2/s3",          // too many slashes in path
             "icerpc:////identity",          // path starts with // without a server address
             "ice:////identity",             // path starts with // without a server address
@@ -243,7 +245,8 @@ public class ServiceAddressTests
             "icerpc://host/a%5bb%5d",       // lowercase hex digits
             "icerpc:/a/./b",                // dot segment
             "icerpc:/a/b/..",               // dot segment
-            "ice:/a[b]",                   // character that is not valid unescaped in a path segment
+            "icerpc:/.//foo",               // dot segment
+            "ice:/a[b]",                    // character that is not valid unescaped in a path segment
             "ice:/%FF",                     // escaped bytes that are not UTF-8
             "ice:/identity#a%3Ab",          // escaped character that is valid unescaped in a fragment
             "ice:/identity#a%2Fb",          // escaped character that is valid unescaped in a fragment
@@ -337,11 +340,10 @@ public class ServiceAddressTests
             new ServerAddress { Host = "host1", Port = 10001 },
             new ServerAddress { Host = "host2", Port = 10002 },
         },
-        ["icerpc://localhost/path?alt-server=%5B::1%5D:10001,%5b::2%5d,[::3]"] = new ServerAddress[]
+        ["icerpc://localhost/path?alt-server=%5B::1%5D:10001,[::2]"] = new ServerAddress[]
         {
             new ServerAddress { Host = "::1", Port = 10001 },
             new ServerAddress { Host = "::2" },
-            new ServerAddress { Host = "::3" },
         },
         ["ice://localhost/path?alt-server=%5B::1%5D?z=%5B0%5D"] = new ServerAddress[]
         {
@@ -355,13 +357,14 @@ public class ServiceAddressTests
 
     /// <summary>Verifies that the adapter ID of a service address is unescaped, and escaped again in its URI.
     /// </summary>
-    [Test]
-    public void Adapter_id_is_unescaped()
+    [TestCase("ice:/hello?adapter-id=my%20adapter%25", "my adapter%")]
+    [TestCase("ice:/hello?adapter-id=x%5By%5D", "x[y]")]
+    public void Adapter_id_is_unescaped(Uri uri, string expectedAdapterId)
     {
-        var serviceAddress = new ServiceAddress.Ice(new Uri("ice:/hello?adapter-id=my%20adapter%25"));
+        var serviceAddress = new ServiceAddress.Ice(uri);
 
-        Assert.That(serviceAddress.AdapterId, Is.EqualTo("my adapter%"));
-        Assert.That(serviceAddress.ToString(), Is.EqualTo("ice:/hello?adapter-id=my%20adapter%25"));
+        Assert.That(serviceAddress.AdapterId, Is.EqualTo(expectedAdapterId));
+        Assert.That(serviceAddress.ToString(), Is.EqualTo(uri.OriginalString));
     }
 
     /// <summary>Verifies that the service address server address cannot be set when the service address has an
@@ -410,26 +413,21 @@ public class ServiceAddressTests
         Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
     }
 
-    /// <summary>Verifies that the path of a service address without a server address cannot start with //, including
-    /// once normalized.</summary>
-    [TestCase("//foo")]
-    [TestCase("/.//foo")]
-    [TestCase("/..//foo")]
-    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address(string path)
+    /// <summary>Verifies that the path of a service address without a server address cannot start with //.</summary>
+    [Test]
+    public void Cannot_set_double_slash_path_on_a_service_address_without_a_server_address()
     {
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
-        Assert.That(() => serviceAddress with { Path = path }, Throws.InvalidOperationException);
+        Assert.That(() => serviceAddress with { Path = "//foo" }, Throws.InvalidOperationException);
     }
 
-    /// <summary>Verifies that a URI without a server address whose path starts with // once normalized, such as the
-    /// /.//foo spelling of the path //foo, is rejected because the path needs a server address.</summary>
-    [TestCase("icerpc:/.//foo")]
-    [TestCase("icerpc:/..//foo")]
-    [TestCase("icerpc:////foo")]
-    public void Uri_without_server_address_cannot_have_a_double_slash_path(Uri uri) =>
+    /// <summary>Verifies that a URI without a server address whose path starts with // is rejected because the path
+    /// needs a server address.</summary>
+    [Test]
+    public void Uri_without_server_address_cannot_have_a_double_slash_path() =>
         Assert.That(
-            () => new ServiceAddress(uri),
+            () => new ServiceAddress(new Uri("icerpc:////foo")),
             Throws.ArgumentException.With.Message.Contains("without a server address"));
 
     /// <summary>Verifies that the server address cannot be cleared when the path starts with //.</summary>
