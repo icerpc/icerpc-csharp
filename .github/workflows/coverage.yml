@@ -20,7 +20,11 @@ jobs:
         shell: bash
 
       - name: Generate Coverage Reports
-        run: dotnet test --collect:"XPlat Code Coverage"
+        # The QUIC tests run on their own: a QUIC listener bound to port 0 can be assigned the UDP port of a QUIC
+        # listener in another test host, and then misses the connections sent to that port.
+        run: |
+          dotnet test --collect:"XPlat Code Coverage" -p:SkipQuicTests=true
+          dotnet test tests/IceRpc.Transports.Quic.Tests --collect:"XPlat Code Coverage"
         shell: bash
 
       - name: Coveralls

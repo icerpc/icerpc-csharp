@@ -15,8 +15,25 @@ runs:
         --blame-hang-timeout 60s \
         --diag:"TestResults/vstest.log" \
         --logger "trx" \
+        --results-directory TestResults \
+        -p:SkipQuicTests=true
+    shell: bash
+
+  # The QUIC tests run on their own: on Linux, a QUIC listener bound to port 0 can be assigned the UDP port of a QUIC
+  # listener in another test host, and then misses the connections sent to that port.
+  - name: 🧪 Test .NET (QUIC)
+    run: |
+      dotnet test tests/IceRpc.Transports.Quic.Tests \
+        --no-build \
+        --verbosity normal \
+        --blame \
+        --blame-crash \
+        --blame-hang-timeout 60s \
+        --diag:"TestResults/vstest-quic.log" \
+        --logger "trx" \
         --results-directory TestResults
     shell: bash
+    if: success() || failure()
 
   - name: Create test report
     run: |

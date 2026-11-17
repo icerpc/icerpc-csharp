@@ -3,6 +3,8 @@
     <!-- CS1591: Missing XML comment for publicly visible type or member -->
     <NoWarn>CS1591</NoWarn>
     <TargetFramework>net11.0</TargetFramework>
+    <!-- Lets a solution-wide "dotnet test" skip this project, so that the QUIC tests can run on their own. -->
+    <IsTestProject Condition="'$(SkipQuicTests)' == 'true'">false</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
