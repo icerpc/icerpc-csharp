@@ -144,7 +144,8 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(samplerParent.TraceState, Is.EqualTo("key=value"));
         Assert.That(samplerParent.IsRemote, Is.True);
         Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity!.TraceId, Is.EqualTo(parentTraceId));
+        Assert.That(dispatchActivity!.Source, Is.SameAs(activitySource));
+        Assert.That(dispatchActivity.TraceId, Is.EqualTo(parentTraceId));
         Assert.That(dispatchActivity.ParentSpanId, Is.EqualTo(parentSpanId));
         Assert.That(dispatchActivity.TraceStateString, Is.EqualTo("key=value"));
         Assert.That(dispatchActivity.HasRemoteParent, Is.True);
