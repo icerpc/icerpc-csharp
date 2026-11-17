@@ -128,9 +128,9 @@ internal static class BasicEnumGenerator
 
             method.SetBody(
                 $$"""
-                {{checkExpr}} ?
-                ({{identifier}})value :
-                throw new global::System.IO.InvalidDataException($"Invalid enumerator value '{value}' for {{identifier}}.")
+                {{checkExpr}}
+                    ? ({{identifier}})value
+                    : throw new global::System.IO.InvalidDataException($"Invalid enumerator value '{value}' for {{identifier}}.")
                 """);
 
             method.AddComment(

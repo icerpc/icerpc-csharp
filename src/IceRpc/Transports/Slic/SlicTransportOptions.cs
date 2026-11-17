@@ -66,15 +66,16 @@ public sealed record class SlicTransportOptions
     public int MaxStreamFrameSize
     {
         get => _maxStreamFrameSize;
-        set => _maxStreamFrameSize = value < 1024
-            ? throw new ArgumentException(
-                $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1 KB.",
-                nameof(value))
-            : value > MaxStreamFrameSizeCeiling
+        set => _maxStreamFrameSize =
+            value < 1024
                 ? throw new ArgumentException(
-                    $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxStreamFrameSizeCeiling}.",
+                    $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1 KB.",
                     nameof(value))
-                : value;
+                : value > MaxStreamFrameSizeCeiling
+                    ? throw new ArgumentException(
+                        $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxStreamFrameSizeCeiling}.",
+                        nameof(value))
+                    : value;
     }
 
     /// <summary>Gets or sets the per-connection pause writer threshold. It defines the maximum amount of data that

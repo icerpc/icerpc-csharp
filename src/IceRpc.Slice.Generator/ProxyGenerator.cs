@@ -157,9 +157,9 @@ internal static class ProxyGenerator
                     .AddParameter(proxyName, "proxy")
                     .SetBody(
                         $$"""
-                        proxy.IsRelative ?
-                            {{baseProxyName}}.FromPath(proxy.ServiceAddress.Path) :
-                            new {{baseProxyName}}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)
+                        proxy.IsRelative
+                            ? {{baseProxyName}}.FromPath(proxy.ServiceAddress.Path)
+                            : new {{baseProxyName}}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)
                         """)
                     .Build());
         }
