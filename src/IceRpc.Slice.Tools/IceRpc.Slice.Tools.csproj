@@ -52,15 +52,15 @@
       <PackagePath>build/</PackagePath>
       <Pack>true</Pack>
     </Content>
-    <Content Include="SliceFile.ProjectProperties.xaml">
+    <Content Include="SliceSource.ProjectProperties.xaml">
       <PackagePath>build/</PackagePath>
       <Pack>true</Pack>
     </Content>
-    <Content Include="SliceFile.FileProperties.xaml">
+    <Content Include="SliceSource.FileProperties.xaml">
       <PackagePath>build/</PackagePath>
       <Pack>true</Pack>
     </Content>
-    <Content Include="SliceFile.ItemDefinition.xaml">
+    <Content Include="SliceSource.ItemDefinition.xaml">
       <PackagePath>build/</PackagePath>
       <Pack>true</Pack>
     </Content>
