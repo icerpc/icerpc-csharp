@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Rule
-  Name="SliceFileProjectSettings"
+  Name="SliceSourceProjectSettings"
   DisplayName="IceRPC Slice Tools"
   PageTemplate="generic"
   Order="201"
@@ -28,7 +28,7 @@
     <StringProperty.DataSource>
       <DataSource
         Persistence="ProjectFile"
-        ItemType="SliceFile"
+        ItemType="SliceSource"
         Label="SliceTools"
         HasConfigurationCondition="false"
         SourceOfDefaultValue="AfterContext"
@@ -46,7 +46,7 @@
     <StringListProperty.DataSource>
       <DataSource
         Persistence="ProjectFile"
-        ItemType="SliceFile"
+        ItemType="SliceSource"
         Label="SliceTools"
         HasConfigurationCondition="false"
         SourceOfDefaultValue="AfterContext"

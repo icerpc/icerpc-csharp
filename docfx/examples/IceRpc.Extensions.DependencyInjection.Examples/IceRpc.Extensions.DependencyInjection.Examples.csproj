@@ -4,7 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <SliceFile Include="../Greeter.slice" />
+    <SliceSource Include="../Greeter.slice" />
     <PackageReference Include="IceRpc" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" />
     <PackageReference Include="IceRpc.Logger" />

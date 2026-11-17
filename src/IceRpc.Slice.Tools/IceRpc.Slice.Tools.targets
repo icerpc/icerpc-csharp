@@ -25,33 +25,33 @@
                       ReferenceOutputAssembly="false" Private="false" Targets="Build" />
   </ItemGroup>
   <ItemGroup>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceSource.ItemDefinition.xaml" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceSource.ProjectProperties.xaml">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileProperties.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceSource.FileProperties.xaml">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
-    <AvailableItemName Include="SliceFile" />
+    <AvailableItemName Include="SliceSource" />
   </ItemGroup>
 
-  <!-- This capability is used to apply the SliceFile property page designer -->
+  <!-- This capability is used to apply the SliceSource property page designer -->
   <ItemGroup>
-    <ProjectCapability Include="SliceFile" />
+    <ProjectCapability Include="SliceSource" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
-    <SliceFile Update="@(SliceFile)">
+    <SliceSource Update="@(SliceSource)">
       <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       <Link
         Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
       >%(LinkBase)%(RecursiveDir)%(FileName)%(Extension)</Link>
-    </SliceFile>
+    </SliceSource>
   </ItemGroup>
 
   <!--
     The SDK includes the *.slice files as "None" items. We remove them because the .props already includes them as
-    "SliceFile" items.
+    "SliceSource" items.
   -->
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <None Remove="**/*.slice" />
@@ -64,83 +64,85 @@
     Unlike the SDK, which compares item specs, this compares full paths: "./a.slice" or "sub/b.slice" names the same
     file as the default item "a.slice" or "sub\b.slice".
   -->
-  <Target Name="_CheckForDuplicateSliceFiles"
-          Condition="'$(EnableDefaultItems)' == 'true' And '$(EnableDefaultSliceFileItems)' == 'true'">
+  <Target Name="_CheckForDuplicateSliceSources"
+          Condition="'$(EnableDefaultItems)' == 'true' And '$(EnableDefaultSliceSourceItems)' == 'true'">
     <ItemGroup>
-      <_SliceFileFullPath Include="@(SliceFile->'%(FullPath)')" />
-      <_DuplicateSliceFile Include="%(_SliceFileFullPath.Identity)"
-                           Condition="'@(_SliceFileFullPath->Count())' &gt; 1" />
+      <_SliceSourceFullPath Include="@(SliceSource->'%(FullPath)')" />
+      <_DuplicateSliceSource Include="%(_SliceSourceFullPath.Identity)"
+                             Condition="'@(_SliceSourceFullPath->Count())' &gt; 1" />
     </ItemGroup>
 
     <Error
-      Text="Duplicate 'SliceFile' items were included. IceRpc.Slice.Tools includes the '.slice' files in your project directory as 'SliceFile' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultSliceFileItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateSliceFile, '; ')"
-      Condition="'@(_DuplicateSliceFile)' != ''"
+      Text="Duplicate 'SliceSource' items were included. IceRpc.Slice.Tools includes the '.slice' files in your project directory as 'SliceSource' items by default. Remove these items from your project file, use 'Update' instead of 'Include' to set their metadata, or set the 'EnableDefaultSliceSourceItems' property to 'false' if you want to include them explicitly in your project file. The duplicate items were: @(_DuplicateSliceSource, '; ')"
+      Condition="'@(_DuplicateSliceSource)' != ''"
       ContinueOnError="$(ContinueOnError)" />
 
-    <ItemGroup Condition="'$(DesignTimeBuild)' == 'true' And '@(_DuplicateSliceFile)' != ''">
-      <_DeduplicatedSliceFile Include="@(_SliceFileFullPath->Distinct())" />
-      <SliceFile Remove="@(SliceFile)" />
-      <SliceFile Include="@(_DeduplicatedSliceFile)" />
+    <ItemGroup Condition="'$(DesignTimeBuild)' == 'true' And '@(_DuplicateSliceSource)' != ''">
+      <_DeduplicatedSliceSource Include="@(_SliceSourceFullPath->Distinct())" />
+      <SliceSource Remove="@(SliceSource)" />
+      <SliceSource Include="@(_DeduplicatedSliceSource)" />
     </ItemGroup>
   </Target>
 
   <!--
-    Computes the _SliceFile items: the Slice files to compile, each with the code generators to run on it and the
+    Computes the _SliceSource items: the Slice files to compile, each with the code generators to run on it and the
     paths of the files these generators produce.
   -->
-  <Target Name="_ComputeSliceFiles" DependsOnTargets="_CheckForDuplicateSliceFiles" Condition="@(SliceFile) != ''">
+  <Target Name="_ComputeSliceSources"
+          DependsOnTargets="_CheckForDuplicateSliceSources"
+          Condition="@(SliceSource) != ''">
     <ItemGroup>
-      <_SliceFile Include="@(SliceFile)" />
-      <_SliceFile>
-        <Generators>%(_SliceFile.Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).cs'))</GeneratedPath>
-      </_SliceFile>
-      <_SliceFile Condition="'%(IceRpc)' == 'true'">
-        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
-        <GeneratedPath>%(_SliceFile.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
-      </_SliceFile>
+      <_SliceSource Include="@(SliceSource)" />
+      <_SliceSource>
+        <Generators>%(_SliceSource.Generators);$(_ZeroCSliceGeneratorPath)slicec-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(_SliceSource.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).cs'))</GeneratedPath>
+      </_SliceSource>
+      <_SliceSource Condition="'%(IceRpc)' == 'true'">
+        <Generators>%(_SliceSource.Generators);$(_IceRpcSliceGeneratorPath)slicec-icerpc-csharp-generator$(_SliceGeneratorScriptExtension)</Generators>
+        <GeneratedPath>%(_SliceSource.GeneratedPath);$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).IceRpc.cs'))</GeneratedPath>
+      </_SliceSource>
       <!-- The xxx.BuildTelemetry.txt is generated when both IceRpcBuildTelemetry and IceRpcBuildTelemetryDebug are true -->
-      <_SliceFile Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'">
+      <_SliceSource Condition="'$(IceRpcBuildTelemetry)' == 'true' And '$(IceRpcBuildTelemetryDebug)' == 'true'">
         <TelemetryPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(FileName).BuildTelemetry.txt'))</TelemetryPath>
-      </_SliceFile>
+      </_SliceSource>
     </ItemGroup>
   </Target>
 
   <!--
     Delete generated files recorded in the previous build's manifest that the current build no longer produces.
-    Without this, a removed/renamed .slice file (or a SliceFile whose OutputDir or IceRpc metadata changed) leaves
+    Without this, a removed/renamed .slice file (or a SliceSource whose OutputDir or IceRpc metadata changed) leaves
     orphan .cs files behind that the SDK's default Compile glob keeps picking up.
 
-    Runs even when SliceFile is empty: the outputs of a previous build still need pruning.
+    Runs even when SliceSource is empty: the outputs of a previous build still need pruning.
   -->
   <Target Name="_SlicecPruneStaleOutputs"
           BeforeTargets="Slicec;SlicecClean"
-          DependsOnTargets="_ComputeSliceFiles"
+          DependsOnTargets="_ComputeSliceSources"
           Condition="Exists('$(IntermediateOutputPath)slicec.outputs.txt')">
     <ReadLinesFromFile File="$(IntermediateOutputPath)slicec.outputs.txt">
       <Output TaskParameter="Lines" ItemName="_PreviousSlicecOutput" />
     </ReadLinesFromFile>
     <ItemGroup>
-      <_CurrentSlicecOutput Include="%(_SliceFile.GeneratedPath)" />
-      <_CurrentSlicecOutput Include="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
+      <_CurrentSlicecOutput Include="%(_SliceSource.GeneratedPath)" />
+      <_CurrentSlicecOutput Include="%(_SliceSource.TelemetryPath)" Condition="'%(_SliceSource.TelemetryPath)' != ''" />
       <_StaleSlicecOutput Include="@(_PreviousSlicecOutput)" Exclude="@(_CurrentSlicecOutput)" />
       <!-- Remove before deleting, or csc fails with CS2001 on the missing files. -->
       <Compile Remove="@(_StaleSlicecOutput)" MatchOnMetadata="FullPath" MatchOnMetadataOptions="PathLike" />
     </ItemGroup>
     <Delete Files="@(_StaleSlicecOutput)" />
-    <!-- With no SliceFile left, _SlicecWriteOutputManifest doesn't run to replace the manifest. -->
-    <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" Condition="@(SliceFile) == ''" />
+    <!-- With no SliceSource left, _SlicecWriteOutputManifest doesn't run to replace the manifest. -->
+    <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" Condition="@(SliceSource) == ''" />
   </Target>
 
   <!--
-    Adds the build-telemetry generator to the _SliceFile items of a real build. BuildingProject is true only in a real
-    build, so the design-time builds of an IDE don't send reports. The check is not in _ComputeSliceFiles because
-    MSBuild runs a target at most once per build: a Rebuild runs _ComputeSliceFiles during Clean, before
+    Adds the build-telemetry generator to the _SliceSource items of a real build. BuildingProject is true only in a real
+    build, so the design-time builds of an IDE don't send reports. The check is not in _ComputeSliceSources because
+    MSBuild runs a target at most once per build: a Rebuild runs _ComputeSliceSources during Clean, before
     BuildingProject is set, and reuses its items for the build that follows.
   -->
   <Target Name="_AddSliceBuildTelemetryGenerator"
-          DependsOnTargets="_ComputeSliceFiles"
-          Condition="@(SliceFile) != '' And '$(IceRpcBuildTelemetry)' == 'true' And '$(BuildingProject)' == 'true'">
+          DependsOnTargets="_ComputeSliceSources"
+          Condition="@(SliceSource) != '' And '$(IceRpcBuildTelemetry)' == 'true' And '$(BuildingProject)' == 'true'">
     <PropertyGroup>
       <_BuildTelemetryOptions>,slicec_version=$(SlicecVersion),toolchain=dotnet:$(NETCoreSdkVersion)</_BuildTelemetryOptions>
       <_BuildTelemetryOptions Condition="'$(IceRpcBuildTelemetryDryRun)' == 'true'">,dry_run$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
@@ -148,29 +150,29 @@
       <_BuildTelemetryOptions Condition="'$(CI)' == 'true'">,ci$(_BuildTelemetryOptions)</_BuildTelemetryOptions>
     </PropertyGroup>
     <ItemGroup>
-      <_SliceFile Condition="'%(IceRpc)' == 'true'">
+      <_SliceSource Condition="'%(IceRpc)' == 'true'">
         <BuildTelemetryGenerators>,generator=slicec-icerpc-csharp-generator:$(IceRpcSliceToolsVersion)</BuildTelemetryGenerators>
-      </_SliceFile>
-      <_SliceFile>
-        <Generators>%(_SliceFile.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion)%(_SliceFile.BuildTelemetryGenerators),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</Generators>
-      </_SliceFile>
+      </_SliceSource>
+      <_SliceSource>
+        <Generators>%(_SliceSource.Generators);$(_IceRpcSliceBuildTelemetryPath)slicec-build-telemetry$(_SliceGeneratorScriptExtension)$(_BuildTelemetryOptions),generator=slicec-csharp-generator:$(IceRpcSliceToolsVersion)%(_SliceSource.BuildTelemetryGenerators),generator=slicec-build-telemetry:$(IceRpcSliceToolsVersion)</Generators>
+      </_SliceSource>
     </ItemGroup>
   </Target>
 
   <Target Name="Slicec"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="_ComputeSliceFiles;_AddSliceBuildTelemetryGenerator"
-          Condition="@(SliceFile) != ''">
-    <MakeDir Directories="%(_SliceFile.OutputDir)" />
+          DependsOnTargets="_ComputeSliceSources;_AddSliceBuildTelemetryGenerator"
+          Condition="@(SliceSource) != ''">
+    <MakeDir Directories="%(_SliceSource.OutputDir)" />
 
     <SlicecTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      OutputDir="%(_SliceFile.OutputDir)"
+      OutputDir="%(_SliceSource.OutputDir)"
       References="@(SliceReference->'%(FullPath)')"
       ToolsPath="$(_SliceCPath)"
-      Generators="%(_SliceFile.Generators)"
-      AdditionalOptions="%(_SliceFile.AdditionalOptions)"
-      Sources="@(_SliceFile)"
+      Generators="%(_SliceSource.Generators)"
+      AdditionalOptions="%(_SliceSource.AdditionalOptions)"
+      Sources="@(_SliceSource)"
     />
 
     <!--
@@ -183,7 +185,7 @@
     -->
     <ItemGroup>
       <Compile
-        Include="%(_SliceFile.GeneratedPath)"
+        Include="%(_SliceSource.GeneratedPath)"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;Generators;PackagePath;Pack"
       />
@@ -193,10 +195,10 @@
   <!-- Record this build's outputs so the next build can prune anything we no longer produce. -->
   <Target Name="_SlicecWriteOutputManifest"
           AfterTargets="Slicec"
-          Condition="@(SliceFile) != ''">
+          Condition="@(SliceSource) != ''">
     <ItemGroup>
-      <_AllSlicecOutput Include="%(_SliceFile.GeneratedPath)" />
-      <_AllSlicecOutput Include="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
+      <_AllSlicecOutput Include="%(_SliceSource.GeneratedPath)" />
+      <_AllSlicecOutput Include="%(_SliceSource.TelemetryPath)" Condition="'%(_SliceSource.TelemetryPath)' != ''" />
     </ItemGroup>
     <WriteLinesToFile
       File="$(IntermediateOutputPath)slicec.outputs.txt"
@@ -205,18 +207,18 @@
       WriteOnlyWhenDifferent="true" />
   </Target>
 
-  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceFiles">
-    <Delete Files="%(_SliceFile.GeneratedPath)" />
-    <Delete Files="%(_SliceFile.TelemetryPath)" Condition="'%(_SliceFile.TelemetryPath)' != ''" />
+  <Target Name="SlicecClean" BeforeTargets="Clean" DependsOnTargets="_ComputeSliceSources">
+    <Delete Files="%(_SliceSource.GeneratedPath)" />
+    <Delete Files="%(_SliceSource.TelemetryPath)" Condition="'%(_SliceSource.TelemetryPath)' != ''" />
     <Delete Files="$(IntermediateOutputPath)slicec.outputs.txt" />
   </Target>
 
-  <!-- Package SliceFile items -->
-  <Target Name="PackSliceFileItems" BeforeTargets="GenerateNuspec">
+  <!-- Package SliceSource items -->
+  <Target Name="PackSliceSourceItems" BeforeTargets="GenerateNuspec">
     <CreateItem
-      Include="@(SliceFile)"
-      Condition="'%(SliceFile.Pack)' == 'true'"
-      AdditionalMetadata="PackagePath=%(SliceFile.PackagePath)"
+      Include="@(SliceSource)"
+      Condition="'%(SliceSource.Pack)' == 'true'"
+      AdditionalMetadata="PackagePath=%(SliceSource.PackagePath)"
     >
       <Output TaskParameter="Include" ItemName="_PackageFiles" />
     </CreateItem>

@@ -15,7 +15,7 @@
 
     <!-- Report build telemetry by default. -->
     <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
-    <EnableDefaultSliceFileItems Condition="'$(EnableDefaultSliceFileItems)' == ''">true</EnableDefaultSliceFileItems>
+    <EnableDefaultSliceSourceItems Condition="'$(EnableDefaultSliceSourceItems)' == ''">true</EnableDefaultSliceSourceItems>
 
     <!-- Internal properties used to compute the slicec compiler location for the current platform. -->
     <_IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_IceRpcOSName>
@@ -62,17 +62,17 @@
 
   <!-- default values -->
   <ItemDefinitionGroup>
-    <SliceFile>
+    <SliceSource>
       <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
       <IceRpc>true</IceRpc>
       <Pack>false</Pack>
       <PackagePath>slice</PackagePath>
-    </SliceFile>
+    </SliceSource>
   </ItemDefinitionGroup>
 
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-    <SliceFile
-      Condition="'$(EnableDefaultSliceFileItems)' == 'true'"
+    <SliceSource
+      Condition="'$(EnableDefaultSliceSourceItems)' == 'true'"
       Include="**/*.slice"
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Rule
-  Name="SliceFileSettings"
+  Name="SliceSourceSettings"
   DisplayName="General"
   PageTemplate="generic"
   Description="General properties for Slice files"
@@ -12,7 +12,7 @@
       Persistence="ProjectFile"
       Label="SliceTools"
       HasConfigurationCondition="false"
-      ItemType="SliceFile"
+      ItemType="SliceSource"
       SourceOfDefaultValue="AfterContext"
     />
   </Rule.DataSource>
@@ -41,7 +41,7 @@
     <StringProperty.DataSource>
       <DataSource
         Persistence="Intrinsic"
-        ItemType="SliceFile"
+        ItemType="SliceSource"
         PersistedName="Identity"
         SourceOfDefaultValue="AfterContext"
       />
@@ -58,7 +58,7 @@
     <StringProperty.DataSource>
       <DataSource
         Persistence="Intrinsic"
-        ItemType="SliceFile"
+        ItemType="SliceSource"
         PersistedName="FullPath"
         SourceOfDefaultValue="AfterContext"
       />
@@ -85,7 +85,7 @@
     <StringProperty.DataSource>
       <DataSource
         Persistence="ProjectFile"
-        ItemType="SliceFile"
+        ItemType="SliceSource"
         Label="SliceTools"
         HasConfigurationCondition="false"
         SourceOfDefaultValue="AfterContext"
@@ -106,7 +106,7 @@
   <StringListProperty.DataSource>
       <DataSource
         Persistence="ProjectFile"
-        ItemType="SliceFile"
+        ItemType="SliceSource"
         Label="SliceTools"
         HasConfigurationCondition="false"
         SourceOfDefaultValue="AfterContext"

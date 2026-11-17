@@ -8,9 +8,9 @@
     <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemDefinitionGroup>
-    <SliceFile>
+    <SliceSource>
       <IceRpc>false</IceRpc>
-    </SliceFile>
+    </SliceSource>
   </ItemDefinitionGroup>
   <ItemGroup>
     <PackageReference Include="StyleCop.Analyzers">

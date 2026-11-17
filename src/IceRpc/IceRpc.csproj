@@ -8,23 +8,23 @@
     <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemDefinitionGroup>
-    <SliceFile>
+    <SliceSource>
       <IceRpc>false</IceRpc>
-    </SliceFile>
+    </SliceSource>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <SliceFile
+    <SliceSource
       Include="../../slice/IceRpc/*.slice"
       OutputDir="$(MSBuildProjectDirectory)/generated"
       Pack="true"
       PackagePath="slice/$(AssemblyName)"
     />
-    <SliceFile
+    <SliceSource
       Include="../../slice/IceRpc/Internal/IceRpcDefinitions.slice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
       LinkBase="Internal"
     />
-    <SliceFile
+    <SliceSource
       Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
       OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated"
       LinkBase="Transports/Slic/Internal"

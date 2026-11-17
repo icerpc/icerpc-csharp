@@ -20,44 +20,44 @@ automatically compiled into C# files every time you build this project.
 
 [Source code][source] | [Package][package] | [Slice documentation][slice]
 
-## Slice files and Slice references
+## Slice sources and Slice references
 
 The Slice compiler accepts two main inputs:
 
-- the Slice files to compile into C# code (the Slice files)
+- the Slice files to compile into C# code (the Slice sources)
 - the reference Slice files, and directories that contain reference Slice files (the Slice references)
 
 The Slice compiler parses the reference Slice files, including any Slice files found recursively in the referenced
 directories, but does not generate code for them. They typically contain definitions referenced by the source Slice
 files.
 
-> The Slice files and Slice references can overlap.
+> The Slice sources and Slice references can overlap.
 
-You select which files to include in your project's Slice files with the `SliceFile` item type. And you select which
-Slice files and directories to include in your project's Slice references with the `SliceReference` item type.
+You select which files to include in your project's Slice sources with the `SliceSource` item type. And you select
+which Slice files and directories to include in your project's Slice references with the `SliceReference` item type.
 
 By default, all `.slice` files located in your project's home directory and any of its subdirectories, recursively, are
-included in `SliceFile`. You can prevent this auto-inclusion of `.slice` files by setting either
-[`EnableDefaultItems`][default-items] or `EnableDefaultSliceFileItems` to `false`. The default value of these properties
-is `true`.
+included in `SliceSource`. You can prevent this auto-inclusion of `.slice` files by setting either
+[`EnableDefaultItems`][default-items] or `EnableDefaultSliceSourceItems` to `false`. The default value of these
+properties is `true`.
 
 You can also add Slice files to your project explicitly. For example:
 
 ```xml
 <ItemGroup>
-    <SliceFile Include="../Greeter.slice"/>
+    <SliceSource Include="../Greeter.slice"/>
 </ItemGroup>
 ```
 
-This adds `Greeter.slice` to your project's Slice files even though this file is not in the project's home directory or
-any of its subdirectories.
+This adds `Greeter.slice` to your project's Slice sources even though this file is not in the project's home directory
+or any of its subdirectories.
 
 > Slice files must have a `.slice` extension.
 
 The Slice references are an aggregate of the `SliceReference` defined in your project (if any) and the `SliceReference`
 defined in NuGet packages referenced by your project.
 
-For example, if your project's Slice files reference definitions in directory `common/slice` and in file
+For example, if your project's Slice sources reference definitions in directory `common/slice` and in file
 `shared/Types.slice`:
 
 ```xml
@@ -88,10 +88,10 @@ For example, if you pack Slice files into the `slice` directory of your NuGet pa
 The [ZeroC.Slice.Codec][zeroc-slice-codec] NuGet package follows this pattern and provides definitions for common Slice
 types such as `WellKnownTypes::Duration`, `WellKnownTypes::TimeStamp` and `WellKnownTypes::Uri`.
 
-## SliceFile item metadata
+## SliceSource item metadata
 
-You can use the following `SliceFile` item metadata to customize the compilation and packaging of your Slice files. Each
-unique set of options results in a separate execution of the Slice compiler.
+You can use the following `SliceSource` item metadata to customize the compilation and packaging of your Slice files.
+Each unique set of options results in a separate execution of the Slice compiler.
 
 | Name              | Default   | Description                                                                                                                                                                                       |
 |-------------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -101,12 +101,12 @@ unique set of options results in a separate execution of the Slice compiler.
 | Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                                                                                                 |
 | PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                                                                         |
 
-You set this metadata on the `SliceFile` item. For a Slice file included by default, use `Update`. For example, to
+You set this metadata on the `SliceSource` item. For a Slice file included by default, use `Update`. For example, to
 include `Greeter.slice` in your NuGet package:
 
 ```xml
 <ItemGroup>
-    <SliceFile Update="Greeter.slice" Pack="true"/>
+    <SliceSource Update="Greeter.slice" Pack="true"/>
 </ItemGroup>
 ```
 

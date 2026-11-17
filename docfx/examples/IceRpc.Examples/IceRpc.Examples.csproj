@@ -4,9 +4,9 @@
     <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <SliceFile Include="../Greeter.slice">
+    <SliceSource Include="../Greeter.slice">
       <OutputDir>generated/slicec</OutputDir>
-    </SliceFile>
+    </SliceSource>
     <ProtoFile Include="../greeter.proto">
       <OutputDir>generated/protoc</OutputDir>
     </ProtoFile>
