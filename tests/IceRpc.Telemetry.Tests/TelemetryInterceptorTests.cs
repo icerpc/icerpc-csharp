@@ -94,11 +94,11 @@ public sealed class TelemetryInterceptorTests
     {
         // Arrange
         Activity? invocationActivity = null;
-        Activity? decodedActivity = null;
+        (ActivityContext ParentContext, KeyValuePair<string, string>[] Baggage)? traceContext = null;
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             invocationActivity = Activity.Current;
-            decodedActivity = DecodeTraceContextField(request.Fields, "/op");
+            traceContext = DecodeTraceContextField(request.Fields);
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         });
 
@@ -124,8 +124,9 @@ public sealed class TelemetryInterceptorTests
         Assert.That(tags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
         Assert.That(tags, Does.ContainKey("rpc.method").WithValue("Op"));
         Assert.That(tags, Does.ContainKey("icerpc.path").WithValue("/path"));
-        Assert.That(decodedActivity, Is.Not.Null);
-        Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity.Id));
+        Assert.That(traceContext, Is.Not.Null);
+        Assert.That(traceContext!.Value.ParentContext.TraceId, Is.EqualTo(invocationActivity.TraceId));
+        Assert.That(traceContext.Value.ParentContext.SpanId, Is.EqualTo(invocationActivity.SpanId));
     }
 
     /// <summary>Verifies that the invocation activity context is encoded as a field with the
@@ -136,14 +137,14 @@ public sealed class TelemetryInterceptorTests
         // Arrange
 
         Activity? invocationActivity = null;
-        Activity? decodedActivity = null;
+        (ActivityContext ParentContext, KeyValuePair<string, string>[] Baggage)? traceContext = null;
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (Activity.Current is Activity activity)
             {
                 invocationActivity = activity;
                 invocationActivity.AddBaggage("foo", "bar");
-                decodedActivity = DecodeTraceContextField(request.Fields, "/op");
+                traceContext = DecodeTraceContextField(request.Fields);
             }
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         });
@@ -167,13 +168,13 @@ public sealed class TelemetryInterceptorTests
 
         // Assert
         Assert.That(invocationActivity, Is.Not.Null);
-        Assert.That(decodedActivity, Is.Not.Null);
-        // The decode activity parent is the invocation activity
-        Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity!.Id));
-        Assert.That(decodedActivity.ParentSpanId, Is.EqualTo(invocationActivity.SpanId));
-        Assert.That(decodedActivity.Baggage, Is.Not.Null);
-        Assert.That(decodedActivity.ActivityTraceFlags, Is.EqualTo(invocationActivity.ActivityTraceFlags));
-        var baggage = decodedActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
+        Assert.That(traceContext, Is.Not.Null);
+        // The decoded parent context is the context of the invocation activity
+        ActivityContext parentContext = traceContext!.Value.ParentContext;
+        Assert.That(parentContext.TraceId, Is.EqualTo(invocationActivity!.TraceId));
+        Assert.That(parentContext.SpanId, Is.EqualTo(invocationActivity.SpanId));
+        Assert.That(parentContext.TraceFlags, Is.EqualTo(invocationActivity.ActivityTraceFlags));
+        var baggage = traceContext.Value.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);
         Assert.That(baggage["foo"], Is.EqualTo("bar"));
     }
@@ -200,9 +201,8 @@ public sealed class TelemetryInterceptorTests
 
         // Assert
         pipe.Reader.TryRead(out ReadResult readResult);
-        using var decodedActivity = new Activity("/op");
-        TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, decodedActivity);
-        Assert.That(decodedActivity.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
+        (_, KeyValuePair<string, string>[] baggage) = TelemetryMiddleware.DecodeTraceContext(readResult.Buffer);
+        Assert.That(baggage, Has.Length.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
 
         pipe.Reader.Complete();
     }
@@ -222,11 +222,11 @@ public sealed class TelemetryInterceptorTests
         try
         {
             Activity? invocationActivity = null;
-            Activity? decodedActivity = null;
+            (ActivityContext ParentContext, KeyValuePair<string, string>[] Baggage)? traceContext = null;
             var invoker = new InlineInvoker((request, cancellationToken) =>
             {
                 invocationActivity = Activity.Current;
-                decodedActivity = DecodeTraceContextField(request.Fields, request.Operation);
+                traceContext = DecodeTraceContextField(request.Fields);
                 return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
             });
 
@@ -245,8 +245,9 @@ public sealed class TelemetryInterceptorTests
             // Assert
             Assert.That(invocationActivity, Is.Not.Null);
             Assert.That(invocationActivity!.IdFormat, Is.EqualTo(ActivityIdFormat.W3C));
-            Assert.That(decodedActivity, Is.Not.Null);
-            Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity.Id));
+            Assert.That(traceContext, Is.Not.Null);
+            Assert.That(traceContext!.Value.ParentContext.TraceId, Is.EqualTo(invocationActivity.TraceId));
+            Assert.That(traceContext.Value.ParentContext.SpanId, Is.EqualTo(invocationActivity.SpanId));
         }
         finally
         {
@@ -437,9 +438,8 @@ public sealed class TelemetryInterceptorTests
         return mockActivityListener;
     }
 
-    private static Activity? DecodeTraceContextField(
-        IDictionary<RequestFieldKey, OutgoingFieldValue> fields,
-        string operationName)
+    private static (ActivityContext ParentContext, KeyValuePair<string, string>[] Baggage)? DecodeTraceContextField(
+        IDictionary<RequestFieldKey, OutgoingFieldValue> fields)
     {
         if (fields.TryGetValue(RequestFieldKey.TraceContext, out var traceContextField))
         {
@@ -448,10 +448,7 @@ public sealed class TelemetryInterceptorTests
             pipe.Writer.Complete();
 
             pipe.Reader.TryRead(out var readResult);
-
-            var activity = new Activity(operationName);
-            TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, activity);
-            return activity;
+            return TelemetryMiddleware.DecodeTraceContext(readResult.Buffer);
         }
         else
         {

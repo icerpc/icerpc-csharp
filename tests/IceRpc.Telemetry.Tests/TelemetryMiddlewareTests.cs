@@ -86,6 +86,120 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(samplerTags, Does.ContainKey("icerpc.path").WithValue("/path"));
     }
 
+    /// <summary>Verifies that a sampler sees the remote parent carried by the
+    /// <see cref="RequestFieldKey.TraceContext" /> field, and that the dispatch activity belongs to the trace of this
+    /// parent.</summary>
+    [Test]
+    public async Task Dispatch_activity_sampler_sees_remote_parent()
+    {
+        // Arrange
+        Activity? dispatchActivity = null;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            dispatchActivity = Activity.Current;
+            return new(new OutgoingResponse(request));
+        });
+
+        ActivityContext samplerParent = default;
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => ReferenceEquals(source, activitySource),
+            Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
+            {
+                samplerParent = activityOptions.Parent;
+                return ActivitySamplingResult.AllData;
+            }
+        };
+        ActivitySource.AddActivityListener(activityListener);
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        PipeReader encodedTraceContext = EncodeTraceContext(
+            ActivityTraceFlags.Recorded,
+            "key=value",
+            out ActivityTraceId parentTraceId,
+            out ActivitySpanId parentSpanId);
+        encodedTraceContext.TryRead(out ReadResult readResult);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+            {
+                [RequestFieldKey.TraceContext] = readResult.Buffer
+            },
+            Operation = "Op",
+            Path = "/path"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Cleanup
+        encodedTraceContext.Complete();
+
+        // Assert
+        Assert.That(samplerParent.TraceId, Is.EqualTo(parentTraceId));
+        Assert.That(samplerParent.SpanId, Is.EqualTo(parentSpanId));
+        Assert.That(samplerParent.TraceFlags, Is.EqualTo(ActivityTraceFlags.Recorded));
+        Assert.That(samplerParent.TraceState, Is.EqualTo("key=value"));
+        Assert.That(samplerParent.IsRemote, Is.True);
+        Assert.That(dispatchActivity, Is.Not.Null);
+        Assert.That(dispatchActivity!.TraceId, Is.EqualTo(parentTraceId));
+        Assert.That(dispatchActivity.ParentSpanId, Is.EqualTo(parentSpanId));
+        Assert.That(dispatchActivity.TraceStateString, Is.EqualTo("key=value"));
+        Assert.That(dispatchActivity.HasRemoteParent, Is.True);
+    }
+
+    /// <summary>Verifies that the dispatch activity is recorded when the sampler decides to record it, regardless of
+    /// the trace flags of the remote parent.</summary>
+    [TestCase(ActivityTraceFlags.Recorded, ActivitySamplingResult.AllData, false)]
+    [TestCase(ActivityTraceFlags.None, ActivitySamplingResult.AllDataAndRecorded, true)]
+    public async Task Dispatch_activity_recorded_flag_follows_the_sampler(
+        ActivityTraceFlags parentTraceFlags,
+        ActivitySamplingResult samplingResult,
+        bool expectedRecorded)
+    {
+        // Arrange
+        Activity? dispatchActivity = null;
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            dispatchActivity = Activity.Current;
+            return new(new OutgoingResponse(request));
+        });
+
+        using var activitySource = new ActivitySource("Test Activity Source");
+        using var activityListener = new ActivityListener
+        {
+            ShouldListenTo = source => ReferenceEquals(source, activitySource),
+            Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) => samplingResult
+        };
+        ActivitySource.AddActivityListener(activityListener);
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
+
+        PipeReader encodedTraceContext = EncodeTraceContext(parentTraceFlags, "", out _, out _);
+        encodedTraceContext.TryRead(out ReadResult readResult);
+
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+            {
+                [RequestFieldKey.TraceContext] = readResult.Buffer
+            },
+            Operation = "Op",
+            Path = "/path"
+        };
+
+        // Act
+        await sut.DispatchAsync(request, default);
+
+        // Cleanup
+        encodedTraceContext.Complete();
+
+        // Assert
+        Assert.That(dispatchActivity, Is.Not.Null);
+        Assert.That(dispatchActivity!.Recorded, Is.EqualTo(expectedRecorded));
+    }
+
     /// <summary>Verifies that the middleware starts a dispatch activity and restores its context from the
     /// <see cref="RequestFieldKey.TraceContext" /> field when no listener samples the activities of the activity
     /// source.</summary>
@@ -108,6 +222,7 @@ public sealed class TelemetryMiddlewareTests
             // Encode the parent activity context in a separate scope: this activity must not be running when the
             // middleware dispatches the request.
             using var encodedActivity = new Activity("/hello/Op");
+            encodedActivity.TraceStateString = "key=value";
             encodedActivity.Start();
             encodedActivityId = encodedActivity.Id;
 
@@ -144,6 +259,7 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(dispatchActivity, Is.Not.Null);
         Assert.That(dispatchActivity!.OperationName, Is.EqualTo("/path/Op"));
         Assert.That(dispatchActivity.ParentId, Is.EqualTo(encodedActivityId));
+        Assert.That(dispatchActivity.TraceStateString, Is.EqualTo("key=value"));
         var tags = dispatchActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
         Assert.That(tags, Does.ContainKey("rpc.system.name").WithValue("icerpc"));
         Assert.That(tags, Does.ContainKey("rpc.method").WithValue("Op"));
@@ -606,6 +722,29 @@ public sealed class TelemetryMiddlewareTests
                 new IceRpcException(IceRpcError.TruncatedData, "truncated data"),
                 "TruncatedPayload");
         }
+    }
+
+    /// <summary>Encodes the trace context field of a parent activity with the given trace flags and trace state.
+    /// </summary>
+    private static PipeReader EncodeTraceContext(
+        ActivityTraceFlags traceFlags,
+        string traceState,
+        out ActivityTraceId traceId,
+        out ActivitySpanId spanId)
+    {
+        // This activity must not be running when the middleware dispatches the request.
+        using var activity = new Activity("/hello/Op");
+        activity.Start();
+        activity.ActivityTraceFlags = traceFlags;
+        activity.TraceStateString = traceState;
+        traceId = activity.TraceId;
+        spanId = activity.SpanId;
+
+        var pipe = new Pipe();
+        var encoder = new SliceEncoder(pipe.Writer);
+        TelemetryInterceptor.WriteActivityContext(ref encoder, activity);
+        pipe.Writer.Complete();
+        return pipe.Reader;
     }
 
     // Mirrors TelemetryInterceptor.WriteActivityContext but writes the baggage sequence raw so tests can
