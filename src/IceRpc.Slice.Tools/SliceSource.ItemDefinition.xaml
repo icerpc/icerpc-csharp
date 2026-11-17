@@ -3,5 +3,5 @@
 <ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
   <ContentType Name="SliceSource" DisplayName="Slice file" ItemType="SliceSource" />
   <ItemType Name="SliceSource" DisplayName="Slice file" />
-  <FileExtension Name=".slice" ContentType="SliceSourceFile" />
+  <FileExtension Name=".slice" ContentType="SliceSource" />
 </ProjectSchemaDefinitions>
