@@ -19,18 +19,88 @@ on:
         type: string
 
 jobs:
-  build:
+  publish-nightly:
     name: "Publish NuGet Packages"
+    if: inputs.channel != 'stable'
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Validate stable release tag
-        if: inputs.channel == 'stable'
+      - name: Download NuGet artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ inputs.run_id }}
         run: |
           set -euo pipefail
+          mkdir -p staging
+          gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --name "nuget-packages" --dir staging
+
+      - name: Publish NuGet Packages
+        run: |
+          set -euo pipefail
+
+          NEXUS_NIGHTLY_URL="https://download.zeroc.com/nexus/repository/nuget-nightly/"
+
+          mapfile -t packages < <(find staging -type f -name "*.nupkg")
+
+          for package in "${packages[@]}"; do
+            echo "Publishing package: $package"
+            name=$(basename "$package")
+
+            case "$CHANNEL" in
+              "nightly")
+                # The NuGet clients upload every package as "package.nupkg", and Nexus then stores a package that
+                # contains PDBs as a symbol package, which clients cannot restore. Sending the real file name avoids
+                # it. See https://github.com/sonatype/nexus-public/issues/1058
+                curl --fail-with-body -sS -w "\n" -X PUT -H "X-NuGet-ApiKey: $NEXUS_NIGHTLY_NUGET_API_KEY" \
+                  -F "package=@$package;filename=$name" "$NEXUS_NIGHTLY_URL"
+                ;;
+              *)
+                echo "Unsupported channel: $CHANNEL"
+                exit 1
+                ;;
+            esac
+          done
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          NEXUS_NIGHTLY_NUGET_API_KEY: ${{ secrets.NEXUS_NIGHTLY_NUGET_API_KEY }}
+
+  publish-stable:
+    name: "Publish ${{ matrix.package_owner }} NuGet Packages"
+    if: inputs.channel == 'stable'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+      # NuGet/login exchanges the GitHub OIDC token for a short-lived nuget.org API key (Trusted Publishing).
+      id-token: write
+    strategy:
+      # Don't cancel the other organization's push halfway through its packages.
+      fail-fast: false
+      matrix:
+        # nuget.org issues a key for the first Trusted Publishing policy of the user that matches the token's
+        # repository, workflow file, and environment; the packages being pushed play no part in the match. Each
+        # organization's policy is therefore restricted to its own environment.
+        include:
+          - package_owner: IceRPC
+            environment: nuget-icerpc
+          - package_owner: ZeroC
+            environment: nuget-zeroc
+    environment: ${{ matrix.environment }}
+
+    steps:
+      - name: Validate stable release tag
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          # The job condition compares strings case-insensitively.
+          if [[ "$CHANNEL" != "stable" ]]; then
+            echo "Unsupported channel: $CHANNEL"
+            exit 1
+          fi
 
           if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
             echo "::error::Stable releases must be published from a tag; selected ref is $GITHUB_REF."
@@ -52,46 +122,38 @@ jobs:
           mkdir -p staging
           gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --name "nuget-packages" --dir staging
 
+      # The temporary API key is valid for one hour, so log in right before the push.
+      - name: Log in to nuget.org
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          # The nuget.org user who created the Trusted Publishing policy, not the organization that owns it.
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Publish NuGet Packages
         run: |
           set -euo pipefail
 
           NUGET_ORG_URL="https://api.nuget.org/v3/index.json"
-          NEXUS_NIGHTLY_URL="https://download.zeroc.com/nexus/repository/nuget-nightly/"
 
           # Collect all packages. On NuGet.org, "dotnet nuget push" publishes the symbol package ".snupkg" files
           # automatically with the main package, no need to push them separately.
           mapfile -t packages < <(find staging -type f -name "*.nupkg")
 
           for package in "${packages[@]}"; do
-            echo "Publishing package: $package"
-            name=$(basename "$package")
+            # ZeroC-prefixed packages belong to the ZeroC NuGet.org organization;
+            # all other packages belong to the IceRPC NuGet.org organization.
+            if [[ "$(basename "$package")" == ZeroC.* ]]; then
+              owner="ZeroC"
+            else
+              owner="IceRPC"
+            fi
 
-            case "$CHANNEL" in
-              "stable")
-                # ZeroC-prefixed packages belong to the ZeroC NuGet.org organization;
-                # IceRpc-prefixed packages belong to the IceRPC NuGet.org organization.
-                if [[ "$name" == ZeroC.* ]]; then
-                  dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$ZEROC_NUGET_API_KEY"
-                else
-                  dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$ICERPC_NUGET_API_KEY"
-                fi
-                ;;
-              "nightly")
-                # The NuGet clients upload every package as "package.nupkg", and Nexus then stores a package that
-                # contains PDBs as a symbol package, which clients cannot restore. Sending the real file name avoids
-                # it. See https://github.com/sonatype/nexus-public/issues/1058
-                curl --fail-with-body -sS -w "\n" -X PUT -H "X-NuGet-ApiKey: $NEXUS_NIGHTLY_NUGET_API_KEY" \
-                  -F "package=@$package;filename=$name" "$NEXUS_NIGHTLY_URL"
-                ;;
-              *)
-                echo "Unsupported channel: $CHANNEL"
-                exit 1
-                ;;
-            esac
+            if [[ "$owner" == "$PACKAGE_OWNER" ]]; then
+              echo "Publishing package: $package"
+              dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$NUGET_API_KEY"
+            fi
           done
         env:
-          CHANNEL: ${{ inputs.channel }}
-          NEXUS_NIGHTLY_NUGET_API_KEY: ${{ secrets.NEXUS_NIGHTLY_NUGET_API_KEY }}
-          ZEROC_NUGET_API_KEY: ${{ secrets.ZEROC_NUGET_API_KEY }}
-          ICERPC_NUGET_API_KEY: ${{ secrets.ICERPC_NUGET_API_KEY }}
+          PACKAGE_OWNER: ${{ matrix.package_owner }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}

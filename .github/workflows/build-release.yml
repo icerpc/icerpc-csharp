@@ -101,6 +101,11 @@ jobs:
       - test-release
       - build-packages
     uses: ./.github/workflows/publish-release.yml
+    permissions:
+      contents: read
+      actions: read
+      # A reusable workflow cannot get permissions its caller does not grant.
+      id-token: write
     with:
       channel: ${{ inputs.channel }}
       run_id: ${{ github.run_id }}
