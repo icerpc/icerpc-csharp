@@ -23,6 +23,8 @@ jobs:
     name: "Publish NuGet Packages"
     if: inputs.channel != 'stable'
     runs-on: ubuntu-24.04
+    permissions:
+      actions: read
 
     steps:
       - name: Download NuGet artifacts
@@ -83,8 +85,10 @@ jobs:
         include:
           - package_owner: IceRPC
             environment: nuget-icerpc
+            package_pattern: "IceRpc.*.nupkg"
           - package_owner: ZeroC
             environment: nuget-zeroc
+            package_pattern: "ZeroC.*.nupkg"
     environment: ${{ matrix.environment }}
 
     steps:
@@ -138,22 +142,12 @@ jobs:
 
           # Collect all packages. On NuGet.org, "dotnet nuget push" publishes the symbol package ".snupkg" files
           # automatically with the main package, no need to push them separately.
-          mapfile -t packages < <(find staging -type f -name "*.nupkg")
+          mapfile -t packages < <(find staging -type f -name "$PACKAGE_PATTERN")
 
           for package in "${packages[@]}"; do
-            # ZeroC-prefixed packages belong to the ZeroC NuGet.org organization;
-            # all other packages belong to the IceRPC NuGet.org organization.
-            if [[ "$(basename "$package")" == ZeroC.* ]]; then
-              owner="ZeroC"
-            else
-              owner="IceRPC"
-            fi
-
-            if [[ "$owner" == "$PACKAGE_OWNER" ]]; then
-              echo "Publishing package: $package"
-              dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$NUGET_API_KEY"
-            fi
+            echo "Publishing package: $package"
+            dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$NUGET_API_KEY"
           done
         env:
-          PACKAGE_OWNER: ${{ matrix.package_owner }}
+          PACKAGE_PATTERN: ${{ matrix.package_pattern }}
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
