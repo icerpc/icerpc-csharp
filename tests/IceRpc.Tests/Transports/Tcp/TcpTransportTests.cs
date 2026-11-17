@@ -110,8 +110,9 @@ public class TcpTransportTests
         Assert.That(localEndpoint.Port, Is.EqualTo(10000));
         Assert.That(
             localEndpoint.Address,
-            Is.EqualTo(localEndpoint.Address.IsIPv4MappedToIPv6 ?
-                IPAddress.Parse("::ffff:127.0.0.1") : IPAddress.Loopback));
+            Is.EqualTo(localEndpoint.Address.IsIPv4MappedToIPv6
+                ? IPAddress.Parse("::ffff:127.0.0.1")
+                : IPAddress.Loopback));
     }
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize" /> and

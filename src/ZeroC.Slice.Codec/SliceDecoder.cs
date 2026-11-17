@@ -54,10 +54,11 @@ public ref partial struct SliceDecoder
         DecodingContext = decodingContext;
 
         _currentCollectionAllocation = 0;
-        _maxCollectionAllocation = maxCollectionAllocation == -1 ?
-            (buffer.Length > int.MaxValue / 8 ? int.MaxValue : (int)(8L * buffer.Length)) :
-            (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
-                throw new ArgumentException(
+        _maxCollectionAllocation = maxCollectionAllocation == -1
+            ? (buffer.Length > int.MaxValue / 8 ? int.MaxValue : (int)(8L * buffer.Length))
+            : (maxCollectionAllocation >= 0
+                ? maxCollectionAllocation
+                : throw new ArgumentException(
                     $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
                     nameof(maxCollectionAllocation)));
 
@@ -110,14 +111,16 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a Slice float32 into a float.</summary>
     /// <returns>The float decoded by this decoder.</returns>
     public float DecodeFloat32() =>
-        SequenceMarshal.TryRead(ref _reader, out float value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out float value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice float64 into a double.</summary>
     /// <returns>The double decoded by this decoder.</returns>
     public double DecodeFloat64() =>
-        SequenceMarshal.TryRead(ref _reader, out double value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out double value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice int8 into an sbyte.</summary>
     /// <returns>The sbyte decoded by this decoder.</returns>
@@ -126,20 +129,23 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a Slice int16 into a short.</summary>
     /// <returns>The short decoded by this decoder.</returns>
     public short DecodeInt16() =>
-        SequenceMarshal.TryRead(ref _reader, out short value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out short value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice int32 into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
     public int DecodeInt32() =>
-        SequenceMarshal.TryRead(ref _reader, out int value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out int value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice int64 into a long.</summary>
     /// <returns>The long decoded by this decoder.</returns>
     public long DecodeInt64() =>
-        SequenceMarshal.TryRead(ref _reader, out long value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out long value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
     /// <returns>The size decoded by this decoder.</returns>
@@ -221,20 +227,23 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a Slice uint16 into a ushort.</summary>
     /// <returns>The ushort decoded by this decoder.</returns>
     public ushort DecodeUInt16() =>
-        SequenceMarshal.TryRead(ref _reader, out ushort value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out ushort value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice uint32 into a uint.</summary>
     /// <returns>The uint decoded by this decoder.</returns>
     public uint DecodeUInt32() =>
-        SequenceMarshal.TryRead(ref _reader, out uint value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out uint value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice uint64 into a ulong.</summary>
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeUInt64() =>
-        SequenceMarshal.TryRead(ref _reader, out ulong value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out ulong value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice varint32 into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>

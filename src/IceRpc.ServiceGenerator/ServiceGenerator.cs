@@ -49,9 +49,9 @@ public class ServiceGenerator : IIncrementalGenerator
         foreach (ServiceClass serviceClass in parser.GetServiceDefinitions(types.Distinct()))
         {
             string result = emitter.Emit(serviceClass, context.CancellationToken);
-            string fullName = serviceClass.ContainingNamespace is null ?
-                serviceClass.FullFileName :
-                $"{serviceClass.ContainingNamespace}.{serviceClass.FullFileName}";
+            string fullName = serviceClass.ContainingNamespace is null
+                ? serviceClass.FullFileName
+                : $"{serviceClass.ContainingNamespace}.{serviceClass.FullFileName}";
 
             // Roslyn's source hint names cannot contain verbatim identifier prefixes.
             context.AddSource($"{fullName.Replace("@", "")}.g.cs", SourceText.From(result, Encoding.UTF8));

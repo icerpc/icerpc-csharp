@@ -89,9 +89,9 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
-        _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
-            new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
-            new Socket(SocketType.Stream, ProtocolType.Tcp);
+        _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork
+            ? new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+            : new Socket(SocketType.Stream, ProtocolType.Tcp);
         try
         {
             _socket.ExclusiveAddressUse = true;

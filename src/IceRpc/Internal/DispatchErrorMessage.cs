@@ -12,7 +12,7 @@ internal static class DispatchErrorMessage
     /// <returns><paramref name="message" /> when <paramref name="exception" /> is <see langword="null" />; otherwise,
     /// <paramref name="message" /> followed by the type and the message of <paramref name="exception" />.</returns>
     internal static string Compose(string message, Exception? exception) =>
-        exception is null ?
-            message :
-            $"{message} The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
+        exception is null
+            ? message
+            : $"{message} The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
 }

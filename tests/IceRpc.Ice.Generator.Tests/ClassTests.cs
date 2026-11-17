@@ -14,9 +14,9 @@ public sealed class ClassTests
     public void Operation_request_with_compact_format([Values] bool anyClass)
     {
         // Act
-        var payload = anyClass ?
-            ClassOperationsProxy.Request.EncodeOpAnyClassCompact(new MyClassB()) :
-            ClassOperationsProxy.Request.EncodeOpMyClassCompact(new MyClassB());
+        var payload = anyClass
+            ? ClassOperationsProxy.Request.EncodeOpAnyClassCompact(new MyClassB())
+            : ClassOperationsProxy.Request.EncodeOpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -43,9 +43,9 @@ public sealed class ClassTests
     public void Operation_request_with_sliced_format([Values] bool anyClass)
     {
         // Act
-        var payload = anyClass ?
-            ClassOperationsProxy.Request.EncodeOpAnyClassSliced(new MyClassB()) :
-            ClassOperationsProxy.Request.EncodeOpMyClassSliced(new MyClassB());
+        var payload = anyClass
+            ? ClassOperationsProxy.Request.EncodeOpAnyClassSliced(new MyClassB())
+            : ClassOperationsProxy.Request.EncodeOpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -80,9 +80,9 @@ public sealed class ClassTests
     public void Operation_response_with_compact_format([Values] bool anyClass)
     {
         // Act
-        var payload = anyClass ?
-            IClassOperationsService.Response.EncodeOpAnyClassCompact(new MyClassB()) :
-            IClassOperationsService.Response.EncodeOpMyClassCompact(new MyClassB());
+        var payload = anyClass
+            ? IClassOperationsService.Response.EncodeOpAnyClassCompact(new MyClassB())
+            : IClassOperationsService.Response.EncodeOpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -109,9 +109,9 @@ public sealed class ClassTests
     public void Operation_response_with_sliced_format([Values] bool anyClass)
     {
         // Act
-        var payload = anyClass ?
-            IClassOperationsService.Response.EncodeOpAnyClassSliced(new MyClassB()) :
-            IClassOperationsService.Response.EncodeOpMyClassSliced(new MyClassB());
+        var payload = anyClass
+            ? IClassOperationsService.Response.EncodeOpAnyClassSliced(new MyClassB())
+            : IClassOperationsService.Response.EncodeOpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);

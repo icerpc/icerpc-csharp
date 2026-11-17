@@ -66,8 +66,9 @@ internal class ServiceGenerator
                 docComment: "A cancellation token that receives the cancellation requests.")
             .AddComment(
                 "returns",
-                method.IsServerStreaming ?
-                    "A value task holding the stream of output messages." : "A value task holding the output message.")
+                method.IsServerStreaming
+                    ? "A value task holding the stream of output messages."
+                    : "A value task holding the output message.")
             .AddAttribute($@"RpcMethod(""{method.Name}"")")
             .Build();
     }

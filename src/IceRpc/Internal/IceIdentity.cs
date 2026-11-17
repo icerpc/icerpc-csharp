@@ -63,8 +63,8 @@ internal readonly partial record struct IceIdentity
         }
 
         string name = PercentEncoding.Encode(Name, PercentEncoding.PathSegmentChars);
-        return Category.Length > 0 ?
-            $"/{PercentEncoding.Encode(Category, PercentEncoding.PathSegmentChars)}/{name}" :
-            $"/{name}";
+        return Category.Length > 0
+            ? $"/{PercentEncoding.Encode(Category, PercentEncoding.PathSegmentChars)}/{name}"
+            : $"/{name}";
     }
 }

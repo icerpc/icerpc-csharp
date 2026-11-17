@@ -18,8 +18,9 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null :
-                new PingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
+            serviceAddress is null
+                ? null
+                : new PingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer);
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);

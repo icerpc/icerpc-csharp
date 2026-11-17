@@ -38,8 +38,9 @@ public sealed class DispatchException : Exception
         string? message = null,
         Exception? innerException = null)
         : base(message ?? $"The dispatch failed with status code {statusCode}.", innerException) =>
-        StatusCode = statusCode > StatusCode.Ok ? statusCode :
-            throw new ArgumentOutOfRangeException(
+        StatusCode = statusCode > StatusCode.Ok
+            ? statusCode
+            : throw new ArgumentOutOfRangeException(
                 nameof(statusCode),
                 $"The status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Ok)}.");
 
@@ -55,15 +56,15 @@ public sealed class DispatchException : Exception
     /// including a <see cref="DispatchException" /> with <see cref="ConvertToInternalError" /> set to
     /// <see langword="true" />.</returns>
     public static DispatchException FromException(Exception exception) =>
-        exception is DispatchException { ConvertToInternalError: false } dispatchException ?
-        dispatchException :
-        new DispatchException(
-            exception switch
-            {
-                InvalidDataException => StatusCode.InvalidData,
-                NotSupportedException => StatusCode.NotSupported,
-                IceRpcException { IceRpcError: IceRpcError.TruncatedData } => StatusCode.TruncatedPayload,
-                _ => StatusCode.InternalError
-            },
-            innerException: exception);
+        exception is DispatchException { ConvertToInternalError: false } dispatchException
+            ? dispatchException
+            : new DispatchException(
+                exception switch
+                {
+                    InvalidDataException => StatusCode.InvalidData,
+                    NotSupportedException => StatusCode.NotSupported,
+                    IceRpcException { IceRpcError: IceRpcError.TruncatedData } => StatusCode.TruncatedPayload,
+                    _ => StatusCode.InternalError
+                },
+                innerException: exception);
 }

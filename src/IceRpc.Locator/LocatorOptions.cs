@@ -27,8 +27,9 @@ public sealed record class LocatorOptions
     public TimeSpan ResolveTimeout
     {
         get => _resolveTimeout;
-        set => _resolveTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ResolveTimeout)}", nameof(value));
+        set => _resolveTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(ResolveTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the time-to-live. This is the time period after which a cache entry is considered

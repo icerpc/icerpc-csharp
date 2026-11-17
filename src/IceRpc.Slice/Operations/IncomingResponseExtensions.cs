@@ -28,13 +28,13 @@ public static class IncomingResponseExtensions
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return response.StatusCode == StatusCode.Ok ?
-            response.DecodeValueAsync(
+        return response.StatusCode == StatusCode.Ok
+            ? response.DecodeValueAsync(
                     feature,
                     feature.BaseProxy ?? sender,
                     decodeReturnValue,
-                    cancellationToken) :
-            throw new DispatchException(response.StatusCode, response.ErrorMessage)
+                    cancellationToken)
+            : throw new DispatchException(response.StatusCode, response.ErrorMessage)
             {
                 ConvertToInternalError = true
             };
@@ -54,9 +54,9 @@ public static class IncomingResponseExtensions
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return response.StatusCode == StatusCode.Ok ?
-            response.DecodeVoidAsync(feature, cancellationToken) :
-            throw new DispatchException(response.StatusCode, response.ErrorMessage)
+        return response.StatusCode == StatusCode.Ok
+            ? response.DecodeVoidAsync(feature, cancellationToken)
+            : throw new DispatchException(response.StatusCode, response.ErrorMessage)
             {
                 ConvertToInternalError = true
             };

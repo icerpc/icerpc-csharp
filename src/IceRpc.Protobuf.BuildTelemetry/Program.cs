@@ -104,8 +104,9 @@ if (fileName is not null && response.Error.Length == 0)
         await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
-            multiplexedClientTransport: QuicConnection.IsSupported ?
-                new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
+            multiplexedClientTransport: QuicConnection.IsSupported
+                ? new QuicClientTransport()
+                : new SlicClientTransport(new TcpClientTransport()));
 
         // Use a one-way invocation unless we're in debug mode.
         var invoker = new InlineInvoker((request, cancellationToken) =>

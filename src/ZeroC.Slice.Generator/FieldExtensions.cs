@@ -53,9 +53,9 @@ internal static class FieldExtensions
 
         // The encode lambda takes the C# type of the value it encodes: the outgoing parameter type for an operation
         // parameter, and the field type for a struct or variant enum field.
-        string valueType = isOperationParam ?
-            field.DataType.OutgoingParameterTypeString(isOptional: false, currentNamespace) :
-            field.DataType.FieldTypeString(isOptional: false, currentNamespace);
+        string valueType = isOperationParam
+            ? field.DataType.OutgoingParameterTypeString(isOptional: false, currentNamespace)
+            : field.DataType.FieldTypeString(isOptional: false, currentNamespace);
         string encodeExpr = field.DataType.Type.EncodeExpression(currentNamespace, "value");
         string encodeLambda = $"(ref SliceEncoder encoder, {valueType} value) => {encodeExpr}";
         string value = field.DataType.UnwrapNonNullOptional(param);

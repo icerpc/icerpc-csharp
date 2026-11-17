@@ -60,8 +60,9 @@ public sealed record class QuicServerTransportOptions : QuicTransportOptions
     public int ListenBacklog
     {
         get => _listenBacklog;
-        set => _listenBacklog = value > 0 ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _listenBacklog = value > 0
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 $"Invalid value '{value}' for {nameof(ListenBacklog)}, it cannot be less than 1.");
     }

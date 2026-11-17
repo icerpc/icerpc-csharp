@@ -25,15 +25,14 @@ public static class IceServiceProviderExtensions
             throw new InvalidOperationException("Could not find service of type 'IInvoker' in the service container.");
         }
 
-        return serviceAddress.HasValue ?
-            new TProxy
+        return serviceAddress.HasValue
+            ? new TProxy
             {
                 EncodeOptions = (IceEncodeOptions?)provider.GetService(typeof(IceEncodeOptions)),
                 Invoker = invoker,
                 ServiceAddress = serviceAddress.Value
             }
-            :
-            new TProxy
+            : new TProxy
             {
                 EncodeOptions = (IceEncodeOptions?)provider.GetService(typeof(IceEncodeOptions)),
                 Invoker = invoker

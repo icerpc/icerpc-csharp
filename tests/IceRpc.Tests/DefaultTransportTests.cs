@@ -33,8 +33,9 @@ public class DefaultTransportTests
             password: null,
             keyStorageFlags: X509KeyStorageFlags.Exportable);
 
-        var serverAddressUri = serverTransportName is null ?
-            new Uri("icerpc://127.0.0.1:0") : new Uri($"icerpc://127.0.0.1:0?transport={serverTransportName}");
+        var serverAddressUri = serverTransportName is null
+            ? new Uri("icerpc://127.0.0.1:0")
+            : new Uri($"icerpc://127.0.0.1:0?transport={serverTransportName}");
 
         await using var server = new Server(
             NotFoundDispatcher.Instance,
@@ -68,8 +69,9 @@ public class DefaultTransportTests
     public async Task Connect_with_default_duplex_transport(string? clientTransportName, string? serverTransportName)
     {
         // Arrange
-        var serverAddressUri = serverTransportName is null ?
-            new Uri("ice://127.0.0.1:0") : new Uri($"ice://127.0.0.1:0?transport={serverTransportName}");
+        var serverAddressUri = serverTransportName is null
+            ? new Uri("ice://127.0.0.1:0")
+            : new Uri($"ice://127.0.0.1:0?transport={serverTransportName}");
 
         await using var server = new Server(NotFoundDispatcher.Instance, serverAddressUri);
         ServerAddress serverAddress = server.Listen(); // with the port resolved

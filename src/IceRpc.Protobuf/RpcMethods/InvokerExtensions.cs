@@ -44,8 +44,9 @@ public static class InvokerExtensions
         var request = new OutgoingRequest(serviceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
-            Fields = idempotent ?
-                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Fields = idempotent
+                ? _idempotentFields
+                : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
             Payload = inputMessage.EncodeAsLengthPrefixedMessage(
                 encodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions),
@@ -95,8 +96,9 @@ public static class InvokerExtensions
         var request = new OutgoingRequest(serviceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
-            Fields = idempotent ?
-                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Fields = idempotent
+                ? _idempotentFields
+                : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
             PayloadContinuation = stream.ToPipeReader(encodeOptions),
         };
@@ -143,8 +145,9 @@ public static class InvokerExtensions
         var request = new OutgoingRequest(serviceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
-            Fields = idempotent ?
-                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Fields = idempotent
+                ? _idempotentFields
+                : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
             Payload = inputMessage.EncodeAsLengthPrefixedMessage(
                 encodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions),
@@ -194,8 +197,9 @@ public static class InvokerExtensions
         var request = new OutgoingRequest(serviceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
-            Fields = idempotent ?
-                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Fields = idempotent
+                ? _idempotentFields
+                : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
             PayloadContinuation = stream.ToPipeReader(encodeOptions),
         };

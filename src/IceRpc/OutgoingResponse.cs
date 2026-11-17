@@ -50,8 +50,9 @@ public sealed class OutgoingResponse : OutgoingFrame
         Exception? exception = null)
         : base(request.Protocol)
     {
-        StatusCode = statusCode > StatusCode.Ok ? statusCode :
-            throw new ArgumentException(
+        StatusCode = statusCode > StatusCode.Ok
+            ? statusCode
+            : throw new ArgumentException(
                 $"The status code for an exception must be greater than {nameof(StatusCode.Ok)}.",
                 nameof(statusCode));
 

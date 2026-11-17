@@ -51,6 +51,7 @@ public static class RetryPipelineExtensions
         pipeline.Use(next => new RetryInterceptor(
             next,
             options,
-            loggerFactory is NullLoggerFactory ? NullLogger.Instance :
-                loggerFactory.CreateLogger<RetryInterceptor>()));
+            loggerFactory is NullLoggerFactory
+                ? NullLogger.Instance
+                : loggerFactory.CreateLogger<RetryInterceptor>()));
 }

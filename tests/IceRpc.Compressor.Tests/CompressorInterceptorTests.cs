@@ -141,9 +141,9 @@ public class CompressorInterceptorTests
         await reader.CopyToAsync(compressedStream);
         reader.Complete();
         compressedStream.Seek(0, SeekOrigin.Begin);
-        using Stream decompressedStream = compressionFormat == CompressionFormat.Brotli ?
-            new BrotliStream(compressedStream, CompressionMode.Decompress) :
-            new DeflateStream(compressedStream, CompressionMode.Decompress);
+        using Stream decompressedStream = compressionFormat == CompressionFormat.Brotli
+            ? new BrotliStream(compressedStream, CompressionMode.Decompress)
+            : new DeflateStream(compressedStream, CompressionMode.Decompress);
         var decompressed = new MemoryStream();
         await decompressedStream.CopyToAsync(decompressed);
         return decompressed.ToArray();
@@ -160,9 +160,9 @@ public class CompressorInterceptorTests
 
         var outStream = new MemoryStream();
         {
-            using Stream compressedStream = compressionFormat == CompressionFormat.Brotli ?
-                new BrotliStream(outStream, CompressionMode.Compress, true) :
-                new DeflateStream(outStream, CompressionMode.Compress, true);
+            using Stream compressedStream = compressionFormat == CompressionFormat.Brotli
+                ? new BrotliStream(outStream, CompressionMode.Compress, true)
+                : new DeflateStream(outStream, CompressionMode.Compress, true);
             using var payload = new MemoryStream(data);
             payload.CopyTo(compressedStream);
         }

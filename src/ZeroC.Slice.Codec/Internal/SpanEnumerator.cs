@@ -7,8 +7,9 @@ namespace ZeroC.Slice.Codec.Internal;
 internal ref struct SpanEnumerator
 {
     /// <summary>Gets the current span.</summary>
-    internal readonly Span<byte> Current => _position >= 0 ? _currentSpan :
-        throw new InvalidOperationException("The enumerator was not initialized.");
+    internal readonly Span<byte> Current => _position >= 0
+        ? _currentSpan
+        : throw new InvalidOperationException("The enumerator was not initialized.");
 
     private Span<byte> _currentSpan;
     private readonly Span<byte> _firstSpan;

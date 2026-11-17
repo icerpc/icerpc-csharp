@@ -214,9 +214,11 @@ public static class IceProxyIceDecoderExtensions
         byte protocolMinor = decoder.DecodeByte();
         decoder.Skip(2); // skip encoding major and minor
 
-        Protocol protocol = protocolMajor == Protocol.Ice.ByteValue ? Protocol.Ice :
-            (protocolMajor == Protocol.IceRpc.ByteValue ? Protocol.IceRpc :
-                throw new InvalidDataException(
+        Protocol protocol = protocolMajor == Protocol.Ice.ByteValue
+            ? Protocol.Ice
+            : (protocolMajor == Protocol.IceRpc.ByteValue
+                ? Protocol.IceRpc
+                : throw new InvalidDataException(
                     $"Received service address with invalid protocolMajor value: {protocolMajor}"));
 
         if (protocolMinor != 0)

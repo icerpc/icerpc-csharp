@@ -261,9 +261,9 @@ internal static class OperationExtensions
         /// non-streamed fields to encode.</summary>
         /// <param name="currentNamespace">The current C# namespace.</param>
         internal CodeBlock? GenerateEncodeBody(string currentNamespace) =>
-            fields.Count == 0 ?
-                null :
-                fields.GenerateEncodeBody(
+            fields.Count == 0
+                ? null
+                : fields.GenerateEncodeBody(
                     currentNamespace,
                     paramPrefix: "",
                     encoderName: "encoder_",

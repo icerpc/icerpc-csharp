@@ -62,16 +62,17 @@ internal abstract class TcpConnection : IDuplexConnection
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
-        return buffer.Length > 0 ? PerformReadAsync() :
-            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
+        return buffer.Length > 0
+            ? PerformReadAsync()
+            : throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
 
         async ValueTask<int> PerformReadAsync()
         {
             try
             {
-                return SslStream is SslStream sslStream ?
-                    await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false) :
-                    await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
+                return SslStream is SslStream sslStream
+                    ? await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)
+                    : await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
             }
             catch (IOException exception)
             {
@@ -317,17 +318,17 @@ internal class TcpClientConnection : TcpConnection
         int? sendBufferSize)
         : base(authenticationOptions is not null ? pool.Rent(minimumSegmentSize) : null)
     {
-        _address = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, transportAddress.Port) :
-            new DnsEndPoint(transportAddress.Host, transportAddress.Port);
+        _address = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress)
+            ? new IPEndPoint(ipAddress, transportAddress.Port)
+            : new DnsEndPoint(transportAddress.Host, transportAddress.Port);
 
         _authenticationOptions = authenticationOptions;
 
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
-        Socket = ipAddress?.AddressFamily == AddressFamily.InterNetwork ?
-            new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
-            new Socket(SocketType.Stream, ProtocolType.Tcp);
+        Socket = ipAddress?.AddressFamily == AddressFamily.InterNetwork
+            ? new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+            : new Socket(SocketType.Stream, ProtocolType.Tcp);
 
         try
         {

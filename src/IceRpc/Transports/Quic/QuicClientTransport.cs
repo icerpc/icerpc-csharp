@@ -19,8 +19,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
     public string DefaultName => "quic";
 
     /// <inheritdoc/>
-    public bool IsSslRequired(string? transportName) => transportName is null or "quic" ? true :
-        throw new NotSupportedException($"The QUIC client transport does not support transport '{transportName}'.");
+    public bool IsSslRequired(string? transportName) => transportName is null or "quic"
+        ? true
+        : throw new NotSupportedException($"The QUIC client transport does not support transport '{transportName}'.");
 
     private readonly TimeSpan _idleTimeout;
     private readonly QuicReceiveWindowSizes _initialReceiveWindowSizes;
@@ -85,9 +86,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
         clientAuthenticationOptions = clientAuthenticationOptions.ShallowClone();
         clientAuthenticationOptions.TargetHost ??= transportAddress.Host;
 
-        EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, transportAddress.Port) :
-            new DnsEndPoint(transportAddress.Host, transportAddress.Port);
+        EndPoint endPoint = IPAddress.TryParse(transportAddress.Host, out IPAddress? ipAddress)
+            ? new IPEndPoint(ipAddress, transportAddress.Port)
+            : new DnsEndPoint(transportAddress.Host, transportAddress.Port);
 
         var quicClientOptions = new QuicClientConnectionOptions
         {

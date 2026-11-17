@@ -64,9 +64,9 @@ public ref partial struct IceDecoder
                 // Cannot decode this exception. The message should be set only when the exception was received over
                 // icerpc.
                 throw new InvalidDataException(
-                    message is null || message.Length == 0 ?
-                    $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find." :
-                    $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
+                    message is null || message.Length == 0
+                        ? $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find."
+                        : $"The dispatch returned an Ice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
             }
         }
         while (iceException is null);

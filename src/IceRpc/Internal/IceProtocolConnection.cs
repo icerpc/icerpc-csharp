@@ -801,9 +801,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             SequencePosition consumed = buffer.GetPosition(headerSize);
 
-            return replyStatus == ReplyStatus.Ok ? (StatusCode.Ok, null, consumed) :
+            return replyStatus == ReplyStatus.Ok
+                ? (StatusCode.Ok, null, consumed)
                 // Set the error message to the empty string, because null is not allowed for status code > Ok.
-                (StatusCode.ApplicationError, "", consumed);
+                : (StatusCode.ApplicationError, "", consumed);
         }
         else
         {
@@ -831,8 +832,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
-                    string target = requestFailed.Facet.Count > 0 ?
-                        $"{requestFailed.Identity.ToPath()}#{requestFailed.Facet.ToFragment()}" : requestFailed.Identity.ToPath();
+                    string target = requestFailed.Facet.Count > 0
+                        ? $"{requestFailed.Identity.ToPath()}#{requestFailed.Facet.ToFragment()}"
+                        : requestFailed.Identity.ToPath();
 
                     message =
                         $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
@@ -936,8 +938,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 case StatusCode.NotFound:
                 case StatusCode.NotImplemented:
-                    encoder.EncodeReplyStatus(response.StatusCode == StatusCode.NotFound ?
-                        ReplyStatus.ObjectNotExist : ReplyStatus.OperationNotExist);
+                    encoder.EncodeReplyStatus(response.StatusCode == StatusCode.NotFound
+                        ? ReplyStatus.ObjectNotExist
+                        : ReplyStatus.OperationNotExist);
 
                     new RequestFailedExceptionData(
                         IceIdentity.Parse(request.Path),
@@ -999,8 +1002,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             throw new InvalidOperationException("Unexpected call to CancelPendingRead on ice payload.");
         }
 
-        return readResult.IsCompleted ? readResult.Buffer :
-            throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
+        return readResult.IsCompleted
+            ? readResult.Buffer
+            : throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
     /// <summary>Acquires exclusive access to _duplexConnectionWriter.</summary>
@@ -1493,8 +1497,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             if (contextReader is null)
             {
-                fields = requestHeader.OperationMode == OperationMode.Normal ?
-                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
+                fields = requestHeader.OperationMode == OperationMode.Normal
+                    ? ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty
+                    : _idempotentFields;
             }
             else
             {

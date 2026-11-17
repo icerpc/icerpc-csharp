@@ -380,9 +380,9 @@ internal static class VariantEnumGenerator
             field.Attributes.CSAttributes().Select(attr => $"[property: {attr.Args[0]}] "));
         if (field.Attributes.IsDeprecated)
         {
-            attributes += field.Attributes.DeprecatedMessage is string message ?
-                $"[property: global::System.Obsolete(\"{message}\")] " :
-                "[property: global::System.Obsolete] ";
+            attributes += field.Attributes.DeprecatedMessage is string message
+                ? $"[property: global::System.Obsolete(\"{message}\")] "
+                : "[property: global::System.Obsolete] ";
         }
         return attributes;
     }

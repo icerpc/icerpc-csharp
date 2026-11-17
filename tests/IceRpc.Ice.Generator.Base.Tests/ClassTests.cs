@@ -439,9 +439,9 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(
             decoder.DecodeByte(),
-            b is null ?
-                Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String) :
-                Is.EqualTo(
+            b is null
+                ? Is.EqualTo((byte)IceEncodingDefinitions.TypeIdKind.String)
+                : Is.EqualTo(
                     (byte)IceEncodingDefinitions.TypeIdKind.String |
                     (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields));
 
@@ -461,9 +461,9 @@ public sealed class ClassTests
 
         Assert.That(
             decoder.DecodeByte(),
-            a is null ?
-                Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice) :
-                Is.EqualTo(
+            a is null
+                ? Is.EqualTo((byte)IceEncodingDefinitions.SliceFlags.IsLastSlice)
+                : Is.EqualTo(
                     (byte)IceEncodingDefinitions.SliceFlags.HasTaggedFields |
                     (byte)IceEncodingDefinitions.SliceFlags.IsLastSlice));
         // MyClassWithTaggedFields.A

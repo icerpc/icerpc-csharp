@@ -26,9 +26,9 @@ internal static class IncomingFrameExtensions
         IActivator activator,
         CancellationToken cancellationToken)
     {
-        return frame.Payload.TryReadFullPayload(feature.MaxPayloadSize, out ReadResult readResult) ?
-                new(DecodePayload(readResult)) :
-                PerformDecodeAsync();
+        return frame.Payload.TryReadFullPayload(feature.MaxPayloadSize, out ReadResult readResult)
+            ? new(DecodePayload(readResult))
+            : PerformDecodeAsync();
 
         // All the logic is in this local function.
         T DecodePayload(ReadResult readResult)

@@ -123,14 +123,14 @@ public static class IceProxyIceEncoderExtensions
         }
         else
         {
-            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice ?
-                transport switch
+            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice
+                ? transport switch
                 {
                     SslName => TransportCode.Ssl,
                     TcpName => TransportCode.Tcp,
                     _ => TransportCode.Uri
-                } :
-                TransportCode.Uri;
+                }
+                : TransportCode.Uri;
 
             encoder.EncodeShort((short)transportCode);
 
@@ -164,9 +164,9 @@ public static class IceProxyIceEncoderExtensions
         new TcpServerAddressBody(
             serverAddress.Host,
             serverAddress.Port,
-            timeout: serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
-                (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture)) :
-                DefaultTcpTimeout,
+            timeout: serverAddress.Params.TryGetValue("t", out string? timeoutValue)
+                ? (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture))
+                : DefaultTcpTimeout,
             compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
     }
 

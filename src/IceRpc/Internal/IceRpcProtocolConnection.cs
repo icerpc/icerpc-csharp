@@ -150,9 +150,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     connectCts.Token).ConfigureAwait(false);
 
                 var settings = new IceRpcSettings(
-                    _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
-                        ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
-                        new Dictionary<IceRpcSettingKey, ulong>
+                    _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize
+                        ? ImmutableDictionary<IceRpcSettingKey, ulong>.Empty
+                        : new Dictionary<IceRpcSettingKey, ulong>
                         {
                             [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
                         });
@@ -574,9 +574,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     if (!stream.IsStarted ||
                         stream.Id >=
-                            (stream.IsBidirectional ?
-                                _goAwayFrame.BidirectionalStreamId :
-                                _goAwayFrame.UnidirectionalStreamId))
+                            (stream.IsBidirectional
+                                ? _goAwayFrame.BidirectionalStreamId
+                                : _goAwayFrame.UnidirectionalStreamId))
                     {
                         // The request wasn't received by the peer so it's safe to cancel the invocation.
                         ((CancellationTokenSource)cts!).Cancel();
@@ -1071,9 +1071,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
         // _disposedCts is not disposed since we own a dispatch count.
-        CancellationToken cancellationToken = stream.IsBidirectional ?
-            stream.WritesClosed.AsCancellationToken(_disposedCts.Token) :
-            _disposedCts.Token;
+        CancellationToken cancellationToken = stream.IsBidirectional
+            ? stream.WritesClosed.AsCancellationToken(_disposedCts.Token)
+            : _disposedCts.Token;
 
         PipeReader? fieldsPipeReader = null;
         IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;

@@ -27,7 +27,8 @@ internal sealed class InvokerBuilder : IInvokerBuilder
     internal InvokerBuilder(IServiceProvider provider) => ServiceProvider = provider;
 
     internal IInvoker Build() =>
-        _isIntoCalled ? _pipeline :
-            throw new InvalidOperationException(
+        _isIntoCalled
+            ? _pipeline
+            : throw new InvalidOperationException(
                 $"The configure action on the {nameof(IInvokerBuilder)} must include a call to {nameof(Into)}.");
 }

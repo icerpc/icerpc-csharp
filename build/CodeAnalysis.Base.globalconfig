@@ -191,10 +191,6 @@ dotnet_diagnostic.SA1127.severity = none
 # SA1129: Do not use default value type constructor
 dotnet_diagnostic.SA1129.severity = none
 
-# SA1143: Conditional expressions must be formatted consistently
-# We keep the ? and : operators at the end of the line.
-dotnet_diagnostic.SA1143.severity = none
-
 # SA1200: A C# using directive is placed outside of a namespace element
 dotnet_diagnostic.SA1200.severity = none
 

@@ -89,8 +89,9 @@ public sealed class Server : IAsyncDisposable
         {
             _serverAddress = _serverAddress with
             {
-                Transport = _serverAddress.Protocol == Protocol.Ice ?
-                    duplexServerTransport.DefaultName : multiplexedServerTransport.DefaultName
+                Transport = _serverAddress.Protocol == Protocol.Ice
+                    ? duplexServerTransport.DefaultName
+                    : multiplexedServerTransport.DefaultName
             };
         }
 

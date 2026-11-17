@@ -238,9 +238,9 @@ public sealed class IceRpcProtocolConnectionTests
         MultiplexedTransportOperations operation)
     {
         // Arrange
-        Exception exception = authenticationException ?
-            new AuthenticationException() :
-            new IceRpcException(IceRpcError.ConnectionRefused);
+        Exception exception = authenticationException
+            ? new AuthenticationException()
+            : new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
@@ -259,9 +259,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
-        Func<Task> connectCall = serverConnection ?
-            () => sut.ConnectAsync(default) :
-            async () =>
+        Func<Task> connectCall = serverConnection
+            ? () => sut.ConnectAsync(default)
+            : async () =>
             {
                 _ = AcceptAsync();
                 _ = await sut.Client.ConnectAsync();
@@ -315,9 +315,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         using var connectCts = new CancellationTokenSource(100);
 
-        Func<Task> connectCall = serverConnection ?
-            () => sut.ConnectAsync(connectCts.Token) :
-            async () =>
+        Func<Task> connectCall = serverConnection
+            ? () => sut.ConnectAsync(connectCts.Token)
+            : async () =>
             {
                 _ = AcceptAsync();
                 _ = await sut.Client.ConnectAsync(connectCts.Token);

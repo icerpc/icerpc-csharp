@@ -88,9 +88,9 @@ public class ServerTests
         IceRpcException exception = await Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
         Assert.That(
             exception.IceRpcError,
-            serverAddress.Protocol == Protocol.Ice ?
-                Is.EqualTo(IceRpcError.IceRpcError).Or.EqualTo(IceRpcError.ConnectionAborted) :
-                Is.EqualTo(IceRpcError.ServerBusy));
+            serverAddress.Protocol == Protocol.Ice
+                ? Is.EqualTo(IceRpcError.IceRpcError).Or.EqualTo(IceRpcError.ConnectionAborted)
+                : Is.EqualTo(IceRpcError.ServerBusy));
     }
 
     [Test]
@@ -134,9 +134,9 @@ public class ServerTests
         Assert.That(async () => await connection1.ConnectAsync(), Throws.Nothing);
 
         // Make sure the connection refusal is aborted if the server side transport CloseAsync call hangs or fails.
-        multiplexedServerTransport.ConnectionOperationsOptions = failure ?
-            new() { Fail = MultiplexedTransportOperations.Close } :
-            new() { Hold = MultiplexedTransportOperations.Close };
+        multiplexedServerTransport.ConnectionOperationsOptions = failure
+            ? new() { Fail = MultiplexedTransportOperations.Close }
+            : new() { Hold = MultiplexedTransportOperations.Close };
 
         // Act / Assert
         Assert.That(

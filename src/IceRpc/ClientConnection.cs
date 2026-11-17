@@ -77,8 +77,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             _serverAddress = _serverAddress with
             {
-                Transport = _serverAddress.Protocol == Protocol.Ice ?
-                    duplexClientTransport.DefaultName : multiplexedClientTransport.DefaultName
+                Transport = _serverAddress.Protocol == Protocol.Ice
+                    ? duplexClientTransport.DefaultName
+                    : multiplexedClientTransport.DefaultName
             };
         }
 
@@ -426,9 +427,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 // directly by this method.
                 try
                 {
-                    Task shutdownTask = _activeConnection is null ?
-                        Task.CompletedTask :
-                        _activeConnection.Value.Connection.ShutdownAsync(cts.Token);
+                    Task shutdownTask = _activeConnection is null
+                        ? Task.CompletedTask
+                        : _activeConnection.Value.Connection.ShutdownAsync(cts.Token);
 
                     await Task.WhenAll(shutdownTask, _detachedConnectionsTcs.Task.WaitAsync(cts.Token))
                         .ConfigureAwait(false);

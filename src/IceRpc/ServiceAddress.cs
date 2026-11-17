@@ -552,9 +552,9 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
     /// <remarks>The new service address holds an <see cref="Ice" /> or <see cref="IceRpc" /> variant, depending on
     /// the scheme of <paramref name="uri" />.</remarks>
     public ServiceAddress(Uri uri) =>
-        _value = uri.IsAbsoluteUri && Protocol.TryParse(uri.Scheme, out Protocol? protocol) ?
-            (protocol == Protocol.Ice ? new Ice(uri) : new IceRpc(uri)) :
-            throw new ArgumentException($"Cannot create a service address from URI '{uri}'.", nameof(uri));
+        _value = uri.IsAbsoluteUri && Protocol.TryParse(uri.Scheme, out Protocol? protocol)
+            ? (protocol == Protocol.Ice ? new Ice(uri) : new IceRpc(uri))
+            : throw new ArgumentException($"Cannot create a service address from URI '{uri}'.", nameof(uri));
 
     /// <summary>Determines whether the specified service address is equal to this service address.</summary>
     /// <param name="other">The service address to compare with this service address.</param>
@@ -839,6 +839,7 @@ public class ServiceAddressTypeConverter : TypeConverter
     /// <returns>An <see cref="object "/> that represents the converted <see cref="ServiceAddress"/>.</returns>
     /// <remarks><see cref="TypeConverter"/>.</remarks>
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
-        value is string valueStr ?
-            new ServiceAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
+        value is string valueStr
+            ? new ServiceAddress(new Uri(valueStr))
+            : base.ConvertFrom(context, culture, value);
 }
