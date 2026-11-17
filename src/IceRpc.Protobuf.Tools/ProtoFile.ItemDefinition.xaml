@@ -3,5 +3,5 @@
 <ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
   <ContentType Name="ProtoFile" DisplayName="Protobuf file" ItemType="ProtoFile" />
   <ItemType Name="ProtoFile" DisplayName="Proto file" />
-  <FileExtension Name=".proto" ContentType="ProtoSourceFile" />
+  <FileExtension Name=".proto" ContentType="ProtoFile" />
 </ProjectSchemaDefinitions>
