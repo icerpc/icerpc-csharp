@@ -37,8 +37,8 @@ public sealed class IceProtocolConnectionTests
                 new InlineDispatcher(
                     (request, cancellationToken) =>
                         new(new OutgoingResponse(request, StatusCode.ApplicationError, "application message"))),
-                StatusCode.InternalError,
-                "application message { Original StatusCode = ApplicationError }");
+                StatusCode.ApplicationError,
+                "");
 
             yield return new TestCaseData(
                 new InlineDispatcher(
@@ -115,12 +115,12 @@ public sealed class IceProtocolConnectionTests
                 StatusCode.InternalError,
                 "The dispatch failed with status code InternalError.");
 
+            // ApplicationError encodes as UserException, even without a payload; the ice protocol doesn't carry its
+            // error message.
+            yield return new TestCaseData(StatusCode.ApplicationError, StatusCode.ApplicationError, "");
+
             // Well-known status codes without a dedicated ReplyStatus encode as UnknownException
             // with the original StatusCode preserved in the error message.
-            yield return new TestCaseData(
-                StatusCode.ApplicationError,
-                StatusCode.InternalError,
-                "The dispatch failed with status code ApplicationError. { Original StatusCode = ApplicationError }");
             yield return new TestCaseData(
                 StatusCode.DeadlineExceeded,
                 StatusCode.InternalError,
