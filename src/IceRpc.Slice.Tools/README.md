@@ -33,9 +33,8 @@ files.
 
 > The Slice sources and Slice references can overlap.
 
-You select which Slice files to include in your project's Slice sources with the `SliceSource` item type. And you
-select which Slice files and directories to include in your project's Slice references with the `SliceReference` item
-type.
+You select which files to include in your project's Slice sources with the `SliceSource` item type. And you select
+which Slice files and directories to include in your project's Slice references with the `SliceReference` item type.
 
 By default, all `.slice` files located in your project's home directory and any of its subdirectories, recursively, are
 included in `SliceSource`. You can prevent this auto-inclusion of `.slice` files by setting either
