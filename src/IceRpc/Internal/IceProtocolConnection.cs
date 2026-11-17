@@ -982,8 +982,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
 
-            // IceRPC doesn't know how the payload is encoded; 1.1 is the only version of the Ice encoding that both
-            // Ice and IceRPC support.
+            // IceRPC doesn't know how the payload is encoded. It writes 1.1 because Ice supports the Ice encoding
+            // versions 1.0 and 1.1 while IceRPC supports only 1.1, so 1.1 is the only version they have in common.
             var encapsulationHeader = new EncapsulationHeader(
                 encapsulationSize: payloadSize + 6,
                 payloadEncodingMajor: 1,
