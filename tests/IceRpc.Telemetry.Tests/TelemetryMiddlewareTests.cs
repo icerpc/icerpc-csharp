@@ -114,7 +114,7 @@ public sealed class TelemetryMiddlewareTests
         ActivitySource.AddActivityListener(activityListener);
         var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
-        PipeReader encodedTraceContext = EncodeTraceContext(
+        PipeReader encodedTraceContext = EncodeTraceContextWithFlagsAndState(
             ActivityTraceFlags.Recorded,
             "key=value",
             out ActivityTraceId parentTraceId,
@@ -177,7 +177,7 @@ public sealed class TelemetryMiddlewareTests
         ActivitySource.AddActivityListener(activityListener);
         var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
-        PipeReader encodedTraceContext = EncodeTraceContext(parentTraceFlags, "", out _, out _);
+        PipeReader encodedTraceContext = EncodeTraceContextWithFlagsAndState(parentTraceFlags, "", out _, out _);
         encodedTraceContext.TryRead(out ReadResult readResult);
 
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
@@ -727,7 +727,7 @@ public sealed class TelemetryMiddlewareTests
 
     /// <summary>Encodes the trace context field of a parent activity with the given trace flags and trace state.
     /// </summary>
-    private static PipeReader EncodeTraceContext(
+    private static PipeReader EncodeTraceContextWithFlagsAndState(
         ActivityTraceFlags traceFlags,
         string traceState,
         out ActivityTraceId traceId,
