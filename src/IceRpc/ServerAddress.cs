@@ -71,10 +71,7 @@ public readonly record struct ServerAddress
     /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
     /// An icerpc server address has no parameters.</value>
     /// <remarks>A parameter name consists of one or more ASCII letters, digits, <c>-</c>, <c>_</c> and <c>.</c>. A
-    /// parameter value is percent-escaped, and does not contain <c>$</c>, <c>,</c>, <c>[</c> or <c>]</c>. Its
-    /// percent-encoding is normalized as described in RFC 3986 section 6.2.2: the hex digits of a percent-escape are
-    /// uppercase, and an unreserved character is not percent-escaped. Neither this init accessor nor the URI
-    /// constructor accepts a value that is not normalized.</remarks>
+    /// parameter value is percent-escaped, and does not contain <c>$</c>, <c>,</c>, <c>[</c> or <c>]</c>.</remarks>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -212,8 +209,7 @@ public readonly record struct ServerAddress
 
     /// <summary>Checks that the parameter names are valid names other than <c>alt-server</c> and <c>transport</c>, and
     /// that the parameter values contain only unreserved characters, percent-escapes, and reserved characters other
-    /// than <c>#</c>, <c>$</c>, <c>&#38;</c>, <c>,</c>, <c>[</c> and <c>]</c>, with a normalized percent-encoding.
-    /// </summary>
+    /// than <c>#</c>, <c>$</c>, <c>&#38;</c>, <c>,</c>, <c>[</c> and <c>]</c>.</summary>
     /// <exception cref="FormatException">Thrown when a parameter name or value is invalid.</exception>
     private static void CheckParams(ImmutableDictionary<string, string> @params)
     {
@@ -223,14 +219,9 @@ public readonly record struct ServerAddress
             {
                 throw new FormatException($"Invalid parameter name '{name}'.");
             }
-            if (!IsValidParamValue(value) || UriNormalization.HasStrayPercent(value))
+            if (!IsValidParamValue(value) || PercentEncoding.HasStrayPercent(value))
             {
                 throw new FormatException($"Invalid parameter value '{value}'.");
-            }
-            if (UriNormalization.HasNonNormalizedPercentEscape(value))
-            {
-                throw new FormatException(
-                    $"Invalid parameter value '{value}'; the hex digits of a percent-escape must be uppercase, and an unreserved character must not be percent-escaped.");
             }
         }
     }

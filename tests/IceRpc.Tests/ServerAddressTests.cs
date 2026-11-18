@@ -128,7 +128,6 @@ public class ServerAddressTests
     [TestCase("ice://host:10000?foo=bar$baz")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo=bar,baz")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo=[0]")] // invalid character in parameter value
-    [TestCase("ice://host:10000?foo=a%3ab")] // lowercase hex digits in parameter value
     [TestCase("ice://host:10000?foo$bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000?foo,bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000? =bar")] // invalid character in parameter name
@@ -238,6 +237,7 @@ public class ServerAddressTests
     /// <param name="value">The value of the server address parameter to set.</param>
     [TestCase("name", "value")]
     [TestCase("My-name_2.0", "value%25%5B%5D@!")]
+    [TestCase("name", "a%3ab%41")] // a value does not need to be normalized
     public void Setting_the_server_address_params(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("ice://localhost"));
@@ -276,8 +276,6 @@ public class ServerAddressTests
     [TestCase("name", "valu,e")] // cSpell:disable-line
     [TestCase("name", "valu[e")] // cSpell:disable-line
     [TestCase("name", "valu]e")] // cSpell:disable-line
-    [TestCase("name", "a%3ab")] // lowercase hex digits
-    [TestCase("name", "%41")] // escaped unreserved character
     [TestCase("name", "a%")] // '%' that does not start a percent-escape
     [TestCase("name", "%4%31")] // '%' that does not start a percent-escape
     [TestCase("na$me", "value")]

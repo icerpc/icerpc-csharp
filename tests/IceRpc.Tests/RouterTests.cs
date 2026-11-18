@@ -88,22 +88,29 @@ public class RouterTests
     }
 
     /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> and
-    /// <see cref="Router.Mount(string, IDispatcher)" /> reject a path that is not normalized, with a message that
-    /// states the rule the path breaks.</summary>
-    [TestCase("/%41", "must not be percent-escaped")]
-    [TestCase("/a%3ab", "must be uppercase")]
-    [TestCase("/a/./b", "cannot be '.' or '..'")]
-    [TestCase("/a/b/..", "cannot be '.' or '..'")]
-    public void Mapping_or_mounting_a_path_that_is_not_normalized_fails(string path, string expectedRule)
+    /// <see cref="Router.Mount(string, IDispatcher)" /> reject a path that is not a valid URI path.</summary>
+    [TestCase("/a[b]")]
+    [TestCase("/a%4")]
+    public void Mapping_or_mounting_a_path_that_is_not_a_valid_uri_path_fails(string path)
     {
         var router = new Router();
 
-        Assert.That(
-            () => router.Map(path, NotFoundDispatcher.Instance),
-            Throws.TypeOf<FormatException>().With.Message.Contains(expectedRule));
-        Assert.That(
-            () => router.Mount(path, NotFoundDispatcher.Instance),
-            Throws.TypeOf<FormatException>().With.Message.Contains(expectedRule));
+        Assert.That(() => router.Map(path, NotFoundDispatcher.Instance), Throws.TypeOf<FormatException>());
+        Assert.That(() => router.Mount(path, NotFoundDispatcher.Instance), Throws.TypeOf<FormatException>());
+    }
+
+    /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> and
+    /// <see cref="Router.Mount(string, IDispatcher)" /> accept a path that is not normalized.</summary>
+    [TestCase("/%41")]
+    [TestCase("/a%3ab")]
+    [TestCase("/a/./b")]
+    [TestCase("/a/b/..")]
+    public void Mapping_or_mounting_a_path_that_is_not_normalized_succeeds(string path)
+    {
+        var router = new Router();
+
+        Assert.That(() => router.Map(path, NotFoundDispatcher.Instance), Throws.Nothing);
+        Assert.That(() => router.Mount(path, NotFoundDispatcher.Instance), Throws.Nothing);
     }
 
     /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)" />

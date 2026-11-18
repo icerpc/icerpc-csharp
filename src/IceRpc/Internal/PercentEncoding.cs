@@ -7,7 +7,7 @@ using System.Text.Unicode;
 namespace IceRpc.Internal;
 
 /// <summary>Converts the strings of Ice identities and facets to and from the canonical percent-encoded form of a URI
-/// path segment or fragment.</summary>
+/// path segment or fragment, and checks the percent-escapes of URI components.</summary>
 /// <remarks>The canonical form leaves unescaped exactly the characters RFC 3986 allows in the URI component, and
 /// percent-encodes every other byte of the UTF-8 string with uppercase hex digits. A string has a single canonical
 /// form, and a URI parser that normalizes (RFC 3986 section 6.2.2) does not alter this form: the hex digits are
@@ -25,6 +25,27 @@ internal static class PercentEncoding
         SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!$&'()*+,;=:@/?");
 
     private const string HexDigits = "0123456789ABCDEF";
+
+    /// <summary>Checks whether a URI component contains a <c>%</c> that does not start a percent-escape, i.e. that is
+    /// not followed by two hex digits.</summary>
+    /// <param name="value">The URI component.</param>
+    /// <returns><see langword="true" /> when a <c>%</c> does not start a percent-escape; otherwise,
+    /// <see langword="false" />.</returns>
+    internal static bool HasStrayPercent(string value)
+    {
+        for (int index = value.IndexOf('%', StringComparison.Ordinal);
+            index != -1;
+            index = value.IndexOf('%', index + 3, StringComparison.Ordinal))
+        {
+            if (index + 2 >= value.Length ||
+                !char.IsAsciiHexDigit(value[index + 1]) ||
+                !char.IsAsciiHexDigit(value[index + 2]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /// <summary>Percent-encodes a string in canonical form.</summary>
     /// <param name="value">The string to encode.</param>

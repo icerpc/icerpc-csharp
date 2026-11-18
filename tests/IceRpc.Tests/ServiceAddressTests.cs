@@ -214,8 +214,6 @@ public class ServiceAddressTests
             "icerpc://host/path?alt-server=host2:x", // invalid alt-server port
             "icerpc://host/path?alt-server=[bad", // invalid alt-server host
             "icerpc://host/path?alt-server=%5B::1", // invalid alt-server host
-            "icerpc://host/path?alt-server=%5b::1%5d", // lowercase hex digits in alt-server host brackets
-            "icerpc://host/a[b]",           // character that is not valid unescaped in a path
             "ice://host/path?foo=[0]",      // invalid character in server address parameter value
             "ice://host/path?alt-server=host2?foo=[0]", // invalid character in server address parameter value
             "icerpc:/path?foo=bar",         // icerpc service address parameter
@@ -240,19 +238,12 @@ public class ServiceAddressTests
             "ice://host//",                 // empty category and name
             "ice:/a%3Ab",                   // escaped character that is valid unescaped in a path segment
             "ice:/a%2fb",                   // lowercase hex digits
-            "ice:/./x",                     // dot segment
-            "icerpc://host/a%3ab",          // lowercase hex digits
-            "icerpc://host/a%5bb%5d",       // lowercase hex digits
-            "icerpc:/a/./b",                // dot segment
-            "icerpc:/a/b/..",               // dot segment
-            "icerpc:/.//foo",               // dot segment
             "ice:/a[b]",                    // character that is not valid unescaped in a path segment
             "ice:/%FF",                     // escaped bytes that are not UTF-8
             "ice:/identity#a%3Ab",          // escaped character that is valid unescaped in a fragment
             "ice:/identity#a%2Fb",          // escaped character that is valid unescaped in a fragment
             "ice:/identity#a%2fb",          // lowercase hex digits
             "ice:/identity#a%5bb%5d",       // lowercase hex digits
-            "ice://host/identity?alt-server=host2?x=%3a", // lowercase hex digits in server address parameter value
             "ice:/identity#a[b]",           // character that is not valid unescaped in a fragment
             "ice:/identity#a#b",            // character that is not valid unescaped in a fragment
             "ice:/identity#%FF",            // escaped bytes that are not UTF-8
@@ -298,6 +289,13 @@ public class ServiceAddressTests
             // authority.
             ("icerpc://host/%41%7e", "/A~", ""),
             ("icerpc://host/a/./b/../c", "/a/c", ""),
+            // The path is the AbsolutePath of the URI, taken as is.
+            ("icerpc://host/a%3ab", "/a%3ab", ""),
+            ("icerpc://host/a[b]", "/a[b]", ""),
+            ("icerpc:/a/./b/..", "/a/./b/..", ""),
+            ("ice:/./x", "/./x", ""),
+            ("ice://host/identity?alt-server=host2?x=%3a", "/identity", ""),
+            ("icerpc://host/path?alt-server=%5b::1%5d", "/path", ""),
             ("ice://[::1]/identity?alt-server=%5B::2%5D?z=%5B0%5D", "/identity", ""),
             ("ice:/location/identity#facet", "/location/identity", "facet"),
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
@@ -516,10 +514,6 @@ public class ServiceAddressTests
 
     [TestCase("icerpc", "/foo<")]
     [TestCase("icerpc", "/a[b]")]
-    [TestCase("icerpc", "/a%3ab")]
-    [TestCase("icerpc", "/%41")]
-    [TestCase("icerpc", "/a/./b")]
-    [TestCase("icerpc", "/a/..")]
     [TestCase("icerpc", "/%")]
     [TestCase("icerpc", "/a%4")]
     [TestCase("icerpc", "/%4%31")]
@@ -527,8 +521,6 @@ public class ServiceAddressTests
     [TestCase("ice", "//foo")]
     [TestCase("ice", "/cat/")]
     [TestCase("ice", "/a%3Ab")]
-    [TestCase("ice", "/.")]
-    [TestCase("ice", "/../name")]
     public void Invalid_path_throws_exception(string protocol, string path)
     {
         // Arrange

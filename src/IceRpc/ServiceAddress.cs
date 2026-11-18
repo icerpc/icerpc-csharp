@@ -59,8 +59,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         /// <summary>Gets or initializes the path of this service address.</summary>
         /// <value>The path of this service address, the path of an Ice identity: <c>/category/name</c> or
         /// <c>/name</c>, in the form returned by <c>Identity.ToPath</c>. Defaults to <c>/</c>.</value>
-        /// <remarks>No segment of the path can be <c>.</c> or <c>..</c>, since a URI parser removes these segments.
-        /// </remarks>
         public string Path
         {
             get => _path;
@@ -244,22 +242,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         /// <summary>Checks if <paramref name="fragment" /> is the fragment of an Ice facet.</summary>
         private static void CheckFragment(string fragment) => _ = fragment.ToFacet();
 
-        /// <summary>Checks if a path is the path of an Ice identity, in normalized form.</summary>
+        /// <summary>Checks if a path is the path of an Ice identity.</summary>
         /// <remarks>The default path <c>/</c> is valid: sending a request to the null identity is in itself ok. With
         /// an Ice server, it results in a dispatch exception with status code <see cref="StatusCode.NotFound" />.
         /// </remarks>
-        private static void CheckIcePath(string path)
-        {
-            _ = IceIdentity.Parse(path);
-
-            // The canonical percent-encoding enforced by IceIdentity.Parse is already normalized, but a segment
-            // such as '.' is a dot segment that a URI parser removes.
-            if (UriNormalization.HasDotSegment(path))
-            {
-                throw new FormatException(
-                    $"Invalid identity path '{path}': a segment of the path cannot be '.' or '..'.");
-            }
-        }
+        private static void CheckIcePath(string path) => _ = IceIdentity.Parse(path);
 
         /// <summary>Percent-encodes only the characters that are not valid in a URI query parameter value:
         /// characters outside the printable ASCII range <c>\x21..\x7E</c>, the characters that are invalid in a
@@ -337,10 +324,10 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
         /// <summary>Gets or initializes the path of this service address.</summary>
         /// <value>The path of this service address. Defaults to <c>/</c>.</value>
-        /// <remarks>The path is normalized as described in RFC 3986 section 6.2.2: the hex digits of a percent-escape
-        /// are uppercase, an unreserved character is not percent-escaped, and the path has no <c>.</c> or <c>..</c>
-        /// segment. Neither this init accessor nor the URI constructor accepts a path that is not normalized.
-        /// </remarks>
+        /// <remarks>The path is a percent-escaped URI absolute path, sent as is in a request. It is not normalized:
+        /// <c>/a%3ab</c> and <c>/a%3Ab</c> are two different paths. The URI constructor takes the path from
+        /// <see cref="Uri.AbsolutePath" /> without checking it, while this init accessor rejects a path that is not
+        /// a valid RFC 3986 path.</remarks>
         public string Path
         {
             get => _path;
@@ -404,18 +391,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                 throw new ArgumentException(
                     $"Cannot create an icerpc service address with a parameter other than transport and alt-server from URI '{uri}'.",
                     nameof(uri));
-            }
-
-            try
-            {
-                CheckPath(path);
-            }
-            catch (FormatException exception)
-            {
-                throw new ArgumentException(
-                    $"Cannot create an icerpc service address from URI '{uri}'.",
-                    nameof(uri),
-                    exception);
             }
 
             _path = path;
@@ -649,15 +624,13 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         return value is not null;
     }
 
-    /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path in normalized form, i.e.
-    /// that it starts with a <c>/</c>, contains only unreserved characters, percent-escapes, and reserved characters
-    /// other than <c>?</c>, <c>#</c>, <c>[</c> and <c>]</c>, and is normalized as described in RFC 3986 section 6.2.2.
-    /// </summary>
+    /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts with
+    /// a <c>/</c> and contains only unreserved characters, percent-escapes, and reserved characters other than
+    /// <c>?</c>, <c>#</c>, <c>[</c> and <c>]</c>.</summary>
     /// <param name="path">The path to check.</param>
     /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
     /// <remarks>RFC 3986 allows <c>[</c> and <c>]</c> only around an IPv6 host: a path writes them as <c>%5B</c> and
-    /// <c>%5D</c>. A router matches the path of a request as received, so the path of a route and the path that a
-    /// client sends must share a single spelling.</remarks>
+    /// <c>%5D</c>. The path is not required to be normalized.</remarks>
     internal static void CheckPath(string path)
     {
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
@@ -665,18 +638,9 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             throw new FormatException(
                 $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?', '#', '[' and ']'.");
         }
-        if (UriNormalization.HasStrayPercent(path))
+        if (PercentEncoding.HasStrayPercent(path))
         {
             throw new FormatException($"Invalid path '{path}'; each '%' must be followed by two hex digits.");
-        }
-        if (UriNormalization.HasNonNormalizedPercentEscape(path))
-        {
-            throw new FormatException(
-                $"Invalid path '{path}'; the hex digits of a percent-escape must be uppercase, and an unreserved character must not be percent-escaped.");
-        }
-        if (UriNormalization.HasDotSegment(path))
-        {
-            throw new FormatException($"Invalid path '{path}'; a segment of the path cannot be '.' or '..'.");
         }
     }
 
@@ -867,12 +831,13 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
         // An alt-server entry writes the brackets of an IPv6 host as %5B and %5D, while the Uri constructor parses
         // only the bracketed spelling of the host. Only a leading %5B opens a host: a %5B elsewhere in the entry
-        // belongs to a parameter value, which must stay percent-encoded.
+        // belongs to a parameter value, which must stay percent-encoded. The hex digits of an escape are not case
+        // sensitive.
         static string RestoreIPv6HostBrackets(string altServer)
         {
-            if (altServer.StartsWith("%5B", StringComparison.Ordinal))
+            if (altServer.StartsWith("%5B", StringComparison.OrdinalIgnoreCase))
             {
-                int end = altServer.IndexOf("%5D", 3, StringComparison.Ordinal);
+                int end = altServer.IndexOf("%5D", 3, StringComparison.OrdinalIgnoreCase);
                 if (end != -1)
                 {
                     return $"[{altServer[3..end]}]{altServer[(end + 3)..]}";
