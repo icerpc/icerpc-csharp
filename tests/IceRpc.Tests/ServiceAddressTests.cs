@@ -491,6 +491,8 @@ public class ServiceAddressTests
     /// and serverAddress properties.</summary>
     [TestCase("/")]
     [TestCase("/foo/bar/")]
+    [TestCase("/a[b]")]
+    [TestCase("/a%3ab/./%41")]
     public void From_protocol_and_path(string path)
     {
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = path };
@@ -513,7 +515,6 @@ public class ServiceAddressTests
     }
 
     [TestCase("icerpc", "/foo<")]
-    [TestCase("icerpc", "/a[b]")]
     [TestCase("icerpc", "/%")]
     [TestCase("icerpc", "/a%4")]
     [TestCase("icerpc", "/%4%31")]

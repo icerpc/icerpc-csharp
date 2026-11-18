@@ -89,7 +89,7 @@ public class RouterTests
 
     /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> and
     /// <see cref="Router.Mount(string, IDispatcher)" /> reject a path that is not a valid URI path.</summary>
-    [TestCase("/a[b]")]
+    [TestCase("/a{b}")]
     [TestCase("/a%4")]
     public void Mapping_or_mounting_a_path_that_is_not_a_valid_uri_path_fails(string path)
     {
@@ -100,7 +100,9 @@ public class RouterTests
     }
 
     /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> and
-    /// <see cref="Router.Mount(string, IDispatcher)" /> accept a path that is not normalized.</summary>
+    /// <see cref="Router.Mount(string, IDispatcher)" /> accept a path that is not normalized, and the <c>[</c> and
+    /// <c>]</c> that <see cref="Uri" /> leaves unescaped in a path.</summary>
+    [TestCase("/a[b]")]
     [TestCase("/%41")]
     [TestCase("/a%3ab")]
     [TestCase("/a/./b")]

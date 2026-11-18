@@ -325,9 +325,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         /// <summary>Gets or initializes the path of this service address.</summary>
         /// <value>The path of this service address. Defaults to <c>/</c>.</value>
         /// <remarks>The path is a percent-escaped URI absolute path, sent as is in a request. It is not normalized:
-        /// <c>/a%3ab</c> and <c>/a%3Ab</c> are two different paths. The URI constructor takes the path from
-        /// <see cref="Uri.AbsolutePath" /> without checking it, while this init accessor rejects a path that is not
-        /// a valid RFC 3986 path.</remarks>
+        /// <c>/a%3ab</c> and <c>/a%3Ab</c> are two different paths.</remarks>
         public string Path
         {
             get => _path;
@@ -540,7 +538,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
     // The characters that are not valid in a query parameter value, plus '%'.
     private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&[\\]^`{|}");
-    private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?[\\]^`{|}");
+    private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?\\^`{|}");
 
     private readonly object? _value;
 
@@ -626,17 +624,18 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
 
     /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts with
     /// a <c>/</c> and contains only unreserved characters, percent-escapes, and reserved characters other than
-    /// <c>?</c>, <c>#</c>, <c>[</c> and <c>]</c>.</summary>
+    /// <c>?</c> and <c>#</c>.</summary>
     /// <param name="path">The path to check.</param>
     /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
-    /// <remarks>RFC 3986 allows <c>[</c> and <c>]</c> only around an IPv6 host: a path writes them as <c>%5B</c> and
-    /// <c>%5D</c>. The path is not required to be normalized.</remarks>
+    /// <remarks>The absolute path of a URI with a supported protocol satisfies these requirements: this check accepts
+    /// <c>[</c> and <c>]</c>, which <see cref="Uri" /> leaves unescaped in a path. The path is not required to be
+    /// normalized.</remarks>
     internal static void CheckPath(string path)
     {
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
-                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?', '#', '[' and ']'.");
+                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
         }
         if (PercentEncoding.HasStrayPercent(path))
         {
