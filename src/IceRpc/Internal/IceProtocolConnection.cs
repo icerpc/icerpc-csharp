@@ -722,6 +722,22 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
+    /// <summary>Checks that the encoding version of an encapsulation received from the peer is 1.1.</summary>
+    /// <param name="encapsulationHeader">The decoded encapsulation header.</param>
+    /// <exception cref="InvalidDataException">Thrown if the encoding version is not 1.1.</exception>
+    /// <remarks>IceRPC doesn't use this version to decode the payload: the generated code selects the payload
+    /// encoding. Any other version comes from an Ice peer that uses the Ice encoding version 1.0, and IceRPC can
+    /// neither decode such a payload nor forward it to another Ice application, since IceRPC always writes 1.1 in the
+    /// encapsulations it sends.</remarks>
+    private static void CheckPayloadEncoding(EncapsulationHeader encapsulationHeader)
+    {
+        if (encapsulationHeader.PayloadEncodingMajor != 1 || encapsulationHeader.PayloadEncodingMinor != 1)
+        {
+            throw new InvalidDataException(
+                $"Unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor}.{encapsulationHeader.PayloadEncodingMinor}'.");
+        }
+    }
+
     private static (int RequestId, IceRequestHeader Header, PipeReader? ContextReader, int Consumed) DecodeRequestIdAndHeader(
         ReadOnlySequence<byte> buffer)
     {
@@ -748,13 +764,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         var encapsulationHeader = new EncapsulationHeader(ref decoder);
-
-        if (encapsulationHeader.PayloadEncodingMajor != 1 ||
-            encapsulationHeader.PayloadEncodingMinor != 1)
-        {
-            throw new InvalidDataException(
-                $"Unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor}.{encapsulationHeader.PayloadEncodingMinor}'.");
-        }
+        CheckPayloadEncoding(encapsulationHeader);
 
         int payloadSize = encapsulationHeader.EncapsulationSize - 6;
         if (payloadSize != (buffer.Length - decoder.Consumed))
@@ -790,6 +800,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             EncapsulationHeader encapsulationHeader =
                 buffer.Slice(1, 6).DecodeIceBuffer((ref IceDecoder decoder) => new EncapsulationHeader(ref decoder));
+            CheckPayloadEncoding(encapsulationHeader);
 
             // Sanity check
             int payloadSize = encapsulationHeader.EncapsulationSize - 6;
@@ -974,9 +985,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
 
-            // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only relevant to
-            // a ZeroC Ice client that decodes the response. The only Slice encoding such a client can possibly use
-            // to decode the response payload is 1.1 or 1.0, and we don't care about interop with 1.0.
+            // IceRPC doesn't know how the payload is encoded. It writes 1.1 because Ice supports the Ice encoding
+            // versions 1.0 and 1.1 while IceRPC supports only 1.1, so 1.1 is the only version they have in common.
             var encapsulationHeader = new EncapsulationHeader(
                 encapsulationSize: payloadSize + 6,
                 payloadEncodingMajor: 1,
