@@ -941,8 +941,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         encoder.EncodeInt(requestId);
 
-        if (response.StatusCode > StatusCode.ApplicationError ||
-            (response.StatusCode == StatusCode.ApplicationError && payloadSize == 0))
+        if (response.StatusCode > StatusCode.ApplicationError)
         {
             // system exception
             switch (response.StatusCode)
