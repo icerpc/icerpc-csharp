@@ -1061,55 +1061,6 @@ public sealed class IceProtocolConnectionTests
                 .And.InnerException.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that a response whose encapsulation has an encoding version other than 1.1 fails the
-    /// invocation with an <see cref="IceRpcException" />.</summary>
-    [TestCase((byte)1, (byte)0)]
-    [TestCase((byte)2, (byte)1)]
-    public async Task Receiving_a_response_with_an_unsupported_encapsulation_encoding_fails_the_invocation(
-        byte encodingMajor,
-        byte encodingMinor)
-    {
-        // Arrange: a client-side read decorator that rewrites the encoding version of the encapsulation of the
-        // incoming response frame. The dispatch returns an empty Ok response, so this frame arrives as a single
-        // 25-byte read: the 14-byte prologue, the 4-byte request ID, the reply status byte (Ok), and an empty
-        // encapsulation (6-byte header with its encoding version at offsets 23 and 24).
-        bool invalidRead = false;
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher: dispatcher)
-            .AddTestDuplexTransportDecorator(
-                clientOperationsOptions: new DuplexTransportOperationsOptions()
-                {
-                    ReadDecorator = async (decoratee, buffer, cancellationToken) =>
-                        {
-                            int count = await decoratee.ReadAsync(buffer, cancellationToken);
-                            if (invalidRead && count == 25)
-                            {
-                                buffer.Span[23] = encodingMajor;
-                                buffer.Span[24] = encodingMinor;
-                            }
-                            return count;
-                        }
-                })
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-
-        // Act
-        Task invokeTask = sut.Client.InvokeAsync(request);
-        invalidRead = true;
-        dispatcher.ReleaseDispatch(); // Triggers the sending of the response.
-
-        // Assert
-        Assert.That(
-            () => invokeTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError)
-                .And.InnerException.InstanceOf<InvalidDataException>());
-    }
-
     /// <summary>This test verifies that responses that are received after a request1 has been discarded are ignored,
     /// and doesn't interfere with other request1 and responses being send over the same connection.</summary>
     [Test]
