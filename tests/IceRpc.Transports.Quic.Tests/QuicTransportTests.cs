@@ -11,7 +11,6 @@ using System.Security.Authentication;
 
 namespace IceRpc.Transports.Quic.Tests;
 
-[NonParallelizable]
 public class QuicTransportTests
 {
     [OneTimeSetUp]

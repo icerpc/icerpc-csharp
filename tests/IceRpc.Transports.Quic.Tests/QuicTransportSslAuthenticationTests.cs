@@ -11,7 +11,6 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Quic.Tests;
 
 /// <summary>Test SSL authentication with the QUIC transport.</summary>
-[NonParallelizable]
 public class QuicTransportSslAuthenticationTests
 {
     [OneTimeSetUp]

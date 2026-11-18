@@ -13,8 +13,7 @@ public class DefaultTransportTests
 {
     /// <summary>Verifies we can connect successfully with the various transport names supported by the default
     /// multiplexed transports.</summary>
-    /// <remarks>Not parallelizable: on Linux, two QUIC listeners bound to port 0 at the same time can be assigned the
-    /// same UDP port, and one of them then misses the connections sent to that port.</remarks>
+    /// <remarks>Not parallelizable: see AssemblyInfo.cs in IceRpc.Transports.Quic.Tests.</remarks>
     [NonParallelizable]
     [TestCase(null, null)]
     [TestCase("quic", "quic")]
