@@ -10,4 +10,8 @@ using System.Runtime.Versioning;
 
 // On Linux, two QUIC listeners bound to port 0 at the same time can be assigned the same UDP port, and one of them
 // then misses the connections sent to that port. Linux 7.4 fixes this kernel bug.
-[assembly: NonParallelizable]
+[assembly: ParallelizableExceptOnLinux]
+
+[AttributeUsage(AttributeTargets.Assembly)]
+internal sealed class ParallelizableExceptOnLinuxAttribute()
+    : ParallelizableAttribute(OperatingSystem.IsLinux() ? ParallelScope.None : ParallelScope.Children);

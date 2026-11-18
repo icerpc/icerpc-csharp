@@ -9,6 +9,8 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Quic.Tests;
 
+// The short idle timeouts make these tests sensitive to the load of the test host.
+[NonParallelizable]
 public class QuicIdleTimeoutTests
 {
     [OneTimeSetUp]
