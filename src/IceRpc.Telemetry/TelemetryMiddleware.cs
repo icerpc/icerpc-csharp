@@ -51,13 +51,23 @@ public class TelemetryMiddleware : IDispatcher
     {
         if (request.Protocol.HasFields)
         {
-            using Activity activity =
-                _activitySource.CreateRequestActivity(ActivityKind.Server, request.Path, request.Operation);
-            activity.SetNetworkPeer(request.ConnectionContext);
+            ActivityContext parentContext = default;
+            KeyValuePair<string, string>[] baggage = [];
             if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
             {
-                RestoreActivityContext(buffer, activity);
+                (parentContext, baggage) = DecodeTraceContext(buffer);
             }
+
+            using Activity activity = _activitySource.CreateRequestActivity(
+                ActivityKind.Server,
+                request.Path,
+                request.Operation,
+                parentContext);
+            foreach ((string key, string value) in baggage)
+            {
+                activity.AddBaggage(key, value);
+            }
+            activity.SetNetworkPeer(request.ConnectionContext);
             activity.Start();
             try
             {
@@ -94,7 +104,13 @@ public class TelemetryMiddleware : IDispatcher
         }
     }
 
-    internal static void RestoreActivityContext(ReadOnlySequence<byte> buffer, Activity activity)
+    /// <summary>Decodes the value of the <see cref="RequestFieldKey.TraceContext" /> field of a request.</summary>
+    /// <param name="buffer">The value of the field.</param>
+    /// <returns>The context of the remote parent activity, and the baggage of this activity, clipped to
+    /// <see cref="TelemetryInterceptor.MaxBaggageEntries" /> entries.</returns>
+    /// <exception cref="InvalidDataException">Thrown if the value of the field is not a valid trace context.
+    /// </exception>
+    internal static (ActivityContext ParentContext, KeyValuePair<string, string>[] Baggage) DecodeTraceContext(ReadOnlySequence<byte> buffer)
     {
         var decoder = new SliceDecoder(buffer);
 
@@ -113,10 +129,8 @@ public class TelemetryMiddleware : IDispatcher
 
         var traceFlags = (ActivityTraceFlags)decoder.DecodeUInt8();
 
-        activity.SetParentId(traceId, spanId, traceFlags);
-
         // Read TraceState encoded as a string
-        activity.TraceStateString = decoder.DecodeString();
+        string traceState = decoder.DecodeString();
 
         // Decode the baggage sequence, silently clipping to MaxBaggageEntries. OpenTelemetry SDKs
         // follow a strict no-throw policy for observability operations: losing a piece of contextual
@@ -127,14 +141,16 @@ public class TelemetryMiddleware : IDispatcher
         // Activity.Baggage's enumeration order is undocumented, so duplicate-key resolution across the
         // wire is inherently undefined on both ends — we don't attempt to preserve it.
         int count = decoder.DecodeSize();
-        int kept = Math.Min(count, TelemetryInterceptor.MaxBaggageEntries);
+        var baggage = new KeyValuePair<string, string>[Math.Min(count, TelemetryInterceptor.MaxBaggageEntries)];
 
-        for (int i = 0; i < kept; i++)
+        for (int i = 0; i < baggage.Length; i++)
         {
             string key = decoder.DecodeString();
             string value = decoder.DecodeString();
-            activity.AddBaggage(key, value);
+            baggage[i] = new(key, value);
         }
+
+        return (new ActivityContext(traceId, spanId, traceFlags, traceState, isRemote: true), baggage);
     }
 
     /// <summary>Checks whether a status code reports a failure of the server or the target service, as opposed to a

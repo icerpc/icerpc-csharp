@@ -200,9 +200,8 @@ public sealed class TelemetryInterceptorTests
 
         // Assert
         pipe.Reader.TryRead(out ReadResult readResult);
-        using var decodedActivity = new Activity("/op");
-        TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, decodedActivity);
-        Assert.That(decodedActivity.Baggage.Count(), Is.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
+        (_, KeyValuePair<string, string>[] baggage) = TelemetryMiddleware.DecodeTraceContext(readResult.Buffer);
+        Assert.That(baggage, Has.Length.EqualTo(TelemetryInterceptor.MaxBaggageEntries));
 
         pipe.Reader.Complete();
     }
@@ -449,8 +448,15 @@ public sealed class TelemetryInterceptorTests
 
             pipe.Reader.TryRead(out var readResult);
 
+            (ActivityContext parentContext, KeyValuePair<string, string>[] baggage) =
+                TelemetryMiddleware.DecodeTraceContext(readResult.Buffer);
+
             var activity = new Activity(operationName);
-            TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, activity);
+            activity.SetParentId(parentContext.TraceId, parentContext.SpanId, parentContext.TraceFlags);
+            foreach ((string key, string value) in baggage)
+            {
+                activity.AddBaggage(key, value);
+            }
             return activity;
         }
         else
