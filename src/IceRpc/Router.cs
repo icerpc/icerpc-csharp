@@ -164,9 +164,9 @@ public sealed class Router : IDispatcher
                 {
                     // Remove AbsolutePrefix from path. AbsolutePrefix starts with a '/' but usually does not end with
                     // one.
-                    path = path.StartsWith(AbsolutePrefix, StringComparison.Ordinal) ?
-                        (path.Length == AbsolutePrefix.Length ? "/" : path[AbsolutePrefix.Length..]) :
-                        throw new InvalidOperationException(
+                    path = path.StartsWith(AbsolutePrefix, StringComparison.Ordinal)
+                        ? (path.Length == AbsolutePrefix.Length ? "/" : path[AbsolutePrefix.Length..])
+                        : throw new InvalidOperationException(
                             $"Received request for path '{path}' in router mounted at '{AbsolutePrefix}'.");
                 }
                 // else there is nothing to remove

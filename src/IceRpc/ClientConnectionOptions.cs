@@ -18,8 +18,9 @@ public sealed record class ClientConnectionOptions : ConnectionOptions
     public TimeSpan ConnectTimeout
     {
         get => _connectTimeout;
-        set => _connectTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
+        set => _connectTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the connection's server address.</summary>
@@ -32,8 +33,9 @@ public sealed record class ClientConnectionOptions : ConnectionOptions
     public TimeSpan ShutdownTimeout
     {
         get => _shutdownTimeout;
-        set => _shutdownTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
+        set => _shutdownTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
     }
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

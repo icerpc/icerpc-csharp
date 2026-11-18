@@ -57,9 +57,9 @@ public class LocatorInterceptor : IInvoker
             }
             else if (serverAddressFeature.ServerAddress is null)
             {
-                location = iceServiceAddress.AdapterId.Length > 0 ?
-                    new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId } :
-                    new Location { Value = iceServiceAddress.Path };
+                location = iceServiceAddress.AdapterId.Length > 0
+                    ? new Location { IsAdapterId = true, Value = iceServiceAddress.AdapterId }
+                    : new Location { Value = iceServiceAddress.Path };
             }
             // else it could be a retry where the first attempt provided non-cached server address(es)
 
@@ -202,8 +202,9 @@ public class LocatorLocationResolver : ILocationResolver
         }
 
         // Create and decorate server address cache (if caching enabled):
-        IServerAddressCache? serverAddressCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
-            new ServerAddressCache(options.MaxCacheSize) : null;
+        IServerAddressCache? serverAddressCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0
+            ? new ServerAddressCache(options.MaxCacheSize)
+            : null;
         if (serverAddressCache is not null && logger != NullLogger.Instance)
         {
             serverAddressCache = new LogServerAddressCacheDecorator(serverAddressCache, logger);
@@ -222,9 +223,9 @@ public class LocatorLocationResolver : ILocationResolver
         }
         serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder, options.ResolveTimeout);
 
-        _locationResolver = serverAddressCache is null ?
-            new CacheLessLocationResolver(serverAddressFinder) :
-            new LocationResolver(
+        _locationResolver = serverAddressCache is null
+            ? new CacheLessLocationResolver(serverAddressFinder)
+            : new LocationResolver(
                 serverAddressFinder,
                 serverAddressCache,
                 options.Background,

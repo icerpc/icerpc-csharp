@@ -76,18 +76,20 @@ public ref partial struct IceDecoder
 
         _currentCollectionAllocation = 0;
 
-        _maxCollectionAllocation = maxCollectionAllocation == -1 ?
-            (buffer.Length > int.MaxValue / 8 ? int.MaxValue : (int)(8L * buffer.Length)) :
-            (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
-                throw new ArgumentException(
+        _maxCollectionAllocation = maxCollectionAllocation == -1
+            ? (buffer.Length > int.MaxValue / 8 ? int.MaxValue : (int)(8L * buffer.Length))
+            : (maxCollectionAllocation >= 0
+                ? maxCollectionAllocation
+                : throw new ArgumentException(
                     $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
                     nameof(maxCollectionAllocation)));
 
         _activator = activator;
         _classContext = default;
         _currentDepth = 0;
-        _maxDepth = maxDepth >= 1 ? maxDepth :
-            throw new ArgumentException($"The {nameof(maxDepth)} argument must be greater than 0.", nameof(maxDepth));
+        _maxDepth = maxDepth >= 1
+            ? maxDepth
+            : throw new ArgumentException($"The {nameof(maxDepth)} argument must be greater than 0.", nameof(maxDepth));
 
         _reader = new SequenceReader<byte>(buffer);
     }
@@ -155,32 +157,37 @@ public ref partial struct IceDecoder
     /// <summary>Decodes an Ice double into a double.</summary>
     /// <returns>The double decoded by this decoder.</returns>
     public double DecodeDouble() =>
-        SequenceMarshal.TryRead(ref _reader, out double value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out double value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes an Ice float into a float.</summary>
     /// <returns>The float decoded by this decoder.</returns>
     public float DecodeFloat() =>
-        SequenceMarshal.TryRead(ref _reader, out float value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out float value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes an Ice int into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
     public int DecodeInt() =>
-        SequenceMarshal.TryRead(ref _reader, out int value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out int value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes an Ice long into a long.</summary>
     /// <returns>The long decoded by this decoder.</returns>
     public long DecodeLong() =>
-        SequenceMarshal.TryRead(ref _reader, out long value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out long value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes an Ice short into a short.</summary>
     /// <returns>The short decoded by this decoder.</returns>
     public short DecodeShort() =>
-        SequenceMarshal.TryRead(ref _reader, out short value) ?
-            value : throw new InvalidDataException(EndOfBufferMessage);
+        SequenceMarshal.TryRead(ref _reader, out short value)
+            ? value
+            : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
     /// <returns>The size decoded by this decoder.</returns>

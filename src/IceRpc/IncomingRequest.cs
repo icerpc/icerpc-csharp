@@ -25,8 +25,9 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     public string Fragment
     {
         get => _fragment;
-        init => _fragment = Protocol == Protocol.Ice || value.Length == 0 ? value :
-            throw new InvalidOperationException("Cannot create an icerpc request with a non-empty fragment.");
+        init => _fragment = Protocol == Protocol.Ice || value.Length == 0
+            ? value
+            : throw new InvalidOperationException("Cannot create an icerpc request with a non-empty fragment.");
     }
 
     /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
@@ -88,7 +89,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
 
     /// <summary>Returns a string that represents this incoming request.</summary>
     /// <returns>A string that represents this incoming requests.</returns>
-    public override string ToString() => Fragment.Length == 0 ?
-        $"'{Operation}' on '{Path}'" :
-        $"'{Operation}' on '{Path}#{Fragment}'";
+    public override string ToString() => Fragment.Length == 0
+        ? $"'{Operation}' on '{Path}'"
+        : $"'{Operation}' on '{Path}#{Fragment}'";
 }

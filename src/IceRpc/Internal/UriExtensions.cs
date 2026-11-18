@@ -37,8 +37,9 @@ internal static class UriExtensions
                 }
                 else if (name == "transport")
                 {
-                    transport = transport is null ? value :
-                        throw new FormatException($"Duplicate transport parameter in URI '{uri.OriginalString}'.");
+                    transport = transport is null
+                        ? value
+                        : throw new FormatException($"Duplicate transport parameter in URI '{uri.OriginalString}'.");
                 }
                 else if (name.Length == 0)
                 {

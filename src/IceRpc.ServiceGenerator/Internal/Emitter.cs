@@ -89,10 +89,10 @@ internal class Emitter
             cases = cases.Indent(); // This indents all the case statements in the switch.
 
             var fallback = new CodeBlock(
-                serviceClass.HasBaseServiceClass ?
-                    @"default:
-    return base.DispatchAsync(request, cancellationToken);" :
-                    @"default:
+                serviceClass.HasBaseServiceClass
+                    ? @"default:
+    return base.DispatchAsync(request, cancellationToken);"
+                    : @"default:
     return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));").Indent();
 
             return @$"switch (request.Operation)
@@ -104,9 +104,9 @@ internal class Emitter
         }
         else
         {
-            return serviceClass.HasBaseServiceClass ?
-                "return base.DispatchAsync(request, cancellationToken);" :
-                "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+            return serviceClass.HasBaseServiceClass
+                ? "return base.DispatchAsync(request, cancellationToken);"
+                : "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
         }
     }
 

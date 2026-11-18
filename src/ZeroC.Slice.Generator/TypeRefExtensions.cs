@@ -126,8 +126,8 @@ internal static class TypeRefExtensions
         internal string? ConcreteCollectionType =>
             value.Type is DictionaryType or SequenceType
                 && value.Attributes.FindAttribute(CSAttributes.CSType) is Symbols.Attribute csTypeAttr
-                ? csTypeAttr.Args[0]
-                : null;
+                    ? csTypeAttr.Args[0]
+                    : null;
 
         /// <summary>Returns the fixed wire size for a type reference, or null if variable-size.</summary>
         internal int? FixedSize => value.Type switch

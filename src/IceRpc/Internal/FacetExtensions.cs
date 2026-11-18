@@ -50,7 +50,8 @@ internal static class FacetExtensions
     /// <exception cref="FormatException">Thrown when <paramref name="fragment" /> is not percent-encoded in the
     /// canonical form produced by <see cref="ToFragment" />.</exception>
     private static string DecodeFragment(string fragment) =>
-        PercentEncoding.TryDecode(fragment, PercentEncoding.FragmentChars, out string facet) ? facet :
-            throw new FormatException(
+        PercentEncoding.TryDecode(fragment, PercentEncoding.FragmentChars, out string facet)
+            ? facet
+            : throw new FormatException(
                 $"Invalid facet fragment '{fragment}': the fragment must percent-encode, with uppercase hex digits, the UTF-8 bytes of exactly the characters that are not valid in a URI fragment.");
 }

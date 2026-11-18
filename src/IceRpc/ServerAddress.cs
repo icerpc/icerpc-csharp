@@ -62,8 +62,9 @@ public readonly record struct ServerAddress
 
         init
         {
-            _transport = value is null || IsValidName(value) ? value :
-                throw new ArgumentException($"The value '{value}' is not valid transport name", nameof(value));
+            _transport = value is null || IsValidName(value)
+                ? value
+                : throw new ArgumentException($"The value '{value}' is not valid transport name", nameof(value));
         }
     }
 
@@ -133,8 +134,9 @@ public readonly record struct ServerAddress
             throw new ArgumentException("Cannot create a server address from a relative URI.", nameof(uri));
         }
 
-        Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol) ? protocol :
-            throw new ArgumentException($"Cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
+        Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol)
+            ? protocol
+            : throw new ArgumentException($"Cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
 
         _host = uri.IdnHost;
         if (Uri.CheckHostName(_host) == UriHostNameType.Unknown)

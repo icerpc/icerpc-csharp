@@ -16,8 +16,9 @@ public static class InvokerBuilderExtensions
     public static IInvokerBuilder Into<TService>(this IInvokerBuilder builder) where TService : IInvoker
     {
         object? into = builder.ServiceProvider.GetService(typeof(TService));
-        return into is not null ? builder.Into((IInvoker)into) :
-            throw new InvalidOperationException(
+        return into is not null
+            ? builder.Into((IInvoker)into)
+            : throw new InvalidOperationException(
                 $"Could not find service of type '{typeof(TService)}' in the service container.");
     }
 

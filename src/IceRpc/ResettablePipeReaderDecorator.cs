@@ -181,8 +181,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <seealso cref="PipeReader.ReadAsync(CancellationToken)"/>
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        _isReadingInProgress = !_isReadingInProgress ? true :
-            throw new InvalidOperationException("Reading is already in progress.");
+        _isReadingInProgress = !_isReadingInProgress
+            ? true
+            : throw new InvalidOperationException("Reading is already in progress.");
 
         ThrowIfCompleted();
 
@@ -251,8 +252,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <seealso cref="PipeReader.TryRead(out ReadResult)"/>.
     public override bool TryRead(out ReadResult result)
     {
-        _isReadingInProgress = !_isReadingInProgress ? true :
-            throw new InvalidOperationException("Reading is already in progress.");
+        _isReadingInProgress = !_isReadingInProgress
+            ? true
+            : throw new InvalidOperationException("Reading is already in progress.");
 
         ThrowIfCompleted();
 
@@ -291,8 +293,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         int minimumSize,
         CancellationToken cancellationToken = default)
     {
-        _isReadingInProgress = !_isReadingInProgress ? true :
-            throw new InvalidOperationException("Reading is already in progress.");
+        _isReadingInProgress = !_isReadingInProgress
+            ? true
+            : throw new InvalidOperationException("Reading is already in progress.");
 
         ThrowIfCompleted();
 

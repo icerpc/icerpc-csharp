@@ -88,8 +88,9 @@ public sealed class IceFeature : IIceFeature
         Activator = activator ?? defaultFeature.Activator;
         EncodeOptions = encodeOptions ?? defaultFeature.EncodeOptions;
 
-        MaxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
-            (maxPayloadSize >= 0 ? 8 * maxPayloadSize : defaultFeature.MaxCollectionAllocation);
+        MaxCollectionAllocation = maxCollectionAllocation >= 0
+            ? maxCollectionAllocation
+            : (maxPayloadSize >= 0 ? 8 * maxPayloadSize : defaultFeature.MaxCollectionAllocation);
 
         MaxDepth = maxDepth > 0 ? maxDepth : defaultFeature.MaxDepth;
 

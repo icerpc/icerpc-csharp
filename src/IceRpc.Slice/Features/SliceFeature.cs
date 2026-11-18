@@ -72,8 +72,9 @@ public sealed class SliceFeature : ISliceFeature
 
         EncodeOptions = encodeOptions ?? defaultFeature.EncodeOptions;
 
-        MaxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
-            (maxSegmentSize > 0 ? 8 * maxSegmentSize : defaultFeature.MaxCollectionAllocation);
+        MaxCollectionAllocation = maxCollectionAllocation >= 0
+            ? maxCollectionAllocation
+            : (maxSegmentSize > 0 ? 8 * maxSegmentSize : defaultFeature.MaxCollectionAllocation);
 
         MaxSegmentSize = maxSegmentSize > 0 ? maxSegmentSize : defaultFeature.MaxSegmentSize;
 

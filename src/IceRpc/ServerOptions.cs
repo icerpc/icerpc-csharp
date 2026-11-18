@@ -16,8 +16,9 @@ public sealed record class ServerOptions
     public TimeSpan ConnectTimeout
     {
         get => _connectTimeout;
-        set => _connectTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
+        set => _connectTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the maximum number of accepted server connections. Once the maximum number of connections
@@ -26,8 +27,9 @@ public sealed record class ServerOptions
     public int MaxConnections
     {
         get => _maxConnections;
-        set => _maxConnections = value >= 0 ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _maxConnections = value >= 0
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
                 $"{nameof(MaxConnections)} must be greater than or equal to 0 (where 0 means unlimited).");
@@ -41,8 +43,9 @@ public sealed record class ServerOptions
     public int MaxPendingConnections
     {
         get => _maxPendingConnections;
-        set => _maxPendingConnections = value > 0 ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _maxPendingConnections = value > 0
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
                 $"{nameof(MaxPendingConnections)} must be greater than 0.");
@@ -65,8 +68,9 @@ public sealed record class ServerOptions
     public TimeSpan ShutdownTimeout
     {
         get => _shutdownTimeout;
-        set => _shutdownTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
+        set => _shutdownTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
     }
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

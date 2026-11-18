@@ -25,11 +25,11 @@ internal static class MessageDescriptorExtensions
     {
         string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
         string qualifiedName = messageDescriptor.GetQualifiedCsharpName();
-        return scope == csharpNamespace ?
-            qualifiedName :
-            csharpNamespace.Length == 0 ?
-                $"global::{qualifiedName}" :
-                $"global::{csharpNamespace}.{qualifiedName}";
+        return scope == csharpNamespace
+            ? qualifiedName
+            : csharpNamespace.Length == 0
+                ? $"global::{qualifiedName}"
+                : $"global::{csharpNamespace}.{qualifiedName}";
     }
 
     // Google's C# Protobuf generator emits nested message types inside a "Types" container class on each enclosing

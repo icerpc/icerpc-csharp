@@ -65,12 +65,14 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         {
             HandshakeTimeout = connectTimeout,
 
-            MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? (ushort)0 :
-                connectionOptions.MaxIceRpcBidirectionalStreams,
+            MaxBidirectionalStreams = connectionOptions.Dispatcher is null
+                ? (ushort)0
+                : connectionOptions.MaxIceRpcBidirectionalStreams,
 
             // Add an additional stream for the icerpc protocol control stream.
-            MaxUnidirectionalStreams = connectionOptions.Dispatcher is null ? (ushort)1 :
-                ushort.CreateSaturating(connectionOptions.MaxIceRpcUnidirectionalStreams + 1),
+            MaxUnidirectionalStreams = connectionOptions.Dispatcher is null
+                ? (ushort)1
+                : ushort.CreateSaturating(connectionOptions.MaxIceRpcUnidirectionalStreams + 1),
 
             Pool = connectionOptions.Pool,
             MinSegmentSize = connectionOptions.MinSegmentSize,
@@ -144,13 +146,15 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                 _multiplexedClientTransport.CreateConnection(transportAddress, _multiplexedConnectionOptions, clientAuthenticationOptions),
                 transportConnectionInformation: null,
                 _connectionOptions,
-                taskExceptionObserver: _logger == NullLogger.Instance ? null :
-                    new LogTaskExceptionObserver(_logger));
+                taskExceptionObserver: _logger == NullLogger.Instance
+                    ? null
+                    : new LogTaskExceptionObserver(_logger));
         }
 
         connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, connectStarted: false);
 
-        return _logger == NullLogger.Instance ? connection :
-            new LogProtocolConnectionDecorator(connection, serverAddress, remoteNetworkAddress: null, _logger);
+        return _logger == NullLogger.Instance
+            ? connection
+            : new LogProtocolConnectionDecorator(connection, serverAddress, remoteNetworkAddress: null, _logger);
     }
 }

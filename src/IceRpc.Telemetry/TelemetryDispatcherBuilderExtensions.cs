@@ -13,8 +13,8 @@ public static class TelemetryDispatcherBuilderExtensions
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IDispatcherBuilder UseTelemetry(this IDispatcherBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(ActivitySource)) is ActivitySource activitySource ?
-        builder.Use(next => new TelemetryMiddleware(next, activitySource)) :
-        throw new InvalidOperationException(
-            $"Could not find service of type '{nameof(ActivitySource)}' in the service container.");
+        builder.ServiceProvider.GetService(typeof(ActivitySource)) is ActivitySource activitySource
+            ? builder.Use(next => new TelemetryMiddleware(next, activitySource))
+            : throw new InvalidOperationException(
+                $"Could not find service of type '{nameof(ActivitySource)}' in the service container.");
 }

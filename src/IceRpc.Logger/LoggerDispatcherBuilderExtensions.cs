@@ -13,8 +13,8 @@ public static class LoggerDispatcherBuilderExtensions
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IDispatcherBuilder UseLogger(this IDispatcherBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(ILogger<LoggerMiddleware>)) is ILogger logger ?
-        builder.Use(next => new LoggerMiddleware(next, logger)) :
-        throw new InvalidOperationException(
-            $"Could not find service of type '{nameof(ILogger<LoggerMiddleware>)}' in the service container.");
+        builder.ServiceProvider.GetService(typeof(ILogger<LoggerMiddleware>)) is ILogger logger
+            ? builder.Use(next => new LoggerMiddleware(next, logger))
+            : throw new InvalidOperationException(
+                $"Could not find service of type '{nameof(ILogger<LoggerMiddleware>)}' in the service container.");
 }

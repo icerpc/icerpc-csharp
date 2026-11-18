@@ -32,9 +32,9 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        return _idleTimeout == Timeout.InfiniteTimeSpan ?
-            _decoratee.ReadAsync(buffer, cancellationToken) :
-            PerformReadAsync();
+        return _idleTimeout == Timeout.InfiniteTimeSpan
+            ? _decoratee.ReadAsync(buffer, cancellationToken)
+            : PerformReadAsync();
 
         async ValueTask<int> PerformReadAsync()
         {
@@ -77,9 +77,9 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
-        return _idleTimeout == Timeout.InfiniteTimeSpan ?
-            _decoratee.WriteAsync(buffer, cancellationToken) :
-            PerformWriteAsync();
+        return _idleTimeout == Timeout.InfiniteTimeSpan
+            ? _decoratee.WriteAsync(buffer, cancellationToken)
+            : PerformWriteAsync();
 
         async ValueTask PerformWriteAsync()
         {

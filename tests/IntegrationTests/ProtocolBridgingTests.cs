@@ -138,9 +138,9 @@ public sealed partial class ProtocolBridgingTests
 
             // Then create an outgoing response from the incoming response.
 
-            OutgoingResponse outgoingResponse = incomingResponse.StatusCode == StatusCode.Ok ?
-                new OutgoingResponse(request) :
-                new OutgoingResponse(request, incomingResponse.StatusCode, incomingResponse.ErrorMessage!);
+            OutgoingResponse outgoingResponse = incomingResponse.StatusCode == StatusCode.Ok
+                ? new OutgoingResponse(request)
+                : new OutgoingResponse(request, incomingResponse.StatusCode, incomingResponse.ErrorMessage!);
 
             outgoingResponse.Payload = incomingResponse.DetachPayload();
             return outgoingResponse;

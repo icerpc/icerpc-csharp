@@ -482,9 +482,9 @@ internal class SlicConnection : IMultiplexedConnection
                 _closedCancellationToken,
                 cancellationToken);
 
-            SemaphoreSlim? streamCountSemaphore = bidirectional ?
-                _bidirectionalStreamSemaphore :
-                _unidirectionalStreamSemaphore;
+            SemaphoreSlim? streamCountSemaphore = bidirectional
+                ? _bidirectionalStreamSemaphore
+                : _unidirectionalStreamSemaphore;
 
             if (streamCountSemaphore is null)
             {
@@ -624,9 +624,9 @@ internal class SlicConnection : IMultiplexedConnection
         _closedCancellationToken = _closedCts.Token;
 
         // Only the client-side sends pings to keep the connection alive when idle timeout (set later) is not infinite.
-        _duplexConnection = IsServer ?
-            new SlicDuplexConnectionDecorator(duplexConnection) :
-            new SlicDuplexConnectionDecorator(duplexConnection, SendReadPing, SendWritePing);
+        _duplexConnection = IsServer
+            ? new SlicDuplexConnectionDecorator(duplexConnection)
+            : new SlicDuplexConnectionDecorator(duplexConnection, SendReadPing, SendWritePing);
 
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
         _duplexConnectionWriter = new SlicDuplexConnectionWriter(

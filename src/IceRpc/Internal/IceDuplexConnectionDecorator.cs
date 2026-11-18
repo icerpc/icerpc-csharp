@@ -31,9 +31,9 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        return _readIdleTimeout == Timeout.InfiniteTimeSpan ?
-            _decoratee.ReadAsync(buffer, cancellationToken) :
-            PerformReadAsync();
+        return _readIdleTimeout == Timeout.InfiniteTimeSpan
+            ? _decoratee.ReadAsync(buffer, cancellationToken)
+            : PerformReadAsync();
 
         async ValueTask<int> PerformReadAsync()
         {
@@ -65,9 +65,9 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
-        return _writeIdleTimeout == Timeout.InfiniteTimeSpan ?
-            _decoratee.WriteAsync(buffer, cancellationToken) :
-            PerformWriteAsync();
+        return _writeIdleTimeout == Timeout.InfiniteTimeSpan
+            ? _decoratee.WriteAsync(buffer, cancellationToken)
+            : PerformWriteAsync();
 
         async ValueTask PerformWriteAsync()
         {

@@ -74,8 +74,9 @@ public class DeadlineInterceptor : IInvoker
         if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature)
         {
             // Normalize to UTC.
-            deadline = deadlineFeature.Value == DateTime.MaxValue ?
-                DateTime.MaxValue : deadlineFeature.Value.ToUniversalTime();
+            deadline = deadlineFeature.Value == DateTime.MaxValue
+                ? DateTime.MaxValue
+                : deadlineFeature.Value.ToUniversalTime();
             if (deadline != DateTime.MaxValue && (_alwaysEnforceDeadline || !cancellationToken.CanBeCanceled))
             {
                 timeout = deadline - now;

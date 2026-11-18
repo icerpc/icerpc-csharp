@@ -26,9 +26,9 @@ public class LoggerMiddleware : IDispatcher
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        return _logger.IsEnabled(LogLevel.Information) ?
-            PerformDispatchAsync() :
-            _next.DispatchAsync(request, cancellationToken);
+        return _logger.IsEnabled(LogLevel.Information)
+            ? PerformDispatchAsync()
+            : _next.DispatchAsync(request, cancellationToken);
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync()
         {

@@ -32,6 +32,7 @@ public static class IceProxyExtensions
         IFeatureCollection? features = null,
         CancellationToken cancellationToken = default) where TProxy : struct, IIceProxy =>
         await proxy.ToProxy<IceObjectProxy>().IceIsAAsync(typeof(TProxy).GetIceTypeId()!, features, cancellationToken)
-            .ConfigureAwait(false) ?
-            proxy.ToProxy<TProxy>() : null;
+            .ConfigureAwait(false)
+                ? proxy.ToProxy<TProxy>()
+                : null;
 }

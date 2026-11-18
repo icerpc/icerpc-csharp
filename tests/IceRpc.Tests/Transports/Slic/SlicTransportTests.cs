@@ -170,9 +170,9 @@ public class SlicTransportTests
         DuplexTransportOperations operation)
     {
         // Arrange
-        Exception exception = authenticationException ?
-            new AuthenticationException() :
-            new IceRpcException(IceRpcError.ConnectionRefused);
+        Exception exception = authenticationException
+            ? new AuthenticationException()
+            : new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
@@ -218,9 +218,9 @@ public class SlicTransportTests
         DuplexTransportOperations operation)
     {
         // Arrange
-        Exception exception = authenticationException ?
-            new AuthenticationException() :
-            new IceRpcException(IceRpcError.ConnectionRefused);
+        Exception exception = authenticationException
+            ? new AuthenticationException()
+            : new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()

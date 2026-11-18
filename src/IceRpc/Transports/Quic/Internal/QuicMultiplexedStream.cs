@@ -47,22 +47,22 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         int streamCount = stream.CanRead && stream.CanWrite ? 2 : 1;
 
         _stream = stream;
-        _inputPipeReader = stream.CanRead ?
-            new QuicPipeReader(
+        _inputPipeReader = stream.CanRead
+            ? new QuicPipeReader(
                 stream,
                 pool,
                 minSegmentSize,
                 ReleaseStream,
-                throwIfConnectionClosedOrDisposed) :
-            null;
-        _outputWriter = stream.CanWrite ?
-            new QuicStreamWriter(
+                throwIfConnectionClosedOrDisposed)
+            : null;
+        _outputWriter = stream.CanWrite
+            ? new QuicStreamWriter(
                 stream,
                 pool,
                 minSegmentSize,
                 ReleaseStream,
-                throwIfConnectionClosedOrDisposed) :
-            null;
+                throwIfConnectionClosedOrDisposed)
+            : null;
 
         void ReleaseStream()
         {

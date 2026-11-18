@@ -82,8 +82,9 @@ internal static class PipeReaderExtensions
                 $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} bytes were expected.");
         }
 
-        return readResult.Buffer.Length == segmentSize ? readResult :
-            new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
+        return readResult.Buffer.Length == segmentSize
+            ? readResult
+            : new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
     }
 
     /// <summary>Attempts to read a Slice segment from a pipe reader.</summary>

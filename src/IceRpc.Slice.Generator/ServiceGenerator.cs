@@ -132,9 +132,9 @@ internal static class ServiceGenerator
                 else
                 {
                     string decodeLambda = nonStreamedParams.GenerateDecodeLambda(currentNamespace);
-                    string varName = nonStreamedParams.Count == 1 ?
-                        nonStreamedParams[0].DecodedVariableName :
-                        $"({string.Join(", ", nonStreamedParams.Select(p => p.DecodedVariableName))})";
+                    string varName = nonStreamedParams.Count == 1
+                        ? nonStreamedParams[0].DecodedVariableName
+                        : $"({string.Join(", ", nonStreamedParams.Select(p => p.DecodedVariableName))})";
                     body.WriteLine($$"""
                         var {{varName}} = await request.DecodeArgsAsync(
                             {{decodeLambda}},
@@ -153,9 +153,9 @@ internal static class ServiceGenerator
                     string streamElemType = streamParam.DataType.FieldTypeString(
                         streamParam.DataTypeIsOptional,
                         currentNamespace);
-                    string decodeLambda = streamParam.DataTypeIsOptional ?
-                        OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace) :
-                        streamParam.DataType.GetDecodeLambda(isOptional: false, currentNamespace);
+                    string decodeLambda = streamParam.DataTypeIsOptional
+                        ? OperationExtensions.GetStreamOfOptionalDecodeLambda(streamParam, currentNamespace)
+                        : streamParam.DataType.GetDecodeLambda(isOptional: false, currentNamespace);
 
                     if (streamParam.DataType.FixedSize is int fixedSize && !streamParam.DataTypeIsOptional)
                     {
@@ -219,9 +219,9 @@ internal static class ServiceGenerator
 
             if (encodeBody is null)
             {
-                string emptyPayload = op.HasStreamedReturn ?
-                    "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()" :
-                    "IceRpc.EmptyPipeReader.Instance";
+                string emptyPayload = op.HasStreamedReturn
+                    ? "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()"
+                    : "IceRpc.EmptyPipeReader.Instance";
 
                 response.AddBlock(
                     new FunctionBuilder(

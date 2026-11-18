@@ -283,9 +283,9 @@ public sealed class IceProtocolConnectionTests
         DuplexTransportOperations operation)
     {
         // Arrange
-        Exception exception = authenticationException ?
-            new AuthenticationException() :
-            new IceRpcException(IceRpcError.ConnectionRefused);
+        Exception exception = authenticationException
+            ? new AuthenticationException()
+            : new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
@@ -303,9 +303,9 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        Func<Task> connectCall = serverConnection ?
-            () => sut.ConnectAsync(default) :
-            async () =>
+        Func<Task> connectCall = serverConnection
+            ? () => sut.ConnectAsync(default)
+            : async () =>
             {
                 _ = AcceptAsync();
                 _ = await sut.Client.ConnectAsync();
@@ -346,9 +346,9 @@ public sealed class IceProtocolConnectionTests
 
         using var connectCts = new CancellationTokenSource(100);
 
-        Func<Task> connectCall = serverConnection ?
-            () => sut.ConnectAsync(connectCts.Token) :
-            async () =>
+        Func<Task> connectCall = serverConnection
+            ? () => sut.ConnectAsync(connectCts.Token)
+            : async () =>
             {
                 _ = AcceptAsync();
                 _ = await sut.Client.ConnectAsync(connectCts.Token);
@@ -1155,6 +1155,7 @@ public sealed class IceProtocolConnectionTests
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException) =>
         $"The dispatch failed with status code {statusCode}. " +
         $"The failure was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" +
-        (statusCode is StatusCode.InternalError or StatusCode.InvalidData or StatusCode.Unauthorized ?
-            "" : $" {{ Original StatusCode = {statusCode} }}");
+        (statusCode is StatusCode.InternalError or StatusCode.InvalidData or StatusCode.Unauthorized
+            ? ""
+            : $" {{ Original StatusCode = {statusCode} }}");
 }

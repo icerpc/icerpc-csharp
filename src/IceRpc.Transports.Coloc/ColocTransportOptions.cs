@@ -10,8 +10,9 @@ public sealed record class ColocTransportOptions
     public int ListenBacklog
     {
         get => _listenBacklog;
-        set => _listenBacklog = value >= 1 ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _listenBacklog = value >= 1
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 $"Invalid value '{value}' for {nameof(ListenBacklog)}, it cannot be less than 1.");
     }
@@ -22,8 +23,9 @@ public sealed record class ColocTransportOptions
     public int PauseWriterThreshold
     {
         get => _pauseWriterThreshold;
-        set => _pauseWriterThreshold = value >= 1024 ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _pauseWriterThreshold = value >= 1024
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 $"Invalid value '{value}' for {nameof(PauseWriterThreshold)}, it cannot be less than 1KB.");
     }
@@ -35,8 +37,9 @@ public sealed record class ColocTransportOptions
     public int ResumeWriterThreshold
     {
         get => _resumeWriterThreshold;
-        set => _resumeWriterThreshold = value >= 1024 ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _resumeWriterThreshold = value >= 1024
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 $"Invalid value '{value}' for {nameof(ResumeWriterThreshold)}, it cannot be less than 1KB.");
     }

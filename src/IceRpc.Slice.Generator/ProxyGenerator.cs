@@ -157,9 +157,9 @@ internal static class ProxyGenerator
                     .AddParameter(proxyName, "proxy")
                     .SetBody(
                         $$"""
-                        proxy.IsRelative ?
-                            {{baseProxyName}}.FromPath(proxy.ServiceAddress.Path) :
-                            new {{baseProxyName}}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)
+                        proxy.IsRelative
+                            ? {{baseProxyName}}.FromPath(proxy.ServiceAddress.Path)
+                            : new {{baseProxyName}}(proxy.Invoker, proxy.ServiceAddress, proxy.EncodeOptions)
                         """)
                     .Build());
         }
@@ -211,9 +211,9 @@ internal static class ProxyGenerator
             {
                 // Stream operations with no non-streamed params use CreateEmptySliceStructPayload
                 // (encodes an empty Slice struct). Truly void operations use EmptyPipeReader.Instance.
-                string emptyPayload = op.HasStreamedParameter ?
-                    "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()" :
-                    "IceRpc.EmptyPipeReader.Instance";
+                string emptyPayload = op.HasStreamedParameter
+                    ? "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()"
+                    : "IceRpc.EmptyPipeReader.Instance";
 
                 request.AddBlock(
                     new FunctionBuilder(

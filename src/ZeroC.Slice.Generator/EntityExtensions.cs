@@ -22,15 +22,17 @@ internal static class EntityExtensions
         internal string EncoderExtensionsClass => $"{entity.Name}SliceEncoderExtensions";
 
         /// <summary>Gets the C# identifier (checks cs::identifier attribute, applies PascalCase).</summary>
-        internal string Name => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr ?
-            attr.Args[0] : entity.Identifier.ToPascalCase();
+        internal string Name => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr
+            ? attr.Args[0]
+            : entity.Identifier.ToPascalCase();
 
         /// <summary>Gets the C# namespace for this entity (respects cs::identifier attribute on the module).</summary>
         internal string Namespace => entity.Module.Namespace;
 
         /// <summary>Gets the camelCase parameter name (checks cs::identifier attribute).</summary>
-        internal string ParameterName => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr ?
-            attr.Args[0] : entity.Identifier.ToCamelCase();
+        internal string ParameterName => entity.Attributes.FindAttribute(CSAttributes.CSIdentifier) is Attribute attr
+            ? attr.Args[0]
+            : entity.Identifier.ToCamelCase();
 
         /// <summary>Gets the name of the encoder or decoder extensions class. The returned name is fully qualified when
         /// the entity is in a different namespace.</summary>

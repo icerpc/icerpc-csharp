@@ -36,8 +36,9 @@ public record class ConnectionOptions
     public TimeSpan IceIdleTimeout
     {
         get => _iceIdleTimeout;
-        set => _iceIdleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(IceIdleTimeout)}", nameof(value));
+        set => _iceIdleTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(IceIdleTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shut down the connection if
@@ -47,8 +48,9 @@ public record class ConnectionOptions
     public TimeSpan InactivityTimeout
     {
         get => _inactivityTimeout;
-        set => _inactivityTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(InactivityTimeout)}", nameof(value));
+        set => _inactivityTimeout = value != TimeSpan.Zero
+            ? value
+            : throw new ArgumentException($"0 is not a valid value for {nameof(InactivityTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
@@ -62,8 +64,9 @@ public record class ConnectionOptions
     public int MaxDispatches
     {
         get => _maxDispatches;
-        set => _maxDispatches = value >= 0 ? value :
-            throw new ArgumentOutOfRangeException(nameof(value), "value must be 0 or greater");
+        set => _maxDispatches = value >= 0
+            ? value
+            : throw new ArgumentOutOfRangeException(nameof(value), "value must be 0 or greater");
     }
 
     /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
@@ -77,8 +80,9 @@ public record class ConnectionOptions
     public int MaxIceFrameSize
     {
         get => _maxIceFrameSize;
-        set => _maxIceFrameSize = value >= IceMinFrameSize ? value :
-            throw new ArgumentOutOfRangeException(
+        set => _maxIceFrameSize = value >= IceMinFrameSize
+            ? value
+            : throw new ArgumentOutOfRangeException(
                 nameof(value),
                 $"{nameof(MaxIceFrameSize)} must be at least {IceMinFrameSize}");
     }
@@ -91,8 +95,9 @@ public record class ConnectionOptions
     public ushort MaxIceRpcBidirectionalStreams
     {
         get => _maxIceRpcBidirectionalStreams;
-        set => _maxIceRpcBidirectionalStreams = value > 0 ? value :
-            throw new ArgumentException($"{nameof(MaxIceRpcBidirectionalStreams)} can't be 0", nameof(value));
+        set => _maxIceRpcBidirectionalStreams = value > 0
+            ? value
+            : throw new ArgumentException($"{nameof(MaxIceRpcBidirectionalStreams)} can't be 0", nameof(value));
     }
 
     /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
@@ -112,8 +117,9 @@ public record class ConnectionOptions
     public ushort MaxIceRpcUnidirectionalStreams
     {
         get => _maxIceRpcUnidirectionalStreams;
-        set => _maxIceRpcUnidirectionalStreams = value > 0 ? value :
-            throw new ArgumentException($"{nameof(MaxIceRpcUnidirectionalStreams)} can't be 0", nameof(value));
+        set => _maxIceRpcUnidirectionalStreams = value > 0
+            ? value
+            : throw new ArgumentException($"{nameof(MaxIceRpcUnidirectionalStreams)} can't be 0", nameof(value));
     }
 
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
@@ -121,8 +127,9 @@ public record class ConnectionOptions
     public int MinSegmentSize
     {
         get => _minSegmentSize;
-        set => _minSegmentSize = value >= 1024 ? value :
-            throw new ArgumentException($"{nameof(MinSegmentSize)} can't be less than 1KB", nameof(value));
+        set => _minSegmentSize = value >= 1024
+            ? value
+            : throw new ArgumentException($"{nameof(MinSegmentSize)} can't be less than 1KB", nameof(value));
     }
 
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used by the connection for allocating memory
@@ -145,6 +152,7 @@ public record class ConnectionOptions
     private ushort _maxIceRpcUnidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxUnidirectionalStreams;
     private int _minSegmentSize = 4096;
 
-    internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
-        throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");
+    internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575
+        ? (int)value
+        : throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");
 }

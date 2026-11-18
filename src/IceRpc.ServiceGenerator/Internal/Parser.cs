@@ -138,9 +138,9 @@ internal sealed class Parser
                 // alone ("record") is not enough to disambiguate from a record class. Other type declarations are
                 // fully described by their Keyword.
                 static string GetKeyword(TypeDeclarationSyntax decl) =>
-                    decl is RecordDeclarationSyntax record && record.ClassOrStructKeyword.ValueText == "struct" ?
-                        "record struct" :
-                        decl.Keyword.ValueText;
+                    decl is RecordDeclarationSyntax record && record.ClassOrStructKeyword.ValueText == "struct"
+                        ? "record struct"
+                        : decl.Keyword.ValueText;
             }
         }
         return serviceDefinitions;

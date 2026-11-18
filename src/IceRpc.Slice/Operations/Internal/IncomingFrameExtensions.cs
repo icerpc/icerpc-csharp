@@ -25,9 +25,9 @@ internal static class IncomingFrameExtensions
         DecodeFunc<T> decodeFunc,
         CancellationToken cancellationToken)
     {
-        return frame.Payload.TryReadSliceSegment(feature.MaxSegmentSize, out ReadResult readResult) ?
-            new(DecodeSegment(readResult)) :
-            PerformDecodeAsync();
+        return frame.Payload.TryReadSliceSegment(feature.MaxSegmentSize, out ReadResult readResult)
+            ? new(DecodeSegment(readResult))
+            : PerformDecodeAsync();
 
         // All the logic is in this local function.
         T DecodeSegment(ReadResult readResult)

@@ -35,11 +35,11 @@ public sealed record class SlicTransportOptions
     {
         get => _initialStreamWindowSize;
         set => _initialStreamWindowSize =
-            value < 1024 ?
-            throw new ArgumentException(
-                $"The {nameof(InitialStreamWindowSize)} value cannot be less than 1 KB.",
-                nameof(value)) :
-            value;
+            value < 1024
+                ? throw new ArgumentException(
+                    $"The {nameof(InitialStreamWindowSize)} value cannot be less than 1 KB.",
+                    nameof(value))
+                : value;
     }
 
     /// <summary>Gets or sets the maximum number of Pong frames that can be queued for sending. A Pong frame is queued
@@ -53,11 +53,11 @@ public sealed record class SlicTransportOptions
     {
         get => _maxOutstandingPongs;
         set => _maxOutstandingPongs =
-            value < 1 ?
-            throw new ArgumentException(
-                $"The {nameof(MaxOutstandingPongs)} value cannot be less than 1.",
-                nameof(value)) :
-            value;
+            value < 1
+                ? throw new ArgumentException(
+                    $"The {nameof(MaxOutstandingPongs)} value cannot be less than 1.",
+                    nameof(value))
+                : value;
     }
 
     /// <summary>Gets or sets the maximum stream frame size in bytes.</summary>
@@ -67,15 +67,15 @@ public sealed record class SlicTransportOptions
     {
         get => _maxStreamFrameSize;
         set => _maxStreamFrameSize =
-            value < 1024 ?
-            throw new ArgumentException(
-                $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1 KB.",
-                nameof(value)) :
-            value > MaxStreamFrameSizeCeiling ?
-            throw new ArgumentException(
-                $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxStreamFrameSizeCeiling}.",
-                nameof(value)) :
-            value;
+            value < 1024
+                ? throw new ArgumentException(
+                    $"The {nameof(MaxStreamFrameSize)} value cannot be less than 1 KB.",
+                    nameof(value))
+                : value > MaxStreamFrameSizeCeiling
+                    ? throw new ArgumentException(
+                        $"The {nameof(MaxStreamFrameSize)} value cannot be larger than {MaxStreamFrameSizeCeiling}.",
+                        nameof(value))
+                    : value;
     }
 
     /// <summary>Gets or sets the per-connection pause writer threshold. It defines the maximum amount of data that
@@ -94,15 +94,15 @@ public sealed record class SlicTransportOptions
     internal const int MaxStreamFrameSizeCeiling = 16_777_215;
 
     private static int ValidatePauseWriterThreshold(int value) =>
-        value < 0 ?
-            throw new ArgumentException(
+        value < 0
+            ? throw new ArgumentException(
                 $"The {nameof(PauseWriterThreshold)} value cannot be negative.",
-                nameof(value)) :
-            value > 0 && value < 1024 ?
-            throw new ArgumentException(
-                $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB unless it is 0.",
-                nameof(value)) :
-            value;
+                nameof(value))
+            : value > 0 && value < 1024
+                ? throw new ArgumentException(
+                    $"The {nameof(PauseWriterThreshold)} value cannot be less than 1 KB unless it is 0.",
+                    nameof(value))
+                : value;
 
     // We use the HTTP/2 maximum window size (2GB).
     internal const int MaxWindowSize = int.MaxValue;
