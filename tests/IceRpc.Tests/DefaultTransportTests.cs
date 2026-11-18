@@ -13,6 +13,8 @@ public class DefaultTransportTests
 {
     /// <summary>Verifies we can connect successfully with the various transport names supported by the default
     /// multiplexed transports.</summary>
+    /// <remarks>Not parallelizable: see AssemblyInfo.cs in IceRpc.Transports.Quic.Tests.</remarks>
+    [NonParallelizable]
     [TestCase(null, null)]
     [TestCase("quic", "quic")]
     [TestCase("tcp", "tcp")]

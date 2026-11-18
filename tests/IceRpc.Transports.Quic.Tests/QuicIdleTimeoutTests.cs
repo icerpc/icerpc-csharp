@@ -9,7 +9,6 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Quic.Tests;
 
-[NonParallelizable]
 public class QuicIdleTimeoutTests
 {
     [OneTimeSetUp]

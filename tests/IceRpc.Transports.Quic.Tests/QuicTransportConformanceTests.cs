@@ -7,7 +7,6 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Quic.Tests;
 
-[NonParallelizable]
 public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     [OneTimeSetUp]
@@ -23,7 +22,6 @@ public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTe
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
-[NonParallelizable]
 public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
 {
     [OneTimeSetUp]
@@ -39,7 +37,6 @@ public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
-[NonParallelizable]
 public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
 {
     [OneTimeSetUp]
