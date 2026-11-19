@@ -2,9 +2,9 @@ name: docs
 
 on:
   push:
-    branches: ["main"]
+    branches: ["0.7.x"]
   pull_request:
-    branches: ["main"]
+    branches: ["0.7.x"]
 
 jobs:
   docfx:
