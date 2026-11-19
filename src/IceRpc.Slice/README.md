@@ -95,9 +95,9 @@ internal partial class Chatbot : IGreeterService
 }
 ```
 
-[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Slice.html
+[api]: https://code.icerpc.dev/csharp/0.7.x/api/reference/IceRpc.Slice.html
 [docs]: https://docs.icerpc.dev/slice
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
-[examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
+[examples]: https://github.com/icerpc/icerpc-csharp/tree/0.7.x/examples
 [package]: https://www.nuget.org/packages/IceRpc.Slice
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Slice
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.7.x/src/IceRpc.Slice
