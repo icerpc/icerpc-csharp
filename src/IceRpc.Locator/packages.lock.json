@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net11.0": {
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.3.180, )",
+        "resolved": "1.3.180",
+        "contentHash": "/TDyrO3tUJOsnyTazvaX+qwwBt4aixQLNLtxmkyWQZE94IOZ9PnClHrwKUVn/NSXdXUUWrKMHTtlxUkZ1F8JWg=="
+      },
+      "ZeroC.Ice.Slice.Tools": {
+        "type": "Direct",
+        "requested": "[3.8.3, 3.9.0)",
+        "resolved": "3.8.3",
+        "contentHash": "EHcssd+kFbsFQOgCWf10UGNZRbbeT2KNaYZKHhVnzXNC9kli1gH6WjfhjbuKog44e19stCOEdtr6dcmVzKU93A=="
+      },
+      "icerpc": {
+        "type": "Project",
+        "dependencies": {
+          "ZeroC.Slice.Codec": "[0.7.0, )"
+        }
+      },
+      "icerpc.ice": {
+        "type": "Project",
+        "dependencies": {
+          "IceRpc": "[0.7.0, )",
+          "IceRpc.ServiceGenerator": "[0.7.0, )",
+          "ZeroC.Ice.Slice.Tools": "[3.8.3, 3.9.0)"
+        }
+      },
+      "icerpc.servicegenerator": {
+        "type": "Project"
+      },
+      "zeroc.slice.codec": {
+        "type": "Project"
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net11.0": {
+      "Google.Protobuf": {
+        "type": "Direct",
+        "requested": "[3.36.2, )",
+        "resolved": "3.36.2",
+        "contentHash": "Ci1q1iJg74qAE5riTA2FbMS0wPbpruPQI/JQ9DrAsRo2VsSxgt1e/pmxGxgrci+pXJEgrSYg2vPl8rrStZkclQ=="
+      },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.3.180, )",
+        "resolved": "1.3.180",
+        "contentHash": "/TDyrO3tUJOsnyTazvaX+qwwBt4aixQLNLtxmkyWQZE94IOZ9PnClHrwKUVn/NSXdXUUWrKMHTtlxUkZ1F8JWg=="
+      },
+      "icerpc": {
+        "type": "Project",
+        "dependencies": {
+          "ZeroC.Slice.Codec": "[0.7.0, )"
+        }
+      },
+      "icerpc.servicegenerator": {
+        "type": "Project"
+      },
+      "zeroc.slice.codec": {
+        "type": "Project"
+      }
+    }
+  }
+}

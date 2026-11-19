@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net11.0": {
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.3.180, )",
+        "resolved": "1.3.180",
+        "contentHash": "/TDyrO3tUJOsnyTazvaX+qwwBt4aixQLNLtxmkyWQZE94IOZ9PnClHrwKUVn/NSXdXUUWrKMHTtlxUkZ1F8JWg=="
+      },
+      "icerpc": {
+        "type": "Project",
+        "dependencies": {
+          "ZeroC.Slice.Codec": "[0.7.0, )"
+        }
+      },
+      "zeroc.slice.codec": {
+        "type": "Project"
+      }
+    }
+  }
+}
