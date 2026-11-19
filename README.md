@@ -9,7 +9,7 @@
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Report Generator Coverage](https://code.icerpc.dev/csharp/0.7.x/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/0.7.x/coverage/index.html)
-[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=main)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=main)
+[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=0.7.x)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=0.7.x)
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 
