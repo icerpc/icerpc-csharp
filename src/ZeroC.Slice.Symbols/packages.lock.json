@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net11.0": {
+      "zeroc.slice.codec": {
+        "type": "Project"
+      }
+    }
+  }
+}

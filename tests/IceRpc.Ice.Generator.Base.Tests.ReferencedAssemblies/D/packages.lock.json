@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net11.0": {
+      "coverlet.collector": {
+        "type": "Direct",
+        "requested": "[10.1.0, )",
+        "resolved": "10.1.0",
+        "contentHash": "SlYCIHnBYxINSUpR75SiM5JEmnx11pqT+Ac/C/fUqTTA0dLPl9eYzmFXKKuxmQhL3ZdTQl4PBD3YdAxAauaKLQ=="
+      },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.3.180, )",
+        "resolved": "1.3.180",
+        "contentHash": "/TDyrO3tUJOsnyTazvaX+qwwBt4aixQLNLtxmkyWQZE94IOZ9PnClHrwKUVn/NSXdXUUWrKMHTtlxUkZ1F8JWg=="
+      },
+      "ZeroC.Ice.Slice.Tools": {
+        "type": "Direct",
+        "requested": "[3.8.3, 3.9.0)",
+        "resolved": "3.8.3",
+        "contentHash": "EHcssd+kFbsFQOgCWf10UGNZRbbeT2KNaYZKHhVnzXNC9kli1gH6WjfhjbuKog44e19stCOEdtr6dcmVzKU93A=="
+      },
+      "a": {
+        "type": "Project",
+        "dependencies": {
+          "IceRpc": "[0.7.0, )"
+        }
+      },
+      "b": {
+        "type": "Project",
+        "dependencies": {
+          "A": "[0.7.0, )"
+        }
+      },
+      "c": {
+        "type": "Project",
+        "dependencies": {
+          "A": "[0.7.0, )"
+        }
+      },
+      "icerpc": {
+        "type": "Project",
+        "dependencies": {
+          "ZeroC.Slice.Codec": "[0.7.0, )"
+        }
+      },
+      "zeroc.slice.codec": {
+        "type": "Project"
+      }
+    }
+  }
+}
