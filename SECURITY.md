@@ -8,8 +8,7 @@ The following versions of IceRPC for C# are currently supported with security up
 | ------- | ------------------ |
 | 0.7     | :white_check_mark: |
 | 0.6     | :white_check_mark: |
-| 0.5     | :white_check_mark: |
-| < 0.5   | :x:                |
+| < 0.6   | :x:                |
 
 ## Reporting a Vulnerability
 
