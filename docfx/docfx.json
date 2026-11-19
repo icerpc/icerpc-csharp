@@ -44,7 +44,7 @@
       }
     ],
     "sitemap": {
-      "baseUrl": "https://code.icerpc.dev/csharp/main/api"
+      "baseUrl": "https://code.icerpc.dev/csharp/0.7.x/api"
     },
     "overwrite": [
       {
@@ -71,7 +71,7 @@
       "_disableContribution": true,
       "_gitContribute": {
         "repo": "https://github.com/icerpc/icerpc-csharp",
-        "branch": "main",
+        "branch": "0.7.x",
         "apiSpecFolder": "docs-overwrite"
       }
     }
