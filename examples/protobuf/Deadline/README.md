@@ -27,5 +27,5 @@ cd Client
 dotnet run
 ```
 
-[IDeadlineFeature]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Features.IDeadlineFeature.html
+[IDeadlineFeature]: https://code.icerpc.dev/csharp/0.7.x/api/reference/IceRpc.Features.IDeadlineFeature.html
 [quic-platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies

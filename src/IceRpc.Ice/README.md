@@ -94,9 +94,9 @@ and adds this directory to the include directories of every `SliceCompile` item:
 need to `#include <Ice/Identity.ice>`. A `SliceCompile` item that sets the `IncludeDirectories` metadata explicitly
 must write `%(IncludeDirectories)` back into the value to keep this directory.
 
-[api]: https://code.icerpc.dev/csharp/main/api/reference/IceRpc.Ice.html
+[api]: https://code.icerpc.dev/csharp/0.7.x/api/reference/IceRpc.Ice.html
 [docs]: https://docs.icerpc.dev/icerpc-for-ice-users
 [ice]: https://zeroc.com/ice
-[examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
+[examples]: https://github.com/icerpc/icerpc-csharp/tree/0.7.x/examples
 [package]: https://www.nuget.org/packages/IceRpc.Ice
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Ice
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.7.x/src/IceRpc.Ice

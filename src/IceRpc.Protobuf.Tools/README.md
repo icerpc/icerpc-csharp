@@ -141,7 +141,7 @@ the compilation pipeline.
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Protobuf.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Protobuf.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.7.x/src/IceRpc.Protobuf.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
 [google-protobuf]: https://www.nuget.org/packages/Google.Protobuf
 [google-protobuf-tools]: https://www.nuget.org/packages/Google.Protobuf.Tools
