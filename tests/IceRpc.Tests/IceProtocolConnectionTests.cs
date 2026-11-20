@@ -1091,6 +1091,49 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>().With.Property("CancellationToken").EqualTo(cts.Token));
     }
 
+    /// <summary>Verifies that a connection that is shutting down does not send a CloseConnection frame when a read
+    /// failure cancels a two-way dispatch. A CloseConnection frame tells the peer that a request with no reply was not
+    /// dispatched and is safe to send again.</summary>
+    [Test]
+    public async Task Shutdown_does_not_send_close_connection_when_a_read_failure_cancels_a_dispatch()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher,
+                serverConnectionOptions: new ConnectionOptions { MaxIceFrameSize = 256 })
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        await dispatcher.DispatchStart;
+
+        Task shutdownTask = sut.Server.ShutdownAsync();
+
+        // Act
+        using var oversizedRequest = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        {
+            IsOneway = true,
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
+        };
+        await sut.Client.InvokeAsync(oversizedRequest);
+
+        // Assert
+        Assert.That(
+            async () => await shutdownTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        await sut.Server.DisposeAsync();
+
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
     [Test]
     public async Task Shutdown_fails_if_connect_fails()
