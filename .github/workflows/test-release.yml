@@ -66,10 +66,29 @@ jobs:
 
       - name: Configure NuGet sources
         run: |
-          # Add the locally built packages as a NuGet source so the examples restore the
-          # release version being tested instead of an older version from nuget.org.
-          dotnet new nugetconfig -o examples
-          dotnet nuget add source ${{ github.workspace }}/packages -n local-packages --configfile examples/nuget.config
+          # Restore the IceRPC packages only from the locally built packages, so the examples test the release
+          # being built and not a package with the same version from nuget.org.
+          @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              <add key="local-packages" value="${{ github.workspace }}/packages" />
+            </packageSources>
+            <packageSourceMapping>
+              <packageSource key="nuget.org">
+                <package pattern="*" />
+              </packageSource>
+              <packageSource key="local-packages">
+                <package pattern="icerpc.*" />
+                <package pattern="icerpc" />
+                <package pattern="zeroc.slice" />
+                <package pattern="zeroc.slice.codec" />
+              </packageSource>
+            </packageSourceMapping>
+          </configuration>
+          "@ | Set-Content examples/nuget.config
         shell: pwsh
 
       - name: Install dotnet new templates
