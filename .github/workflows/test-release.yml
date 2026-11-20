@@ -66,10 +66,10 @@ jobs:
 
       - name: Configure NuGet sources
         run: |
-          # Point the icerpc.dev source in examples/nuget.config at the locally built packages.
-          # The existing packageSourceMapping for icerpc.* and zeroc.slice.codec is preserved.
-          dotnet nuget remove source icerpc.dev --configfile examples/nuget.config
-          dotnet nuget add source --configfile examples/nuget.config -n icerpc.dev ${{ github.workspace }}/packages
+          # Add the locally built packages as a NuGet source so the examples restore the
+          # release version being tested instead of an older version from nuget.org.
+          dotnet new nugetconfig -o examples
+          dotnet nuget add source ${{ github.workspace }}/packages -n local-packages --configfile examples/nuget.config
         shell: pwsh
 
       - name: Install dotnet new templates
