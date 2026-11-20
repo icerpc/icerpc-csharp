@@ -66,10 +66,28 @@ jobs:
 
       - name: Configure NuGet sources
         run: |
-          # Point the icerpc.dev source in examples/nuget.config at the locally built packages.
-          # The existing packageSourceMapping for icerpc.* and zeroc.slice.codec is preserved.
-          dotnet nuget remove source icerpc.dev --configfile examples/nuget.config
-          dotnet nuget add source --configfile examples/nuget.config -n icerpc.dev ${{ github.workspace }}/packages
+          # Restore the IceRPC packages only from the locally built packages, so the examples test the release
+          # being built and not a package with the same version from nuget.org.
+          @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              <add key="local-packages" value="${{ github.workspace }}/packages" />
+            </packageSources>
+            <packageSourceMapping>
+              <packageSource key="nuget.org">
+                <package pattern="*" />
+              </packageSource>
+              <packageSource key="local-packages">
+                <package pattern="icerpc.*" />
+                <package pattern="icerpc" />
+                <package pattern="zeroc.slice.codec" />
+              </packageSource>
+            </packageSourceMapping>
+          </configuration>
+          "@ | Set-Content examples/nuget.config
         shell: pwsh
 
       - name: Install dotnet new templates
