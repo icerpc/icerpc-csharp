@@ -83,7 +83,6 @@ jobs:
               <packageSource key="local-packages">
                 <package pattern="icerpc.*" />
                 <package pattern="icerpc" />
-                <package pattern="zeroc.slice" />
                 <package pattern="zeroc.slice.codec" />
               </packageSource>
             </packageSourceMapping>
