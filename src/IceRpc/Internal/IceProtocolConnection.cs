@@ -1408,12 +1408,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             lock (_mutex)
             {
-                // Don't send a close connection frame since we can't wait for the peer's acknowledgment.
+                // We also prevent new one-way invocations even though they don't need to read the connection.
+                RefuseNewInvocations("The connection was lost because a read operation failed.");
+
+                // Don't send a close connection frame since we can't wait for the peer's acknowledgment. We clear this
+                // field before canceling the two-way dispatches because a shutdown in progress reads this field once
+                // these dispatches complete.
                 _sendCloseConnectionFrame = false;
             }
-
-            // We also prevent new one-way invocations even though they don't need to read the connection.
-            RefuseNewInvocations("The connection was lost because a read operation failed.");
 
             // It's ok to cancel CTS and a "synchronous" TCS below. We won't be reading anything else so it's ok to run
             // continuations synchronously.
