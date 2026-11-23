@@ -526,14 +526,22 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 if (sendCloseConnectionFrame)
                 {
-                    // Wait for dispatches and invocations to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
-
                     // We keep sending heartbeats while waiting for dispatches and invocations to complete; otherwise,
                     // the peer's idle check could abort the connection.
-                    await StopSendingHeartbeatAsync(shutdownCts.Token).ConfigureAwait(false);
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                    // Send CloseConnection frame.
+                    lock (_mutex)
+                    {
+                        // The read frames task clears this field when it receives CloseConnection from the peer or
+                        // fails.
+                        sendCloseConnectionFrame = _sendCloseConnectionFrame;
+                    }
+                }
+
+                await StopSendingHeartbeatAsync(shutdownCts.Token).ConfigureAwait(false);
+
+                if (sendCloseConnectionFrame)
+                {
                     await SendControlFrameAsync(EncodeCloseConnectionFrame, shutdownCts.Token).ConfigureAwait(false);
 
                     // Wait for the peer to abort the connection as an acknowledgment for this CloseConnection frame.
@@ -546,8 +554,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     // This branch is taken when we've received CloseConnection from the peer, or we failed to read
                     // the connection.
-
-                    await StopSendingHeartbeatAsync(shutdownCts.Token).ConfigureAwait(false);
 
                     // _readFramesTask should be already completed or nearly completed. If a read on the connection
                     // failed, this call throws the corresponding exception.
@@ -1400,8 +1406,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // Takes appropriate action after a read failure.
         void ReadFailed(Exception exception)
         {
-            // We also prevent new one-way invocations even though they don't need to read the connection.
-            RefuseNewInvocations("The connection was lost because a read operation failed.");
+            lock (_mutex)
+            {
+                // We also prevent new one-way invocations even though they don't need to read the connection.
+                RefuseNewInvocations("The connection was lost because a read operation failed.");
+
+                // Don't send a close connection frame since we can't wait for the peer's acknowledgment. We clear this
+                // field before canceling the two-way dispatches because a shutdown in progress reads this field once
+                // these dispatches complete.
+                _sendCloseConnectionFrame = false;
+            }
 
             // It's ok to cancel CTS and a "synchronous" TCS below. We won't be reading anything else so it's ok to run
             // continuations synchronously.
@@ -1415,12 +1429,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // batch request). We don't need to allow outstanding two-way dispatches to complete in these situations, so
             // we cancel them to speed-up the shutdown.
             _twowayDispatchesCts.Cancel();
-
-            lock (_mutex)
-            {
-                // Don't send a close connection frame since we can't wait for the peer's acknowledgment.
-                _sendCloseConnectionFrame = false;
-            }
 
             _ = _shutdownRequestedTcs.TrySetResult();
         }
