@@ -184,7 +184,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                             $"Invalid service address parameter '{name}' in URI '{uri}'.",
                             nameof(uri));
                     }
-                    _adapterId = Uri.UnescapeDataString(value);
+                    _adapterId = value;
                 }
             }
         }

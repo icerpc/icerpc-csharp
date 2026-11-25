@@ -72,7 +72,7 @@ public readonly record struct ServerAddress
     /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
     /// An icerpc server address has no parameters.</value>
     /// <remarks>A parameter name consists of one or more ASCII letters, digits, <c>-</c>, <c>_</c> and <c>.</c>. A
-    /// parameter value is percent-escaped, and does not contain <c>$</c> or <c>,</c>.</remarks>
+    /// parameter value is a plain string: it is percent-encoded only in the URI of this server address.</remarks>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -91,14 +91,6 @@ public readonly record struct ServerAddress
             _params = value;
         }
     }
-
-    // The printable ASCII range. Characters outside this range must be percent-escaped in a parameter value.
-    private const char FirstValidChar = '\x21';
-    private const char LastValidChar = '\x7E';
-
-    // Any server address can become an alt server address of a service address, and the string form of a service
-    // address separates its alt server addresses with ',' and the parameters of each one with '$'.
-    private static readonly SearchValues<char> _notValidInParamValue = SearchValues.Create("\"<>#$&,\\^`{|}");
 
     private static readonly SearchValues<char> _validInName =
         SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.");
@@ -208,21 +200,16 @@ public readonly record struct ServerAddress
     /// <returns>The URI.</returns>
     public Uri ToUri() => new(ToString(), UriKind.Absolute);
 
-    /// <summary>Checks that the parameter names are valid names other than <c>alt-server</c> and <c>transport</c>, and
-    /// that the parameter values contain only unreserved characters, <c>%</c>, and reserved characters other than
-    /// <c>#</c>, <c>$</c>, <c>&#38;</c> and <c>,</c>.</summary>
-    /// <exception cref="FormatException">Thrown when a parameter name or value is invalid.</exception>
+    /// <summary>Checks that the parameter names are valid names other than <c>alt-server</c> and <c>transport</c>.
+    /// </summary>
+    /// <exception cref="FormatException">Thrown when a parameter name is invalid.</exception>
     private static void CheckParams(ImmutableDictionary<string, string> @params)
     {
-        foreach ((string name, string value) in @params)
+        foreach (string name in @params.Keys)
         {
             if (!IsValidParamName(name))
             {
                 throw new FormatException($"Invalid parameter name '{name}'.");
-            }
-            if (!IsValidParamValue(value))
-            {
-                throw new FormatException($"Invalid parameter value '{value}'.");
             }
         }
     }
@@ -232,13 +219,6 @@ public readonly record struct ServerAddress
 
     private static bool IsValidParamName(string name) =>
         name != "alt-server" && name != "transport" && IsValidName(name);
-
-    private static bool IsValidParamValue(string value)
-    {
-        ReadOnlySpan<char> span = value.AsSpan();
-        return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 &&
-            span.IndexOfAny(_notValidInParamValue) == -1;
-    }
 
     /// <summary>Constructs a server address from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>

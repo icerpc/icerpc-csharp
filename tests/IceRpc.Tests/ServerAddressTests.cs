@@ -120,8 +120,6 @@ public class ServerAddressTests
     [TestCase("icerpc://host:10000?transport=tcp$foo")] // invalid character in transport name
     [TestCase("icerpc://host:10000?transport=tcp,quic")] // invalid character in transport name
     [TestCase("ice://host:10000?foo=bar&foo=baz")] // duplicate parameter
-    [TestCase("ice://host:10000?foo=bar$baz")] // invalid character in parameter value
-    [TestCase("ice://host:10000?foo=bar,baz")] // invalid character in parameter value
     [TestCase("ice://host:10000?foo$bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000?foo,bar=baz")] // invalid character in parameter name
     [TestCase("ice://host:10000? =bar")] // invalid character in parameter name
@@ -231,6 +229,8 @@ public class ServerAddressTests
     /// <param name="value">The value of the server address parameter to set.</param>
     [TestCase("name", "value")]
     [TestCase("My-name_2.0", "value%25[]@!")]
+    [TestCase("name", "a$b,c&d#e f")]
+    [TestCase("name", "café")]
     public void Setting_the_server_address_params(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("ice://localhost"));
@@ -239,6 +239,27 @@ public class ServerAddressTests
 
         Assert.That(serverAddress.Params.ContainsKey(name), Is.True);
         Assert.That(serverAddress.Params[name], Is.EqualTo(value));
+    }
+
+    /// <summary>Verifies that the value of a server address parameter is percent-decoded when the server address is
+    /// created from a URI, and percent-encoded in the URI of the server address.</summary>
+    /// <param name="serverAddress">The server address, created from a URI.</param>
+    /// <param name="value">The expected value of the <c>foo</c> parameter.</param>
+    /// <param name="expected">The expected string for the server address.</param>
+    [TestCase("ice://host?foo=a%20b", "a b", "ice://host?foo=a%20b")]
+    [TestCase("ice://host?foo=a%24b%2Cc%26d%23e%25f", "a$b,c&d#e%f", "ice://host?foo=a%24b%2Cc%26d%23e%25f")]
+    [TestCase("ice://host?foo=caf%C3%A9", "café", "ice://host?foo=caf%C3%A9")]
+    [TestCase("ice://host?foo=a=b/c:d@e?f", "a=b/c:d@e?f", "ice://host?foo=a=b/c:d@e?f")]
+    [TestCase("ice://host?foo=a$b,c", "a$b,c", "ice://host?foo=a%24b%2Cc")]
+    [TestCase("ice://host?foo=a%3db%2fc", "a=b/c", "ice://host?foo=a=b/c")]
+    [TestCase("ice://host?foo=[a]", "[a]", "ice://host?foo=%5Ba%5D")]
+    public void Server_address_param_value_is_percent_encoded_only_in_uri(
+        ServerAddress serverAddress,
+        string value,
+        string expected)
+    {
+        Assert.That(serverAddress.Params["foo"], Is.EqualTo(value));
+        Assert.That(serverAddress.ToString(), Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that trying to set the <see cref="ServerAddress.Host" /> to an invalid value throws
@@ -263,10 +284,6 @@ public class ServerAddressTests
     [TestCase("alt-server", "x")]
     [TestCase("", "value")]
     [TestCase(" name", "value")]
-    [TestCase("name", "valu#e")] // cSpell:disable-line
-    [TestCase("name", "valu&e")] // cSpell:disable-line
-    [TestCase("name", "valu$e")] // cSpell:disable-line
-    [TestCase("name", "valu,e")] // cSpell:disable-line
     [TestCase("na$me", "value")]
     [TestCase("na,me", "value")]
     [TestCase("name%23", "value")]
