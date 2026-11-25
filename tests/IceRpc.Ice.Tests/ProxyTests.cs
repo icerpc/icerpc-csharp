@@ -11,7 +11,6 @@ namespace IceRpc.Ice.Tests;
 public class ProxyTests
 {
     [TestCase(null, null)]
-    [TestCase("icerpc://hello.zeroc.com/hello", null)]
     [TestCase("ice://hello.zeroc.com/hello?transport=tcp#facet", null)]
     [TestCase("ice://hello.zeroc.com/hello", "ice://hello.zeroc.com/hello?transport=tcp")]
     [TestCase(
@@ -44,10 +43,37 @@ public class ProxyTests
         Assert.That(decoder.DecodeIceObjectProxy()?.ServiceAddress, Is.EqualTo(expectedValue ?? value));
     }
 
-    // Using transport=quic forces TransportCode.Uri on the ice side (only tcp/ssl have dedicated codes);
-    // icerpc always uses TransportCode.Uri.
+    [TestCase(2, 0)]
+    [TestCase(1, 1)]
+    public void Decode_proxy_with_protocol_version_other_than_1_0_throws_invalid_data(
+        byte protocolMajor,
+        byte protocolMinor)
+    {
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new IceEncoder(bufferWriter);
+        new Identity("hello", "").Encode(ref encoder);
+        encoder.EncodeSize(0); // facet
+        encoder.EncodeByte(0); // invocation mode
+        encoder.EncodeBool(false); // secure
+        encoder.EncodeByte(protocolMajor);
+        encoder.EncodeByte(protocolMinor);
+        encoder.EncodeByte(1); // encoding major
+        encoder.EncodeByte(1); // encoding minor
+        encoder.EncodeSize(0); // server address count
+        encoder.EncodeString(""); // adapter ID
+
+        // Act/Assert
+        Assert.That(
+            () =>
+            {
+                var decoder = new IceDecoder(bufferWriter.WrittenMemory);
+                _ = decoder.DecodeIceObjectProxy();
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    // Using transport=quic forces TransportCode.Uri (only tcp/ssl have dedicated codes).
     [TestCase("ice://hello.zeroc.com/hello?transport=quic", "ice:")]
-    [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:")]
     public void Decode_proxy_with_unparsable_server_address_uri_throws_invalid_data(
         ServiceAddress value,
         string schemePrefix)
@@ -74,10 +100,8 @@ public class ProxyTests
             Throws.InstanceOf<InvalidDataException>());
     }
 
-    // Using transport=quic forces TransportCode.Uri on the ice side (only tcp/ssl have dedicated codes);
-    // icerpc always uses TransportCode.Uri.
+    // Using transport=quic forces TransportCode.Uri (only tcp/ssl have dedicated codes).
     [TestCase("ice://hello.zeroc.com/hello?transport=quic", "ice:", "ftp:")]
-    [TestCase("icerpc://hello.zeroc.com/hello", "icerpc:", "gopher:")]
     public void Decode_proxy_with_invalid_server_address_uri_throws_invalid_data(
         ServiceAddress value,
         string schemePrefix,

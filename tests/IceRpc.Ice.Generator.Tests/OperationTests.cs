@@ -343,7 +343,7 @@ public partial class OperationTests
         var proxy = new MyOperationsAProxy(invoker);
 
         // Act
-        await proxy.OpWithProxyParameterAsync(new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
+        await proxy.OpWithProxyParameterAsync(new PingableProxy(InvalidInvoker.Instance, new Uri("ice:/hello")));
 
         // Assert
         Assert.That(service.ReceivedProxy, Is.Not.Null);
@@ -436,7 +436,7 @@ public partial class OperationTests
         public ValueTask<PingableProxy?> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
+            new(new PingableProxy(InvalidInvoker.Instance, new Uri("ice:/hello")));
     }
 
     [Service]

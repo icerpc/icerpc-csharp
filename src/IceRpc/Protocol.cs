@@ -36,10 +36,6 @@ public class Protocol
     /// <summary>Gets the ALPN protocol identifier for this protocol.</summary>
     internal SslApplicationProtocol AlpnProtocol { get; }
 
-    /// <summary>Gets the byte value for this protocol.</summary>
-    /// <value>The protocol byte value. It's used as the "protocol major" with the Ice encoding.</value>
-    internal byte ByteValue { get; }
-
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
     /// <value><see langword="true" /> if the protocol supports payload continuations; otherwise,
     /// <see langword="false" />.</value>
@@ -90,8 +86,7 @@ public class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasPayloadContinuation,
-        bool supportsPayloadWriterInterceptors,
-        byte byteValue)
+        bool supportsPayloadWriterInterceptors)
     {
         Name = name;
         AlpnProtocol = new SslApplicationProtocol(name);
@@ -99,6 +94,5 @@ public class Protocol
         HasFields = hasFields;
         HasPayloadContinuation = hasPayloadContinuation;
         SupportsPayloadWriterInterceptors = supportsPayloadWriterInterceptors;
-        ByteValue = byteValue;
     }
 }

@@ -25,8 +25,5 @@ module IceRpc::IntegrationTests
 
         // Check the context is correctly forwarded
         void opContext();
-
-        // Operation that returns a new proxy to the same target
-        ProtocolBridgingTest* opNewProxy();
     }
 }
