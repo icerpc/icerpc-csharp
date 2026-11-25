@@ -24,8 +24,8 @@ public static class IceProxyIceDecoderExtensions
     /// options.</remarks>
     public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy
     {
-        ServiceAddress? serviceAddress = decoder.DecodeServiceAddress();
-        return serviceAddress.HasValue ? CreateProxy<TProxy>(serviceAddress.Value, decoder.DecodingContext) : null;
+        ServiceAddress.Ice? serviceAddress = decoder.DecodeServiceAddress();
+        return serviceAddress is not null ? CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
     }
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
@@ -50,10 +50,10 @@ public static class IceProxyIceDecoderExtensions
     /// <summary>Decodes a service address.</summary>
     /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded service address, or <see langword="null" />.</returns>
-    private static ServiceAddress? DecodeServiceAddress(this ref IceDecoder decoder)
+    private static ServiceAddress.Ice? DecodeServiceAddress(this ref IceDecoder decoder)
     {
         string path = new Identity(ref decoder).ToPath();
-        return path != "/" ? decoder.DecodeServiceAddressCore(path) : (ServiceAddress?)null;
+        return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 
     /// <summary>Decodes an ice server address.</summary>
@@ -177,7 +177,7 @@ public static class IceProxyIceDecoderExtensions
     /// <param name="decoder">The Ice decoder.</param>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded service address.</returns>
-    private static ServiceAddress DecodeServiceAddressCore(this ref IceDecoder decoder, string path)
+    private static ServiceAddress.Ice DecodeServiceAddressCore(this ref IceDecoder decoder, string path)
     {
         // With the Ice encoding, a service address is encoded as a kind of discriminated union with:
         // - Identity
