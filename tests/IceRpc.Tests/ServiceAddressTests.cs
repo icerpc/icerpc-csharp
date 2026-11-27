@@ -204,8 +204,6 @@ public class ServiceAddressTests
             "icerpc://host/path?transport=tcp$foo", // invalid character in transport name
             "icerpc://host/path?transport=tcp,quic", // invalid character in transport name
             "ice://host/path?foo=bar&foo=baz", // duplicate server address parameter
-            "ice://host/path?foo=bar$baz",  // invalid character in server address parameter value
-            "ice://host/path?foo=bar,baz",  // invalid character in server address parameter value
             "ice://host/path?foo$bar=baz",  // invalid character in server address parameter name
             "ice://host/path?=bar",         // empty parameter name
             "ice:/path?adapter-id=foo&adapter-id=bar", // duplicate adapter-id
@@ -289,6 +287,15 @@ public class ServiceAddressTests
         {
             new ServerAddress { Host = "host1", Port = 10001 },
             new ServerAddress { Host = "host2", Port = 10002 },
+        },
+        ["ice://localhost/path?alt-server=host1?x=a%24b%2Cc%26d,host2"] = new ServerAddress[]
+        {
+            new ServerAddress(Protocol.Ice)
+            {
+                Host = "host1",
+                Params = ImmutableDictionary<string, string>.Empty.Add("x", "a$b,c&d")
+            },
+            new ServerAddress(Protocol.Ice) { Host = "host2" },
         },
     };
 

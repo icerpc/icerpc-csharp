@@ -7,8 +7,8 @@ namespace IceRpc.Internal;
 /// <summary>Extension methods for <see cref="Uri" />.</summary>
 internal static class UriExtensions
 {
-    /// <summary>Parses the query portion of a URI into a dictionary of name/value. The value of the alt-server
-    /// and transport parameters, if set, are returned separately.</summary>
+    /// <summary>Parses the query portion of a URI into a dictionary of name/value, with percent-decoded values. The
+    /// value of the alt-server and transport parameters, if set, are returned separately and as is.</summary>
     /// <exception cref="FormatException">Thrown when a parameter name is empty, or when a parameter other than
     /// alt-server appears more than once.</exception>
     internal static (ImmutableDictionary<string, string> QueryParams, string? AltServerValue, string? TransportValue) ParseQuery(
@@ -51,7 +51,7 @@ internal static class UriExtensions
                 }
                 else
                 {
-                    queryParams = queryParams.Add(name, value);
+                    queryParams = queryParams.Add(name, Uri.UnescapeDataString(value));
                 }
             }
             return (queryParams, altServer, transport);
