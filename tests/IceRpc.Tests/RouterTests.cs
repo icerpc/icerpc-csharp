@@ -54,6 +54,7 @@ public class RouterTests
     [TestCase("/")]
     [TestCase("///")] // bad form but nevertheless still works
     [TestCase("/foo/////")] // bad form but nevertheless still works
+    [TestCase("/café au lait?#%")]
     public async Task Exact_match_is_selected_first(string path)
     {
         // Arrange

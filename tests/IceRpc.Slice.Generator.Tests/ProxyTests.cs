@@ -60,6 +60,25 @@ public partial class ProxyTests
         Assert.That(decoder.DecodeString(), Is.EqualTo("/foo"));
     }
 
+    /// <summary>Verifies that the path of a relative proxy is percent-encoded when the proxy is encoded, and
+    /// percent-decoded when the proxy is decoded.</summary>
+    [Test]
+    public void Relative_proxy_path_is_percent_encoded()
+    {
+        // Arrange
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(bufferWriter);
+
+        // Act
+        encoder.EncodePingableProxy(PingableProxy.FromPath("/café au lait"));
+
+        // Assert
+        var decoder = new SliceDecoder(bufferWriter.WrittenMemory);
+        Assert.That(decoder.DecodeString(), Is.EqualTo("/caf%C3%A9%20au%20lait"));
+        decoder = new SliceDecoder(bufferWriter.WrittenMemory);
+        Assert.That(decoder.DecodePingableProxy().ServiceAddress.Path, Is.EqualTo("/café au lait"));
+    }
+
     /// <summary>Verifies that a relative proxy decoded without a base proxy remains relative and gets the invalid
     /// invoker.</summary>
     [Test]

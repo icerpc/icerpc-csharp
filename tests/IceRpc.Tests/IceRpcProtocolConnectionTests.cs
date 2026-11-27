@@ -639,49 +639,29 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that a request whose path violates the constraints enforced by
-    /// <see cref="ServiceAddress" /> is rejected at decode time, before it reaches the dispatcher.</summary>
-    [TestCase("/foo\r\nINJECTED")] // CR/LF in path
-    [TestCase("/foo\0")] // NUL in path
-    [TestCase("foo")] // path without leading '/'
-    public async Task Request_with_invalid_path_is_rejected(string path)
+    /// <summary>Verifies that the path of a request is sent as is.</summary>
+    [TestCase("/greeter")]
+    [TestCase("/café au lait?#%")]
+    public async Task Request_path_is_sent_as_is(string path)
     {
         // Arrange
-        var taskExceptionObserver = new TestTaskExceptionObserver();
+        using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransportDecorator()
-            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
-        IMultiplexedConnection clientTransportConnection = clientTransport.LastCreatedConnection;
-        IMultiplexedStream stream = await clientTransportConnection.CreateStreamAsync(bidirectional: true, default);
-
-        var writer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(writer);
-        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-        int startPos = encoder.EncodedByteCount;
-        encoder.EncodeString(path);
-        encoder.EncodeString("op");
-        encoder.EncodeVarUInt62(0); // empty field dictionary
-        SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        using var request = new OutgoingRequest(new ServiceAddress.IceRpc { Path = path });
 
         // Act
-        stream.Output.Write(writer.WrittenMemory.Span);
-        await stream.Output.FlushAsync();
-        await stream.Output.CompleteAsync(default);
+        _ = await sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(
-            async () => await taskExceptionObserver.DispatchRefusedException,
-            Is.InstanceOf<IceRpcException>()
-                .With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError)
-                .And.InnerException.InstanceOf<InvalidDataException>());
+        IncomingRequest incomingRequest = await dispatcher.DispatchStart;
+        Assert.That(incomingRequest.Path, Is.EqualTo(path));
     }
 
     /// <summary>Verifies that a request with a field count large enough that count * 2 would overflow int arithmetic

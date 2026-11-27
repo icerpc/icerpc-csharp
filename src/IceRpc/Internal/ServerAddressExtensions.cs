@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Buffers;
 using System.Globalization;
 using System.Text;
 
@@ -9,13 +8,6 @@ namespace IceRpc.Internal;
 /// <summary>Provides extension methods for <see cref="ServerAddress" />.</summary>
 internal static class ServerAddressExtensions
 {
-    // The characters that RFC 3986 allows in a query, except '%' and the separators:
-    // - '&' between the parameters of a server address
-    // - ',' between the server addresses of an alt-server parameter
-    // - '$' between the parameters of a server address in an alt-server parameter
-    private static readonly SearchValues<char> _unencodedInParamValue = SearchValues.Create(
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!'()*+;=:@/?");
-
     /// <summary>Appends the server address and all its parameters (if any) to this string builder.</summary>
     /// <param name="sb">The string builder.</param>
     /// <param name="serverAddress">The server address to append.</param>
@@ -57,7 +49,7 @@ internal static class ServerAddressExtensions
 
         if (path.Length > 0)
         {
-            sb.Append(path);
+            sb.Append(PercentEncoding.EncodePath(path));
         }
 
         bool firstParam = true;
@@ -82,7 +74,7 @@ internal static class ServerAddressExtensions
             if (value.Length > 0)
             {
                 sb.Append('=');
-                sb.AppendPercentEncoded(value, _unencodedInParamValue);
+                sb.Append(PercentEncoding.EncodeParamValue(value));
             }
         }
         return sb;
