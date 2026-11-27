@@ -90,7 +90,7 @@ public static class IceProxyIceDecoderExtensions
         if (encodingMajor != 1 || encodingMinor > 1)
         {
             throw new InvalidDataException(
-                $"Cannot decode server address for transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
+                $"Received server address with unsupported encapsulation encoding: {encodingMajor}.{encodingMinor}.");
         }
 
         long oldPos = decoder.Consumed;
@@ -196,7 +196,7 @@ public static class IceProxyIceDecoderExtensions
         if (protocolMajor != 1 || protocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"Received service address with unsupported protocol version: {protocolMajor}.{protocolMinor}");
+                $"Received service address with unsupported protocol version: {protocolMajor}.{protocolMinor}.");
         }
 
         int count = decoder.DecodeSize();

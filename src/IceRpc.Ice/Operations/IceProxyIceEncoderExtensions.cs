@@ -24,7 +24,7 @@ public static class IceProxyIceEncoderExtensions
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The proxy to encode.</param>
     /// <exception cref="ArgumentException">Thrown when the service address of <paramref name="value" /> is not an ice
-    /// service address.</exception>
+    /// service address, or when its path ends with <c>/</c>: the name of an Ice identity cannot be empty.</exception>
     public static void EncodeProxy<T>(this ref IceEncoder encoder, T? value) where T : struct, IIceProxy
     {
         if (value is null)
@@ -64,7 +64,7 @@ public static class IceProxyIceEncoderExtensions
 
         encoder.EncodeFragmentAsFacet(value.Fragment);
         encoder.EncodeInvocationMode(InvocationMode.Twoway);
-        encoder.EncodeBool(false); // Secure
+        encoder.EncodeBool(false); // Secure, not used
         encoder.EncodeByte(1);     // Protocol Major
         encoder.EncodeByte(0);     // Protocol Minor
         encoder.EncodeByte(1);     // Encoding Major
