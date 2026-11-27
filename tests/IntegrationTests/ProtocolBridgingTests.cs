@@ -30,7 +30,7 @@ public sealed partial class ProtocolBridgingTests
             InvalidInvoker.Instance,
             new Uri($"{targetServerAddress}/target"));
 
-        var targetService = new ProtocolBridgingTestService(targetServerAddress);
+        var targetService = new ProtocolBridgingTestService();
 
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
@@ -67,9 +67,8 @@ public sealed partial class ProtocolBridgingTests
             _ = server.Listen();
         }
 
-        ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderProxy, direct: false);
-        Assert.That((object)newProxy.ServiceAddress.Protocol.Name, Is.EqualTo(targetProtocol));
-        _ = await TestProxyAsync(newProxy, direct: true);
+        await TestProxyAsync(forwarderProxy, direct: false);
+        await TestProxyAsync(targetProxy, direct: true);
 
         await serviceProvider.GetRequiredService<ConnectionCache>().ShutdownAsync();
 
@@ -78,7 +77,7 @@ public sealed partial class ProtocolBridgingTests
             await server.ShutdownAsync();
         }
 
-        async Task<ProtocolBridgingTestProxy> TestProxyAsync(ProtocolBridgingTestProxy proxy, bool direct)
+        async Task TestProxyAsync(ProtocolBridgingTestProxy proxy, bool direct)
         {
             var expectedPath = direct ? "/target" : "/forward";
             Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(expectedPath));
@@ -103,10 +102,6 @@ public sealed partial class ProtocolBridgingTests
                 () => proxy.OpNotFoundExceptionAsync());
 
             Assert.That(dispatchException.StatusCode, Is.EqualTo(StatusCode.NotFound));
-
-            ProtocolBridgingTestProxy? newProxy = await proxy.OpNewProxyAsync();
-            Assert.That(newProxy, Is.Not.Null);
-            return newProxy.Value;
         }
     }
 
@@ -156,10 +151,6 @@ public sealed partial class ProtocolBridgingTests
 
         public TaskCompletionSource<int> OnewayArgument { get; set; } = new();
 
-        private readonly ServerAddress _publishedServerAddress;
-
-        public ProtocolBridgingTestService(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
-
         public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) =>
             new(x);
 
@@ -172,19 +163,6 @@ public sealed partial class ProtocolBridgingTests
 
         public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw new ProtocolBridgingException(42);
-
-        public ValueTask<ProtocolBridgingTestProxy?> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancellationToken)
-        {
-            IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
-
-            var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
-            {
-                Path = dispatchInformation.Path,
-                ServerAddress = _publishedServerAddress
-            };
-
-            return new(new ProtocolBridgingTestProxy(InvalidInvoker.Instance, serviceAddress));
-        }
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken)
         {

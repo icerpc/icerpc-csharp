@@ -30,7 +30,6 @@ public partial class ProxyTests
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     // cSpell:disable
-    [TestCase("icerpc://host:1000/path?transport=tcp", null)]
     [TestCase("ice://host:10000/cat/name?transport=tcp", null)]
     [TestCase("ice://host:10000/cat/name?transport=foo", null)]
     [TestCase("ice://host:10000/cat/name?transport=ssl&t=30000&z", null)]
@@ -66,7 +65,7 @@ public partial class ProxyTests
 
     /// <summary>Verifies that proxies are correctly encoded.</summary>
     /// <param name="expected">The proxy to test with.</param>
-    [TestCase("icerpc://host.zeroc.com/hello")]
+    [TestCase("ice://host.zeroc.com/hello?transport=tcp")]
     [TestCase(null)]
     public void Decode_proxy(ServiceAddress? expected)
     {
@@ -101,9 +100,8 @@ public partial class ProxyTests
             },
             Throws.TypeOf<FormatException>());
 
-    // we have to use icerpc since these paths are not valid for ice
-    [TestCase("icerpc://host:10000")]
-    [TestCase("icerpc://host:10000/foo/")]
+    [TestCase("ice://host:10000")]
+    [TestCase("ice://host:10000/foo/")]
     public void Encode_proxy_with_null_identity_fails(ServiceAddress serviceAddress) =>
         Assert.That(
             () =>
@@ -111,6 +109,18 @@ public partial class ProxyTests
                 var bufferWriter = new MemoryBufferWriter(new byte[256]);
                 var encoder = new IceEncoder(bufferWriter);
                 encoder.EncodeIceObjectProxy(new IceObjectProxy(InvalidInvoker.Instance, serviceAddress));
+            },
+            Throws.TypeOf<ArgumentException>());
+
+    [Test]
+    public void Encode_proxy_with_icerpc_service_address_fails() =>
+        Assert.That(
+            () =>
+            {
+                var bufferWriter = new MemoryBufferWriter(new byte[256]);
+                var encoder = new IceEncoder(bufferWriter);
+                encoder.EncodeIceObjectProxy(
+                    new IceObjectProxy(InvalidInvoker.Instance, new Uri("icerpc://host:10000/hello")));
             },
             Throws.TypeOf<ArgumentException>());
 
@@ -225,7 +235,7 @@ public partial class ProxyTests
         public ValueTask<ReceiveProxyTestProxy?> ReceiveProxyAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new ReceiveProxyTestProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
+            new(new ReceiveProxyTestProxy(InvalidInvoker.Instance, new Uri("ice:/hello")));
     }
 
     [Service]

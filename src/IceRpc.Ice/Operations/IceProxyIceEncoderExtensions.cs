@@ -23,22 +23,30 @@ public static class IceProxyIceEncoderExtensions
     /// <typeparam name="T">The type of the proxy to encode.</typeparam>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The proxy to encode.</param>
+    /// <exception cref="ArgumentException">Thrown when the service address of <paramref name="value" /> is not an ice
+    /// service address, or when its path ends with <c>/</c>: the name of an Ice identity cannot be empty.</exception>
     public static void EncodeProxy<T>(this ref IceEncoder encoder, T? value) where T : struct, IIceProxy
     {
-        if (value is not null)
+        if (value is null)
         {
-            encoder.EncodeServiceAddress(value.Value.ServiceAddress);
+            Identity.Empty.Encode(ref encoder);
+        }
+        else if (value.Value.ServiceAddress is ServiceAddress.Ice serviceAddress)
+        {
+            encoder.EncodeServiceAddress(serviceAddress);
         }
         else
         {
-            Identity.Empty.Encode(ref encoder);
+            throw new ArgumentException(
+                $"Cannot encode a proxy with service address '{value.Value.ServiceAddress}': the Ice encoding requires an ice service address.",
+                nameof(value));
         }
     }
 
     /// <summary>Encodes a service address.</summary>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The value to encode.</param>
-    private static void EncodeServiceAddress(this ref IceEncoder encoder, ServiceAddress value)
+    private static void EncodeServiceAddress(this ref IceEncoder encoder, ServiceAddress.Ice value)
     {
         // With the Ice encoding, a non-null proxy/service address is encoded as:
         // - identity, fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
@@ -54,19 +62,13 @@ public static class IceProxyIceEncoderExtensions
         }
         identity.Encode(ref encoder);
 
-        (string fragment, string adapterId) = value switch
-        {
-            ServiceAddress.Ice ice => (ice.Fragment, ice.AdapterId),
-            _ => ("", "")
-        };
-
-        encoder.EncodeFragmentAsFacet(fragment);
+        encoder.EncodeFragmentAsFacet(value.Fragment);
         encoder.EncodeInvocationMode(InvocationMode.Twoway);
-        encoder.EncodeBool(false);                    // Secure
-        encoder.EncodeByte(value.Protocol.ByteValue); // Protocol Major
-        encoder.EncodeByte(0);                        // Protocol Minor
-        encoder.EncodeByte(1);                        // Encoding Major
-        encoder.EncodeByte(1);                        // Encoding Minor
+        encoder.EncodeBool(false); // Secure, not used
+        encoder.EncodeByte(1);     // Protocol Major
+        encoder.EncodeByte(0);     // Protocol Minor
+        encoder.EncodeByte(1);     // Encoding Major
+        encoder.EncodeByte(1);     // Encoding Minor
 
         if (value.ServerAddress is ServerAddress serverAddress)
         {
@@ -80,26 +82,28 @@ public static class IceProxyIceEncoderExtensions
         else
         {
             encoder.EncodeSize(0); // 0 server addresses
-            encoder.EncodeString(adapterId);
+            encoder.EncodeString(value.AdapterId);
         }
     }
 
-    /// <summary>Encodes a server address in a nested encapsulation.</summary>
+    /// <summary>Encodes an ice server address in a nested encapsulation.</summary>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="serverAddress">The server address to encode.</param>
     private static void EncodeServerAddress(this ref IceEncoder encoder, ServerAddress serverAddress)
     {
+        Debug.Assert(serverAddress.Protocol == Protocol.Ice);
+
         // If the server address does not specify a transport, we default to TCP. We can't encode "default".
         string transport = serverAddress.Transport ?? TcpName;
 
         // The Ice encoding of ice server addresses is transport-specific, and hard-coded here.
 
-        if (serverAddress.Protocol == Protocol.Ice && transport == OpaqueName)
+        if (transport == OpaqueName)
         {
             // Opaque server address encoding
 
             (short transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
-                serverAddress.ParseOpaqueParams();
+                ParseOpaqueParams(serverAddress);
 
             encoder.EncodeShort(transportCode);
 
@@ -111,14 +115,12 @@ public static class IceProxyIceEncoderExtensions
         }
         else
         {
-            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice
-                ? transport switch
-                {
-                    SslName => TransportCode.Ssl,
-                    TcpName => TransportCode.Tcp,
-                    _ => TransportCode.Uri
-                }
-                : TransportCode.Uri;
+            TransportCode transportCode = transport switch
+            {
+                SslName => TransportCode.Ssl,
+                TcpName => TransportCode.Tcp,
+                _ => TransportCode.Uri
+            };
 
             encoder.EncodeShort((short)transportCode);
 
@@ -147,8 +149,6 @@ public static class IceProxyIceEncoderExtensions
     /// <summary>Encodes the body of a tcp or ssl server address.</summary>
     private static void EncodeTcpServerAddressBody(this ref IceEncoder encoder, ServerAddress serverAddress)
     {
-        Debug.Assert(serverAddress.Protocol == Protocol.Ice);
-
         new TcpServerAddressBody(
             serverAddress.Host,
             serverAddress.Port,
@@ -160,7 +160,7 @@ public static class IceProxyIceEncoderExtensions
 
     /// <summary>Parses the params of an opaque server address.</summary>
     private static (short TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
-       this ServerAddress serverAddress)
+        ServerAddress serverAddress)
     {
         short transportCode = -1;
         ReadOnlyMemory<byte> bytes = default;

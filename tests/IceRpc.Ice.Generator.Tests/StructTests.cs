@@ -14,7 +14,7 @@ public sealed class StructTests
 {
     [Test]
     public void Decode_struct_with_proxy(
-        [Values("icerpc://localhost/service", null)] string? serviceAddress)
+        [Values("ice:/service", null)] string? serviceAddress)
     {
         var expected = new MyStructWithProxy(
             10,
@@ -37,9 +37,9 @@ public sealed class StructTests
         {
             I = new AnotherPingableProxy?[]
             {
-                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
+                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service1")),
                 null,
-                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
+                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -61,9 +61,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, AnotherPingableProxy?>
             {
-                [1] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
+                [1] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service1")),
                 [2] = null,
-                [3] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
+                [3] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -81,7 +81,7 @@ public sealed class StructTests
 
     [Test]
     public void Encode_struct_with_proxy(
-        [Values("icerpc://localhost/service", null)] string? serviceAddress)
+        [Values("ice:/service", null)] string? serviceAddress)
     {
         var expected = new MyStructWithProxy(
             10,
@@ -103,9 +103,9 @@ public sealed class StructTests
         {
             I = new AnotherPingableProxy?[]
             {
-                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
+                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service1")),
                 null,
-                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
+                new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -126,9 +126,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, AnotherPingableProxy?>
             {
-                [1] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
+                [1] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service1")),
                 [2] = null,
-                [3] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
+                [3] = new AnotherPingableProxy(InvalidInvoker.Instance, new Uri("ice:/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);

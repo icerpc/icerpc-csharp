@@ -24,8 +24,8 @@ public static class IceProxyIceDecoderExtensions
     /// options.</remarks>
     public static TProxy? DecodeProxy<TProxy>(this ref IceDecoder decoder) where TProxy : struct, IIceProxy
     {
-        ServiceAddress? serviceAddress = decoder.DecodeServiceAddress();
-        return serviceAddress.HasValue ? CreateProxy<TProxy>(serviceAddress.Value, decoder.DecodingContext) : null;
+        ServiceAddress.Ice? serviceAddress = decoder.DecodeServiceAddress();
+        return serviceAddress is not null ? CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
     }
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
@@ -50,21 +50,19 @@ public static class IceProxyIceDecoderExtensions
     /// <summary>Decodes a service address.</summary>
     /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The decoded service address, or <see langword="null" />.</returns>
-    private static ServiceAddress? DecodeServiceAddress(this ref IceDecoder decoder)
+    private static ServiceAddress.Ice? DecodeServiceAddress(this ref IceDecoder decoder)
     {
         string path = new Identity(ref decoder).ToPath();
-        return path != "/" ? decoder.DecodeServiceAddressCore(path) : (ServiceAddress?)null;
+        return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 
-    /// <summary>Decodes a server address.</summary>
+    /// <summary>Decodes an ice server address.</summary>
     /// <param name="decoder">The Ice decoder.</param>
-    /// <param name="protocol">The protocol of this server address.</param>
     /// <returns>The server address decoded by this decoder.</returns>
-    private static ServerAddress DecodeServerAddress(this ref IceDecoder decoder, Protocol protocol)
+    private static ServerAddress DecodeServerAddress(this ref IceDecoder decoder)
     {
         // With the Ice encoding, the ice server addresses are transport-specific, with a transport-specific encoding.
 
-        ServerAddress? serverAddress = null;
         short transportCodeValue = decoder.DecodeShort();
         if (transportCodeValue < 0)
         {
@@ -89,95 +87,76 @@ public static class IceProxyIceDecoderExtensions
             throw new InvalidDataException($"The Ice encapsulation's size ({size}) is too big.");
         }
 
-        if (encodingMajor == 1 && encodingMinor <= 1)
-        {
-            long oldPos = decoder.Consumed;
-
-            if (protocol == Protocol.Ice)
-            {
-                switch (transportCode)
-                {
-                    case TransportCode.Tcp:
-                        serverAddress = decoder.DecodeTcpServerAddressBody(IceProxyIceEncoderExtensions.TcpName);
-                        break;
-
-                    case TransportCode.Ssl:
-                        serverAddress = decoder.DecodeTcpServerAddressBody(IceProxyIceEncoderExtensions.SslName);
-                        break;
-
-                    case TransportCode.Uri:
-                        serverAddress = DecodeUriServerAddress(decoder.DecodeString());
-                        if (serverAddress.Value.Protocol != protocol)
-                        {
-                            throw new InvalidDataException(
-                                $"Expected {protocol} server address but received '{serverAddress.Value}'.");
-                        }
-                        break;
-
-                    default:
-                        if (size == 0)
-                        {
-                            throw new InvalidDataException("Received opaque server address with an empty body.");
-                        }
-
-                        // Create a server address for transport opaque
-                        ImmutableDictionary<string, string>.Builder builder =
-                            ImmutableDictionary.CreateBuilder<string, string>();
-
-                        if (encodingMinor == 0)
-                        {
-                            builder.Add("e", "1.0");
-                        }
-                        // else no e
-
-                        builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                        {
-                            using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(size);
-                            Span<byte> span = memoryOwner.Memory.Span[0..size];
-                            decoder.CopyTo(span);
-                            string value = Convert.ToBase64String(span);
-                            builder.Add("v", value);
-                            decoder.IncreaseCollectionAllocation(value.Length, Unsafe.SizeOf<char>());
-                        }
-
-                        serverAddress = new ServerAddress(
-                            Protocol.Ice,
-                            host: "opaque", // not a real host obviously
-                            port: Protocol.Ice.DefaultPort,
-                            transport: IceProxyIceEncoderExtensions.OpaqueName,
-                            builder.ToImmutable());
-                        break;
-                }
-            }
-            else if (transportCode == TransportCode.Uri)
-            {
-                // The server addresses of an Ice-encoded icerpc proxies only use TransportCode.Uri.
-                serverAddress = DecodeUriServerAddress(decoder.DecodeString());
-                if (serverAddress.Value.Protocol != protocol)
-                {
-                    throw new InvalidDataException(
-                        $"Expected {protocol} server address but received '{serverAddress.Value}'.");
-                }
-            }
-
-            if (serverAddress is not null)
-            {
-                // Make sure we read the full encapsulation.
-                if (decoder.Consumed != oldPos + size)
-                {
-                    throw new InvalidDataException(
-                        $"There are {oldPos + size - decoder.Consumed} bytes left in server address encapsulation.");
-                }
-            }
-        }
-
-        if (serverAddress is null)
+        if (encodingMajor != 1 || encodingMinor > 1)
         {
             throw new InvalidDataException(
-                $"Cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
+                $"Received server address with unsupported encapsulation encoding: {encodingMajor}.{encodingMinor}.");
         }
 
-        return serverAddress.Value;
+        long oldPos = decoder.Consumed;
+        ServerAddress serverAddress;
+
+        switch (transportCode)
+        {
+            case TransportCode.Tcp:
+                serverAddress = decoder.DecodeTcpServerAddressBody(IceProxyIceEncoderExtensions.TcpName);
+                break;
+
+            case TransportCode.Ssl:
+                serverAddress = decoder.DecodeTcpServerAddressBody(IceProxyIceEncoderExtensions.SslName);
+                break;
+
+            case TransportCode.Uri:
+                serverAddress = DecodeUriServerAddress(decoder.DecodeString());
+                if (serverAddress.Protocol != Protocol.Ice)
+                {
+                    throw new InvalidDataException($"Expected ice server address but received '{serverAddress}'.");
+                }
+                break;
+
+            default:
+                if (size == 0)
+                {
+                    throw new InvalidDataException("Received opaque server address with an empty body.");
+                }
+
+                // Create a server address for transport opaque
+                ImmutableDictionary<string, string>.Builder builder =
+                    ImmutableDictionary.CreateBuilder<string, string>();
+
+                if (encodingMinor == 0)
+                {
+                    builder.Add("e", "1.0");
+                }
+                // else no e
+
+                builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
+                {
+                    using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(size);
+                    Span<byte> span = memoryOwner.Memory.Span[0..size];
+                    decoder.CopyTo(span);
+                    string value = Convert.ToBase64String(span);
+                    builder.Add("v", value);
+                    decoder.IncreaseCollectionAllocation(value.Length, Unsafe.SizeOf<char>());
+                }
+
+                serverAddress = new ServerAddress(
+                    Protocol.Ice,
+                    host: "opaque", // not a real host obviously
+                    port: Protocol.Ice.DefaultPort,
+                    transport: IceProxyIceEncoderExtensions.OpaqueName,
+                    builder.ToImmutable());
+                break;
+        }
+
+        // Make sure we read the full encapsulation.
+        if (decoder.Consumed != oldPos + size)
+        {
+            throw new InvalidDataException(
+                $"There are {oldPos + size - decoder.Consumed} bytes left in server address encapsulation.");
+        }
+
+        return serverAddress;
 
         static ServerAddress DecodeUriServerAddress(string uriString)
         {
@@ -198,7 +177,7 @@ public static class IceProxyIceDecoderExtensions
     /// <param name="decoder">The Ice decoder.</param>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded service address.</returns>
-    private static ServiceAddress DecodeServiceAddressCore(this ref IceDecoder decoder, string path)
+    private static ServiceAddress.Ice DecodeServiceAddressCore(this ref IceDecoder decoder, string path)
     {
         // With the Ice encoding, a service address is encoded as a kind of discriminated union with:
         // - Identity
@@ -214,17 +193,10 @@ public static class IceProxyIceDecoderExtensions
         byte protocolMinor = decoder.DecodeByte();
         decoder.Skip(2); // skip encoding major and minor
 
-        Protocol protocol = protocolMajor == Protocol.Ice.ByteValue
-            ? Protocol.Ice
-            : (protocolMajor == Protocol.IceRpc.ByteValue
-                ? Protocol.IceRpc
-                : throw new InvalidDataException(
-                    $"Received service address with invalid protocolMajor value: {protocolMajor}"));
-
-        if (protocolMinor != 0)
+        if (protocolMajor != 1 || protocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"Received service address with invalid protocolMinor value: {protocolMinor}");
+                $"Received service address with unsupported protocol version: {protocolMajor}.{protocolMinor}.");
         }
 
         int count = decoder.DecodeSize();
@@ -239,7 +211,7 @@ public static class IceProxyIceDecoderExtensions
         }
         else
         {
-            serverAddress = decoder.DecodeServerAddress(protocol);
+            serverAddress = decoder.DecodeServerAddress();
             if (count >= 2)
             {
                 // An Ice-encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
@@ -249,33 +221,18 @@ public static class IceProxyIceDecoderExtensions
                 var serverAddressArray = new ServerAddress[count - 1];
                 for (int i = 0; i < count - 1; ++i)
                 {
-                    serverAddressArray[i] = decoder.DecodeServerAddress(protocol);
+                    serverAddressArray[i] = decoder.DecodeServerAddress();
                 }
                 altServerAddresses = serverAddressArray;
             }
         }
 
-        if (protocol == Protocol.Ice)
-        {
-            return new ServiceAddress.Ice(
-                path,
-                serverAddress,
-                altServerAddresses.ToImmutableList(),
-                adapterId,
-                fragment);
-        }
-        else
-        {
-            if (fragment.Length > 0)
-            {
-                throw new InvalidDataException("Unexpected fragment in icerpc service address.");
-            }
-            if (adapterId.Length > 0)
-            {
-                throw new InvalidDataException("Unexpected adapter ID in icerpc service address.");
-            }
-            return new ServiceAddress.IceRpc(path, serverAddress, altServerAddresses.ToImmutableList());
-        }
+        return new ServiceAddress.Ice(
+            path,
+            serverAddress,
+            altServerAddresses.ToImmutableList(),
+            adapterId,
+            fragment);
     }
 
     /// <summary>Decodes the body of a tcp or ssl server address.</summary>
