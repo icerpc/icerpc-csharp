@@ -227,7 +227,7 @@ public class ServiceAddressTests
             ("ice://host.zeroc.com/identity#facet", "/identity", "facet"),
             ("ice://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x"),
             ("ice://host.zeroc.com/identity#", "/identity", ""),
-            ("ice://host.zeroc.com/identity#%24%23f", "/identity", "%24%23f"),
+            ("ice://host.zeroc.com/identity#%24%23f", "/identity", "$#f"),
             ("ice://host.zeroc.com/identity?xyz=false", "/identity", ""),
             ("ice://host.zeroc.com/identity?xyz=true", "/identity", ""),
             ("ice://host/cat/", "/cat/", ""),
@@ -237,8 +237,8 @@ public class ServiceAddressTests
             ("icerpc://host.zeroc.com", "/", ""),
             ("icerpc://host.zeroc.com:1000/category/name", "/category/name", ""),
             ("icerpc://host.zeroc.com:1000/loc0/loc1/category/name", "/loc0/loc1/category/name", ""),
-            ("icerpc://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space", ""),
-            ("icerpc://host.zeroc.com/category/name with space", "/category/name%20with%20space", ""),
+            ("icerpc://host.zeroc.com/category/name%20with%20space", "/category/name with space", ""),
+            ("icerpc://host.zeroc.com/category/name with space", "/category/name with space", ""),
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
             ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com", "//identity", ""),
             ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com:10000", "//identity", ""),
@@ -251,9 +251,9 @@ public class ServiceAddressTests
             ("ice:/location/identity#facet", "/location/identity", "facet"),
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
-            ("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F"),
+            ("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/\x7f€$%/!", "$'()*+,:;=@[] /"),
             ("ice://host.zeroc.com/foo##", "/foo", "#"),
-            ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!$'()*+,:;=@[]%20%2F"),
+            ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@[] %2F", "/identity", "\x7f€$%/!$'()*+,:;=@[] /"),
             (@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!", ""), // \ becomes / another syntax for empty port
             ("icerpc://host.zeroc.com:/identity", "/identity", ""),
             ("icerpc://host.zeroc.com/identity?transport=100", "/identity", ""),
@@ -262,7 +262,7 @@ public class ServiceAddressTests
             ("icerpc://host.zeroc.com:10000/identity?transport=tcp", "/identity", ""),
             ("icerpc://mylocation.domain.com/foo/bar?transport=loc", "/foo/bar", ""),
             ("icerpc://host:10000?transport=coloc", "/", ""),
-            ("icerpc:/tcp -p 10000", "/tcp%20-p%2010000", ""), // not recommended
+            ("icerpc:/tcp -p 10000", "/tcp -p 10000", ""), // not recommended
             ("ice://0.0.0.0/identity#facet", "/identity", "facet"), // Any IPv4 in service address server address (unusable but parses ok)
             ("ice://[::0]/identity#facet", "/identity", "facet"), // Any IPv6 in service address (unusable but parses ok)
             // IDN
@@ -299,15 +299,69 @@ public class ServiceAddressTests
         },
     };
 
-    /// <summary>Verifies that the adapter ID of a service address is unescaped, and escaped again in its URI.
-    /// </summary>
-    [Test]
-    public void Adapter_id_is_unescaped()
+    /// <summary>Verifies that the adapter ID of a service address is a plain string, percent-encoded only in the URI
+    /// of the service address.</summary>
+    /// <param name="adapterId">The adapter ID.</param>
+    /// <param name="expected">The expected string for the service address.</param>
+    [TestCase("my adapter%", "ice:/hello?adapter-id=my%20adapter%25")]
+    [TestCase("[a]", "ice:/hello?adapter-id=%5Ba%5D")]
+    [TestCase("a$b,c&d", "ice:/hello?adapter-id=a%24b%2Cc%26d")]
+    [TestCase("cat:1/user@host", "ice:/hello?adapter-id=cat:1/user@host")]
+    public void Adapter_id_is_percent_encoded_only_in_uri(string adapterId, string expected)
     {
-        var serviceAddress = new ServiceAddress.Ice(new Uri("ice:/hello?adapter-id=my%20adapter%25"));
+        var serviceAddress = new ServiceAddress.Ice { Path = "/hello", AdapterId = adapterId };
 
-        Assert.That(serviceAddress.AdapterId, Is.EqualTo("my adapter%"));
-        Assert.That(serviceAddress.ToString(), Is.EqualTo("ice:/hello?adapter-id=my%20adapter%25"));
+        Assert.That(serviceAddress.ToString(), Is.EqualTo(expected));
+        Assert.That(new ServiceAddress.Ice(new Uri(expected)).AdapterId, Is.EqualTo(adapterId));
+    }
+
+    /// <summary>Verifies that the path of a service address is a plain string, percent-encoded only in the URI of the
+    /// service address.</summary>
+    /// <param name="path">The path.</param>
+    /// <param name="expected">The expected string for the service address.</param>
+    [TestCase("/greeter", "icerpc://host/greeter")]
+    [TestCase("/café", "icerpc://host/caf%C3%A9")]
+    [TestCase("/my greeter", "icerpc://host/my%20greeter")]
+    [TestCase("/100%", "icerpc://host/100%25")]
+    [TestCase("/a?b#c", "icerpc://host/a%3Fb%23c")]
+    [TestCase("/a:b/c@d", "icerpc://host/a:b/c@d")]
+    [TestCase(@"/a\b", "icerpc://host/a%5Cb")]
+    [TestCase("/a%2Fb", "icerpc://host/a%252Fb")]
+    public void Path_is_percent_encoded_only_in_uri(string path, string expected)
+    {
+        var serviceAddress = new ServiceAddress.IceRpc
+        {
+            ServerAddress = new ServerAddress { Host = "host" },
+            Path = path
+        };
+
+        Assert.That(serviceAddress.ToString(), Is.EqualTo(expected));
+        Assert.That(new ServiceAddress.IceRpc(new Uri(expected)).Path, Is.EqualTo(path));
+    }
+
+    /// <summary>Verifies that the spelling of a path in a URI does not change the path of the service address.
+    /// </summary>
+    [TestCase("icerpc://host/a:b")]
+    [TestCase("icerpc://host/a%3Ab")]
+    [TestCase("icerpc://host/a%3ab")]
+    public void Path_does_not_depend_on_its_spelling_in_uri(ServiceAddress serviceAddress) =>
+        Assert.That(serviceAddress.Path, Is.EqualTo("/a:b"));
+
+    /// <summary>Verifies that the fragment of an ice service address is a plain string, percent-encoded only in the
+    /// URI of the service address.</summary>
+    /// <param name="fragment">The fragment.</param>
+    /// <param name="expected">The expected string for the service address.</param>
+    [TestCase("facet", "ice:/hello#facet")]
+    [TestCase("my facet", "ice:/hello#my%20facet")]
+    [TestCase("a#b%c", "ice:/hello#a%23b%25c")]
+    [TestCase("a/b?c", "ice:/hello#a/b?c")]
+    [TestCase("café", "ice:/hello#caf%C3%A9")]
+    public void Fragment_is_percent_encoded_only_in_uri(string fragment, string expected)
+    {
+        var serviceAddress = new ServiceAddress.Ice { Path = "/hello", Fragment = fragment };
+
+        Assert.That(serviceAddress.ToString(), Is.EqualTo(expected));
+        Assert.That(new ServiceAddress.Ice(new Uri(expected)).Fragment, Is.EqualTo(fragment));
     }
 
     /// <summary>Verifies that the service address server address cannot be set when the service address has an
@@ -439,17 +493,7 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.ServerAddress, Is.Null);
     }
 
-    [Test]
-    public void Invalid_fragment_throws_exception()
-    {
-        // Arrange
-        var serviceAddress = new ServiceAddress.Ice();
-
-        // Act/Assert
-        Assert.That(() => serviceAddress with { Fragment = "foo<" }, Throws.ArgumentException);
-    }
-
-    [TestCase("icerpc", "/foo<")]
+    [TestCase("icerpc", "foo")]
     [TestCase("ice", "/a/b/c")]
     public void Invalid_path_throws_exception(string protocol, string path)
     {

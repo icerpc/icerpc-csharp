@@ -24,7 +24,7 @@ internal static class FacetExtensions
         else
         {
             encoder.EncodeSize(1);
-            encoder.EncodeString(Uri.UnescapeDataString(fragment));
+            encoder.EncodeString(fragment);
         }
     }
 
@@ -35,10 +35,10 @@ internal static class FacetExtensions
         facet.Count switch
         {
             0 => "",
-            1 => Uri.EscapeDataString(facet[0]),
+            1 => facet[0],
             _ => throw new InvalidDataException("Received a Facet with too many sequence elements.")
         };
 
     internal static IList<string> ToFacet(this string fragment) =>
-        fragment.Length == 0 ? [] : new List<string> { Uri.UnescapeDataString(fragment) };
+        fragment.Length == 0 ? [] : new List<string> { fragment };
 }

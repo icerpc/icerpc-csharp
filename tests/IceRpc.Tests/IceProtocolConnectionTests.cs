@@ -169,6 +169,30 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
+    /// <summary>Verifies that the fragment of a request is sent as is: it is the Ice facet.</summary>
+    [Test]
+    public async Task Request_fragment_is_sent_as_is()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress.Ice { Path = "/hello", Fragment = "my facet#%" });
+
+        // Act
+        _ = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        IncomingRequest incomingRequest = await dispatcher.DispatchStart;
+        Assert.That(incomingRequest.Fragment, Is.EqualTo("my facet#%"));
+    }
+
     /// <summary>Verifies that a StatusCode dispatched by the server is encoded as a ReplyStatus and decoded back to
     /// the expected StatusCode by the client.</summary>
     [Test]

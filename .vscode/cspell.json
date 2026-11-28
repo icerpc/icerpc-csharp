@@ -47,6 +47,7 @@
     "Oneway",
     "parallelizable",
     "parameterless",
+    "pchar",
     "peekable",
     "pingable",
     "Pkcs",

@@ -26,11 +26,12 @@ public static class SliceProxySliceDecoderExtensions
         {
             if (value.StartsWith('/', StringComparison.Ordinal))
             {
+                string path = Uri.UnescapeDataString(value);
                 return baseProxy is null
-                    ? TProxy.FromPath(value)
+                    ? TProxy.FromPath(path)
                     : TProxy.Create(
                         baseProxy.Invoker,
-                        baseProxy.ServiceAddress with { Path = value },
+                        baseProxy.ServiceAddress with { Path = path },
                         baseProxy.EncodeOptions);
             }
             else

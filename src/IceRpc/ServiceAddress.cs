@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using System.Buffers;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -117,27 +116,10 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         /// <summary>Gets or initializes the fragment.</summary>
         /// <value>The fragment of this service address, which corresponds to the Ice facet. Defaults to an empty
         /// string.</value>
-        public string Fragment
-        {
-            get => _fragment;
-
-            init
-            {
-                try
-                {
-                    CheckFragment(value);
-                }
-                catch (FormatException exception)
-                {
-                    throw new ArgumentException("Invalid fragment.", nameof(value), exception);
-                }
-                _fragment = value;
-            }
-        }
+        public string Fragment { get; init; } = "";
 
         private string _adapterId = "";
         private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
-        private string _fragment = "";
         private string _path = "/";
         private ServerAddress? _serverAddress;
 
@@ -159,7 +141,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             try
             {
                 CheckIcePath(path);
-                CheckFragment(fragment);
             }
             catch (FormatException exception)
             {
@@ -169,7 +150,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
                     exception);
             }
             _path = path;
-            _fragment = fragment;
+            Fragment = fragment;
             _serverAddress = serverAddress;
             _altServerAddresses = altServerAddresses;
 
@@ -218,13 +199,13 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             {
                 sb.Append(firstOption ? '?' : '&');
                 sb.Append("adapter-id=");
-                sb.Append(EscapeAdapterId(AdapterId));
+                sb.Append(PercentEncoding.EncodeParamValue(AdapterId));
             }
 
             if (Fragment.Length > 0)
             {
                 sb.Append('#');
-                sb.Append(Fragment);
+                sb.Append(PercentEncoding.EncodeFragment(Fragment));
             }
             return sb.ToString();
         }
@@ -245,11 +226,11 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             _serverAddress = serverAddress;
             _altServerAddresses = altServerAddresses;
             _adapterId = adapterId;
-            _fragment = fragment;
+            Fragment = fragment;
         }
 
-        /// <summary>Checks if a path is a valid URI absolute path with at most two segments, the category and the
-        /// name of an Ice identity.</summary>
+        /// <summary>Checks if a path is a valid path with at most two segments, the category and the name of an Ice
+        /// identity.</summary>
         /// <remarks>The default path <c>/</c> is valid: sending a request to the null identity is in itself ok. With
         /// an Ice server, it results in a dispatch exception with status code <see cref="StatusCode.NotFound" />.
         /// </remarks>
@@ -261,43 +242,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
             {
                 throw new FormatException($"Too many slashes in path '{path}'.");
             }
-        }
-
-        /// <summary>Percent-encodes only the characters that are not valid in a URI query parameter value:
-        /// characters outside the printable ASCII range <c>\x21..\x7E</c>, the characters that are invalid in a
-        /// parameter value, and the <c>%</c> character itself, which must be escaped to make the result
-        /// unambiguously decodable.</summary>
-        /// <remarks>This is intentionally narrower than <see cref="Uri.EscapeDataString(string)" />, which
-        /// over-escapes characters that are valid in a parameter value such as <c>/</c>, <c>:</c> and <c>@</c>.
-        /// </remarks>
-        private static string EscapeAdapterId(string value)
-        {
-            ReadOnlySpan<char> span = value.AsSpan();
-
-            // Adapter IDs are usually pure ASCII so we almost always take this path.
-            if (span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 &&
-                span.IndexOfAny(_mustEscapeInAdapterId) == -1)
-            {
-                return value;
-            }
-
-            // Encode the whole string to UTF-8 bytes, then percent-escape every byte that is not a valid unescaped
-            // char. UTF-8 continuation bytes (>= 0x80) fall in the escape branch, so multi-byte code points need no
-            // surrogate-pair logic here.
-            byte[] utf8 = Encoding.UTF8.GetBytes(value);
-            var sb = new StringBuilder(utf8.Length + 8);
-            foreach (byte b in utf8)
-            {
-                if (b >= FirstValidChar && b <= LastValidChar && !_mustEscapeInAdapterId.Contains((char)b))
-                {
-                    sb.Append((char)b);
-                }
-                else
-                {
-                    sb.Append('%').Append(b.ToString("X2", CultureInfo.InvariantCulture));
-                }
-            }
-            return sb.ToString();
         }
     }
 
@@ -544,16 +488,6 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         };
     }
 
-    // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in path,
-    // fragment, etc. in addition to the invalid characters in the _notValidInXXX search values.
-    private const char FirstValidChar = '\x21';
-    private const char LastValidChar = '\x7E';
-
-    // The characters that are not valid in a query parameter value, plus '%'.
-    private static readonly SearchValues<char> _mustEscapeInAdapterId = SearchValues.Create("\"<>#%&\\^`{|}");
-    private static readonly SearchValues<char> _notValidInFragment = SearchValues.Create("\"<>\\^`{|}");
-    private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?\\^`{|}");
-
     private readonly object? _value;
 
     /// <summary>Constructs a service address with default values for a protocol.</summary>
@@ -636,18 +570,14 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         return value is not null;
     }
 
-    /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts
-    /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, and reserved characters other than
-    /// <c>?</c> and <c>#</c>.</summary>
+    /// <summary>Checks if <paramref name="path" /> starts with a <c>/</c>.</summary>
     /// <param name="path">The path to check.</param>
     /// <exception cref="FormatException">Thrown when the path is not valid.</exception>
-    /// <remarks>The absolute path of a URI with a supported protocol satisfies these requirements.</remarks>
     internal static void CheckPath(string path)
     {
-        if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
+        if (path.Length == 0 || path[0] != '/')
         {
-            throw new FormatException(
-                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
+            throw new FormatException($"Invalid path '{path}'; a valid path starts with '/'.");
         }
     }
 
@@ -672,7 +602,7 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         {
             sb.Append(protocol);
             sb.Append(':');
-            sb.Append(path);
+            sb.Append(PercentEncoding.EncodePath(path));
         }
 
         if (altServerAddresses.Count > 0)
@@ -717,28 +647,10 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         return altServerAddresses;
     }
 
-    /// <summary>Checks if <paramref name="fragment" /> is a properly escaped URI fragment, i.e. it contains only
-    /// unreserved characters, reserved characters, and '%'.</summary>
-    /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
-    private static void CheckFragment(string fragment)
-    {
-        if (!IsValid(fragment, _notValidInFragment))
-        {
-            throw new FormatException(
-                $"Invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters, and '%'.");
-        }
-    }
-
-    private static bool IsValid(string s, SearchValues<char> invalidChars)
-    {
-        ReadOnlySpan<char> span = s.AsSpan();
-        return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
-    }
-
     /// <summary>Parses a service address URI into its components.</summary>
-    /// <returns>The path, the server addresses, the query parameters other than alt-server and transport, and the
-    /// fragment without its leading <c>#</c>. With an authority, an ice main server address also carries the query
-    /// parameters.</returns>
+    /// <returns>The percent-decoded path, the server addresses, the query parameters other than alt-server and
+    /// transport, and the percent-decoded fragment without its leading <c>#</c>. With an authority, an ice main server
+    /// address also carries the query parameters.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="uri" /> is not an absolute URI with the scheme
     /// of <paramref name="protocol" />, or when its path, authority or query is not valid for a service address.
     /// </exception>
@@ -752,8 +664,8 @@ public readonly struct ServiceAddress : ServiceAddress.IUnionMembers, IUnion, IE
         }
 
         // The AbsolutePath is empty for a URI such as "icerpc:"
-        string path = uri.AbsolutePath.Length > 0 ? uri.AbsolutePath : "/";
-        string fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "";
+        string path = uri.AbsolutePath.Length > 0 ? Uri.UnescapeDataString(uri.AbsolutePath) : "/";
+        string fragment = uri.Fragment.Length > 0 ? Uri.UnescapeDataString(uri.Fragment[1..]) : "";
 
         ImmutableDictionary<string, string> queryParams;
         string? altServerValue;
